@@ -1,4 +1,4 @@
-export const CURRENT_VERSION = '1.0.4';
+export const CURRENT_VERSION = '1.0.5';
 
 // Helper to compare semver strings (e.g. "1.0.4" > "1.0.3")
 export const isNewerVersion = (serverVer, currentVer = CURRENT_VERSION) => {
