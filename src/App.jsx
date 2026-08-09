@@ -176,7 +176,7 @@ function App() {
   };
 
   React.useEffect(() => {
-    fetch(`/version.json?t=${Date.now()}`)
+    fetch(`https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.version && data.version !== CURRENT_VERSION) {
@@ -1575,27 +1575,6 @@ function App() {
                 onClick={handleSaveProfile}
               >
                 Simpan Profil
-              </button>
-              
-              <button
-                type="button"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#6B7280',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  padding: '6px',
-                  textDecoration: 'underline'
-                }}
-                onClick={() => {
-                  window.history.pushState({}, '', '?admin');
-                  setIsAdminView(true);
-                  setIsProfileModalOpen(false);
-                }}
-              >
-                🛡️ Buka Cassiel Command (?admin)
               </button>
             </div>
           </div>

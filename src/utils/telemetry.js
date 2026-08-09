@@ -28,24 +28,84 @@ const generateId = () => {
   return 'dev_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
 };
 
-// Detect device name & OS/Browser
+// Helper to filter out & purge dummy/test records from Firestore and local cache
+const cleanupDummyRecords = (list) => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(item => {
+    const isDummyId = item.id === 'dev_windows_pc' || item.id === 'dev_init_system';
+    const isDummyName = /cassiel system|redilah \(pc admin\)/i.test(item.userName || '');
+    if (isDummyId || isDummyName) {
+      if (item.id) {
+        try {
+          deleteDoc(doc(db, TELEMETRY_COLLECTION, item.id));
+        } catch (e) {}
+      }
+      return false;
+    }
+    return true;
+  });
+};
+
+// Detect device name & OS/Browser (extracts phone brand/model like Samsung, Xiaomi, iPhone, or Windows Laptop)
 export const detectDeviceName = () => {
-  const ua = navigator.userAgent;
-  let os = 'Unknown OS';
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const uadPlatform = navigator.userAgentData?.platform || '';
+
+  let os = 'Windows PC';
   let browser = 'Browser';
+  let deviceModel = '';
 
   const isCapacitor = window.Capacitor !== undefined || window.location.protocol === 'capacitor:';
 
-  if (/android/i.test(ua)) {
-    os = isCapacitor ? 'Android (Capacitor App)' : 'Android (Mobile Web)';
-  } else if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
-    os = isCapacitor ? 'iOS (Capacitor App)' : 'iOS (Safari Mobile)';
-  } else if (/Win/i.test(ua)) {
+  // 1. Check Windows PC/Laptop first
+  const isWindows = /Win/i.test(platform) || /Win/i.test(uadPlatform) || /Windows|Win32|Win64/i.test(ua);
+
+  // 2. Check Android
+  const isAndroid = /android/i.test(ua);
+
+  // 3. Check Apple
+  const isApple = /iPhone|iPad|iPod|MacIntel|Macintosh|Mac OS X/i.test(platform) ||
+                  /iPhone|iPad|iPod|Mac OS X/i.test(ua) ||
+                  /iOS|macOS/i.test(uadPlatform);
+
+  if (isWindows) {
     os = 'Windows PC';
-  } else if (/Mac/i.test(ua)) {
-    os = 'Macintosh';
-  } else if (/Linux/i.test(ua)) {
-    os = 'Linux';
+  } else if (isAndroid) {
+    // Extract Android device model from User-Agent (e.g. "Android 13; SM-S918B Build/...")
+    const androidMatch = ua.match(/Android\s+[^;]+;\s*([^;)]+)\s*(?:Build|\)|;)/i);
+    if (androidMatch && androidMatch[1]) {
+      let model = androidMatch[1].trim();
+      model = model.replace(/;\s*wv$/, '').trim();
+      if (model && !/Linux|K|Android/i.test(model)) {
+        deviceModel = model;
+      }
+    }
+    
+    // Detect Brand prefix if recognizable
+    let brand = '';
+    if (/samsung|SM-/i.test(ua) || /SM-/i.test(deviceModel)) brand = 'Samsung';
+    else if (/xiaomi|redmi|poco/i.test(ua) || /Redmi|POCO/i.test(deviceModel)) brand = 'Xiaomi/Redmi';
+    else if (/oppo|cph/i.test(ua) || /CPH/i.test(deviceModel)) brand = 'OPPO';
+    else if (/vivo|v2/i.test(ua) || /V2\d{3}/i.test(deviceModel)) brand = 'Vivo';
+    else if (/realme|rmx/i.test(ua) || /RMX/i.test(deviceModel)) brand = 'Realme';
+    else if (/infinix/i.test(ua)) brand = 'Infinix';
+    else if (/pixel/i.test(ua)) brand = 'Google Pixel';
+
+    const fullDevice = brand ? `${brand} ${deviceModel}`.trim() : (deviceModel || 'Android Device');
+    os = isCapacitor ? fullDevice : `${fullDevice} (Web)`;
+  } else if (isApple && !isWindows) {
+    if (/iPad/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      deviceModel = 'iPad';
+      os = isCapacitor ? 'Apple iPad' : 'Apple iPad (Safari)';
+    } else if (/iPhone/.test(ua)) {
+      deviceModel = 'iPhone';
+      os = isCapacitor ? 'Apple iPhone' : 'Apple iPhone (Safari)';
+    } else {
+      os = isCapacitor ? 'MacBook / Mac' : 'MacBook / Mac (Safari)';
+    }
+  } else if (/Linux/i.test(ua) || /Linux/i.test(platform)) {
+    os = 'Linux PC';
   }
 
   if (/chrome|crios/i.test(ua) && !/edge|edg/i.test(ua)) {
@@ -58,7 +118,7 @@ export const detectDeviceName = () => {
     browser = 'Edge';
   }
 
-  return `${os} • ${browser}`;
+  return isCapacitor ? os : `${os} • ${browser}`;
 };
 
 // Get or create device ID
@@ -118,6 +178,7 @@ export const updateCurrentDeviceTelemetry = async () => {
   try {
     const cached = localStorage.getItem(LOCAL_CACHE_KEY);
     let list = cached ? JSON.parse(cached) : [];
+    list = cleanupDummyRecords(list);
     const idx = list.findIndex(item => item.id === currentDeviceId);
     if (idx >= 0) {
       list[idx] = { ...deviceData, isCurrentDevice: true };
@@ -138,7 +199,7 @@ export const getTelemetryData = async () => {
     const colRef = collection(db, TELEMETRY_COLLECTION);
     const snapshot = await withTimeout(getDocs(colRef), 2500);
 
-    const list = [];
+    let list = [];
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       list.push({
@@ -147,6 +208,7 @@ export const getTelemetryData = async () => {
       });
     });
 
+    list = cleanupDummyRecords(list);
     list.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
 
     localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
@@ -156,7 +218,8 @@ export const getTelemetryData = async () => {
     try {
       const cached = localStorage.getItem(LOCAL_CACHE_KEY);
       if (cached) {
-        const list = JSON.parse(cached);
+        let list = JSON.parse(cached);
+        list = cleanupDummyRecords(list);
         list.forEach(item => {
           item.isCurrentDevice = (item.id === currentDevId);
         });
@@ -185,7 +248,7 @@ export const subscribeToTelemetry = (onUpdate) => {
     const currentDevId = getDeviceId();
 
     return onSnapshot(colRef, (snapshot) => {
-      const list = [];
+      let list = [];
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         list.push({
@@ -193,6 +256,7 @@ export const subscribeToTelemetry = (onUpdate) => {
           isCurrentDevice: data.id === currentDevId
         });
       });
+      list = cleanupDummyRecords(list);
       list.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
       
       localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));

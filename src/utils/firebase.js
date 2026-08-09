@@ -2,12 +2,12 @@ import { initializeApp } from '@firebase/app';
 import { getFirestore } from '@firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAXEFbCQp57MIb_t_AuFeevY1O1kMT_Ni8",
-  authDomain: "luminacube-rubik-game.firebaseapp.com",
-  projectId: "luminacube-rubik-game",
-  storageBucket: "luminacube-rubik-game.firebasestorage.app",
-  messagingSenderId: "766771476353",
-  appId: "1:766771476353:web:7fbae8f298f7ca09065a80"
+  apiKey: "AIzaSyBhaSgR4Pc4ctnZ_NoTkVVOIPsegPHwvqE",
+  authDomain: "regalia-senpai-app.firebaseapp.com",
+  projectId: "regalia-senpai-app",
+  storageBucket: "regalia-senpai-app.firebasestorage.app",
+  messagingSenderId: "799596292912",
+  appId: "1:799596292912:web:12143be1317d4eec3136f5"
 };
 
 // Initialize Firebase App for Cassiel Command
