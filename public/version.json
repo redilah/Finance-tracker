@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
-  "changelog": "Rilis v1.0.2: Perbaikan sinkronisasi versi dan optimasi penyimpanan.",
+  "version": "1.0.3",
+  "changelog": "Rilis v1.0.3: Hapus tombol Reset Log Firebase dan peningkatan stabilitas.",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }

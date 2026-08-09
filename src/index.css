@@ -54,6 +54,18 @@ body {
   border-radius: 36px;
 }
 
+/* Admin Dashboard Fullscreen Mode Override */
+#root.admin-mode {
+  max-width: 100%;
+  max-height: none;
+  height: 100vh;
+  min-height: 100vh;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: #F8EFE6;
+  overflow-y: auto;
+}
+
 /* For mobile devices, take full width/height */
 @media (max-width: 480px) {
   #root {

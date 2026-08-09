@@ -19,6 +19,8 @@ import kipSvg from './assets/KIP.svg';
 import pesawatSvg from './assets/Pesawat.svg';
 import kostSvg from './assets/Kost.svg';
 import { CURRENT_VERSION } from './utils/version';
+import AdminDashboard from './components/AdminDashboard';
+import { updateCurrentDeviceTelemetry } from './utils/telemetry';
 import { 
   isNotificationEnabled, 
   toggleNotificationState, 
@@ -117,6 +119,38 @@ function App() {
 
   // Notification Bell State (Persisted)
   const [isNotifActive, setIsNotifActive] = useState(() => isNotificationEnabled());
+
+  // Web Admin Dashboard URL detection (?admin or /admin)
+  const [isAdminView, setIsAdminView] = useState(() => {
+    return window.location.search.includes('admin') || window.location.pathname.startsWith('/admin');
+  });
+
+  // Track & update device telemetry on launch / profile change
+  React.useEffect(() => {
+    updateCurrentDeviceTelemetry();
+  }, [profileName, transactions]);
+
+  // Adjust root container width mode for admin view
+  React.useEffect(() => {
+    const root = document.getElementById('root');
+    if (root) {
+      if (isAdminView) {
+        root.classList.add('admin-mode');
+      } else {
+        root.classList.remove('admin-mode');
+      }
+    }
+  }, [isAdminView]);
+
+  // Listen to popstate for back/forward browser navigation for ?admin
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const checkAdmin = window.location.search.includes('admin') || window.location.pathname.startsWith('/admin');
+      setIsAdminView(checkAdmin);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Play sound on app start if notification bell was already enabled
   React.useEffect(() => {
@@ -636,6 +670,17 @@ function App() {
       pLabel
     };
   });
+
+  if (isAdminView) {
+    return (
+      <AdminDashboard 
+        onNavigateToApp={() => {
+          window.history.pushState({}, '', window.location.pathname.replace('/admin', '/').replace(/\?admin.*/, ''));
+          setIsAdminView(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-container">
@@ -1523,13 +1568,34 @@ function App() {
               </div>
             </div>
 
-            <div className="profile-modal-footer">
+            <div className="profile-modal-footer" style={{ flexDirection: 'column', gap: '8px' }}>
               <button
                 type="button"
                 className="profile-save-btn"
                 onClick={handleSaveProfile}
               >
                 Simpan Profil
+              </button>
+              
+              <button
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#6B7280',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '6px',
+                  textDecoration: 'underline'
+                }}
+                onClick={() => {
+                  window.history.pushState({}, '', '?admin');
+                  setIsAdminView(true);
+                  setIsProfileModalOpen(false);
+                }}
+              >
+                🛡️ Buka Cassiel Command (?admin)
               </button>
             </div>
           </div>
