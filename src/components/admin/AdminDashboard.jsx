@@ -4,7 +4,7 @@ import {
   getTelemetryData, 
   updateCurrentDeviceTelemetry, 
   subscribeToTelemetry 
-} from '../utils/telemetry';
+} from '../../utils/telemetry';
 import { 
   Users, 
   Smartphone, 
