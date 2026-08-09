@@ -125,6 +125,19 @@ function App() {
     return window.location.search.includes('admin') || window.location.pathname.startsWith('/admin');
   });
 
+  // Hide HTML splash screen smoothly on app load once React is ready
+  React.useEffect(() => {
+    const splash = document.getElementById('app-splash-screen');
+    if (splash) {
+      splash.classList.add('splash-exit');
+      setTimeout(() => {
+        if (splash.parentNode) {
+          splash.parentNode.removeChild(splash);
+        }
+      }, 500);
+    }
+  }, []);
+
   // Track & update device telemetry on launch / profile change
   React.useEffect(() => {
     updateCurrentDeviceTelemetry();
