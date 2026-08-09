@@ -18,7 +18,7 @@ import bonusSvg from './assets/bonus.svg';
 import kipSvg from './assets/KIP.svg';
 import pesawatSvg from './assets/Pesawat.svg';
 import kostSvg from './assets/Kost.svg';
-import { CURRENT_VERSION } from './utils/version';
+import { CURRENT_VERSION, checkForAppUpdates } from './utils/version';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { updateCurrentDeviceTelemetry } from './utils/telemetry';
 import { 
@@ -176,14 +176,9 @@ function App() {
   };
 
   React.useEffect(() => {
-    fetch(`https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.version && data.version !== CURRENT_VERSION) {
-          setUpdateInfo(data);
-        }
-      })
-      .catch(() => {});
+    checkForAppUpdates().then(info => {
+      if (info) setUpdateInfo(info);
+    });
   }, []);
 
   // Sync states to LocalStorage
