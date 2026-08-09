@@ -19,6 +19,14 @@ import kipSvg from './assets/KIP.svg';
 import pesawatSvg from './assets/Pesawat.svg';
 import kostSvg from './assets/Kost.svg';
 import { CURRENT_VERSION } from './utils/version';
+import { 
+  isNotificationEnabled, 
+  toggleNotificationState, 
+  sendInstantNotification, 
+  schedulePersonalizedNotifications, 
+  playSound,
+  playPopSound 
+} from './utils/notifications';
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'food', name: 'Food', icon: fastFoodSvg, iconClass: 'food-icon' },
@@ -107,6 +115,32 @@ function App() {
   // In-App Update Check State
   const [updateInfo, setUpdateInfo] = useState(null);
 
+  // Notification Bell State (Persisted)
+  const [isNotifActive, setIsNotifActive] = useState(() => isNotificationEnabled());
+
+  // Play sound on app start if notification bell was already enabled
+  React.useEffect(() => {
+    if (isNotifActive) {
+      playSound('app_open');
+    }
+  }, []);
+
+  // Schedule / sync notifications when profile name or transactions update
+  React.useEffect(() => {
+    if (isNotifActive) {
+      schedulePersonalizedNotifications(profileName, transactions);
+    }
+  }, [isNotifActive, profileName, transactions]);
+
+  const handleToggleNotification = async (e) => {
+    e.stopPropagation(); // prevent opening profile modal
+    const nextState = await toggleNotificationState(isNotifActive);
+    setIsNotifActive(nextState);
+    if (nextState) {
+      sendInstantNotification(profileName, transactions);
+    }
+  };
+
   React.useEffect(() => {
     fetch(`/version.json?t=${Date.now()}`)
       .then(res => res.json())
@@ -143,10 +177,11 @@ function App() {
   const [tempName, setTempName] = useState(profileName);
   const [tempProfileImage, setTempProfileImage] = useState(profileImage);
 
-  // Image Crop & Adjustment State
+  // Image Crop & Adjustment State (Image 2 Style)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [cropZoom, setCropZoom] = useState(1);
+  const [cropRotation, setCropRotation] = useState(0);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDraggingCrop, setIsDraggingCrop] = useState(false);
   const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
@@ -167,6 +202,7 @@ function App() {
     reader.onload = () => {
       setCropImageSrc(reader.result);
       setCropZoom(1);
+      setCropRotation(0);
       setCropOffset({ x: 0, y: 0 });
       setIsCropModalOpen(true);
     };
@@ -174,37 +210,60 @@ function App() {
     e.target.value = '';
   };
 
+  const handleRotateCrop = () => {
+    setCropRotation((prev) => (prev + 90) % 360);
+  };
+
   const handleSaveCrop = () => {
     if (!cropImgRef.current) return;
     const img = cropImgRef.current;
     const canvas = document.createElement('canvas');
-    const size = 300;
+    const size = 400;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-    ctx.clip();
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, size, size);
 
-    const minDim = Math.min(img.naturalWidth, img.naturalHeight) || 1;
-    const baseScale = size / minDim;
-    const currentScale = baseScale * cropZoom;
+    ctx.save();
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate((cropRotation * Math.PI) / 180);
 
-    const drawWidth = img.naturalWidth * currentScale;
-    const drawHeight = img.naturalHeight * currentScale;
+    const displayedW = cropImgRef.current.clientWidth || 300;
+    const displayedH = cropImgRef.current.clientHeight || 300;
+    const gridSize = Math.min(displayedW, displayedH);
 
-    const drawX = (size - drawWidth) / 2 + cropOffset.x;
-    const drawY = (size - drawHeight) / 2 + cropOffset.y;
+    // Natural scale ratio
+    const scaleRatio = img.naturalWidth / displayedW;
 
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    // Calculate crop origin on natural image
+    const cropCenterY = (displayedH / 2) + cropOffset.y;
+    const cropCenterX = (displayedW / 2) + cropOffset.x;
 
-    const croppedUrl = canvas.toDataURL('image/jpeg', 0.88);
+    const sourceSize = gridSize * scaleRatio;
+    const sourceX = (cropCenterX - gridSize / 2) * scaleRatio;
+    const sourceY = (cropCenterY - gridSize / 2) * scaleRatio;
+
+    ctx.drawImage(
+      img,
+      Math.max(0, sourceX),
+      Math.max(0, sourceY),
+      Math.min(img.naturalWidth, sourceSize),
+      Math.min(img.naturalHeight, sourceSize),
+      -size / 2,
+      -size / 2,
+      size,
+      size
+    );
+    ctx.restore();
+
+    const croppedUrl = canvas.toDataURL('image/jpeg', 0.9);
     setTempProfileImage(croppedUrl);
     setIsCropModalOpen(false);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const finalName = tempName.trim() || 'Pengguna';
     setProfileName(finalName);
     setProfileImage(tempProfileImage);
@@ -215,6 +274,18 @@ function App() {
       localStorage.removeItem('user_profile_image');
     }
     localStorage.setItem('user_profile_setup_done', 'true');
+
+    // Auto activate notifications on profile save
+    if (!isNotifActive) {
+      const nextState = await toggleNotificationState(false);
+      setIsNotifActive(nextState);
+      if (nextState) {
+        sendInstantNotification(finalName, transactions);
+      }
+    } else {
+      sendInstantNotification(finalName, transactions);
+    }
+
     setIsProfileModalOpen(false);
   };
 
@@ -587,9 +658,25 @@ function App() {
               </button>
             </div>
 
-            <div className="profile-info" onClick={handleOpenProfileModal} style={{ cursor: 'pointer' }} title="Klik untuk atur profil">
+            <div 
+              className="profile-info" 
+              onClick={handleOpenProfileModal} 
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpenProfileModal();
+                }
+              }}
+              style={{ cursor: 'pointer' }} 
+              title="Klik untuk atur profil"
+              aria-label="Profil Pengguna"
+            >
               <div className="greeting">
-                <span className="greeting-text">Good Day,</span>
+                <span className="greeting-text">
+                  Good Day,
+                </span>
                 <span className="profile-name">{profileName || 'Pengguna'}</span>
               </div>
               <div className="profile-avatar">
@@ -903,7 +990,15 @@ function App() {
           </button>
 
           <div className="nav-item center-add-wrapper">
-            <button type="button" className="center-add-btn" onClick={handleOpenAddModal} aria-label="Add transaction">
+            <button
+              type="button"
+              className="center-add-btn"
+              onClick={() => {
+                playPopSound('bubble_pop_2.wav');
+                handleOpenAddModal();
+              }}
+              aria-label="Add transaction"
+            >
               <img src={addSvg} alt="Add" className="add-icon" />
             </button>
           </div>
@@ -1025,6 +1120,7 @@ function App() {
                     className="hidden-picker-input"
                     value={selectedDateVal}
                     onChange={(e) => setSelectedDateVal(e.target.value)}
+                    aria-label="Pilih Tanggal Transaksi"
                   />
                   <input
                     ref={timeInputRef}
@@ -1032,6 +1128,7 @@ function App() {
                     className="hidden-picker-input"
                     value={selectedTimeVal}
                     onChange={(e) => setSelectedTimeVal(e.target.value)}
+                    aria-label="Pilih Waktu Transaksi"
                   />
                 </div>
               </div>
@@ -1044,10 +1141,11 @@ function App() {
                   if (amountInputRef.current) amountInputRef.current.focus();
                 }}
               >
-                <span className="field-label">Amount</span>
+                <label htmlFor="transaction-amount-input" className="field-label">Amount</label>
                 <div className="amount-input-wrapper">
                   <span className="currency-prefix">Rp</span>
                   <input
+                    id="transaction-amount-input"
                     ref={amountInputRef}
                     type="number"
                     inputMode="decimal"
@@ -1056,6 +1154,7 @@ function App() {
                     placeholder="0"
                     value={amountVal}
                     onChange={(e) => setAmountVal(e.target.value)}
+                    aria-label="Jumlah Transaksi"
                     onFocus={() => setActivePanel('amount')}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1110,9 +1209,10 @@ function App() {
                   if (noteInputRef.current) noteInputRef.current.focus();
                 }}
               >
-                <span className="field-label">Note</span>
+                <label htmlFor="transaction-note-input" className="field-label">Note</label>
                 <div className="note-input-wrapper">
                   <input
+                    id="transaction-note-input"
                     ref={noteInputRef}
                     type="text"
                     className="note-input"
@@ -1122,6 +1222,7 @@ function App() {
                       setNote(e.target.value);
                       setIsNoteSuggestionsOpen(e.target.value.trim().length > 0);
                     }}
+                    aria-label="Catatan Transaksi"
                     onFocus={() => {
                       setActivePanel('note');
                       if (note.trim().length > 0) {
@@ -1435,103 +1536,109 @@ function App() {
         </div>
       )}
 
-      {/* Image Crop & Adjustment Modal */}
+      {/* Full-screen Photo Cropper Modal (Matching Image 1 Reference Design) */}
       {isCropModalOpen && cropImageSrc && (
-        <div className="modal-overlay crop-modal-overlay">
-          <div className="crop-modal-card">
-            <div className="crop-modal-header">
-              <span className="crop-modal-title">Sesuaikan Foto</span>
-              <button
-                type="button"
-                className="crop-modal-close"
-                onClick={() => setIsCropModalOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="crop-workspace">
-              <div
-                className="crop-viewfinder"
-                onMouseDown={(e) => {
-                  setIsDraggingCrop(true);
-                  setCropDragStart({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y });
-                }}
-                onMouseMove={(e) => {
-                  if (!isDraggingCrop) return;
-                  setCropOffset({
-                    x: e.clientX - cropDragStart.x,
-                    y: e.clientY - cropDragStart.y
-                  });
-                }}
-                onMouseUp={() => setIsDraggingCrop(false)}
-                onMouseLeave={() => setIsDraggingCrop(false)}
-                onTouchStart={(e) => {
-                  if (e.touches.length === 1) {
-                    setIsDraggingCrop(true);
-                    setCropDragStart({
-                      x: e.touches[0].clientX - cropOffset.x,
-                      y: e.touches[0].clientY - cropOffset.y
-                    });
-                  }
-                }}
-                onTouchMove={(e) => {
-                  if (isDraggingCrop && e.touches.length === 1) {
-                    setCropOffset({
-                      x: e.touches[0].clientX - cropDragStart.x,
-                      y: e.touches[0].clientY - cropDragStart.y
-                    });
-                  }
-                }}
-                onTouchEnd={() => setIsDraggingCrop(false)}
-              >
+        <div className="full-screen-cropper-overlay">
+          <div className="full-screen-cropper-container">
+            {/* Image Viewport */}
+            <div className="cropper-viewport">
+              <div className="cropper-image-wrapper">
                 <img
                   ref={cropImgRef}
                   src={cropImageSrc}
                   alt="Preview Crop"
-                  className="crop-target-img"
+                  className="cropper-target-img"
                   style={{
-                    transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
-                    cursor: isDraggingCrop ? 'grabbing' : 'grab'
+                    transform: `rotate(${cropRotation}deg)`
                   }}
                   draggable={false}
                 />
-                <div className="crop-circle-mask" />
-              </div>
 
-              {/* Zoom Slider */}
-              <div className="crop-controls">
-                <span className="crop-zoom-icon">🔍 -</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="3"
-                  step="0.05"
-                  value={cropZoom}
-                  onChange={(e) => setCropZoom(parseFloat(e.target.value))}
-                  className="crop-zoom-slider"
-                />
-                <span className="crop-zoom-icon">+</span>
+                {/* 3x3 Grid Overlay (Draggable Vertical Box bounded within Image) */}
+                <div 
+                  className="cropper-grid-box"
+                  style={{
+                    transform: `translate(-50%, calc(-50% + ${cropOffset.y}px))`
+                  }}
+                  onMouseDown={(e) => {
+                    setIsDraggingCrop(true);
+                    setCropDragStart({ x: e.clientX, y: e.clientY - cropOffset.y });
+                  }}
+                  onMouseMove={(e) => {
+                    if (!isDraggingCrop || !cropImgRef.current) return;
+                    const displayedH = cropImgRef.current.clientHeight || 300;
+                    const displayedW = cropImgRef.current.clientWidth || 300;
+                    const gridSize = Math.min(displayedW, displayedH);
+                    const maxDragY = Math.max(0, (displayedH - gridSize) / 2);
+
+                    const rawY = e.clientY - cropDragStart.y;
+                    const clampedY = Math.min(Math.max(-maxDragY, rawY), maxDragY);
+                    setCropOffset({ x: 0, y: clampedY });
+                  }}
+                  onMouseUp={() => setIsDraggingCrop(false)}
+                  onMouseLeave={() => setIsDraggingCrop(false)}
+                  onTouchStart={(e) => {
+                    if (e.touches.length === 1) {
+                      setIsDraggingCrop(true);
+                      setCropDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY - cropOffset.y });
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    if (isDraggingCrop && e.touches.length === 1 && cropImgRef.current) {
+                      const displayedH = cropImgRef.current.clientHeight || 300;
+                      const displayedW = cropImgRef.current.clientWidth || 300;
+                      const gridSize = Math.min(displayedW, displayedH);
+                      const maxDragY = Math.max(0, (displayedH - gridSize) / 2);
+
+                      const rawY = e.touches[0].clientY - cropDragStart.y;
+                      const clampedY = Math.min(Math.max(-maxDragY, rawY), maxDragY);
+                      setCropOffset({ x: 0, y: clampedY });
+                    }
+                  }}
+                  onTouchEnd={() => setIsDraggingCrop(false)}
+                >
+                  <div className="grid-line grid-v1" />
+                  <div className="grid-line grid-v2" />
+                  <div className="grid-line grid-h1" />
+                  <div className="grid-line grid-h2" />
+
+                  {/* Corner Markers */}
+                  <div className="corner-bracket top-left" />
+                  <div className="corner-bracket top-right" />
+                  <div className="corner-bracket bottom-left" />
+                  <div className="corner-bracket bottom-right" />
+                </div>
               </div>
             </div>
 
-            <div className="crop-modal-footer">
+            {/* Bottom Actions Toolbar */}
+            <div className="cropper-bottom-bar">
               <button
                 type="button"
-                className="crop-reset-btn"
-                onClick={() => {
-                  setCropZoom(1);
-                  setCropOffset({ x: 0, y: 0 });
-                }}
+                className="cropper-action-btn cancel-btn"
+                onClick={() => setIsCropModalOpen(false)}
               >
-                Reset
+                Cancel
               </button>
+
               <button
                 type="button"
-                className="crop-ok-btn"
+                className="cropper-action-btn rotate-btn"
+                onClick={handleRotateCrop}
+                title="Putar 90°"
+                aria-label="Rotate Image"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                className="cropper-action-btn done-btn"
                 onClick={handleSaveCrop}
               >
-                Oke
+                Done
               </button>
             </div>
           </div>

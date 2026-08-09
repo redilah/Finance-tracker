@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
-  "changelog": "Perbaikan minor dan sinkronisasi data localstorage.",
-  "downloadUrl": "https://github.com/redilah/Finance-tracker/releases"
+  "version": "1.0.1",
+  "changelog": "Update icon launcher baru, icon notifikasi monokrom, efek suara bubble pop, dan pemotong foto profil.",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }
