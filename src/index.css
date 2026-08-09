@@ -1,0 +1,87 @@
+:root {
+  --bg-color: #F8EFE6;
+  --text-main: #333333;
+  --text-muted: #888888;
+  --card-expense-bg: #FBE5DC;
+  --card-expense-text: #A73A3A;
+  --card-income-bg: #E1F0E0;
+  --card-income-text: #2D6A43;
+  
+  --item-food-bg: #FAE9D4;
+  --item-game-bg: #F1DBEC;
+  --item-greens-bg: #E0EFE0;
+  --item-car-bg: #DCECF4;
+  
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.03);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+body {
+  background-color: #FFFFFF; /* If we want to simulate a phone frame on desktop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  max-width: 414px; /* iPhone Max width */
+  height: 100vh;
+  max-height: 844px;
+  background-color: var(--bg-color);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 50px rgba(0,0,0,0.1); /* To differentiate from desktop bg */
+  display: flex;
+  flex-direction: column;
+  border-radius: 36px;
+}
+
+/* For mobile devices, take full width/height */
+@media (max-width: 480px) {
+  #root {
+    box-shadow: none;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+}
+
+.app-container {
+  padding: 24px 20px 110px 20px;
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.app-container::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, p, span {
+  color: var(--text-main);
+}

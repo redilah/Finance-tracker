@@ -1,0 +1,1576 @@
+import React, { useState, useRef } from 'react';
+import './App.css';
+import fastFoodSvg from './assets/fast-food.svg';
+import gameSvg from './assets/3d-movie.svg';
+import carSvg from './assets/car.svg';
+import houseSvg from './assets/house_colored.svg';
+import addSvg from './assets/add.svg';
+import diagramSvg from './assets/diagram.svg';
+import barberSvg from './assets/barber.svg';
+import bookSvg from './assets/book.svg';
+import cosmeticsSvg from './assets/cosmetics.svg';
+import dispenserBottleSvg from './assets/dispenser-bottle.svg';
+import shirtShoeSvg from './assets/shirt-shoe.svg';
+import shoppingCartSvg from './assets/shopping-cart.svg';
+import subscriptionSvg from './assets/subscription.svg';
+import salarySvg from './assets/salary.svg';
+import bonusSvg from './assets/bonus.svg';
+import kipSvg from './assets/KIP.svg';
+import pesawatSvg from './assets/Pesawat.svg';
+import kostSvg from './assets/Kost.svg';
+import { CURRENT_VERSION } from './utils/version';
+
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { id: 'food', name: 'Food', icon: fastFoodSvg, iconClass: 'food-icon' },
+  { id: 'bioskop', name: 'Bioskop', icon: gameSvg, iconClass: 'game-icon' },
+  { id: 'transport', name: 'Transportasi', icon: carSvg, iconClass: 'car-icon' },
+  { id: 'barber', name: 'Barbershop', icon: barberSvg, iconClass: 'barber-icon' },
+  { id: 'skincare', name: 'Skincare', icon: cosmeticsSvg, iconClass: 'cosmetics-icon' },
+  { id: 'edukasi', name: 'Edukasi', icon: bookSvg, iconClass: 'book-icon' },
+  { id: 'galon', name: 'Air Galon', icon: dispenserBottleSvg, iconClass: 'bottle-icon' },
+  { id: 'fashion', name: 'Fashion', icon: shirtShoeSvg, iconClass: 'fashion-icon' },
+  { id: 'supermarket', name: 'Supermarket', icon: shoppingCartSvg, iconClass: 'cart-icon' },
+  { id: 'sub', name: 'Subscription', icon: subscriptionSvg, iconClass: 'sub-icon' },
+  { id: 'pesawat', name: 'Pesawat', icon: pesawatSvg, iconClass: 'pesawat-icon' },
+  { id: 'kost', name: 'Kost', icon: kostSvg, iconClass: 'kost-icon' },
+];
+
+const DEFAULT_INCOME_CATEGORIES = [
+  { id: 'gaji', name: 'Gaji', icon: salarySvg, iconClass: 'food-icon' },
+  { id: 'bonus', name: 'Bonus', icon: bonusSvg, iconClass: 'sub-icon' },
+  { id: 'kip', name: 'KIP', icon: kipSvg, iconClass: 'car-icon' },
+];
+
+const INITIAL_TRANSACTIONS = [];
+
+function App() {
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'stats'
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [statsType, setStatsType] = useState('expense'); // 'expense' | 'income'
+  
+  // LocalStorage Persistence for Transactions
+  const [transactions, setTransactions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_transactions');
+      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    } catch {
+      return INITIAL_TRANSACTIONS;
+    }
+  });
+
+  // LocalStorage Persistence for Custom Categories & Accounts
+  const [expenseCategories, setExpenseCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_expense_categories');
+      return saved ? JSON.parse(saved) : DEFAULT_EXPENSE_CATEGORIES;
+    } catch {
+      return DEFAULT_EXPENSE_CATEGORIES;
+    }
+  });
+
+  const [incomeCategories, setIncomeCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_income_categories');
+      return saved ? JSON.parse(saved) : DEFAULT_INCOME_CATEGORIES;
+    } catch {
+      return DEFAULT_INCOME_CATEGORIES;
+    }
+  });
+
+  const [accountsList, setAccountsList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_accounts_list');
+      return saved ? JSON.parse(saved) : ['Bank', 'Cash', 'E-Wallet'];
+    } catch {
+      return ['Bank', 'Cash', 'E-Wallet'];
+    }
+  });
+
+  const [isCustomAccount, setIsCustomAccount] = useState(false);
+  const [customAccountInput, setCustomAccountInput] = useState('');
+
+  // Profile State & Persistence
+  const isFirstTimeUser = !localStorage.getItem('user_profile_setup_done');
+
+  const [profileName, setProfileName] = useState(() => {
+    return localStorage.getItem('user_profile_name') || '';
+  });
+  const [profileImage, setProfileImage] = useState(() => {
+    return localStorage.getItem('user_profile_image') || null;
+  });
+
+  // Auto-open modal on first time setup
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
+
+  // In-App Update Check State
+  const [updateInfo, setUpdateInfo] = useState(null);
+
+  React.useEffect(() => {
+    fetch(`/version.json?t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.version && data.version !== CURRENT_VERSION) {
+          setUpdateInfo(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Sync states to LocalStorage
+  React.useEffect(() => {
+    localStorage.setItem('user_transactions', JSON.stringify(transactions));
+  }, [transactions]);
+
+  React.useEffect(() => {
+    localStorage.setItem('user_expense_categories', JSON.stringify(expenseCategories));
+  }, [expenseCategories]);
+
+  React.useEffect(() => {
+    localStorage.setItem('user_income_categories', JSON.stringify(incomeCategories));
+  }, [incomeCategories]);
+
+  React.useEffect(() => {
+    localStorage.setItem('user_accounts_list', JSON.stringify(accountsList));
+  }, [accountsList]);
+
+  // Note History & Modal state
+  const [noteHistory, setNoteHistory] = useState([]);
+  const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const [tempName, setTempName] = useState(profileName);
+  const [tempProfileImage, setTempProfileImage] = useState(profileImage);
+
+  // Image Crop & Adjustment State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
+
+  const profileFileInputRef = useRef(null);
+  const cropImgRef = useRef(null);
+
+  const handleOpenProfileModal = () => {
+    setTempName(profileName);
+    setTempProfileImage(profileImage);
+    setIsProfileModalOpen(true);
+  };
+
+  const handleSelectFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result);
+      setCropZoom(1);
+      setCropOffset({ x: 0, y: 0 });
+      setIsCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSaveCrop = () => {
+    if (!cropImgRef.current) return;
+    const img = cropImgRef.current;
+    const canvas = document.createElement('canvas');
+    const size = 300;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    const minDim = Math.min(img.naturalWidth, img.naturalHeight) || 1;
+    const baseScale = size / minDim;
+    const currentScale = baseScale * cropZoom;
+
+    const drawWidth = img.naturalWidth * currentScale;
+    const drawHeight = img.naturalHeight * currentScale;
+
+    const drawX = (size - drawWidth) / 2 + cropOffset.x;
+    const drawY = (size - drawHeight) / 2 + cropOffset.y;
+
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+    const croppedUrl = canvas.toDataURL('image/jpeg', 0.88);
+    setTempProfileImage(croppedUrl);
+    setIsCropModalOpen(false);
+  };
+
+  const handleSaveProfile = () => {
+    const finalName = tempName.trim() || 'Pengguna';
+    setProfileName(finalName);
+    setProfileImage(tempProfileImage);
+    localStorage.setItem('user_profile_name', finalName);
+    if (tempProfileImage) {
+      localStorage.setItem('user_profile_image', tempProfileImage);
+    } else {
+      localStorage.removeItem('user_profile_image');
+    }
+    localStorage.setItem('user_profile_setup_done', 'true');
+    setIsProfileModalOpen(false);
+  };
+
+  const amountInputRef = useRef(null);
+  const noteInputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const dateInputRef = useRef(null);
+  const timeInputRef = useRef(null);
+
+  // Close custom dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Form State
+  const [transType, setTransType] = useState('Expense'); // 'Income' | 'Expense' | 'Transfer'
+  const [amountVal, setAmountVal] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]);
+  const [isCustomCat, setIsCustomCat] = useState(false);
+  const [customCatInput, setCustomCatInput] = useState('');
+  const [account, setAccount] = useState('Bank'); // 'Bank' | 'Cash' | 'QRIS'
+  const [note, setNote] = useState('');
+  const [activePanel, setActivePanel] = useState('amount'); // 'amount' | 'category' | 'account' | 'note'
+  
+  // Date & Time picker state
+  const getTodayISO = () => {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  };
+  const getCurrentTimeHHMM = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const [selectedDateVal, setSelectedDateVal] = useState(getTodayISO());
+  const [selectedTimeVal, setSelectedTimeVal] = useState(getCurrentTimeHHMM());
+
+  const handlePrevMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const formatMonthYear = (date) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
+  const isCurrentMonth = currentDate.getFullYear() === 2026 && currentDate.getMonth() === 7;
+
+  // Format selected date and time to original string format e.g. "8/9/26 (Sun) 08:08"
+  const formatSelectedDateTime = (dateISO, timeHHMM) => {
+    try {
+      const [year, month, day] = dateISO.split('-').map(Number);
+      const [hours, mins] = timeHHMM.split(':');
+      const d = new Date(year, month - 1, day, Number(hours), Number(mins));
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayName = days[d.getDay()];
+      const dateFormatted = `${month}/${day}/${String(year).slice(-2)}`;
+      return `${dateFormatted} (${dayName})  ${hours}:${mins}`;
+    } catch {
+      return `${dateISO} ${timeHHMM}`;
+    }
+  };
+
+  // Open Full-Page Add Form (Plus button)
+  const handleOpenAddModal = () => {
+    setTransType('Expense');
+    setAmountVal('');
+    setSelectedCategory(expenseCategories[0]);
+    setIsCustomCat(false);
+    setCustomCatInput('');
+    setAccount('Bank');
+    setNote('');
+    setActivePanel('amount');
+    setIsAddModalOpen(true);
+    setTimeout(() => {
+      if (amountInputRef.current) {
+        amountInputRef.current.focus();
+      }
+    }, 100);
+  };
+
+  // Auto Advance from Amount to Category
+  const handleAdvanceFromAmount = () => {
+    if (amountInputRef.current) amountInputRef.current.blur();
+    setActivePanel('category');
+  };
+
+  // Add Custom Category to Dropdown List
+  const handleAddCustomCategory = () => {
+    const trimmed = customCatInput.trim();
+    if (!trimmed) return;
+
+    const currentList = transType === 'Expense' ? expenseCategories : incomeCategories;
+    const setList = transType === 'Expense' ? setExpenseCategories : setIncomeCategories;
+
+    const existing = currentList.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      setCustomCatInput('');
+      setIsCustomCat(false);
+      return;
+    }
+
+    const newCat = {
+      id: `custom-${Date.now()}`,
+      name: trimmed,
+      icon: null, // Text only
+      iconClass: ''
+    };
+
+    setList(prev => [...prev, newCat]);
+    setSelectedCategory(newCat);
+    setCustomCatInput('');
+    setIsCustomCat(false);
+  };
+
+  // Add Custom Account to Account List
+  const handleAddCustomAccount = () => {
+    const trimmed = customAccountInput.trim();
+    if (!trimmed) return;
+
+    const existing = accountsList.find(a => a.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      setAccount(existing);
+      setCustomAccountInput('');
+      setIsCustomAccount(false);
+      return;
+    }
+
+    setAccountsList(prev => [...prev, trimmed]);
+    setAccount(trimmed);
+    setCustomAccountInput('');
+    setIsCustomAccount(false);
+  };
+
+  // Handle Category Select (Auto advance to Account)
+  const handleSelectCategory = (cat) => {
+    setIsCustomCat(false);
+    setSelectedCategory(cat);
+    setActivePanel('account');
+  };
+
+  // Handle Account Select (Auto advance to Note & focus text keyboard)
+  const handleSelectAccount = (acc) => {
+    setAccount(acc);
+    setActivePanel('note');
+    setTimeout(() => {
+      if (noteInputRef.current) {
+        noteInputRef.current.focus();
+      }
+    }, 80);
+  };
+
+  // Save Transaction
+  const handleSaveTransaction = () => {
+    const numericAmount = parseFloat(amountVal) || 0;
+    if (numericAmount <= 0) {
+      alert('Masukkan nominal transaksi');
+      return;
+    }
+
+    const catName = selectedCategory.name;
+    const catIcon = selectedCategory.icon || (transType === 'Expense' ? fastFoodSvg : salarySvg);
+    const catIconClass = selectedCategory.iconClass || 'food-icon';
+
+    const finalTitle = note.trim() || catName;
+
+    // Save note to history if non-empty and not already in history
+    if (note.trim()) {
+      setNoteHistory(prev => {
+        if (!prev.includes(note.trim())) {
+          return [note.trim(), ...prev];
+        }
+        return prev;
+      });
+    }
+
+    const newTx = {
+      id: Date.now(),
+      title: finalTitle,
+      category: catName,
+      account: account,
+      amount: numericAmount,
+      type: transType.toLowerCase(),
+      icon: catIcon,
+      iconClass: catIconClass,
+      date: selectedDateVal || getTodayISO()
+    };
+
+    setTransactions(prev => [newTx, ...prev]);
+    setIsAddModalOpen(false);
+    setIsNoteSuggestionsOpen(false);
+  };
+
+  // Compute Balances
+  const totalExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalBalance = totalIncome - totalExpenses;
+
+  // Filter transactions according to period (monthly/weekly/yearly)
+  const filteredTransactions = transactions.filter(t => {
+    if (!isCurrentMonth) return false;
+    if (periodFilter === 'weekly') {
+      // Show subset for weekly view
+      return t.id <= 6;
+    }
+    return true;
+  });
+
+  // Calculate Category Totals & Percentages for Stats
+  const selectedTypeTxs = filteredTransactions.filter(t => t.type === statsType);
+  const totalStatsAmount = selectedTypeTxs.reduce((sum, t) => sum + t.amount, 0);
+
+  const categoryMap = {};
+  selectedTypeTxs.forEach(t => {
+    if (!categoryMap[t.category]) {
+      categoryMap[t.category] = {
+        name: t.category,
+        amount: 0,
+        icon: t.icon
+      };
+    }
+    categoryMap[t.category].amount += t.amount;
+  });
+
+  const CHART_COLORS = [
+    '#FF7676', '#FFB547', '#FFDC60', '#4EBE96', '#59A6FF', 
+    '#A076FF', '#FF76C7', '#76D5FF', '#D883FF', '#81C784'
+  ];
+
+  const statsCategories = Object.values(categoryMap)
+    .map((cat, idx) => ({
+      ...cat,
+      percentage: totalStatsAmount > 0 ? (cat.amount / totalStatsAmount) * 100 : 0,
+      color: CHART_COLORS[idx % CHART_COLORS.length]
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // Generate SVG Pie Slices with collision-free label positioning
+  let cumulativeAngle = -Math.PI / 2;
+  const radius = 56;
+  const chartWidth = 380;
+  const chartHeight = 260;
+  const centerX = chartWidth / 2;
+  const centerY = chartHeight / 2;
+
+  // First pass: compute basic slice geometry
+  const initialSlices = statsCategories.map(cat => {
+    const fraction = totalStatsAmount > 0 ? cat.amount / totalStatsAmount : 0;
+    const sliceAngle = fraction * 2 * Math.PI;
+
+    const startAngle = cumulativeAngle;
+    const endAngle = cumulativeAngle + sliceAngle;
+    const middleAngle = startAngle + sliceAngle / 2;
+
+    const x1 = radius * Math.cos(startAngle);
+    const y1 = radius * Math.sin(startAngle);
+    const x2 = radius * Math.cos(endAngle);
+    const y2 = radius * Math.sin(endAngle);
+
+    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+
+    let pathData = '';
+    if (statsCategories.length === 1 || fraction >= 0.999) {
+      pathData = `M 0 0 M ${-radius} 0 A ${radius} ${radius} 0 1 1 ${radius} 0 A ${radius} ${radius} 0 1 1 ${-radius} 0`;
+    } else {
+      pathData = `M 0 0 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+    }
+
+    cumulativeAngle = endAngle;
+
+    const normAngle = (middleAngle + Math.PI * 4) % (Math.PI * 2);
+    const isRight = normAngle < Math.PI / 2 || normAngle > (3 * Math.PI) / 2;
+
+    const idealY = (radius + 32) * Math.sin(middleAngle);
+
+    return {
+      ...cat,
+      percentage: fraction === 1 ? '100' : (fraction * 100).toFixed(1),
+      pathData,
+      middleAngle,
+      isRight,
+      idealY,
+      fraction
+    };
+  });
+
+  // Second pass: Separate into left and right groups and push y positions to prevent overlap
+  const adjustYPositions = (group) => {
+    group.sort((a, b) => a.idealY - b.idealY);
+    const minYSpacing = 24;
+    for (let i = 1; i < group.length; i++) {
+      if (group[i].idealY - group[i - 1].idealY < minYSpacing) {
+        group[i].idealY = group[i - 1].idealY + minYSpacing;
+      }
+    }
+  };
+
+  const rightGroup = initialSlices.filter(s => s.isRight);
+  const leftGroup = initialSlices.filter(s => !s.isRight);
+
+  adjustYPositions(rightGroup);
+  adjustYPositions(leftGroup);
+
+  const pieSlices = initialSlices.map(slice => {
+    const isRight = slice.isRight;
+    const targetY = slice.idealY;
+    
+    const clampedY = Math.max(-centerY + 18, Math.min(centerY - 18, targetY));
+
+    // pInner sits slightly INSIDE the pie slice radius (underneath pie layer)
+    const pInner = {
+      x: (radius - 4) * Math.cos(slice.middleAngle),
+      y: (radius - 4) * Math.sin(slice.middleAngle)
+    };
+
+    // Extension elbow line extending outward smoothly
+    const xBreak = isRight ? radius + 28 : -(radius + 28);
+    const pOuter = {
+      x: xBreak,
+      y: clampedY
+    };
+    // pLabel extends directly to touch the text anchor
+    const pLabel = {
+      x: isRight ? xBreak + 20 : xBreak - 20,
+      y: clampedY
+    };
+
+    return {
+      ...slice,
+      pInner,
+      pOuter,
+      pLabel
+    };
+  });
+
+  return (
+    <div className="app-container">
+      {/* Active Tab View Rendering */}
+      {activeTab === 'home' ? (
+        <>
+          {/* Top Bar (Home) */}
+          <header className="top-bar">
+            <div className="month-navigator">
+              <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Month">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <span className="month-text">{formatMonthYear(currentDate)}</span>
+              <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Month">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="profile-info" onClick={handleOpenProfileModal} style={{ cursor: 'pointer' }} title="Klik untuk atur profil">
+              <div className="greeting">
+                <span className="greeting-text">Good Day,</span>
+                <span className="profile-name">{profileName || 'Pengguna'}</span>
+              </div>
+              <div className="profile-avatar">
+                {profileImage ? (
+                  <img src={profileImage} alt={profileName} className="profile-avatar-img" />
+                ) : (
+                  (profileName || 'P').trim().charAt(0).toUpperCase()
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Balance Cards */}
+          <section className="balance-section">
+            <div className="balance-card expenses-card">
+              <span className="card-label">Expenses</span>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? `Rp ${totalExpenses.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="icon-down">▼</span>
+              </div>
+            </div>
+            <div className="balance-card income-card">
+              <span className="card-label">Income</span>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? `Rp ${totalIncome.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="icon-up">▲</span>
+              </div>
+            </div>
+            <div className="balance-card total-card">
+              <span className="card-label">Total</span>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? `Rp ${totalBalance.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="icon-total font-bold">💰</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Transactions List Grouped by Date */}
+          <section className="transactions-container">
+            {isCurrentMonth ? (
+              transactions.length > 0 ? (
+                (() => {
+                  // Group transactions by YYYY-MM-DD
+                  const groupedMap = {};
+                  transactions.forEach(tx => {
+                    const txDate = tx.date || '2026-08-09';
+                    if (!groupedMap[txDate]) {
+                      groupedMap[txDate] = [];
+                    }
+                    groupedMap[txDate].push(tx);
+                  });
+
+                  // Sort dates descending
+                  const sortedDates = Object.keys(groupedMap).sort((a, b) => b.localeCompare(a));
+
+                  return sortedDates.map(dateKey => {
+                    const groupTxs = groupedMap[dateKey];
+                    const [yearStr, monthStr, dayStr] = dateKey.split('-');
+                    const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const dayName = days[dateObj.getDay()];
+
+                    // Compute totals for this date
+                    const dayIncome = groupTxs
+                      .filter(t => t.type === 'income')
+                      .reduce((sum, t) => sum + t.amount, 0);
+                    const dayExpense = groupTxs
+                      .filter(t => t.type === 'expense')
+                      .reduce((sum, t) => sum + t.amount, 0);
+
+                    return (
+                      <div className="date-transaction-group" key={dateKey}>
+                        {/* Date Group Header Row */}
+                        <div className="date-group-header">
+                          <div className="date-group-left">
+                            <span className="date-day-number">{dayStr}</span>
+                            <span className={`date-day-badge day-${dayName.toLowerCase()}`}>{dayName}</span>
+                            <span className="date-month-year">{monthStr}.{yearStr}</span>
+                          </div>
+                          <div className="date-group-right">
+                            <span className="day-income-amount">Rp {dayIncome.toLocaleString('id-ID')}</span>
+                            <span className="day-expense-amount">Rp {dayExpense.toLocaleString('id-ID')}</span>
+                          </div>
+                        </div>
+
+                        {/* Transaction Items under this date */}
+                        <div className="date-group-items">
+                          {groupTxs.map(item => (
+                            <div className="transaction-item" key={item.id}>
+                              <div className={`transaction-icon ${item.iconClass}`}>
+                                <img src={item.icon} alt={item.category} />
+                              </div>
+                              <div className="transaction-details">
+                                <span className="transaction-title">{item.title}</span>
+                                <span className="transaction-category">{item.category} • {item.account || 'Bank'}</span>
+                              </div>
+                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+                                {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              ) : (
+                <div className="empty-transactions">
+                  <span className="empty-icon">📂</span>
+                  <span className="empty-title">Belum ada transaksi</span>
+                  <span className="empty-subtitle">Tidak ada riwayat transaksi pada bulan {formatMonthYear(currentDate)}</span>
+                </div>
+              )
+            ) : (
+              <div className="empty-transactions">
+                <span className="empty-icon">📂</span>
+                <span className="empty-title">Belum ada transaksi</span>
+                <span className="empty-subtitle">Tidak ada riwayat transaksi pada bulan {formatMonthYear(currentDate)}</span>
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        /* Stats / Diagram View (Detailed Pie Chart matching reference) */
+        <div className="stats-page-container">
+          {/* Header Row: Date Navigator (left) & Period Dropdown (right) */}
+          <header className="stats-header-bar">
+            <div className="stats-date-nav">
+              <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Period">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <span className="month-text">
+                {periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : 'Minggu Ini'}
+              </span>
+              <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Period">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="stats-dropdown-wrapper" ref={dropdownRef}>
+              <button
+                type="button"
+                className="stats-period-btn"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <span>{periodFilter === 'monthly' ? 'Monthly' : periodFilter === 'weekly' ? 'Weekly' : 'Yearly'}</span>
+                <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </span>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="custom-dropdown-menu">
+                  {[
+                    { id: 'monthly', label: 'Monthly' },
+                    { id: 'weekly', label: 'Weekly' },
+                    { id: 'yearly', label: 'Yearly' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`custom-dropdown-item ${periodFilter === opt.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setPeriodFilter(opt.id);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                      {periodFilter === opt.id && <span className="check-mark">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </header>
+
+          {/* Type Toggle Header Row: Income vs Expenses Total */}
+          <div className="stats-type-tabs">
+            <button
+              type="button"
+              className={`stats-type-tab income ${statsType === 'income' ? 'active' : ''}`}
+              onClick={() => setStatsType('income')}
+            >
+              <span>Income</span>
+              <span className="stats-total-amount">
+                Rp {filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`stats-type-tab expense ${statsType === 'expense' ? 'active' : ''}`}
+              onClick={() => setStatsType('expense')}
+            >
+              <span>Expenses</span>
+              <span className="stats-total-amount">
+                Rp {filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+              </span>
+            </button>
+          </div>
+
+          {/* Pie Chart Section */}
+          <div className="stats-chart-card">
+            {statsCategories.length > 0 ? (
+              <div className="pie-chart-container">
+                <svg viewBox="0 0 380 260" className="pie-chart-svg">
+                  <g transform="translate(190, 130)">
+                    {/* Layer 1 (Underneath): Connecting Lines */}
+                    {pieSlices.map((slice, idx) => (
+                      <polyline
+                        key={`line-${idx}`}
+                        points={`${slice.pInner.x},${slice.pInner.y} ${slice.pOuter.x},${slice.pOuter.y} ${slice.pLabel.x},${slice.pLabel.y}`}
+                        fill="none"
+                        stroke={slice.color}
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+
+                    {/* Layer 2 (Middle): SVG Pie Slices (No outer white stroke) */}
+                    {pieSlices.map((slice, idx) => (
+                      <path
+                        key={`slice-${idx}`}
+                        d={slice.pathData}
+                        fill={slice.color}
+                        stroke="none"
+                        className="pie-slice"
+                      />
+                    ))}
+
+                    {/* Layer 3 (Top): Label Texts */}
+                    {pieSlices.map((slice, idx) => {
+                      const textAnchor = slice.isRight ? 'start' : 'end';
+                      return (
+                        <g key={`label-${idx}`} className="pie-label-group">
+                          <text
+                            x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
+                            y={slice.pLabel.y - 3}
+                            textAnchor={textAnchor}
+                            className="pie-label-name"
+                          >
+                            {slice.name}
+                          </text>
+                          <text
+                            x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
+                            y={slice.pLabel.y + 10}
+                            textAnchor={textAnchor}
+                            className="pie-label-percent"
+                          >
+                            {slice.percentage}%
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                </svg>
+              </div>
+            ) : (
+              <div className="pie-chart-empty">
+                <span>📊</span>
+                <p>Belum ada data {statsType === 'expense' ? 'pengeluaran' : 'pemasukan'}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Category Breakdown List */}
+          <div className="stats-breakdown-list">
+            {statsCategories.map((cat, idx) => (
+              <div key={idx} className="stats-breakdown-item">
+                <div className="stats-item-left">
+                  <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
+                    {Math.round(cat.percentage)}%
+                  </div>
+                  <div className="stats-cat-info">
+                    {cat.icon && <img src={cat.icon} alt={cat.name} className="stats-cat-icon" />}
+                    <span className="stats-cat-name">{cat.name}</span>
+                  </div>
+                </div>
+                <div className="stats-item-right">
+                  <span className="stats-cat-amount">Rp {cat.amount.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Nav */}
+      <nav className="bottom-nav">
+        <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
+          <path
+            d="M 0,20 Q 0,0 20,0 L 145,0 C 165,0 172,34 200,34 C 228,34 235,0 255,0 L 380,0 Q 400,0 400,20 L 400,80 L 0,80 Z"
+            fill="rgba(248, 239, 230, 0.95)"
+          />
+        </svg>
+
+        <div className="nav-items-container">
+          <button
+            type="button"
+            className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
+            onClick={() => setActiveTab('home')}
+            aria-label="Home"
+          >
+            <img src={houseSvg} alt="Home" className="nav-icon" />
+          </button>
+
+          <div className="nav-item center-add-wrapper">
+            <button type="button" className="center-add-btn" onClick={handleOpenAddModal} aria-label="Add transaction">
+              <img src={addSvg} alt="Add" className="add-icon" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className={`nav-item ${activeTab === 'stats' ? 'active' : ''}`}
+            onClick={() => setActiveTab('stats')}
+            aria-label="Stats"
+          >
+            <img src={diagramSvg} alt="Stats" className="nav-icon" />
+          </button>
+        </div>
+      </nav>
+
+      {/* Full Page Add Transaction Screen (Triggered by Plus button) */}
+      {isAddModalOpen && (
+        <div
+          className="full-page-add-screen"
+          onScroll={() => {
+            if (isNoteSuggestionsOpen) setIsNoteSuggestionsOpen(false);
+          }}
+        >
+          {/* Top Header */}
+          <div className="full-page-header">
+            <button type="button" className="back-btn" onClick={() => setIsAddModalOpen(false)} aria-label="Back">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 19l-7-7 7-7"/>
+                <path d="M7 12h13"/>
+              </svg>
+            </button>
+            <span className="full-page-title">{transType}</span>
+          </div>
+
+          {/* Type Switcher Tabs */}
+          <div className="type-switcher-container">
+            <div className="type-switcher">
+              {['Income', 'Expense', 'Transfer'].map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`type-tab ${transType === type ? `active ${type.toLowerCase()}-tab` : ''}`}
+                  onClick={() => {
+                    setTransType(type);
+                    setNote('');
+                    setIsNoteSuggestionsOpen(false);
+                    if (type === 'Income') {
+                      setSelectedCategory(incomeCategories[0]);
+                    } else if (type === 'Expense') {
+                      setSelectedCategory(expenseCategories[0]);
+                    }
+                  }}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Transfer Empty View */}
+          {transType === 'Transfer' ? (
+            <div className="transfer-empty-view">
+              <span className="transfer-empty-icon">💸</span>
+              <span className="transfer-empty-title">Transfer</span>
+              <span className="transfer-empty-subtitle">Menu Transfer saat ini belum diisi</span>
+            </div>
+          ) : (
+            /* Form Fields List for Expense & Income */
+            <div className="full-page-form">
+              {/* Date Row (Split Date & Time Click Triggers for Native Android/iOS Pickers) */}
+              <div className="form-row date-row-container">
+                <span className="field-label">Date</span>
+                <div className="date-display-wrapper">
+                  <span
+                    className="field-value-date-clickable"
+                    onClick={() => {
+                      if (dateInputRef.current) {
+                        if (typeof dateInputRef.current.showPicker === 'function') {
+                          dateInputRef.current.showPicker();
+                        } else {
+                          dateInputRef.current.click();
+                          dateInputRef.current.focus();
+                        }
+                      }
+                    }}
+                  >
+                    {(() => {
+                      try {
+                        const [year, month, day] = selectedDateVal.split('-').map(Number);
+                        const d = new Date(year, month - 1, day);
+                        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        return `${month}/${day}/${String(year).slice(-2)} (${days[d.getDay()]})`;
+                      } catch {
+                        return selectedDateVal;
+                      }
+                    })()}
+                  </span>
+                  <span className="date-time-spacer">&nbsp;</span>
+                  <span
+                    className="field-value-time-clickable"
+                    onClick={() => {
+                      if (timeInputRef.current) {
+                        if (typeof timeInputRef.current.showPicker === 'function') {
+                          timeInputRef.current.showPicker();
+                        } else {
+                          timeInputRef.current.click();
+                          timeInputRef.current.focus();
+                        }
+                      }
+                    }}
+                  >
+                    {selectedTimeVal}
+                  </span>
+
+                  {/* Hidden inputs to capture native calendar & clock dialogs */}
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    className="hidden-picker-input"
+                    value={selectedDateVal}
+                    onChange={(e) => setSelectedDateVal(e.target.value)}
+                  />
+                  <input
+                    ref={timeInputRef}
+                    type="time"
+                    className="hidden-picker-input"
+                    value={selectedTimeVal}
+                    onChange={(e) => setSelectedTimeVal(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Amount Row */}
+              <div
+                className={`form-row clickable ${activePanel === 'amount' ? 'focused' : ''}`}
+                onClick={() => {
+                  setActivePanel('amount');
+                  if (amountInputRef.current) amountInputRef.current.focus();
+                }}
+              >
+                <span className="field-label">Amount</span>
+                <div className="amount-input-wrapper">
+                  <span className="currency-prefix">Rp</span>
+                  <input
+                    ref={amountInputRef}
+                    type="number"
+                    inputMode="decimal"
+                    step="any"
+                    className="native-amount-input"
+                    placeholder="0"
+                    value={amountVal}
+                    onChange={(e) => setAmountVal(e.target.value)}
+                    onFocus={() => setActivePanel('amount')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAdvanceFromAmount();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Category Row (Expense & Income) */}
+              <div
+                className={`form-row clickable ${activePanel === 'category' ? 'focused' : ''}`}
+                onClick={() => {
+                  setActivePanel('category');
+                  if (document.activeElement) document.activeElement.blur();
+                }}
+              >
+                <span className="field-label">Category</span>
+                <div className="field-value-category">
+                  <div className="cat-chip">
+                    {selectedCategory.icon && (
+                      <img src={selectedCategory.icon} alt={selectedCategory.name} className="cat-chip-icon" />
+                    )}
+                    <span>{selectedCategory.name}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Row */}
+              <div
+                className={`form-row clickable ${activePanel === 'account' ? 'focused' : ''}`}
+                onClick={() => {
+                  setActivePanel('account');
+                  if (document.activeElement) document.activeElement.blur();
+                }}
+              >
+                <span className="field-label">Account</span>
+                <div className="field-value-category">
+                  <div className="cat-chip">
+                    <span>{account}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Note Row */}
+              <div
+                className={`form-row input-row note-row-relative ${activePanel === 'note' ? 'focused' : ''}`}
+                onClick={() => {
+                  setActivePanel('note');
+                  if (noteInputRef.current) noteInputRef.current.focus();
+                }}
+              >
+                <span className="field-label">Note</span>
+                <div className="note-input-wrapper">
+                  <input
+                    ref={noteInputRef}
+                    type="text"
+                    className="note-input"
+                    placeholder=""
+                    value={note}
+                    onChange={(e) => {
+                      setNote(e.target.value);
+                      setIsNoteSuggestionsOpen(e.target.value.trim().length > 0);
+                    }}
+                    onFocus={() => {
+                      setActivePanel('note');
+                      if (note.trim().length > 0) {
+                        setIsNoteSuggestionsOpen(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      // Delay closing slightly so item click event can register first
+                      setTimeout(() => {
+                        setIsNoteSuggestionsOpen(false);
+                      }, 200);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveTransaction();
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Floating History Popover Overlay - Only appears WHEN user types letters matching saved transactions history */}
+                {activePanel === 'note' && isNoteSuggestionsOpen && note.trim().length > 0 && (
+                  (() => {
+                    // Extract unique notes from actual user transactions history
+                    const actualHistory = Array.from(
+                      new Set(
+                        transactions
+                          .map(t => t.title)
+                          .filter(title => title && title.trim().length > 0)
+                      )
+                    );
+
+                    const matchingItems = actualHistory.filter(item =>
+                      item.toLowerCase().includes(note.toLowerCase().trim())
+                    );
+
+                    if (matchingItems.length === 0) return null;
+
+                    return (
+                      <div className="floating-note-popover">
+                        {matchingItems.slice(0, 6).map((item, idx) => {
+                          const searchLower = note.toLowerCase().trim();
+                          const itemLower = item.toLowerCase();
+                          const matchIndex = itemLower.indexOf(searchLower);
+
+                          let prefix = item;
+                          let match = '';
+                          let suffix = '';
+
+                          if (searchLower && matchIndex !== -1) {
+                            prefix = item.slice(0, matchIndex);
+                            match = item.slice(matchIndex, matchIndex + searchLower.length);
+                            suffix = item.slice(matchIndex + searchLower.length);
+                          }
+
+                          return (
+                            <div
+                              key={idx}
+                              className="floating-note-item"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNote(item);
+                                setIsNoteSuggestionsOpen(false);
+                                if (noteInputRef.current) noteInputRef.current.focus();
+                              }}
+                            >
+                              <span>
+                                {prefix}
+                                <span className="highlight-match">{match}</span>
+                                {suffix}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+
+              {/* Save Button ONLY when activePanel === 'note' */}
+              {activePanel === 'note' && (
+                <div className="note-save-container">
+                  <button
+                    type="button"
+                    className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
+                    onClick={handleSaveTransaction}
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Category Selector Sheet when Category is active */}
+          {activePanel === 'category' && (
+            <div className="panel-category-full">
+              <div className="panel-sub-header">
+                <span className="panel-title">Category</span>
+                <div className="panel-header-actions">
+                  <button
+                    type="button"
+                    className={`header-action-btn ${isCustomCat ? 'active' : ''}`}
+                    onClick={() => setIsCustomCat(!isCustomCat)}
+                    title="Tulis Kategori Sendiri"
+                    aria-label="Edit custom category"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    className="header-action-btn close-btn"
+                    onClick={() => setActivePanel('account')}
+                    title="Tutup"
+                    aria-label="Close category panel"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {isCustomCat && (
+                <div className="custom-cat-wrapper">
+                  <input
+                    type="text"
+                    className="custom-cat-input"
+                    placeholder="Tulis kategori baru..."
+                    value={customCatInput}
+                    onChange={(e) => setCustomCatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomCategory();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
+                    + Tambah
+                  </button>
+                </div>
+              )}
+
+              <div className="category-grid">
+                {(transType === 'Expense' ? expenseCategories : incomeCategories).map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!cat.icon ? 'text-only' : ''}`}
+                    onClick={() => handleSelectCategory(cat)}
+                  >
+                    {cat.icon ? (
+                      <div className={`cat-grid-icon ${cat.iconClass}`}>
+                        <img src={cat.icon} alt={cat.name} />
+                      </div>
+                    ) : null}
+                    <span className="cat-grid-label">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Account Selector Sheet when Account is active */}
+          {activePanel === 'account' && (
+            <div className="panel-category-full">
+              <div className="panel-sub-header">
+                <span className="panel-title">Account</span>
+                <div className="panel-header-actions">
+                  <button
+                    type="button"
+                    className={`header-action-btn ${isCustomAccount ? 'active' : ''}`}
+                    onClick={() => setIsCustomAccount(!isCustomAccount)}
+                    title="Tulis Akun Sendiri"
+                    aria-label="Edit custom account"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    className="header-action-btn close-btn"
+                    onClick={() => setActivePanel('note')}
+                    title="Tutup"
+                    aria-label="Close account panel"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {isCustomAccount && (
+                <div className="custom-cat-wrapper">
+                  <input
+                    type="text"
+                    className="custom-cat-input"
+                    placeholder="Tulis akun baru..."
+                    value={customAccountInput}
+                    onChange={(e) => setCustomAccountInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomAccount();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button type="button" className="add-cat-btn" onClick={handleAddCustomAccount}>
+                    + Tambah
+                  </button>
+                </div>
+              )}
+
+              <div className="category-grid">
+                {accountsList.map(acc => (
+                  <button
+                    key={acc}
+                    type="button"
+                    className={`cat-grid-item text-only ${account === acc ? 'active' : ''}`}
+                    onClick={() => handleSelectAccount(acc)}
+                  >
+                    <span className="cat-grid-label" style={{ fontSize: '14px' }}>{acc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Profile Setup / Edit Modal */}
+      {isProfileModalOpen && (
+        <div className="modal-overlay profile-setup-overlay">
+          <div className="profile-modal-card">
+            <div className="profile-modal-header">
+              <h3 className="profile-modal-title">
+                {localStorage.getItem('user_profile_setup_done') ? 'Atur Profil Anda' : 'Selamat Datang! Atur Profil Anda'}
+              </h3>
+              {localStorage.getItem('user_profile_setup_done') && (
+                <button
+                  type="button"
+                  className="profile-modal-close-btn"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  aria-label="Tutup"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="profile-modal-body">
+              {/* Avatar Picker Circle */}
+              <div className="profile-avatar-picker-wrapper">
+                <div
+                  className="profile-avatar-picker-circle"
+                  onClick={() => profileFileInputRef.current && profileFileInputRef.current.click()}
+                  title="Klik untuk memilih foto profil"
+                >
+                  {tempProfileImage ? (
+                    <img src={tempProfileImage} alt="Foto Profil" className="profile-picker-img" />
+                  ) : (
+                    <span className="profile-picker-initial">
+                      {(tempName.trim() || 'P').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="profile-camera-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  </div>
+                </div>
+                <span className="profile-picker-hint">Tekan foto untuk memilih dari galeri</span>
+                <input
+                  ref={profileFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden-file-input"
+                  onChange={handleSelectFile}
+                />
+              </div>
+
+              {/* Name Input Field */}
+              <div className="profile-field-group">
+                <label className="profile-field-label">Nama Lengkap / Panggilan</label>
+                <input
+                  type="text"
+                  className="profile-name-input"
+                  placeholder="Ketik nama Anda..."
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveProfile();
+                  }}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="profile-modal-footer">
+              <button
+                type="button"
+                className="profile-save-btn"
+                onClick={handleSaveProfile}
+              >
+                Simpan Profil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Crop & Adjustment Modal */}
+      {isCropModalOpen && cropImageSrc && (
+        <div className="modal-overlay crop-modal-overlay">
+          <div className="crop-modal-card">
+            <div className="crop-modal-header">
+              <span className="crop-modal-title">Sesuaikan Foto</span>
+              <button
+                type="button"
+                className="crop-modal-close"
+                onClick={() => setIsCropModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="crop-workspace">
+              <div
+                className="crop-viewfinder"
+                onMouseDown={(e) => {
+                  setIsDraggingCrop(true);
+                  setCropDragStart({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y });
+                }}
+                onMouseMove={(e) => {
+                  if (!isDraggingCrop) return;
+                  setCropOffset({
+                    x: e.clientX - cropDragStart.x,
+                    y: e.clientY - cropDragStart.y
+                  });
+                }}
+                onMouseUp={() => setIsDraggingCrop(false)}
+                onMouseLeave={() => setIsDraggingCrop(false)}
+                onTouchStart={(e) => {
+                  if (e.touches.length === 1) {
+                    setIsDraggingCrop(true);
+                    setCropDragStart({
+                      x: e.touches[0].clientX - cropOffset.x,
+                      y: e.touches[0].clientY - cropOffset.y
+                    });
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (isDraggingCrop && e.touches.length === 1) {
+                    setCropOffset({
+                      x: e.touches[0].clientX - cropDragStart.x,
+                      y: e.touches[0].clientY - cropDragStart.y
+                    });
+                  }
+                }}
+                onTouchEnd={() => setIsDraggingCrop(false)}
+              >
+                <img
+                  ref={cropImgRef}
+                  src={cropImageSrc}
+                  alt="Preview Crop"
+                  className="crop-target-img"
+                  style={{
+                    transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                    cursor: isDraggingCrop ? 'grabbing' : 'grab'
+                  }}
+                  draggable={false}
+                />
+                <div className="crop-circle-mask" />
+              </div>
+
+              {/* Zoom Slider */}
+              <div className="crop-controls">
+                <span className="crop-zoom-icon">🔍 -</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.05"
+                  value={cropZoom}
+                  onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                  className="crop-zoom-slider"
+                />
+                <span className="crop-zoom-icon">+</span>
+              </div>
+            </div>
+
+            <div className="crop-modal-footer">
+              <button
+                type="button"
+                className="crop-reset-btn"
+                onClick={() => {
+                  setCropZoom(1);
+                  setCropOffset({ x: 0, y: 0 });
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="crop-ok-btn"
+                onClick={handleSaveCrop}
+              >
+                Oke
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simple In-App Update Pop-Up Modal */}
+      {updateInfo && (
+        <div className="modal-overlay update-modal-overlay">
+          <div className="update-modal-card">
+            <div className="update-modal-header">
+              <span className="update-modal-badge">🚀 Versi Baru Tersedia</span>
+            </div>
+            <div className="update-modal-body">
+              <h3 className="update-version-title">Update v{updateInfo.version}</h3>
+              <p className="update-changelog-text">{updateInfo.changelog || 'Pembaruan aplikasi telah tersedia.'}</p>
+            </div>
+            <div className="update-modal-footer">
+              <button
+                type="button"
+                className="update-later-btn"
+                onClick={() => setUpdateInfo(null)}
+              >
+                Nanti
+              </button>
+              <a
+                href={updateInfo.downloadUrl || 'https://github.com/redilah/Finance-tracker/releases'}
+                target="_blank"
+                rel="noreferrer"
+                className="update-now-btn"
+              >
+                Update Sekarang
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;

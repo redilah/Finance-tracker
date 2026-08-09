@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Colored house icon</title>
+  <desc>Clean colored SVG recreation of the uploaded house illustration.</desc>
+
+  <!-- Chimney -->
+  <path d="M384 80V54c0-6 5-11 11-11h31c5 0 9 4 9 9v90l-51-46z"
+        fill="#F44335"/>
+  <path d="M416 43h10c5 0 9 4 9 9v50l-19-17V43z"
+        fill="#C81E1E"/>
+
+  <!-- House body -->
+  <path d="M59 238L256 64l197 175v245H59V238z" fill="#F5F5F5"/>
+  <!-- Side wall shadow -->
+  <path d="M435 238l18 16v229H435V238z" fill="#CFD8DC"/>
+
+  <!-- Roof dark underside -->
+  <path d="M35 222L256 31l221 191"
+        fill="none" stroke="#000000" stroke-width="42"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Main red roof -->
+  <path d="M35 222L256 31l221 191"
+        fill="none" stroke="#F44335" stroke-width="29"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Roof right-side red shade -->
+  <path d="M256 31L477 222"
+        fill="none" stroke="#C81E1E" stroke-width="29"
+        stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+
+  <!-- Roof front red face to restore bright center -->
+  <path d="M35 222L256 31"
+        fill="none" stroke="#F44335" stroke-width="29"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 31L477 222"
+        fill="none" stroke="#F44335" stroke-width="29"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Windows -->
+  <rect x="77" y="273" width="94" height="129" rx="18" fill="#000"/>
+  <rect x="93" y="289" width="62" height="97" fill="#02A9F4"/>
+  <rect x="137" y="289" width="18" height="97" fill="#0377BC"/>
+
+  <rect x="341" y="273" width="94" height="129" rx="18" fill="#000"/>
+  <rect x="357" y="289" width="62" height="97" fill="#02A9F4"/>
+  <rect x="401" y="289" width="18" height="97" fill="#0377BC"/>
+
+  <!-- Door frame -->
+  <rect x="187" y="273" width="137" height="250" rx="24" fill="#000"/>
+  <!-- Door -->
+  <rect x="205" y="290" width="102" height="233" fill="#F44335"/>
+  <rect x="289" y="290" width="18" height="233" fill="#C81E1E"/>
+  <!-- Door handle -->
+  <rect x="222" y="401" width="26" height="18" rx="9" fill="#000"/>
+
+  <!-- Bush -->
+  <path d="M376 494c-12-2-18-12-17-24 1-12 10-22 21-26
+           2-14 13-24 27-25 6-13 18-21 32-20 10 0 18 4 25 11
+           13-1 25 7 29 19 12 4 20 15 19 28-1 17-14 29-31 30
+           H392c-6 0-11-1-16-3z" fill="#60A917"/>
+  <path d="M432 400c10 0 18 4 25 11 13-1 25 7 29 19
+           12 4 20 15 19 28-1 10-6 18-14 23
+           -4-20-17-32-35-35-4-20-13-34-24-46z"
+        fill="#549414" opacity=".9"/>
+
+  <!-- Small front bush highlight -->
+  <path d="M391 494c-9-2-15-9-15-18 0-10 7-18 17-20
+           3-10 11-16 22-16 5 0 10 2 14 5
+           7 0 13 3 17 8 8 2 13 9 13 17
+           0 14-11 24-25 24h-32c-4 0-8 0-11 0z"
+        fill="#60A917"/>
+</svg>
