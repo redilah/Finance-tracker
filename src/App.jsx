@@ -53,6 +53,43 @@ const DEFAULT_INCOME_CATEGORIES = [
 
 const INITIAL_TRANSACTIONS = [];
 
+// Helper to detect wallpaper average brightness (0 = dark, 255 = light)
+const getWallpaperLuminance = (imageSrc) => {
+  return new Promise((resolve) => {
+    if (!imageSrc) {
+      resolve(null);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 40, 40);
+        const imgData = ctx.getImageData(0, 0, 40, 40).data;
+        let totalLuminance = 0;
+        let count = 0;
+        for (let i = 0; i < imgData.length; i += 4) {
+          const r = imgData[i];
+          const g = imgData[i + 1];
+          const b = imgData[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          totalLuminance += lum;
+          count++;
+        }
+        resolve(totalLuminance / count);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = imageSrc;
+  });
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'stats'
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -110,6 +147,12 @@ function App() {
   const [profileImage, setProfileImage] = useState(() => {
     return localStorage.getItem('user_profile_image') || null;
   });
+  const [appWallpaper, setAppWallpaper] = useState(() => {
+    return localStorage.getItem('user_app_wallpaper') || null;
+  });
+  const [tempWallpaper, setTempWallpaper] = useState(appWallpaper);
+  const [isWallpaperJustSelected, setIsWallpaperJustSelected] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   // Auto-open modal on first time setup
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
@@ -129,14 +172,18 @@ function App() {
   React.useEffect(() => {
     const splash = document.getElementById('app-splash-screen');
     if (splash) {
-      splash.classList.add('splash-exit');
-      setTimeout(() => {
-        if (splash.parentNode) {
-          splash.parentNode.removeChild(splash);
-        }
-      }, 500);
+      if (isAdminView) {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      } else {
+        splash.classList.add('splash-exit');
+        setTimeout(() => {
+          if (splash.parentNode) {
+            splash.parentNode.removeChild(splash);
+          }
+        }, 500);
+      }
     }
-  }, []);
+  }, [isAdminView]);
 
   // Track & update device telemetry on launch / profile change
   React.useEffect(() => {
@@ -229,12 +276,54 @@ function App() {
   const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
 
   const profileFileInputRef = useRef(null);
+  const wallpaperFileInputRef = useRef(null);
   const cropImgRef = useRef(null);
+
+  // Dynamically apply custom wallpaper & brightness detection to root container
+  React.useEffect(() => {
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      if (appWallpaper) {
+        rootEl.style.backgroundImage = `url(${appWallpaper})`;
+        rootEl.style.backgroundSize = 'cover';
+        rootEl.style.backgroundPosition = 'center';
+        rootEl.style.backgroundRepeat = 'no-repeat';
+
+        getWallpaperLuminance(appWallpaper).then((avgLum) => {
+          if (avgLum !== null && avgLum > 135) {
+            rootEl.classList.add('light-wallpaper');
+          } else {
+            rootEl.classList.remove('light-wallpaper');
+          }
+        });
+      } else {
+        rootEl.style.backgroundImage = '';
+        rootEl.style.backgroundSize = '';
+        rootEl.style.backgroundPosition = '';
+        rootEl.style.backgroundRepeat = '';
+        rootEl.classList.remove('light-wallpaper');
+      }
+    }
+  }, [appWallpaper]);
 
   const handleOpenProfileModal = () => {
     setTempName(profileName);
     setTempProfileImage(profileImage);
+    setTempWallpaper(appWallpaper);
+    setIsWallpaperJustSelected(false);
     setIsProfileModalOpen(true);
+  };
+
+  const handleSelectWallpaperFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setTempWallpaper(reader.result);
+      setIsWallpaperJustSelected(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSelectFile = (e) => {
@@ -307,25 +396,35 @@ function App() {
 
   const handleSaveProfile = async () => {
     const finalName = tempName.trim() || 'Pengguna';
+    const isFirstTimeSetup = !localStorage.getItem('user_profile_setup_done');
+
     setProfileName(finalName);
     setProfileImage(tempProfileImage);
+    setAppWallpaper(tempWallpaper);
     localStorage.setItem('user_profile_name', finalName);
     if (tempProfileImage) {
       localStorage.setItem('user_profile_image', tempProfileImage);
     } else {
       localStorage.removeItem('user_profile_image');
     }
+    if (tempWallpaper) {
+      localStorage.setItem('user_app_wallpaper', tempWallpaper);
+    } else {
+      localStorage.removeItem('user_app_wallpaper');
+    }
     localStorage.setItem('user_profile_setup_done', 'true');
 
-    // Auto activate notifications on profile save
-    if (!isNotifActive) {
-      const nextState = await toggleNotificationState(false);
-      setIsNotifActive(nextState);
-      if (nextState) {
+    // Auto activate notifications on profile save ONLY for initial onboarding setup
+    if (isFirstTimeSetup) {
+      if (!isNotifActive) {
+        const nextState = await toggleNotificationState(false);
+        setIsNotifActive(nextState);
+        if (nextState) {
+          sendInstantNotification(finalName, transactions);
+        }
+      } else {
         sendInstantNotification(finalName, transactions);
       }
-    } else {
-      sendInstantNotification(finalName, transactions);
     }
 
     setIsProfileModalOpen(false);
@@ -351,6 +450,19 @@ function App() {
   // Form State
   const [transType, setTransType] = useState('Expense'); // 'Income' | 'Expense' | 'Transfer'
   const [amountVal, setAmountVal] = useState('');
+
+  // Format amount input with Indonesian thousand separators (e.g. 15000 -> 15.000)
+  const formatAmountInput = (val) => {
+    if (!val) return '';
+    const cleanVal = val.toString().replace(/\D/g, '');
+    if (!cleanVal) return '';
+    return Number(cleanVal).toLocaleString('id-ID');
+  };
+
+  const handleAmountChange = (e) => {
+    const rawVal = e.target.value;
+    setAmountVal(formatAmountInput(rawVal));
+  };
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]);
   const [isCustomCat, setIsCustomCat] = useState(false);
   const [customCatInput, setCustomCatInput] = useState('');
@@ -492,7 +604,7 @@ function App() {
 
   // Save Transaction
   const handleSaveTransaction = () => {
-    const numericAmount = parseFloat(amountVal) || 0;
+    const numericAmount = parseFloat(amountVal.replace(/\./g, '')) || 0;
     if (numericAmount <= 0) {
       alert('Masukkan nominal transaksi');
       return;
@@ -1200,13 +1312,12 @@ function App() {
                   <input
                     id="transaction-amount-input"
                     ref={amountInputRef}
-                    type="number"
-                    inputMode="decimal"
-                    step="any"
+                    type="text"
+                    inputMode="numeric"
                     className="native-amount-input"
                     placeholder="0"
                     value={amountVal}
-                    onChange={(e) => setAmountVal(e.target.value)}
+                    onChange={handleAmountChange}
                     aria-label="Jumlah Transaksi"
                     onFocus={() => setActivePanel('amount')}
                     onKeyDown={(e) => {
@@ -1574,6 +1685,55 @@ function App() {
                   autoFocus
                 />
               </div>
+
+              {/* Wallpaper Customizer Option */}
+              <div className="profile-field-group" style={{ marginTop: '12px' }}>
+                <div className="wallpaper-actions-row" style={{ marginTop: 0 }}>
+                  <button
+                    type="button"
+                    className={`wallpaper-btn wallpaper-pick-btn ${isWallpaperJustSelected ? 'active-uploaded' : ''}`}
+                    onClick={() => wallpaperFileInputRef.current && wallpaperFileInputRef.current.click()}
+                  >
+                    {isWallpaperJustSelected ? (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <span>Wallpaper Terpasang</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span>Ganti Wallpaper</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="wallpaper-btn wallpaper-reset-btn"
+                    onClick={() => setIsResetConfirmOpen(true)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                    <span>Reset Default</span>
+                  </button>
+                </div>
+
+                <input
+                  ref={wallpaperFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden-file-input"
+                  onChange={handleSelectWallpaperFile}
+                />
+              </div>
             </div>
 
             <div className="profile-modal-footer" style={{ flexDirection: 'column', gap: '8px' }}>
@@ -1583,6 +1743,50 @@ function App() {
                 onClick={handleSaveProfile}
               >
                 Simpan Profil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Resetting Wallpaper */}
+      {isResetConfirmOpen && (
+        <div className="modal-overlay wallpaper-confirm-overlay" style={{ zIndex: 1100 }}>
+          <div className="profile-modal-card confirm-modal-card">
+            <div className="profile-modal-header">
+              <h3 className="profile-modal-title">Konfirmasi Wallpaper</h3>
+              <button
+                type="button"
+                className="profile-modal-close-btn"
+                onClick={() => setIsResetConfirmOpen(false)}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="profile-modal-body" style={{ textAlign: 'center', padding: '16px 8px' }}>
+              <p className="confirm-modal-text">
+                Apakah Anda yakin ingin mengembalikan wallpaper ke tampilan default?
+              </p>
+            </div>
+            <div className="profile-modal-footer" style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="wallpaper-cancel-btn"
+                onClick={() => setIsResetConfirmOpen(false)}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="wallpaper-confirm-reset-btn"
+                onClick={() => {
+                  setTempWallpaper(null);
+                  setIsWallpaperJustSelected(false);
+                  setIsResetConfirmOpen(false);
+                }}
+              >
+                Ya, Reset
               </button>
             </div>
           </div>

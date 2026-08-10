@@ -55,6 +55,12 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   // Initial load & Firebase Realtime Subscription
   useEffect(() => {
+    // Immediately remove HTML splash screen if present when viewing Admin Dashboard
+    const splash = document.getElementById('app-splash-screen');
+    if (splash && splash.parentNode) {
+      splash.parentNode.removeChild(splash);
+    }
+
     // 1. Update this device telemetry on load
     updateCurrentDeviceTelemetry();
 

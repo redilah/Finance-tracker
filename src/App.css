@@ -2044,6 +2044,168 @@ img[src*="Kost"] {
   font-weight: 700;
 }
 
+/* Wallpaper Customizer Styles */
+.wallpaper-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.wallpaper-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(45, 82, 132, 0.15);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.wallpaper-btn:active {
+  transform: scale(0.98);
+}
+
+.wallpaper-pick-btn {
+  background: #2D5284;
+  color: #FFFFFF !important;
+  border: none;
+  box-shadow: 0 4px 12px rgba(45, 82, 132, 0.2);
+}
+
+.wallpaper-pick-btn span,
+.wallpaper-pick-btn svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.wallpaper-pick-btn:hover {
+  background: #23426b;
+}
+
+/* Active Uploaded Indicator Style */
+.wallpaper-pick-btn.active-uploaded {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.wallpaper-pick-btn.active-uploaded:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.wallpaper-reset-btn {
+  background: #F8F9FA;
+  color: #6C757D;
+  border: 1.5px dashed #CBD5E1;
+}
+
+.wallpaper-reset-btn:hover {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+/* Wallpaper Reset Confirmation Modal */
+.wallpaper-confirm-overlay {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal-card {
+  max-width: 340px !important;
+  border-radius: 28px !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18) !important;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confirm-modal-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wallpaper-cancel-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 14px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.wallpaper-cancel-btn:hover {
+  background: #E2E8F0;
+}
+
+.wallpaper-confirm-reset-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 14px;
+  background: #DC2626;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  transition: background 0.2s ease;
+}
+
+.wallpaper-confirm-reset-btn:hover {
+  background: #B91C1C;
+}
+
+/* Automatic High-Contrast Theme for Light/Bright Wallpapers (No Boxes, Same Font) */
+#root.light-wallpaper {
+  --text-main: #0F172A;
+  --text-muted: #334155;
+  color: #0F172A;
+}
+
+#root.light-wallpaper .month-text,
+#root.light-wallpaper .field-label,
+#root.light-wallpaper .currency-prefix,
+#root.light-wallpaper .day-title,
+#root.light-wallpaper .day-income-label,
+#root.light-wallpaper .day-expense-label,
+#root.light-wallpaper .transaction-title,
+#root.light-wallpaper .stats-header h2,
+#root.light-wallpaper .month-btn,
+#root.light-wallpaper .profile-name {
+  color: #0F172A !important;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85);
+}
+
+#root.light-wallpaper .day-income-amount {
+  color: #15803D !important;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85);
+}
+
+#root.light-wallpaper .day-expense-amount {
+  color: #B91C1C !important;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85);
+}
+
+#root.light-wallpaper .amount {
+  color: #1E293B !important;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85);
+}
+
+
 
 
 

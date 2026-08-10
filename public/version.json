@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
-  "changelog": "Rilis v1.0.5: Fitur Splash Screen Instan & Pembaruan Sistem Otomatis.",
+  "version": "1.0.6",
+  "changelog": "Rilis v1.0.6: Format angka ribuan amount, kustomisasi wallpaper & deteksi kontras otomatis.",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }
