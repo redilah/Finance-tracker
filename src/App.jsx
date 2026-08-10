@@ -236,9 +236,35 @@ function App() {
   };
 
   React.useEffect(() => {
-    checkForAppUpdates().then(info => {
-      if (info) setUpdateInfo(info);
+    const checkUpdate = () => {
+      checkForAppUpdates().then(info => {
+        if (info) setUpdateInfo(info);
+      });
+    };
+
+    // 1. Cek saat pertama kali dibuka (mount)
+    checkUpdate();
+
+    // 2. Cek saat aplikasi Capacitor kembali dari background (resume)
+    let appStateListener;
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) checkUpdate();
+      }).then(listener => {
+        appStateListener = listener;
+      });
+    }).catch(() => {
+      // Fallback PWA / Web
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') checkUpdate();
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+      appStateListener = { remove: () => document.removeEventListener('visibilitychange', handleVisibility) };
     });
+
+    return () => {
+      if (appStateListener) appStateListener.remove();
+    };
   }, []);
 
   // Sync states to LocalStorage
