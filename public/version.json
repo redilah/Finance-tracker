@@ -1,5 +1,9 @@
 {
-  "version": "1.0.6",
-  "changelog": "Rilis v1.0.6: Format angka ribuan amount, kustomisasi wallpaper & deteksi kontras otomatis.",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
+  "versionCode": 8,
+  "versionName": "1.0.7",
+  "version": "1.0.7",
+  "changelog": "Rilis v1.0.7: Peningkatan stabilitas performa dan pengoptimalan sistem pembaruan otomatis in-app.",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }
+

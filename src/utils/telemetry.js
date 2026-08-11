@@ -1,4 +1,5 @@
-import { CURRENT_VERSION } from './version';
+import { CURRENT_VERSION_NAME } from './version';
+const CURRENT_VERSION = CURRENT_VERSION_NAME;
 import { db } from './firebase';
 import { 
   collection, 

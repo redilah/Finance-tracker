@@ -1,27 +1,15 @@
-export const CURRENT_VERSION = '1.0.6';
+export const CURRENT_VERSION_CODE = 7;
+export const CURRENT_VERSION_NAME = '1.0.6';
 
-// Helper to compare semver strings (e.g. "1.0.4" > "1.0.3")
-export const isNewerVersion = (serverVer, currentVer = CURRENT_VERSION) => {
-  if (!serverVer) return false;
-  const parse = (v) => v.toString().replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
-  const s = parse(serverVer);
-  const c = parse(currentVer);
-  for (let i = 0; i < Math.max(s.length, c.length); i++) {
-    const numS = s[i] || 0;
-    const numC = c[i] || 0;
-    if (numS > numC) return true;
-    if (numS < numC) return false;
-  }
-  return false;
-};
-
-// Check for updates with multi-CDN fallback & no-cache headers
+// Check for updates via versionCode comparison (persis seperti Puncak App)
 export const checkForAppUpdates = async () => {
   const timestamp = Date.now();
-  const urls = [
-    `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${timestamp}`,
-    `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?t=${timestamp}`
-  ];
+  const urls = process.env.NODE_ENV === 'development'
+    ? [`/version.json?t=${timestamp}`]
+    : [
+        `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${timestamp}`,
+        `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?t=${timestamp}`
+      ];
 
   for (const url of urls) {
     try {
@@ -34,8 +22,19 @@ export const checkForAppUpdates = async () => {
       });
       if (!res.ok) continue;
       const data = await res.json();
-      if (data && data.version && isNewerVersion(data.version, CURRENT_VERSION)) {
-        return data;
+      const latestVersionCode = data.versionCode || 0;
+      
+      if (latestVersionCode > CURRENT_VERSION_CODE) {
+        return {
+          hasUpdate: true,
+          currentVersionCode: CURRENT_VERSION_CODE,
+          currentVersionName: CURRENT_VERSION_NAME,
+          latestVersionCode: latestVersionCode,
+          latestVersionName: data.versionName || data.version || '1.0.0',
+          version: data.versionName || data.version || '1.0.0',
+          changelog: data.changelog || data.releaseNotes || 'Pembaruan aplikasi terbaru telah tersedia.',
+          downloadUrl: data.downloadUrl || data.apkUrl || 'https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk'
+        };
       }
     } catch (e) {
       console.warn('Update check endpoint fallback warning:', url, e?.message || e);
@@ -43,3 +42,4 @@ export const checkForAppUpdates = async () => {
   }
   return null;
 };
+

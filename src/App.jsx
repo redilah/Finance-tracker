@@ -18,7 +18,7 @@ import bonusSvg from './assets/bonus.svg';
 import kipSvg from './assets/KIP.svg';
 import pesawatSvg from './assets/Pesawat.svg';
 import kostSvg from './assets/Kost.svg';
-import { CURRENT_VERSION, checkForAppUpdates } from './utils/version';
+import { CURRENT_VERSION_NAME, CURRENT_VERSION_CODE, checkForAppUpdates } from './utils/version';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { updateCurrentDeviceTelemetry } from './utils/telemetry';
 import { 
