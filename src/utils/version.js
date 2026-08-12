@@ -1,5 +1,5 @@
-export const CURRENT_VERSION_CODE = 8;
-export const CURRENT_VERSION_NAME = '1.0.7';
+export const CURRENT_VERSION_CODE = 9;
+export const CURRENT_VERSION_NAME = '1.0.8';
 
 // Check for updates via versionCode comparison (persis seperti Puncak App)
 export const checkForAppUpdates = async () => {

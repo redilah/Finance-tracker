@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "1.0.7",
-  "version": "1.0.7",
-  "changelog": "Rilis v1.0.7: Peningkatan stabilitas performa dan pengoptimalan sistem pembaruan otomatis in-app.",
+  "versionCode": 9,
+  "versionName": "1.0.8",
+  "version": "1.0.8",
+  "changelog": "Rilis v1.0.8: Implementasi smart hybrid engine classifier, audio feedback transaksi, budget kategori, serta optimalisasi in-app update.",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk",
   "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }
