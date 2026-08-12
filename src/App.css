@@ -370,6 +370,21 @@
 .bottle-icon { background-color: #B2E8D9; }
 .pesawat-icon { background-color: #A3D8F4; }
 .kost-icon { background-color: #FFD3B6; }
+.coffee-icon { background-color: #D4A574; }
+.gofood-icon { background-color: #FFC3C3; }
+.sepatu-icon { background-color: #D8B4F8; }
+.donasi-icon { background-color: #F8C8DC; }
+.topup-game-icon { background-color: #B4F8C8; }
+.bensin-icon { background-color: #F8C3A6; }
+.investasi-icon { background-color: #C1E1C1; }
+.bisnis-icon { background-color: #FFE5B4; }
+.affiliate-icon { background-color: #D2E0FB; }
+.konser-icon { background-color: #F190B7; }
+.pulsa-icon { background-color: #BFDBFE; }
+.rumah-sakit-icon { background-color: #FECDD3; }
+.obat-sakit-icon { background-color: #BBF7D0; }
+.jajan-adek-icon { background-color: #FFDDE1; }
+.party-icon { background-color: #a16207; }
 
 .kost-icon img,
 img[src*="Kost"] {
@@ -377,8 +392,8 @@ img[src*="Kost"] {
 }
 
 .transaction-icon img {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
 }
 
@@ -955,8 +970,8 @@ img[src*="Kost"] {
 }
 
 .cat-grid-icon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -965,8 +980,8 @@ img[src*="Kost"] {
 }
 
 .cat-grid-icon img {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .cat-grid-label {
@@ -1127,31 +1142,236 @@ img[src*="Kost"] {
   box-shadow: 0 6px 16px rgba(45, 82, 132, 0.28);
 }
 
-/* Transfer Empty View */
-.transfer-empty-view {
+/* ==========================================
+   Fitur 'Andai' (Opportunity Cost Visualizer)
+   ========================================== */
+/* ==========================================
+   Fitur 'Andai' Clean UI
+   ========================================== */
+.andai-tab {
+  background-color: #8E44AD !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(142, 68, 173, 0.25) !important;
+}
+
+.andai-container-clean {
+  padding: 12px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+/* Hero Header Ringkas */
+.andai-hero-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  gap: 10px;
   text-align: center;
+  padding: 10px 0 4px;
 }
 
-.transfer-empty-icon {
-  font-size: 42px;
+.andai-hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8E44AD;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
-.transfer-empty-title {
-  font-size: 18px;
+.andai-hero-amount {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text-main);
+  margin: 2px 0;
+}
+
+.andai-hero-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Pill Row Selector */
+.andai-pill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.andai-pill-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 3px;
+  border-radius: 12px;
+  gap: 2px;
+}
+
+.andai-mini-pill {
+  border: none;
+  background: transparent;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.andai-mini-pill.active {
+  background: #FFFFFF;
+  color: #8E44AD;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.andai-select-compact {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  outline: none;
+}
+
+/* Comparison View Card (Light Neutral) */
+.andai-comparison-card {
+  background: var(--bg-card, #FFFFFF);
+  border-radius: 16px;
+  padding: 16px 20px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.andai-compare-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.andai-compare-item.future {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.compare-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.compare-val {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 2px 0;
+}
+
+.compare-val.zero {
+  color: #E74C3C;
+}
+
+.compare-val.grow {
+  color: #27AE60;
+}
+
+.compare-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.compare-gain {
+  font-size: 11px;
+  font-weight: 700;
+  color: #27AE60;
+}
+
+.andai-compare-divider {
+  width: 1px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* List Clean */
+.andai-list-clean {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.list-clean-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.empty-clean-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px 0;
+}
+
+.item-clean-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.item-clean-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-clean-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-clean-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.item-clean-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-clean-title {
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-main);
 }
 
-.transfer-empty-subtitle {
-  font-size: 13px;
-  font-weight: 500;
+.item-clean-sub {
+  font-size: 11px;
   color: var(--text-muted);
+}
+
+.item-clean-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: #FF5252;
 }
 
 /* ==========================================
@@ -1511,6 +1731,50 @@ img[src*="Kost"] {
   justify-content: center;
   padding: 20px;
   animation: fadeIn 0.2s ease;
+}
+
+/* Full Page Profile Screen (ketika dibuka oleh user yang sudah setup) */
+.full-page-profile-screen {
+  background-color: var(--bg-app, #F8EFE6) !important;
+  backdrop-filter: none !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+}
+
+.full-page-profile-screen .profile-modal-card {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+.full-page-profile-screen .profile-modal-header {
+  padding: 24px 20px 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.full-page-profile-screen .profile-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  flex: 1;
+}
+
+.full-page-profile-screen .profile-modal-body {
+  padding: 24px 20px 30px 20px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.full-page-profile-screen .profile-modal-footer {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 10px 20px 30px 20px;
 }
 
 .profile-modal-card {
@@ -2205,8 +2469,208 @@ img[src*="Kost"] {
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.85);
 }
 
+/* Budget Cap Modal Styles */
+.budget-cap-profile-btn,
+.budget-cap-profile-btn span,
+.budget-cap-profile-btn svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
 
+.budget-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
 
+.budget-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
 
+.budget-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 
+.budget-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.budget-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #F8EFE6;
+  border-radius: 12px;
+  padding: 8px 12px;
+  width: 140px;
+}
+
+.budget-input-prefix {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-right: 4px;
+  font-weight: 600;
+}
+
+.budget-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  outline: none;
+  text-align: right;
+}
+
+.budget-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.budget-item-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.budget-item-icon-box img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.budget-action-btn {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.budget-action-btn.save-btn {
+  background: #2D5284;
+  color: #FFFFFF;
+}
+
+.budget-action-btn.save-btn:hover {
+  background: #1E3B66;
+}
+
+.budget-action-btn.edit-btn {
+  background: #EBF3FE;
+  color: #2D5284;
+}
+
+.budget-action-btn.edit-btn:hover {
+  background: #DCE8FA;
+}
+
+.budget-confirm-card {
+  background: #F8EFE6;
+  border-radius: 20px;
+  padding: 22px 20px;
+  width: 90%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.22);
+}
+
+.budget-confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 8px;
+}
+
+.budget-confirm-msg {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.budget-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.budget-confirm-btn {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.budget-confirm-btn.cancel {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+.budget-confirm-btn.confirm {
+  background: #2D5284;
+  color: #FFFFFF;
+}
+
+/* Budget Search Bar */
+.budget-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 10px 14px;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.budget-search-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  color: #0F172A;
+  outline: none;
+  font-weight: 500;
+}
+
+.budget-search-input::placeholder {
+  color: #94A3B8;
+}
+
+.budget-search-clear {
+  border: none;
+  background: #E2E8F0;
+  color: #64748B;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+}
 

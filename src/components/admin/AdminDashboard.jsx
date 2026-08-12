@@ -324,6 +324,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     <th>NAMA DEVICE & OS</th>
                     <th>TGL & JAM INSTAL</th>
                     <th>TGL & JAM TERAKHIR AKTIF</th>
+                    <th>TRANSAKSI</th>
                     <th>STATUS</th>
                   </tr>
                 </thead>
@@ -371,6 +372,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         <td>
                           <div className="datetime-primary">{lastActiveDt.dateStr}</div>
                           <div className="datetime-sub">🕒 {lastActiveDt.timeStr}</div>
+                        </td>
+
+                        {/* Jumlah Transaksi per User */}
+                        <td>
+                          <div className="tx-count-cell">
+                            <span className="tx-count-badge">{item.totalTransactions ?? 0}</span>
+                            <span className="tx-count-label">transaksi</span>
+                          </div>
                         </td>
 
                         {/* Status Online/Idle/Offline */}

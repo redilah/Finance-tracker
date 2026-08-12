@@ -17,6 +17,18 @@ Follow these steps to prepare a new release or update:
 3. **Verify Signature**: Run `apksigner verify --print-certs <apk-path>` to confirm it is signed with the release key (`CN=Redilah`) rather than the debug key.
 
 ### C. Store Asset Constraints
-1. **Privacy Policy**: Keep `PRIVACY.md` updated to accurately disclose Firebase telemetry or online permissions to comply with store review policies.
-2. **Feature Graphic**: Must be exactly `1024x500 px` JPEG or 24-bit PNG (no alpha).
-3. **Screenshots**: Must be JPEG or 24-bit PNG (no alpha), minimum dimension of 320px, and the maximum dimension must not exceed 2x the minimum dimension (Ratio: `Max / Min <= 2`). Use a script to crop/resize if necessary.
+## 3. Storage & Data Persistence Guidelines
+* **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
+* **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
+* **Image Compression**: Foto profil wajib dikompres (JPEG max 256px), wallpaper dikompres (JPEG max 1024px) sebelum disimpan.
+
+## 4. Fitur "Andai" & Prinsip Kedisiplinan Finansial
+* **Kedap Cheating (Anti-Excuse)**: Klasifikasi konsumtif di fitur "Andai" bersifat mutlak dan tidak boleh menyediakan tombol manual untuk mengeluarkan transaksi.
+* **Smart Hybrid Engine**: Gunakan `src/utils/classifier.js` untuk deteksi otomatis. Wajib mendeteksi konteks Bahasa Indonesia, Gaul, Singkatan, Daerah/Pulau, dan Bahasa Inggris (seperti `pulkam`, `dinas`, `mudik`, `homecoming`, `kalbar`, dll.).
+* **Threshold Barbershop**: Transaksi Barbershop < Rp 50.000 dianggap kebutuhan kebersihan pokok (non-konsumtif).
+
+## 5. UI Invariants & Design Standards
+* **Warna & Theme**: Hindari penggunaan container/box hitam gelap kaku jika tidak menyatu dengan tema netral/krim (`#F8EFE6`).
+* **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
+* **Navigasi Back**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
+* **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).

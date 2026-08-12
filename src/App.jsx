@@ -18,38 +18,186 @@ import bonusSvg from './assets/bonus.svg';
 import kipSvg from './assets/KIP.svg';
 import pesawatSvg from './assets/Pesawat.svg';
 import kostSvg from './assets/Kost.svg';
+import coffeeSvg from './assets/Coffee.svg';
+import gofoodSvg from './assets/GoFood.svg';
+import sepatuSvg from './assets/Sepatu.svg';
+import donasiSvg from './assets/Donasi.svg';
+import topupGameSvg from './assets/Top up Game.svg';
+import bensinSvg from './assets/Bensin.svg';
+import investasiSvg from './assets/investasi.svg';
+import bisnisSvg from './assets/bisnis.svg';
+import affiliateSvg from './assets/Affliate.svg';
+import konserSvg from './assets/Konser.svg';
+import pulsaSvg from './assets/Pulsa.svg';
+import rumahSakitSvg from './assets/Rumah Sakit.svg';
+import obatSakitSvg from './assets/Obat Sakit.svg';
+import jajanAdekSvg from './assets/Jajan adek.svg';
+import partySvg from './assets/Party.svg';
+import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
+import { playPositiveChime } from './utils/soundFeedback';
 import { CURRENT_VERSION_NAME, CURRENT_VERSION_CODE, checkForAppUpdates } from './utils/version';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { updateCurrentDeviceTelemetry } from './utils/telemetry';
 import { 
-  isNotificationEnabled, 
-  toggleNotificationState, 
+  isNotificationEnabled,
+  toggleNotificationState,
   sendInstantNotification, 
+  sendInstantBudgetNotification,
   schedulePersonalizedNotifications, 
   playSound,
   playPopSound 
 } from './utils/notifications';
 
+// Categories: NO icon field stored — icons resolved at runtime via ICON_MAP
 const DEFAULT_EXPENSE_CATEGORIES = [
-  { id: 'food', name: 'Food', icon: fastFoodSvg, iconClass: 'food-icon' },
-  { id: 'bioskop', name: 'Bioskop', icon: gameSvg, iconClass: 'game-icon' },
-  { id: 'transport', name: 'Transportasi', icon: carSvg, iconClass: 'car-icon' },
-  { id: 'barber', name: 'Barbershop', icon: barberSvg, iconClass: 'barber-icon' },
-  { id: 'skincare', name: 'Skincare', icon: cosmeticsSvg, iconClass: 'cosmetics-icon' },
-  { id: 'edukasi', name: 'Edukasi', icon: bookSvg, iconClass: 'book-icon' },
-  { id: 'galon', name: 'Air Galon', icon: dispenserBottleSvg, iconClass: 'bottle-icon' },
-  { id: 'fashion', name: 'Fashion', icon: shirtShoeSvg, iconClass: 'fashion-icon' },
-  { id: 'supermarket', name: 'Supermarket', icon: shoppingCartSvg, iconClass: 'cart-icon' },
-  { id: 'sub', name: 'Subscription', icon: subscriptionSvg, iconClass: 'sub-icon' },
-  { id: 'pesawat', name: 'Pesawat', icon: pesawatSvg, iconClass: 'pesawat-icon' },
-  { id: 'kost', name: 'Kost', icon: kostSvg, iconClass: 'kost-icon' },
+  { id: 'food', name: 'Food', iconClass: 'food-icon' },
+  { id: 'bioskop', name: 'Bioskop', iconClass: 'game-icon' },
+  { id: 'transport', name: 'Transportasi', iconClass: 'car-icon' },
+  { id: 'barber', name: 'Barbershop', iconClass: 'barber-icon' },
+  { id: 'skincare', name: 'Skincare', iconClass: 'cosmetics-icon' },
+  { id: 'edukasi', name: 'Edukasi', iconClass: 'book-icon' },
+  { id: 'galon', name: 'Air Galon', iconClass: 'bottle-icon' },
+  { id: 'fashion', name: 'Fashion', iconClass: 'fashion-icon' },
+  { id: 'supermarket', name: 'Supermarket', iconClass: 'cart-icon' },
+  { id: 'sub', name: 'Subscription', iconClass: 'sub-icon' },
+  { id: 'pesawat', name: 'Pesawat', iconClass: 'pesawat-icon' },
+  { id: 'kost', name: 'Kost', iconClass: 'kost-icon' },
+  { id: 'coffee', name: 'Coffee', iconClass: 'coffee-icon' },
+  { id: 'gofood', name: 'GoFood', iconClass: 'gofood-icon' },
+  { id: 'sepatu', name: 'Sepatu', iconClass: 'sepatu-icon' },
+  { id: 'donasi', name: 'Donasi', iconClass: 'donasi-icon' },
+  { id: 'topupGame', name: 'Top Up Game', iconClass: 'topup-game-icon' },
+  { id: 'bensin', name: 'Bensin', iconClass: 'bensin-icon' },
+  { id: 'konser', name: 'Konser', iconClass: 'konser-icon' },
+  { id: 'pulsa', name: 'Pulsa', iconClass: 'pulsa-icon' },
+  { id: 'rumahSakit', name: 'Rumah Sakit', iconClass: 'rumah-sakit-icon' },
+  { id: 'obatSakit', name: 'Obat Sakit', iconClass: 'obat-sakit-icon' },
+  { id: 'jajanAdek', name: 'Jajan Adek', iconClass: 'jajan-adek-icon' },
+  { id: 'party', name: 'Party', iconClass: 'party-icon' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
-  { id: 'gaji', name: 'Gaji', icon: salarySvg, iconClass: 'food-icon' },
-  { id: 'bonus', name: 'Bonus', icon: bonusSvg, iconClass: 'sub-icon' },
-  { id: 'kip', name: 'KIP', icon: kipSvg, iconClass: 'car-icon' },
+  { id: 'gaji', name: 'Gaji', iconClass: 'food-icon' },
+  { id: 'bonus', name: 'Bonus', iconClass: 'sub-icon' },
+  { id: 'kip', name: 'KIP', iconClass: 'car-icon' },
+  { id: 'investasi', name: 'Investasi', iconClass: 'investasi-icon' },
+  { id: 'bisnis', name: 'Bisnis', iconClass: 'bisnis-icon' },
+  { id: 'affiliate', name: 'Affiliate', iconClass: 'affiliate-icon' },
 ];
+
+// Runtime icon lookup — NEVER stored to localStorage, only used during render
+const ICON_MAP = {
+  food: fastFoodSvg,
+  bioskop: gameSvg,
+  transport: carSvg,
+  barber: barberSvg,
+  skincare: cosmeticsSvg,
+  edukasi: bookSvg,
+  galon: dispenserBottleSvg,
+  fashion: shirtShoeSvg,
+  supermarket: shoppingCartSvg,
+  sub: subscriptionSvg,
+  pesawat: pesawatSvg,
+  kost: kostSvg,
+  coffee: coffeeSvg,
+  gofood: gofoodSvg,
+  sepatu: sepatuSvg,
+  donasi: donasiSvg,
+  topupGame: topupGameSvg,
+  bensin: bensinSvg,
+  investasi: investasiSvg,
+  bisnis: bisnisSvg,
+  affiliate: affiliateSvg,
+  konser: konserSvg,
+  pulsa: pulsaSvg,
+  rumahSakit: rumahSakitSvg,
+  obatSakit: obatSakitSvg,
+  jajanAdek: jajanAdekSvg,
+  party: partySvg,
+  gaji: salarySvg,
+  bonus: bonusSvg,
+  kip: kipSvg,
+};
+
+// Resolve icon SVG from category id (runtime only, not from storage)
+const resolveIcon = (catOrTx) => {
+  if (!catOrTx) return null;
+  const id = catOrTx.categoryId || catOrTx.id || null;
+  return id ? (ICON_MAP[id] || null) : null;
+};
+
+// Compress an image (base64 data URL) to a max width/height with JPEG quality
+// This drastically reduces localStorage size for profile photos and wallpapers
+const compressImage = (dataUrl, maxSize, quality = 0.8) => {
+  return new Promise((resolve) => {
+    if (!dataUrl) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl); // fallback: return original
+    img.src = dataUrl;
+  });
+};
+
+// One-time migration: strip raw SVG `icon` blobs from old stored transactions
+// and derive categoryId from category name mapping
+const migrateTransactions = (list) => {
+  if (!Array.isArray(list)) return list;
+  const nameToId = {
+    'Food': 'food', 'Bioskop': 'bioskop', 'Transportasi': 'transport',
+    'Barbershop': 'barber', 'Skincare': 'skincare', 'Edukasi': 'edukasi',
+    'Air Galon': 'galon', 'Fashion': 'fashion', 'Supermarket': 'supermarket',
+    'Subscription': 'sub', 'Pesawat': 'pesawat', 'Kost': 'kost',
+    'Gaji': 'gaji', 'Bonus': 'bonus', 'KIP': 'kip',
+    'Bensin': 'bensin', 'Investasi': 'investasi', 'Bisnis': 'bisnis',
+    'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
+    'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
+    'Jajan Adek': 'jajanAdek', 'Party': 'party',
+  };
+  let changed = false;
+  const migrated = list.map(tx => {
+    if (tx.icon !== undefined) {
+      // eslint-disable-next-line no-unused-vars
+      const { icon, ...rest } = tx;
+      changed = true;
+      return {
+        ...rest,
+        categoryId: rest.categoryId || nameToId[rest.category] || null,
+      };
+    }
+    if (!tx.categoryId && tx.category) {
+      changed = true;
+      return { ...tx, categoryId: nameToId[tx.category] || null };
+    }
+    return tx;
+  });
+  if (changed) {
+    try { localStorage.setItem('user_transactions', JSON.stringify(migrated)); } catch {}
+  }
+  return migrated;
+};
+
+// One-time migration: strip raw SVG `icon` blobs from stored categories
+const migrateCategories = (list) => {
+  if (!Array.isArray(list)) return list;
+  return list.map(cat => {
+    // eslint-disable-next-line no-unused-vars
+    const { icon, ...rest } = cat;
+    return rest;
+  });
+};
 
 const INITIAL_TRANSACTIONS = [];
 
@@ -90,6 +238,186 @@ const getWallpaperLuminance = (imageSrc) => {
   });
 };
 
+// Daftar ID Kategori yang diklasifikasikan sebagai 'Konsumtif' (Pendekatan A)
+const CONSUMPTIVE_CATEGORY_IDS = [
+  'bioskop', 'barber', 'skincare', 'fashion', 'sub', 
+  'pesawat', 'coffee', 'gofood', 'sepatu', 'topupGame', 'konser'
+];
+
+// Instrumen investasi beserta estimasi return tahunan
+const INVESTMENT_INSTRUMENTS = [
+  { id: 'bigbank', name: 'Big Bank', rate: 0.10, label: '10%' },
+  { id: 'emas', name: 'Emas Mulia', rate: 0.07, label: '7%' },
+  { id: 'obligasi', name: 'Obligasi', rate: 0.065, label: '6.5%' },
+];
+
+function AndaiFeatureView({ transactions, expenseCategories, resolveIcon }) {
+  const [investmentYear, setInvestmentYear] = useState(5); // 1, 3, 5, 10
+  const [selectedInstrument, setSelectedInstrument] = useState(INVESTMENT_INSTRUMENTS[0]); // Big Bank (8%)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Filter transaksi konsumtif bulanan
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const consumptiveTransactions = getConsumptiveTransactions(transactions, currentMonthStr);
+
+  const totalConsumptiveAmount = consumptiveTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  // Hitung Future Value: FV = P * (1 + r)^n
+  const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
+  const gain = futureValue - totalConsumptiveAmount;
+
+  return (
+    <div className="andai-container-clean">
+      {/* Stat Card Ringkas */}
+      <div className="andai-hero-card">
+        <span className="andai-hero-label">Konsumtif Bulan Ini</span>
+        <h2 className="andai-hero-amount">Rp {totalConsumptiveAmount.toLocaleString('id-ID')}</h2>
+        <span className="andai-hero-sub">{consumptiveTransactions.length} transaksi terdeteksi</span>
+      </div>
+
+      {/* Kontrol Ringkas (Pill selector & Custom Dropdown) */}
+      <div className="andai-pill-row">
+        <div className="andai-pill-group">
+          {[1, 3, 5, 10].map(yr => (
+            <button
+              key={yr}
+              type="button"
+              className={`andai-mini-pill ${investmentYear === yr ? 'active' : ''}`}
+              onClick={() => setInvestmentYear(yr)}
+            >
+              {yr} Thn
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Dropdown dengan persentase ringkas */}
+        <div className="stats-dropdown-wrapper" style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="stats-period-btn"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <span>{selectedInstrument.name} {selectedInstrument.label}</span>
+            <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </span>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="custom-dropdown-menu" style={{ right: 0, left: 'auto', minWidth: '160px' }}>
+              {INVESTMENT_INSTRUMENTS.map((inst) => (
+                <button
+                  key={inst.id}
+                  type="button"
+                  className={`custom-dropdown-item ${selectedInstrument.id === inst.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedInstrument(inst);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {inst.name} {inst.label}/thn
+                  {selectedInstrument.id === inst.id && <span className="check-mark">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Hero Visual Hasil Investment vs Hangus */}
+      <div className="andai-comparison-card">
+        <div className="andai-compare-item current">
+          <span className="compare-lbl">Jika Dibeli</span>
+          <span className="compare-val zero">Rp 0</span>
+          <span className="compare-desc">Hangus</span>
+        </div>
+
+        <div className="andai-compare-item future">
+          <span className="compare-lbl">Andai Diinvestasikan ({investmentYear} Thn)</span>
+          <span className="compare-val grow">Rp {futureValue.toLocaleString('id-ID')}</span>
+          <span className="compare-gain">+Rp {gain.toLocaleString('id-ID')} (+{Math.round((gain / (totalConsumptiveAmount || 1)) * 100)}%)</span>
+        </div>
+      </div>
+
+      {/* Ringkasan Transaksi Konsumtif Minimalis */}
+      <div className="andai-list-clean">
+        <div className="list-clean-title">Rincian Pengeluaran Konsumtif</div>
+        {consumptiveTransactions.length === 0 ? (
+          <div className="empty-clean-text">Tidak ada pengeluaran konsumtif bulan ini.</div>
+        ) : (
+          consumptiveTransactions.map(item => (
+            <div className="item-clean-row" key={item.id}>
+              <div className="item-clean-left">
+                <div className="item-clean-icon">
+                  {resolveIcon(item) ? (
+                    <img src={resolveIcon(item)} alt={item.category} />
+                  ) : (
+                    <span>🛍️</span>
+                  )}
+                </div>
+                <div className="item-clean-meta">
+                  <span className="item-clean-title">{item.title}</span>
+                  <span className="item-clean-sub">{item.subtext || item.category}</span>
+                </div>
+              </div>
+              <span className="item-clean-amount">-Rp {Number(item.amount).toLocaleString('id-ID')}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const consumptiveTransactions = getConsumptiveTransactions(transactions, currentMonthStr);
+
+  const totalConsumptiveAmount = consumptiveTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  if (totalConsumptiveAmount === 0) return null;
+
+  const selectedInstrument = INVESTMENT_INSTRUMENTS[0];
+  const investmentYear = 5;
+  const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
+  const gain = futureValue - totalConsumptiveAmount;
+
+  return (
+    <div 
+      className="loss-aversion-badge" 
+      onClick={handleOpenAndaiModal}
+      style={{
+        margin: '0 0 16px',
+        padding: '12px 16px',
+        background: 'linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%)',
+        borderLeft: '4px solid #ff4d4f',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(255, 77, 79, 0.1)',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px'
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#cf1322' }}>
+          ⚠️ Peringatan Konsumtif
+        </span>
+        <span style={{ fontSize: '12px', color: '#ff4d4f' }}>Detail ›</span>
+      </div>
+      <span style={{ fontSize: '12px', color: '#5c0011', lineHeight: '1.4' }}>
+        Bulan ini Anda <strong>kehilangan potensi dana Rp {gain.toLocaleString('id-ID')}</strong> dalam 5 tahun akibat pengeluaran konsumtif.
+      </span>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'stats'
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -101,7 +429,8 @@ function App() {
   const [transactions, setTransactions] = useState(() => {
     try {
       const saved = localStorage.getItem('user_transactions');
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+      // Run migration to strip old SVG blobs on first load
+      return saved ? migrateTransactions(JSON.parse(saved)) : INITIAL_TRANSACTIONS;
     } catch {
       return INITIAL_TRANSACTIONS;
     }
@@ -111,7 +440,17 @@ function App() {
   const [expenseCategories, setExpenseCategories] = useState(() => {
     try {
       const saved = localStorage.getItem('user_expense_categories');
-      return saved ? JSON.parse(saved) : DEFAULT_EXPENSE_CATEGORIES;
+      if (saved) {
+        const loaded = migrateCategories(JSON.parse(saved));
+        const merged = [...loaded];
+        DEFAULT_EXPENSE_CATEGORIES.forEach(defaultCat => {
+          if (!merged.some(cat => cat.id === defaultCat.id)) {
+            merged.push(defaultCat);
+          }
+        });
+        return merged;
+      }
+      return DEFAULT_EXPENSE_CATEGORIES;
     } catch {
       return DEFAULT_EXPENSE_CATEGORIES;
     }
@@ -120,7 +459,17 @@ function App() {
   const [incomeCategories, setIncomeCategories] = useState(() => {
     try {
       const saved = localStorage.getItem('user_income_categories');
-      return saved ? JSON.parse(saved) : DEFAULT_INCOME_CATEGORIES;
+      if (saved) {
+        const loaded = migrateCategories(JSON.parse(saved));
+        const merged = [...loaded];
+        DEFAULT_INCOME_CATEGORIES.forEach(defaultCat => {
+          if (!merged.some(cat => cat.id === defaultCat.id)) {
+            merged.push(defaultCat);
+          }
+        });
+        return merged;
+      }
+      return DEFAULT_INCOME_CATEGORIES;
     } catch {
       return DEFAULT_INCOME_CATEGORIES;
     }
@@ -156,6 +505,22 @@ function App() {
 
   // Auto-open modal on first time setup
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
+  const [isBudgetCapModalOpen, setIsBudgetCapModalOpen] = useState(false);
+  const [hasVisitedBudgetCap, setHasVisitedBudgetCap] = useState(() => {
+    return localStorage.getItem('user_has_visited_budget_cap') === 'true';
+  });
+  const [editingBudgets, setEditingBudgets] = useState({});
+  const [tempBudgetInputs, setTempBudgetInputs] = useState({});
+  const [budgetConfirmModal, setBudgetConfirmModal] = useState({ isOpen: false, categoryId: null, categoryName: '', amount: 0 });
+  const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
+
+  const handleOpenBudgetCap = () => {
+    if (!hasVisitedBudgetCap) {
+      setHasVisitedBudgetCap(true);
+      localStorage.setItem('user_has_visited_budget_cap', 'true');
+    }
+    setIsBudgetCapModalOpen(true);
+  };
 
   // In-App Update Check State
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -219,12 +584,12 @@ function App() {
     }
   }, []);
 
-  // Schedule / sync notifications when profile name or transactions update
+  // Schedule / sync notifications when profile name, transactions, or expenseCategories update
   React.useEffect(() => {
     if (isNotifActive) {
-      schedulePersonalizedNotifications(profileName, transactions);
+      schedulePersonalizedNotifications(profileName, transactions, expenseCategories);
     }
-  }, [isNotifActive, profileName, transactions]);
+  }, [isNotifActive, profileName, transactions, expenseCategories]);
 
   const handleToggleNotification = async (e) => {
     e.stopPropagation(); // prevent opening profile modal
@@ -344,8 +709,10 @@ function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      setTempWallpaper(reader.result);
+    reader.onload = async () => {
+      // Compress wallpaper to max 1024px wide, JPEG 0.80 — drastically reduces storage
+      const compressed = await compressImage(reader.result, 1024, 0.80);
+      setTempWallpaper(compressed);
       setIsWallpaperJustSelected(true);
     };
     reader.readAsDataURL(file);
@@ -375,7 +742,8 @@ function App() {
     if (!cropImgRef.current) return;
     const img = cropImgRef.current;
     const canvas = document.createElement('canvas');
-    const size = 400;
+    // Reduced from 400 to 256px — visually identical for avatar, saves ~75% storage
+    const size = 256;
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d');
@@ -415,7 +783,8 @@ function App() {
     );
     ctx.restore();
 
-    const croppedUrl = canvas.toDataURL('image/jpeg', 0.9);
+    // quality 0.75 instead of 0.9 — avatar kecil, beda kualitas tidak terlihat
+    const croppedUrl = canvas.toDataURL('image/jpeg', 0.75);
     setTempProfileImage(croppedUrl);
     setIsCropModalOpen(false);
   };
@@ -557,6 +926,14 @@ function App() {
     }, 100);
   };
 
+  const handleOpenAndaiModal = () => {
+    setTransType('Andai');
+    setAmountVal('');
+    setNote('');
+    setActivePanel('amount');
+    setIsAddModalOpen(true);
+  };
+
   // Auto Advance from Amount to Category
   const handleAdvanceFromAmount = () => {
     if (amountInputRef.current) amountInputRef.current.blur();
@@ -628,6 +1005,115 @@ function App() {
     }, 80);
   };
 
+  const getFilteredBudgetCategories = () => {
+    const searchKeywords = {
+      food: ['makan', 'makanan', 'kuliner', 'restoran', 'cafe', 'sarapan', 'malam', 'siang', 'jajan'],
+      bioskop: ['film', 'nonton', 'cinema', 'xxi', 'cgv', 'movie', 'hiburan', '3d'],
+      transport: ['transportasi', 'bensin', 'ojek', 'grab', 'gojek', 'angkot', 'bus', 'travel', 'mobil', 'motor'],
+      barber: ['potong rambut', 'cukur', 'barbershop', 'rambut', 'salon'],
+      skincare: ['perawatan', 'makeup', 'kosmetik', 'skincare', 'wajah'],
+      edukasi: ['sekolah', 'kursus', 'buku', 'kuliah', 'pendidikan', 'belajar'],
+      galon: ['air', 'minum', 'aqua', 'galon', 'dispenser'],
+      fashion: ['baju', 'pakaian', 'celana', 'sepatu', 'baju baru', 'outfit'],
+      supermarket: ['belanja', 'groceries', 'pasar', 'indomaret', 'alfamart', 'toko'],
+      sub: ['langganan', 'netflix', 'spotify', 'youtube', 'patreon', 'subscription'],
+      pesawat: ['tiket', 'penerbangan', 'mudik', 'liburan', 'travel', 'bandara'],
+      kost: ['kontrakan', 'sewa', 'kamar', 'tempat tinggal'],
+      coffee: ['kopi', 'kafe', 'espresso', 'latte', 'bobba', 'nongkrong', 'coffe'],
+      gofood: ['grabfood', 'shopeefood', 'pesan makan', 'delivery', 'food delivery'],
+      sepatu: ['alas kaki', 'sneakers', 'sandal', 'sepatu'],
+      donasi: ['zakat', 'infaq', 'sedekah', 'amal', 'bantuan', 'donasi'],
+      topupGame: ['game', 'diamond', 'voucher', 'mobile legends', 'pubg', 'steam', 'topup'],
+      bensin: ['bbm', 'pertalite', 'pertamax', 'shell', 'bensin', 'spbu'],
+      konser: ['musik', 'tiket konser', 'event', 'festival'],
+      pulsa: ['paket data', 'kuota', 'telkomsel', 'xl', 'indosat', 'pulsa', 'hp'],
+      rumahSakit: ['dokter', 'kesehatan', 'medis', 'rumah sakit'],
+      obatSakit: ['farmasi', 'apotek', 'obat'],
+      jajanAdek: ['uang jajan', 'keluarga', 'anak', 'adek'],
+      party: ['pesta', 'nongkrong', 'klub', 'party']
+    };
+
+    if (!budgetSearchQuery.trim()) return expenseCategories;
+
+    const q = budgetSearchQuery.toLowerCase().trim();
+
+    return expenseCategories
+      .map(cat => {
+        const nameLower = cat.name.toLowerCase();
+        const idLower = cat.id.toLowerCase();
+        const keywords = (searchKeywords[cat.id] || []).map(k => k.toLowerCase());
+
+        let score = 0;
+        if (nameLower === q) score = 100;
+        else if (nameLower.startsWith(q)) score = 80;
+        else if (nameLower.includes(q)) score = 60;
+        else if (idLower === q) score = 50;
+        else if (idLower.includes(q)) score = 40;
+        else if (keywords.some(kw => kw === q)) score = 30;
+        else if (keywords.some(kw => kw.includes(q))) score = 20;
+
+        return { cat, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.cat);
+  };
+
+  const checkAndTriggerBudgetNotifications = (newTx, allTx, categories) => {
+    if (newTx.type !== 'expense' || !newTx.categoryId) return;
+    
+    const cat = categories.find(c => c.id === newTx.categoryId);
+    if (!cat || !cat.monthlyLimit) return;
+    
+    const limit = parseFloat(cat.monthlyLimit);
+    if (limit <= 0) return;
+
+    const txDate = new Date(newTx.date);
+    const monthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    const allExpensesThisMonth = [newTx, ...allTx].filter(t => {
+      if (t.type !== 'expense' || t.categoryId !== newTx.categoryId) return false;
+      return t.date.startsWith(monthStr);
+    });
+
+    const totalSpent = allExpensesThisMonth.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+    const percentage = (totalSpent / limit) * 100;
+    
+    const thresholds = [20, 40, 60, 80, 90, 92, 94, 96, 98, 100];
+    const passedThresholds = thresholds.filter(th => percentage >= th);
+    
+    if (passedThresholds.length === 0) return;
+    
+    const storageKey = 'user_budget_notif_state';
+    let notifState = {};
+    try {
+      notifState = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    } catch(e) {}
+    
+    const monthKey = `${newTx.categoryId}_${monthStr}`;
+    const notifiedForMonth = notifState[monthKey] || [];
+    
+    const newThresholds = passedThresholds.filter(th => !notifiedForMonth.includes(th));
+    
+    if (newThresholds.length > 0) {
+      notifState[monthKey] = [...notifiedForMonth, ...newThresholds];
+      localStorage.setItem(storageKey, JSON.stringify(notifState));
+      
+      const highestNewTh = Math.max(...newThresholds);
+      const formatIdr = (num) => new Intl.NumberFormat('id-ID').format(num);
+      
+      let title = `Peringatan Budget: ${cat.name}`;
+      let body = `Kamu sudah pakai ${highestNewTh}% budget ${cat.name} bulan ini (Rp ${formatIdr(totalSpent)} dari Rp ${formatIdr(limit)}).`;
+      
+      if (highestNewTh >= 100) {
+        title = `🚨 Budget Habis: ${cat.name}`;
+        body = `Budget ${cat.name} bulan ini sudah habis! (Rp ${formatIdr(totalSpent)} dari Rp ${formatIdr(limit)}).`;
+      }
+      
+      sendInstantBudgetNotification(title, body);
+    }
+  };
+
   // Save Transaction
   const handleSaveTransaction = () => {
     const numericAmount = parseFloat(amountVal.replace(/\./g, '')) || 0;
@@ -656,15 +1142,27 @@ function App() {
       id: Date.now(),
       title: finalTitle,
       category: catName,
+      // Store only the category id for icon lookup — NOT the raw SVG blob
+      categoryId: selectedCategory.id || null,
       account: account,
       amount: numericAmount,
       type: transType.toLowerCase(),
-      icon: catIcon,
       iconClass: catIconClass,
       date: selectedDateVal || getTodayISO()
     };
 
+    if (transType === 'Expense') {
+      const isConsumptive = isConsumptiveHybrid(newTx, transactions);
+      if (!isConsumptive) {
+        playPositiveChime();
+      }
+      checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
+    }
+
     setTransactions(prev => [newTx, ...prev]);
+    setAmountVal('');
+    setNote('');
+    setActivePanel('amount');
     setIsAddModalOpen(false);
     setIsNoteSuggestionsOpen(false);
   };
@@ -700,7 +1198,8 @@ function App() {
       categoryMap[t.category] = {
         name: t.category,
         amount: 0,
-        icon: t.icon
+        // Resolve icon at runtime from categoryId, not from stored blob
+        categoryId: t.categoryId || null,
       };
     }
     categoryMap[t.category].amount += t.amount;
@@ -905,6 +1404,13 @@ function App() {
             </div>
           </section>
 
+          {isCurrentMonth && (
+            <LossAversionBadge 
+              transactions={transactions} 
+              handleOpenAndaiModal={handleOpenAndaiModal} 
+            />
+          )}
+
           {/* Transactions List Grouped by Date */}
           <section className="transactions-container">
             {isCurrentMonth ? (
@@ -958,7 +1464,7 @@ function App() {
                           {groupTxs.map(item => (
                             <div className="transaction-item" key={item.id}>
                               <div className={`transaction-icon ${item.iconClass}`}>
-                                <img src={item.icon} alt={item.category} />
+                                {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
                               </div>
                               <div className="transaction-details">
                                 <span className="transaction-title">{item.title}</span>
@@ -1148,7 +1654,7 @@ function App() {
                     {Math.round(cat.percentage)}%
                   </div>
                   <div className="stats-cat-info">
-                    {cat.icon && <img src={cat.icon} alt={cat.name} className="stats-cat-icon" />}
+                    {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
                     <span className="stats-cat-name">{cat.name}</span>
                   </div>
                 </div>
@@ -1227,13 +1733,14 @@ function App() {
           {/* Type Switcher Tabs */}
           <div className="type-switcher-container">
             <div className="type-switcher">
-              {['Income', 'Expense', 'Transfer'].map(type => (
+              {['Income', 'Expense', 'Andai'].map(type => (
                 <button
                   key={type}
                   type="button"
                   className={`type-tab ${transType === type ? `active ${type.toLowerCase()}-tab` : ''}`}
                   onClick={() => {
                     setTransType(type);
+                    setActivePanel('amount');
                     setNote('');
                     setIsNoteSuggestionsOpen(false);
                     if (type === 'Income') {
@@ -1249,13 +1756,13 @@ function App() {
             </div>
           </div>
 
-          {/* Transfer Empty View */}
-          {transType === 'Transfer' ? (
-            <div className="transfer-empty-view">
-              <span className="transfer-empty-icon">💸</span>
-              <span className="transfer-empty-title">Transfer</span>
-              <span className="transfer-empty-subtitle">Menu Transfer saat ini belum diisi</span>
-            </div>
+          {/* Fitur 'Andai' — Opportunity Cost & Consumptive Investment Visualizer */}
+          {transType === 'Andai' ? (
+            <AndaiFeatureView 
+              transactions={transactions} 
+              expenseCategories={expenseCategories} 
+              resolveIcon={resolveIcon} 
+            />
           ) : (
             /* Form Fields List for Expense & Income */
             <div className="full-page-form">
@@ -1367,8 +1874,8 @@ function App() {
                 <span className="field-label">Category</span>
                 <div className="field-value-category">
                   <div className="cat-chip">
-                    {selectedCategory.icon && (
-                      <img src={selectedCategory.icon} alt={selectedCategory.name} className="cat-chip-icon" />
+                    {resolveIcon(selectedCategory) && (
+                      <img src={resolveIcon(selectedCategory)} alt={selectedCategory.name} className="cat-chip-icon" />
                     )}
                     <span>{selectedCategory.name}</span>
                   </div>
@@ -1559,21 +2066,24 @@ function App() {
               )}
 
               <div className="category-grid">
-                {(transType === 'Expense' ? expenseCategories : incomeCategories).map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!cat.icon ? 'text-only' : ''}`}
-                    onClick={() => handleSelectCategory(cat)}
-                  >
-                    {cat.icon ? (
-                      <div className={`cat-grid-icon ${cat.iconClass}`}>
-                        <img src={cat.icon} alt={cat.name} />
-                      </div>
-                    ) : null}
-                    <span className="cat-grid-label">{cat.name}</span>
-                  </button>
-                ))}
+                {(transType === 'Expense' ? expenseCategories : incomeCategories).map(cat => {
+                  const catIcon = resolveIcon(cat);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''}`}
+                      onClick={() => handleSelectCategory(cat)}
+                    >
+                      {catIcon ? (
+                        <div className={`cat-grid-icon ${cat.iconClass}`}>
+                          <img src={catIcon} alt={cat.name} />
+                        </div>
+                      ) : null}
+                      <span className="cat-grid-label">{cat.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1644,23 +2154,28 @@ function App() {
         </div>
       )}
 
-      {/* Profile Setup / Edit Modal */}
+      {/* Profile Setup / Edit Screen (Pop up untuk user baru, Full Page Screen saat di-klik) */}
       {isProfileModalOpen && (
-        <div className="modal-overlay profile-setup-overlay">
+        <div className={`modal-overlay profile-setup-overlay ${localStorage.getItem('user_profile_setup_done') ? 'full-page-profile-screen' : ''}`}>
           <div className="profile-modal-card">
             <div className="profile-modal-header">
-              <h3 className="profile-modal-title">
-                {localStorage.getItem('user_profile_setup_done') ? 'Atur Profil Anda' : 'Selamat Datang! Atur Profil Anda'}
-              </h3>
               {localStorage.getItem('user_profile_setup_done') && (
                 <button
                   type="button"
-                  className="profile-modal-close-btn"
+                  className="back-btn"
                   onClick={() => setIsProfileModalOpen(false)}
-                  aria-label="Tutup"
+                  aria-label="Kembali"
                 >
-                  ✕
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
                 </button>
+              )}
+              <h3 className="profile-modal-title">
+                {localStorage.getItem('user_profile_setup_done') ? 'Pengaturan Profil' : 'Selamat Datang! Atur Profil Anda'}
+              </h3>
+              {localStorage.getItem('user_profile_setup_done') && (
+                <div style={{ width: '32px' }}></div>
               )}
             </div>
 
@@ -1710,6 +2225,47 @@ function App() {
                   }}
                   autoFocus
                 />
+              </div>
+
+              {/* Budget Cap Option */}
+              <div className="profile-field-group" style={{ marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="wallpaper-btn budget-cap-profile-btn"
+                  style={{ 
+                    width: '100%', 
+                    justifyContent: 'center', 
+                    background: 'linear-gradient(135deg, #2D5284 0%, #1E3B66 100%)', 
+                    color: '#FFFFFF',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(45, 82, 132, 0.25)',
+                    position: 'relative',
+                    padding: '12px 16px',
+                    borderRadius: '16px'
+                  }}
+                  onClick={handleOpenBudgetCap}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                    <polyline points="17 2 12 7 7 2"/>
+                  </svg>
+                  <span style={{ fontWeight: 600, color: '#FFFFFF' }}>Set Limit Kategori (Budget)</span>
+                  {!hasVisitedBudgetCap && (
+                    <span 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '8px', 
+                        right: '10px', 
+                        width: '8px', 
+                        height: '8px', 
+                        backgroundColor: '#FF4D4F', 
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                      }} 
+                      title="Belum pernah dibuka"
+                    />
+                  )}
+                </button>
               </div>
 
               {/* Wallpaper Customizer Option */}
@@ -1928,9 +2484,204 @@ function App() {
         </div>
       )}
 
-      {/* Simple In-App Update Pop-Up Modal */}
+      {/* Budget Cap Full Page UI */}
+      {isBudgetCapModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="profile-modal-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', padding: 0 }}>
+            <div className="profile-modal-header" style={{ padding: '20px 20px 10px 20px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsBudgetCapModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">Budget Kategori Per Bulan</h3>
+              <div style={{ width: '32px' }}></div>
+            </div>
+
+            {/* Search Bar */}
+            <div style={{ padding: '0 20px 12px 20px' }}>
+              <div className="budget-search-wrapper">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input 
+                  type="text" 
+                  className="budget-search-input"
+                  placeholder="Cari kategori (kopi, bensin, belanja)..."
+                  value={budgetSearchQuery}
+                  onChange={(e) => setBudgetSearchQuery(e.target.value)}
+                />
+                {budgetSearchQuery && (
+                  <button 
+                    type="button" 
+                    className="budget-search-clear"
+                    onClick={() => setBudgetSearchQuery('')}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="budget-list-container">
+              {(() => {
+                const filtered = getFilteredBudgetCategories();
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                      <p style={{ fontSize: '14px', fontWeight: 500 }}>Kategori "{budgetSearchQuery}" tidak ditemukan</p>
+                    </div>
+                  );
+                }
+
+                return filtered.map(cat => {
+                const iconPath = resolveIcon(cat);
+                const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
+                const isEditing = Boolean(editingBudgets[cat.id]);
+                
+                let inputValue = '';
+                if (tempBudgetInputs[cat.id] !== undefined) {
+                  inputValue = tempBudgetInputs[cat.id];
+                } else if (hasLimit) {
+                  inputValue = new Intl.NumberFormat('id-ID').format(cat.monthlyLimit);
+                }
+
+                return (
+                  <div key={cat.id} className="budget-item">
+                    <div className={`budget-item-icon-box ${cat.iconClass}`}>
+                      <img src={iconPath} alt={cat.name} />
+                    </div>
+
+                    <div className="budget-item-info">
+                      <span className="budget-item-name">{cat.name}</span>
+                    </div>
+
+                    {(!hasLimit || isEditing) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="budget-input-wrapper">
+                          <span className="budget-input-prefix">Rp</span>
+                          <input 
+                            type="text" 
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="budget-input"
+                            placeholder="Belum diatur"
+                            value={inputValue}
+                            autoFocus={isEditing}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                              const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
+                              setTempBudgetInputs(prev => ({ ...prev, [cat.id]: formatted }));
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const raw = (tempBudgetInputs[cat.id] || '').replace(/\./g, '').replace(/[^0-9]/g, '');
+                                const numVal = parseInt(raw, 10) || 0;
+                                if (numVal > 0) {
+                                  setBudgetConfirmModal({
+                                    isOpen: true,
+                                    categoryId: cat.id,
+                                    categoryName: cat.name,
+                                    amount: numVal
+                                  });
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          className="budget-action-btn save-btn"
+                          onClick={() => {
+                            const raw = (tempBudgetInputs[cat.id] || inputValue || '').replace(/\./g, '').replace(/[^0-9]/g, '');
+                            const numVal = parseInt(raw, 10) || 0;
+                            if (numVal <= 0) {
+                              alert('Masukkan nominal limit yang valid');
+                              return;
+                            }
+                            setBudgetConfirmModal({
+                              isOpen: true,
+                              categoryId: cat.id,
+                              categoryName: cat.name,
+                              amount: numVal
+                            });
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
+                          Rp {new Intl.NumberFormat('id-ID').format(cat.monthlyLimit)}
+                        </span>
+                        <button
+                          type="button"
+                          className="budget-action-btn edit-btn"
+                          onClick={() => {
+                            setEditingBudgets(prev => ({ ...prev, [cat.id]: true }));
+                            setTempBudgetInputs(prev => ({ ...prev, [cat.id]: new Intl.NumberFormat('id-ID').format(cat.monthlyLimit) }));
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Budget Cap Save Confirmation Modal */}
+      {budgetConfirmModal.isOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1000000 }}>
+          <div className="budget-confirm-card">
+            <h3 className="budget-confirm-title">Set Limit Budget</h3>
+            <p className="budget-confirm-msg">
+              Apakah kamu yakin ingin memasang limit <strong>Rp {new Intl.NumberFormat('id-ID').format(budgetConfirmModal.amount)}</strong> untuk kategori <strong>{budgetConfirmModal.categoryName}</strong>?
+            </p>
+            <div className="budget-confirm-actions">
+              <button
+                type="button"
+                className="budget-confirm-btn cancel"
+                onClick={() => setBudgetConfirmModal({ isOpen: false, categoryId: null, categoryName: '', amount: 0 })}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="budget-confirm-btn confirm"
+                onClick={() => {
+                  const { categoryId, amount } = budgetConfirmModal;
+                  const newCats = expenseCategories.map(c => 
+                    c.id === categoryId ? { ...c, monthlyLimit: amount } : c
+                  );
+                  setExpenseCategories(newCats);
+                  localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
+                  setEditingBudgets(prev => ({ ...prev, [categoryId]: false }));
+                  setBudgetConfirmModal({ isOpen: false, categoryId: null, categoryName: '', amount: 0 });
+                }}
+              >
+                Ya, Simpan Limit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simple App Update Pop-Up Modal */}
       {updateInfo && (
-        <div className="modal-overlay update-modal-overlay">
+        <div className="modal-overlay update-overlay">
           <div className="update-modal-card">
             <div className="update-modal-header">
               <span className="update-modal-badge">🚀 Versi Baru Tersedia</span>

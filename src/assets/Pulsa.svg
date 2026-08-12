@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Icon Pulsa</title>
+<desc>Colorful flat vector smartphone icon for the Pulsa category.</desc>
+<rect x="126" y="54" width="260" height="404" rx="48" fill="#2563EB"/>
+<rect x="143" y="72" width="226" height="368" rx="34" fill="#F8FAFC"/>
+<rect x="164" y="108" width="184" height="270" rx="22" fill="#E0F2FE"/>
+<path d="M197 195c25-25 65-25 90 0M213 211c17-17 45-17 62 0" fill="none" stroke="#22C55E" stroke-width="16" stroke-linecap="round"/>
+<circle cx="244" cy="228" r="10" fill="#22C55E"/>
+<circle cx="256" cy="310" r="45" fill="#F59E0B"/>
+<path d="M256 284v52M238 298h28c10 0 16 5 16 12s-6 12-16 12h-18c-10 0-16 5-16 12s6 12 16 12h28" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="256" cy="408" r="10" fill="#2563EB"/>
+<rect x="225" y="86" width="62" height="9" rx="4.5" fill="#BFDBFE"/>
+<circle cx="381" cy="384" r="66" fill="#FFFFFF"/>
+<circle cx="381" cy="384" r="56" fill="#EC4899"/>
+<path d="M381 355v58M352 384h58" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+</svg>

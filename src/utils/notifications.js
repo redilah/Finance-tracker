@@ -238,51 +238,122 @@ export const sendInstantNotification = (userName) => {
 };
 
 // Schedule background/routine local notifications
-export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = []) => {
+// FIX: Selalu cancel lalu re-schedule dengan pesan TERBARU berdasarkan transaksi saat ini.
+// Dulu: msg di-bake sekali saat pertama app dibuka → pesan "belum ada pengeluaran" beku meski
+//        user sudah input transaksi. Sekarang: setiap kali transactions berubah, notifikasi
+//        di-cancel & dijadwalkan ulang dengan konten fresh. repeats:true dihapus agar
+//        teks lama tidak persist lintas hari secara otomatis oleh OS.
+export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = []) => {
   if (!isNotificationEnabled()) return;
 
-  const msg = generateNotificationMessage(userName, transactions);
+  const name = userName.trim() || 'Teman';
+  const hasAnyBudgetLimit = categories.some(cat => typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0);
 
   if (Capacitor.isNativePlatform()) {
     try {
+      // Selalu cancel notifikasi lama sebelum schedule baru
       await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }] });
-      
+
       const now = new Date();
-      // Evening notification target: 19:00 today or tomorrow
+      // Target malam: 19:00 hari ini; jika sudah lewat → besok 19:00
       let eveningTarget = new Date();
       eveningTarget.setHours(19, 0, 0, 0);
       if (now.getTime() >= eveningTarget.getTime()) {
         eveningTarget.setDate(eveningTarget.getDate() + 1);
       }
 
+      // Generate pesan FRESH menggunakan transaksi terkini
+      const msg = generateNotificationMessage(userName, transactions);
+
+      const notifsToSchedule = [
+        {
+          title: msg.title,
+          body: msg.body,
+          id: 101,
+          schedule: { at: eveningTarget },
+          sound: 'notification.mp3',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#4f46e5'
+        }
+      ];
+
+      // Jadwalkan pengingat harian jam 18:00 HANYA jika user BELUM pernah mengatur limit kategori sama sekali
+      if (!hasAnyBudgetLimit) {
+        let budgetReminderTarget = new Date();
+        budgetReminderTarget.setHours(18, 0, 0, 0);
+        if (now.getTime() >= budgetReminderTarget.getTime()) {
+          budgetReminderTarget.setDate(budgetReminderTarget.getDate() + 1);
+        }
+
+        notifsToSchedule.push({
+          title: `Atur Budget Kategori Bulananmu! 🎯`,
+          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Set Limit Kategori (Budget)" agar keuanganmu lebih teratur!`,
+          id: 102,
+          schedule: { at: budgetReminderTarget },
+          sound: 'notification.mp3',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#2D5284'
+        });
+      }
+
       await LocalNotifications.schedule({
-        notifications: [
-          {
-            title: msg.title,
-            body: msg.body,
-            id: 101,
-            schedule: { at: eveningTarget, repeats: true },
-            sound: 'notification.mp3',
-            smallIcon: 'ic_stat_icon',
-            iconColor: '#4f46e5'
-          }
-        ]
+        notifications: notifsToSchedule
       });
     } catch (e) {
       console.log('Failed to schedule native local notifications:', e);
     }
   } else if ('Notification' in window && Notification.permission === 'granted') {
-    // Web fallback for native OS notifications
+    // Web fallback: kirim pada jam yang ditentukan
     try {
       const now = new Date();
       if (now.getHours() === 19 && now.getMinutes() === 0) {
+        const msg = generateNotificationMessage(userName, transactions);
         new Notification(msg.title, {
           body: msg.body,
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
         playSound('notification');
+      } else if (now.getHours() === 18 && now.getMinutes() === 0 && !hasAnyBudgetLimit) {
+        new Notification(`Atur Budget Kategori Bulananmu! 🎯`, {
+          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Set Limit Kategori (Budget)" agar keuanganmu lebih teratur!`,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
       }
+    } catch (e) {
+      console.log('Web notification error:', e);
+    }
+  }
+};
+
+// Trigger immediate budget limit notification
+export const sendInstantBudgetNotification = (title, body) => {
+  if (!isNotificationEnabled()) return;
+
+  if (Capacitor.isNativePlatform()) {
+    LocalNotifications.schedule({
+      notifications: [
+        {
+          title: title,
+          body: body,
+          id: Date.now() % 10000,
+          schedule: { at: new Date(Date.now() + 1000) },
+          sound: 'notification.mp3',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#cf1322' // Red color for budget alert
+        }
+      ]
+    }).catch(err => console.log('Capacitor local notification error:', err));
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: '/app-icon.png',
+        badge: '/app-icon.png'
+      });
+      playSound('notification');
     } catch (e) {
       console.log('Web notification error:', e);
     }
