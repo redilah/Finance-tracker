@@ -601,34 +601,55 @@ function App() {
   };
 
   React.useEffect(() => {
+    let active = true;
+
     const checkUpdate = () => {
-      checkForAppUpdates().then(info => {
-        if (info) setUpdateInfo(info);
-      });
+      checkForAppUpdates()
+        .then(info => {
+          if (active && info) {
+            console.log('[App] Update terdeteksi:', info);
+            setUpdateInfo(info);
+          }
+        })
+        .catch(err => {
+          console.error('[App] Gagal memeriksa update:', err);
+        });
     };
 
-    // 1. Cek saat pertama kali dibuka (mount)
-    checkUpdate();
+    // 1. Cek langsung saat mount aplikasi
+    setTimeout(() => {
+      if (active) checkUpdate();
+    }, 1500); // Beri sedikit jeda agar load UI/splash screen lancar
 
-    // 2. Cek saat aplikasi Capacitor kembali dari background (resume)
+    // 2. Cek saat aplikasi kembali dari background (resume)
     let appStateListener;
-    import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) checkUpdate();
-      }).then(listener => {
-        appStateListener = listener;
+    import('@capacitor/app')
+      .then(({ App: CapApp }) => {
+        CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive && active) {
+            console.log('[App] Aplikasi di-resume, cek update...');
+            checkUpdate();
+          }
+        }).then(listener => {
+          appStateListener = listener;
+        });
+      })
+      .catch(() => {
+        // Fallback Web/PWA
+        const handleVisibility = () => {
+          if (document.visibilityState === 'visible' && active) {
+            checkUpdate();
+          }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        appStateListener = { remove: () => document.removeEventListener('visibilitychange', handleVisibility) };
       });
-    }).catch(() => {
-      // Fallback PWA / Web
-      const handleVisibility = () => {
-        if (document.visibilityState === 'visible') checkUpdate();
-      };
-      document.addEventListener('visibilitychange', handleVisibility);
-      appStateListener = { remove: () => document.removeEventListener('visibilitychange', handleVisibility) };
-    });
 
     return () => {
-      if (appStateListener) appStateListener.remove();
+      active = false;
+      if (appStateListener) {
+        appStateListener.remove();
+      }
     };
   }, []);
 
