@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "1.0.8",
-  "version": "1.0.8",
-  "changelog": "Rilis v1.0.8: Implementasi smart hybrid engine classifier, audio feedback transaksi, budget kategori, serta optimalisasi in-app update.",
+  "versionCode": 10,
+  "versionName": "1.0.9",
+  "version": "1.0.9",
+  "changelog": "Rilis v1.0.9: Optimalisasi ulang sistem in-app update bypass cache dan penyesuaian visual responsif.",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk",
   "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }
