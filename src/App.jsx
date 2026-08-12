@@ -602,11 +602,19 @@ function App() {
 
   React.useEffect(() => {
     let active = true;
+    let intervalId = null;
 
+    // Tambahkan variabel flag untuk menandai jika user secara sadar menolak (klik Nanti)
+    // agar pop-up tidak muncul berulang-ulang di sesi yang sama
     const checkUpdate = () => {
+      if (window.hasDismissedUpdate === true) {
+        console.log('[App] Pengecekan update dibatalkan karena user telah memilih "Nanti".');
+        return;
+      }
+
       checkForAppUpdates()
         .then(info => {
-          if (active && info) {
+          if (active && info && !window.hasDismissedUpdate) {
             console.log('[App] Update terdeteksi:', info);
             setUpdateInfo(info);
           }
@@ -621,7 +629,19 @@ function App() {
       if (active) checkUpdate();
     }, 1500); // Beri sedikit jeda agar load UI/splash screen lancar
 
-    // 2. Cek saat aplikasi kembali dari background (resume)
+    // 2. Set interval untuk melakukan cek update setiap 1 jam sekali (3600000 ms)
+    // Mode HP/Production murni 1 jam.
+    const intervalTime = 3600000;
+    console.log(`[App] Scheduler update aktif setiap 1 jam`);
+    
+    intervalId = setInterval(() => {
+      if (active) {
+        console.log('[App] Scheduler: Memulai pengecekan update otomatis berkala...');
+        checkUpdate();
+      }
+    }, intervalTime);
+
+    // 3. Cek saat aplikasi kembali dari background (resume)
     let appStateListener;
     import('@capacitor/app')
       .then(({ App: CapApp }) => {
@@ -647,6 +667,7 @@ function App() {
 
     return () => {
       active = false;
+      if (intervalId) clearInterval(intervalId);
       if (appStateListener) {
         appStateListener.remove();
       }
@@ -2715,7 +2736,10 @@ function App() {
               <button
                 type="button"
                 className="update-later-btn"
-                onClick={() => setUpdateInfo(null)}
+                onClick={() => {
+                  window.hasDismissedUpdate = true;
+                  setUpdateInfo(null);
+                }}
               >
                 Nanti
               </button>

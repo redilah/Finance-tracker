@@ -3,13 +3,12 @@ export const CURRENT_VERSION_NAME = '1.0.9';
 
 /**
  * Rebuilt In-App Update Checker
- * Menggunakan request bypass cache yang sangat ketat langsung ke GitHub Raw file.
- * Menggunakan dynamic URL fallback untuk memotong blocking CDN jsDelivr dan GitHub.
+ * Menggunakan standard GET request sederhana tanpa CORS preflight headers 
+ * agar tidak diblokir oleh CORS policy github.
  */
 export const checkForAppUpdates = async () => {
   const timestamp = new Date().getTime();
   
-  // URL List untuk memintas cache WebView yang agresif
   const urls = [
     `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?nocache=${timestamp}`,
     `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?nocache=${timestamp}`
@@ -18,24 +17,19 @@ export const checkForAppUpdates = async () => {
   for (const url of urls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik limit timeout
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
 
+      // JANGAN gunakan custom headers seperti Cache-Control atau Pragma saat request lintas domain (CORS),
+      // karena browser akan memicu Preflight Request (OPTIONS) yang tidak didukung oleh Github Raw CDN.
       const res = await fetch(url, {
         method: 'GET',
-        cache: 'no-store',
-        mode: 'cors',
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        signal: controller.signal
       });
       
       clearTimeout(timeoutId);
       
       if (!res.ok) {
-        console.warn(`HTTP status error ${res.status} untuk URL: ${url}`);
+        console.warn(`HTTP error ${res.status} untuk URL: ${url}`);
         continue;
       }
       
