@@ -1,8 +1,8 @@
 {
-  "versionCode": 10,
-  "versionName": "1.0.9",
-  "version": "1.0.9",
-  "changelog": "Rilis v1.0.9: Optimalisasi ulang sistem in-app update bypass cache dan penyesuaian visual responsif.",
+  "versionCode": 11,
+  "versionName": "1.0.10",
+  "version": "1.0.10",
+  "changelog": "New in this update:\n- [New] Fix In-App Update Bypass Cache\n- [New] Perbaikan bug deteksi notifikasi",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk",
   "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk"
 }

@@ -32,3 +32,13 @@ Follow these steps to prepare a new release or update:
 * **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
 * **Navigasi Back**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
+
+## 6. Format Penulisan "What's New" / Update Release Notes
+* **Aturan**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure), gunakan format yang simpel, langsung menyebutkan fiturnya saja menggunakan bullet point dan label `[New]` tanpa penjelasan tambahan.
+* **Format Contoh**:
+  ```text
+  New in this update:
+  - [New] Fitur Budget Kategori
+  - [New] Fitur Audio Feedback Transaksi
+  ```
+

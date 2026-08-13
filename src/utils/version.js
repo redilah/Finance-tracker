@@ -1,5 +1,5 @@
-export const CURRENT_VERSION_CODE = 10;
-export const CURRENT_VERSION_NAME = '1.0.9';
+export const CURRENT_VERSION_CODE = 11;
+export const CURRENT_VERSION_NAME = '1.0.10';
 
 /**
  * Rebuilt In-App Update Checker
@@ -10,19 +10,20 @@ export const checkForAppUpdates = async () => {
   const timestamp = new Date().getTime();
   
   const urls = [
-    `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?nocache=${timestamp}`,
-    `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?nocache=${timestamp}`
+    `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${timestamp}`,
+    `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?t=${timestamp}`
   ];
 
   for (const url of urls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 detik timeout
 
       // JANGAN gunakan custom headers seperti Cache-Control atau Pragma saat request lintas domain (CORS),
       // karena browser akan memicu Preflight Request (OPTIONS) yang tidak didukung oleh Github Raw CDN.
       const res = await fetch(url, {
         method: 'GET',
+        cache: 'no-store', // 👈 Tambahkan ini agar Android tidak memakai cache lama
         signal: controller.signal
       });
       

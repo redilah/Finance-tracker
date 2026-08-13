@@ -115,7 +115,7 @@ export const getExpenseStatsForNotification = (transactions = []) => {
   let todayProductiveItems = [];
 
   transactions.forEach(t => {
-    if (t.type === 'Expense') {
+    if (t.type && t.type.toLowerCase() === 'expense') {
       const amt = Number(t.amount) || 0;
       if (t.date === todayStr) {
         todayExpense += amt;
