@@ -2743,14 +2743,17 @@ function App() {
               >
                 Nanti
               </button>
-              <a
-                href={updateInfo.downloadUrl || 'https://github.com/redilah/Finance-tracker/releases'}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
                 className="update-now-btn"
+                onClick={() => {
+                  const rawUrl = updateInfo?.downloadUrl || 'https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk';
+                  const cleanUrl = rawUrl.split('?')[0] + `?t=${Date.now()}`;
+                  window.open(cleanUrl, '_system') || (window.location.href = cleanUrl);
+                }}
               >
                 Update Sekarang
-              </a>
+              </button>
             </div>
           </div>
         </div>
