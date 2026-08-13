@@ -52,7 +52,7 @@ export const checkForAppUpdates = async () => {
           latestVersionName: data.versionName || data.version || '1.0.0',
           version: data.versionName || data.version || '1.0.0',
           changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
-          downloadUrl: data.downloadUrl || 'https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk'
+          downloadUrl: data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}`
         };
       }
       
