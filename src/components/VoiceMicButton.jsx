@@ -98,10 +98,18 @@ export default function VoiceMicButton({
     if (Capacitor.isNativePlatform()) {
       // 1. Native Android
       try {
-        const { granted } = await SpeechRecognition.checkPermissions();
-        if (!granted) {
-          const request = await SpeechRecognition.requestPermissions();
-          if (!request.granted) {
+        const isAvail = await SpeechRecognition.available().catch(() => ({ available: false }));
+        if (isAvail && isAvail.available === false) {
+          alert('Pengenalan suara tidak tersedia di perangkat ini. Pastikan Google Speech Services aktif.');
+          setStatus('error');
+          setTimeout(() => setStatus('idle'), 2000);
+          return;
+        }
+
+        const perm = await SpeechRecognition.checkPermissions().catch(() => ({ speechRecognition: 'prompt' }));
+        if (perm.speechRecognition !== 'granted') {
+          const request = await SpeechRecognition.requestPermissions().catch(() => ({ speechRecognition: 'denied' }));
+          if (request.speechRecognition !== 'granted') {
             alert('Izin mikrofon dibutuhkan untuk fitur input suara.');
             setStatus('error');
             setTimeout(() => setStatus('idle'), 2000);
@@ -112,21 +120,20 @@ export default function VoiceMicButton({
         setStatus('listening');
         const { matches } = await SpeechRecognition.start({
           language: 'id-ID',
-          maxResults: 1,
+          maxResults: 2,
+          prompt: 'Bicara transaksi kamu (contoh: Kopi 18rb)...',
           partialResults: false,
-          popup: false
+          popup: true
         });
 
         if (matches && matches.length > 0 && !isProcessingRef.current) {
           processText(matches[0]);
         } else {
-          setStatus('error');
-          setTimeout(() => setStatus('idle'), 1500);
+          setStatus('idle');
         }
       } catch (e) {
-        console.error('Native speech error:', e);
-        setStatus('error');
-        setTimeout(() => setStatus('idle'), 1500);
+        console.warn('Native speech error / user cancelled:', e);
+        setStatus('idle');
       }
     } else {
       // 2. Web / Laptop Browser (Continuous listening with 1.2s silence debounce)

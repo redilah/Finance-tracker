@@ -1,21 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep Capacitor core, bridge, and plugin classes
+-keep class com.getcapacitor.** { *; }
+-keep interface com.getcapacitor.** { *; }
+-keep class * extends com.getcapacitor.Plugin { *; }
+-keepclassmembers class * extends com.getcapacitor.Plugin {
+    @com.getcapacitor.PluginMethod public *;
+    public *;
+}
+-keep class * extends com.getcapacitor.PluginMethod { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Speech Recognition Community Plugin
+-keep class com.getcapacitor.community.speechrecognition.** { *; }
+-keepclassmembers class com.getcapacitor.community.speechrecognition.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep Local Notifications Plugin
+-keep class com.capacitorjs.plugins.localnotifications.** { *; }
+-keepclassmembers class com.capacitorjs.plugins.localnotifications.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep App Plugin
+-keep class com.capacitorjs.plugins.app.** { *; }
+-keepclassmembers class com.capacitorjs.plugins.app.** { *; }

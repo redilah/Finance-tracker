@@ -858,6 +858,129 @@ function App() {
     setActivePanel('category');
   };
 
+  // Edge-Swipe Back Gesture & Android System Back Button Handler
+  const backHandlerStateRef = useRef({});
+  backHandlerStateRef.current = {
+    isCropModalOpen,
+    setIsCropModalOpen,
+    activeBudgetCategory,
+    setActiveBudgetCategory,
+    isBudgetCapModalOpen,
+    setIsBudgetCapModalOpen,
+    safetyWarning,
+    setSafetyWarning,
+    updateInfo,
+    setUpdateInfo,
+    isAddModalOpen,
+    setIsAddModalOpen,
+    isProfileModalOpen,
+    setIsProfileModalOpen,
+    isEditingName,
+    handleSaveInlineName,
+    isAdminView,
+    setIsAdminView,
+    activeTab,
+    setActiveTab,
+    isFirstTimeUser
+  };
+
+  const lastBackPressTimeRef = useRef(0);
+
+  const handleAppBack = () => {
+    const s = backHandlerStateRef.current;
+
+    // 1. Modal Crop / Zoom Foto
+    if (s.isCropModalOpen) {
+      s.setIsCropModalOpen(false);
+      return;
+    }
+
+    // 2. Modal Edit Budget Kategori Satuan
+    if (s.activeBudgetCategory) {
+      s.setActiveBudgetCategory(null);
+      return;
+    }
+
+    // 3. Layar Penuh Budget Cap
+    if (s.isBudgetCapModalOpen) {
+      s.setIsBudgetCapModalOpen(false);
+      return;
+    }
+
+    // 4. Modal Peringatan Keamanan Transaksi
+    if (s.safetyWarning && s.safetyWarning.isOpen) {
+      s.setSafetyWarning({ isOpen: false, categoryLabel: '', reason: '' });
+      return;
+    }
+
+    // 5. Modal In-App Update
+    if (s.updateInfo) {
+      s.setUpdateInfo(null);
+      return;
+    }
+
+    // 6. Form Layar Tambah Transaksi (Add Modal)
+    if (s.isAddModalOpen) {
+      s.setIsAddModalOpen(false);
+      return;
+    }
+
+    // 7. Layar Pengaturan Profil (Hanya jika bukan setup awal)
+    if (s.isProfileModalOpen) {
+      if (!s.isFirstTimeUser) {
+        if (s.isEditingName) s.handleSaveInlineName();
+        s.setIsProfileModalOpen(false);
+        return;
+      }
+    }
+
+    // 8. Layar Admin Dashboard
+    if (s.isAdminView) {
+      s.setIsAdminView(false);
+      window.history.pushState({}, '', window.location.pathname.replace(/\/admin/, '') || '/');
+      return;
+    }
+
+    // 9. Tab Stats / Non-Home Tab -> Kembali ke Home Tab
+    if (s.activeTab !== 'home') {
+      s.setActiveTab('home');
+      return;
+    }
+
+    // 10. Jika sudah di Tab Home & tidak ada modal terbuka -> Double-press to Exit
+    const now = Date.now();
+    if (now - lastBackPressTimeRef.current < 2000) {
+      import('@capacitor/app').then(({ App: CapApp }) => {
+        CapApp.exitApp();
+      }).catch(() => {});
+    } else {
+      lastBackPressTimeRef.current = now;
+      showVoiceToast('Tekan kembali sekali lagi untuk keluar');
+    }
+  };
+
+  React.useEffect(() => {
+    let backListener = null;
+
+    import('@capacitor/app')
+      .then(({ App: CapApp }) => {
+        CapApp.addListener('backButton', () => {
+          handleAppBack();
+        }).then(listener => {
+          backListener = listener;
+        });
+      })
+      .catch((err) => {
+        console.warn('Capacitor App backButton listener not available in this environment:', err);
+      });
+
+    return () => {
+      if (backListener) {
+        backListener.remove();
+      }
+    };
+  }, []);
+
   // Add Custom Category to Dropdown List
   const handleAddCustomCategory = () => {
     const trimmed = customCatInput.trim();

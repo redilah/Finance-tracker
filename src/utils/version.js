@@ -1,5 +1,5 @@
-export const CURRENT_VERSION_CODE = 12;
-export const CURRENT_VERSION_NAME = '1.0.11';
+export const CURRENT_VERSION_CODE = 13;
+export const CURRENT_VERSION_NAME = '1.0.12';
 
 /**
  * Rebuilt In-App Update Checker with Integrity Verification
