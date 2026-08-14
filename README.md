@@ -382,16 +382,16 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |-------|--------------|---------------|--------------------------|
-| **1.0.12** | **13** | **Agustus 2026** | **Dukungan Android Edge-Swipe Gesture**, Perbaikan Crash Native Speech Recognition & ProGuard |
+| **1.0.13** | **14** | **Agustus 2026** | **Seamless In-App Pulsing Mic (Tanpa Pop-up Google)**, Edge-Swipe Back Gesture |
+| 1.0.12 | 13 | Agustus 2026 | Dukungan Android Edge-Swipe Gesture, Perbaikan Crash Native Speech & ProGuard |
 | 1.0.11 | 12 | Agustus 2026 | Voice AI Transaction Input, Dynamic Voice Learner, Hardening Storage & Rules |
 | 1.0.10 | 11 | Agustus 2026 | Bypass Cache In-App Update, Perbaikan Notifikasi Background |
 | 1.0.9 | 10 | Agustus 2026 | Peningkatan Keamanan Keystore & Verifikasi Hash APK |
-| 1.0.8 | 9 | Agustus 2026 | Audio Feedback Positive Chime, Loss Aversion Badge, Threshold Food/Coffee |
 
-### Rilis Terkini — v1.0.12 (Version Code 13)
+### Rilis Terkini — v1.0.13 (Version Code 14)
 
-- 📱 **[New] Android Edge-Swipe Back Gesture**: Navigasi geser dari tepi layar HP kini berfungsi cerdas dan bertingkat (menutup modal profil, crop foto, budget cap, atau kembali ke tab Home).
-- 🎙️ **[New] Speech Recognition Stability**: Perbaikan deklarasi intent `<queries>` Android 11+ dan proteksi ProGuard untuk mencegah aplikasi keluar/crash saat tombol mic ditekan.
+- 🎙️ **[New] Seamless In-App Pulsing Mic**: Input suara kini berjalan 100% di dalam aplikasi tanpa jendela pop-up Google. Tombol mic berdenyut halus (*indigo pulsing*) saat mendengarkan, persis seperti di browser.
+- 📱 **[New] Android Edge-Swipe Back Gesture**: Navigasi geser dari tepi layar HP kini berfungsi cerdas dan bertingkat.
 - ⚡ **[New] R8 Code Shrinking**: APK rilis terkompresi optimal (~3.2 MB) dan ditandatangani dengan kunci rilis resmi.
 
 ---

@@ -1,10 +1,10 @@
 {
-  "versionCode": 13,
-  "versionName": "1.0.12",
-  "version": "1.0.12",
-  "changelog": "New in this update:\n- [New] Dukungan Android Edge-Swipe Back Gesture\n- [New] Perbaikan crash native speech recognition",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.12",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.12",
-  "sha256": "02c53bc8f0a0d45cf46af2fb0c1c570d7dbee3c6cfc6d3dfe6f407995426fb8a",
+  "versionCode": 14,
+  "versionName": "1.0.13",
+  "version": "1.0.13",
+  "changelog": "New in this update:\n- [New] Seamless in-app pulsing mic (tanpa pop-up Google)",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.13",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.13",
+  "sha256": "78721cac053bcbe30cc8c9c023cefb6f6335d4f7c17e694fa84a93de053a9822",
   "minSdkVersion": 22
 }

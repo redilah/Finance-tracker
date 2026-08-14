@@ -121,9 +121,8 @@ export default function VoiceMicButton({
         const { matches } = await SpeechRecognition.start({
           language: 'id-ID',
           maxResults: 2,
-          prompt: 'Bicara transaksi kamu (contoh: Kopi 18rb)...',
           partialResults: false,
-          popup: true
+          popup: false
         });
 
         if (matches && matches.length > 0 && !isProcessingRef.current) {
