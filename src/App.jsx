@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 import fastFoodSvg from './assets/fast-food.svg';
 import gameSvg from './assets/3d-movie.svg';
@@ -35,8 +35,13 @@ import jajanAdekSvg from './assets/Jajan adek.svg';
 import partySvg from './assets/Party.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
-import { CURRENT_VERSION_NAME, CURRENT_VERSION_CODE, checkForAppUpdates } from './utils/version';
-import AdminDashboard from './components/admin/AdminDashboard';
+import { checkForAppUpdates } from './utils/version';
+import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
+import VoiceMicButton from './components/VoiceMicButton';
+
+const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
+import { checkProhibitedContent } from './utils/safetyGuard';
 import { updateCurrentDeviceTelemetry } from './utils/telemetry';
 import { 
   isNotificationEnabled,
@@ -126,31 +131,6 @@ const resolveIcon = (catOrTx) => {
   return id ? (ICON_MAP[id] || null) : null;
 };
 
-// Compress an image (base64 data URL) to a max width/height with JPEG quality
-// This drastically reduces localStorage size for profile photos and wallpapers
-const compressImage = (dataUrl, maxSize, quality = 0.8) => {
-  return new Promise((resolve) => {
-    if (!dataUrl) { resolve(null); return; }
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let w = img.naturalWidth;
-      let h = img.naturalHeight;
-      if (w > maxSize || h > maxSize) {
-        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
-        else { w = Math.round(w * maxSize / h); h = maxSize; }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(dataUrl); // fallback: return original
-    img.src = dataUrl;
-  });
-};
-
 // One-time migration: strip raw SVG `icon` blobs from old stored transactions
 // and derive categoryId from category name mapping
 const migrateTransactions = (list) => {
@@ -184,7 +164,7 @@ const migrateTransactions = (list) => {
     return tx;
   });
   if (changed) {
-    try { localStorage.setItem('user_transactions', JSON.stringify(migrated)); } catch {}
+    try { safeStorageSet('user_transactions', migrated); } catch {}
   }
   return migrated;
 };
@@ -201,49 +181,6 @@ const migrateCategories = (list) => {
 
 const INITIAL_TRANSACTIONS = [];
 
-// Helper to detect wallpaper average brightness (0 = dark, 255 = light)
-const getWallpaperLuminance = (imageSrc) => {
-  return new Promise((resolve) => {
-    if (!imageSrc) {
-      resolve(null);
-      return;
-    }
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 40;
-        canvas.height = 40;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, 40, 40);
-        const imgData = ctx.getImageData(0, 0, 40, 40).data;
-        let totalLuminance = 0;
-        let count = 0;
-        for (let i = 0; i < imgData.length; i += 4) {
-          const r = imgData[i];
-          const g = imgData[i + 1];
-          const b = imgData[i + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          totalLuminance += lum;
-          count++;
-        }
-        resolve(totalLuminance / count);
-      } catch {
-        resolve(null);
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = imageSrc;
-  });
-};
-
-// Daftar ID Kategori yang diklasifikasikan sebagai 'Konsumtif' (Pendekatan A)
-const CONSUMPTIVE_CATEGORY_IDS = [
-  'bioskop', 'barber', 'skincare', 'fashion', 'sub', 
-  'pesawat', 'coffee', 'gofood', 'sepatu', 'topupGame', 'konser'
-];
-
 // Instrumen investasi beserta estimasi return tahunan
 const INVESTMENT_INSTRUMENTS = [
   { id: 'bigbank', name: 'Big Bank', rate: 0.10, label: '10%' },
@@ -251,7 +188,7 @@ const INVESTMENT_INSTRUMENTS = [
   { id: 'obligasi', name: 'Obligasi', rate: 0.065, label: '6.5%' },
 ];
 
-function AndaiFeatureView({ transactions, expenseCategories, resolveIcon }) {
+function AndaiFeatureView({ transactions, resolveIcon }) {
   const [investmentYear, setInvestmentYear] = useState(5); // 1, 3, 5, 10
   const [selectedInstrument, setSelectedInstrument] = useState(INVESTMENT_INSTRUMENTS[0]); // Big Bank (8%)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -428,9 +365,9 @@ function App() {
   // LocalStorage Persistence for Transactions
   const [transactions, setTransactions] = useState(() => {
     try {
-      const saved = localStorage.getItem('user_transactions');
+      const saved = safeStorageGet('user_transactions');
       // Run migration to strip old SVG blobs on first load
-      return saved ? migrateTransactions(JSON.parse(saved)) : INITIAL_TRANSACTIONS;
+      return saved ? migrateTransactions(saved) : INITIAL_TRANSACTIONS;
     } catch {
       return INITIAL_TRANSACTIONS;
     }
@@ -439,9 +376,9 @@ function App() {
   // LocalStorage Persistence for Custom Categories & Accounts
   const [expenseCategories, setExpenseCategories] = useState(() => {
     try {
-      const saved = localStorage.getItem('user_expense_categories');
+      const saved = safeStorageGet('user_expense_categories');
       if (saved) {
-        const loaded = migrateCategories(JSON.parse(saved));
+        const loaded = migrateCategories(saved);
         const merged = [...loaded];
         DEFAULT_EXPENSE_CATEGORIES.forEach(defaultCat => {
           if (!merged.some(cat => cat.id === defaultCat.id)) {
@@ -458,9 +395,9 @@ function App() {
 
   const [incomeCategories, setIncomeCategories] = useState(() => {
     try {
-      const saved = localStorage.getItem('user_income_categories');
+      const saved = safeStorageGet('user_income_categories');
       if (saved) {
-        const loaded = migrateCategories(JSON.parse(saved));
+        const loaded = migrateCategories(saved);
         const merged = [...loaded];
         DEFAULT_INCOME_CATEGORIES.forEach(defaultCat => {
           if (!merged.some(cat => cat.id === defaultCat.id)) {
@@ -477,8 +414,8 @@ function App() {
 
   const [accountsList, setAccountsList] = useState(() => {
     try {
-      const saved = localStorage.getItem('user_accounts_list');
-      return saved ? JSON.parse(saved) : ['Bank', 'Cash', 'E-Wallet'];
+      const saved = safeStorageGet('user_accounts_list');
+      return saved ? saved : ['Bank', 'Cash', 'E-Wallet'];
     } catch {
       return ['Bank', 'Cash', 'E-Wallet'];
     }
@@ -488,30 +425,24 @@ function App() {
   const [customAccountInput, setCustomAccountInput] = useState('');
 
   // Profile State & Persistence
-  const isFirstTimeUser = !localStorage.getItem('user_profile_setup_done');
+  const isFirstTimeUser = !safeStorageGet('user_profile_setup_done');
 
   const [profileName, setProfileName] = useState(() => {
-    return localStorage.getItem('user_profile_name') || '';
+    return safeStorageGet('user_profile_name') || '';
   });
   const [profileImage, setProfileImage] = useState(() => {
-    return localStorage.getItem('user_profile_image') || null;
+    return safeStorageGet('user_profile_image') || null;
   });
-  const [appWallpaper, setAppWallpaper] = useState(() => {
-    return localStorage.getItem('user_app_wallpaper') || null;
-  });
-  const [tempWallpaper, setTempWallpaper] = useState(appWallpaper);
-  const [isWallpaperJustSelected, setIsWallpaperJustSelected] = useState(false);
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   // Auto-open modal on first time setup
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
   const [isBudgetCapModalOpen, setIsBudgetCapModalOpen] = useState(false);
   const [hasVisitedBudgetCap, setHasVisitedBudgetCap] = useState(() => {
-    return localStorage.getItem('user_has_visited_budget_cap') === 'true';
+    return safeStorageGet('user_has_visited_budget_cap') === 'true' || safeStorageGet('user_has_visited_budget_cap') === true;
   });
-  const [editingBudgets, setEditingBudgets] = useState({});
-  const [tempBudgetInputs, setTempBudgetInputs] = useState({});
-  const [budgetConfirmModal, setBudgetConfirmModal] = useState({ isOpen: false, categoryId: null, categoryName: '', amount: 0 });
+  const [budgetFilterTab, setBudgetFilterTab] = useState('all'); // 'all' | 'active' | 'unset'
+  const [activeBudgetCategory, setActiveBudgetCategory] = useState(null);
+  const [budgetModalInputValue, setBudgetModalInputValue] = useState('');
   const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
 
   const handleOpenBudgetCap = () => {
@@ -520,6 +451,25 @@ function App() {
       localStorage.setItem('user_has_visited_budget_cap', 'true');
     }
     setIsBudgetCapModalOpen(true);
+  };
+
+  // Voice-Command Deletion & Feedback Toast State
+  const [deletingTxId, setDeletingTxId] = useState(null);
+  const [voiceToastMessage, setVoiceToastMessage] = useState(null);
+
+  // Safety Warning Modal State (Pencegahan transaksi ilegal / berbahaya / rokok / alkohol / asusila)
+  const [safetyWarning, setSafetyWarning] = useState({ isOpen: false, categoryLabel: '', reason: '' });
+
+  // Sync Continuous Voice Learner with User Data
+  useEffect(() => {
+    syncLearnerWithUserData(expenseCategories, transactions);
+  }, [expenseCategories, transactions]);
+
+  const showVoiceToast = (msg) => {
+    setVoiceToastMessage(msg);
+    setTimeout(() => {
+      setVoiceToastMessage(null);
+    }, 2800);
   };
 
   // In-App Update Check State
@@ -533,22 +483,13 @@ function App() {
     return window.location.search.includes('admin') || window.location.pathname.startsWith('/admin');
   });
 
-  // Hide HTML splash screen smoothly on app load once React is ready
+  // Hide HTML splash screen immediately on app load once React is ready
   React.useEffect(() => {
     const splash = document.getElementById('app-splash-screen');
-    if (splash) {
-      if (isAdminView) {
-        if (splash.parentNode) splash.parentNode.removeChild(splash);
-      } else {
-        splash.classList.add('splash-exit');
-        setTimeout(() => {
-          if (splash.parentNode) {
-            splash.parentNode.removeChild(splash);
-          }
-        }, 500);
-      }
+    if (splash && splash.parentNode) {
+      splash.parentNode.removeChild(splash);
     }
-  }, [isAdminView]);
+  }, []);
 
   // Track & update device telemetry on launch / profile change
   React.useEffect(() => {
@@ -579,7 +520,7 @@ function App() {
 
   // Play sound on app start if notification bell was already enabled
   React.useEffect(() => {
-    if (isNotifActive) {
+    if (isNotificationEnabled()) {
       playSound('app_open');
     }
   }, []);
@@ -590,15 +531,6 @@ function App() {
       schedulePersonalizedNotifications(profileName, transactions, expenseCategories);
     }
   }, [isNotifActive, profileName, transactions, expenseCategories]);
-
-  const handleToggleNotification = async (e) => {
-    e.stopPropagation(); // prevent opening profile modal
-    const nextState = await toggleNotificationState(isNotifActive);
-    setIsNotifActive(nextState);
-    if (nextState) {
-      sendInstantNotification(profileName, transactions);
-    }
-  };
 
   React.useEffect(() => {
     let active = true;
@@ -674,91 +606,55 @@ function App() {
     };
   }, []);
 
-  // Sync states to LocalStorage
+  // Sync states to Secure Encrypted Storage
   React.useEffect(() => {
-    localStorage.setItem('user_transactions', JSON.stringify(transactions));
+    safeStorageSet('user_transactions', transactions);
   }, [transactions]);
 
   React.useEffect(() => {
-    localStorage.setItem('user_expense_categories', JSON.stringify(expenseCategories));
+    safeStorageSet('user_expense_categories', expenseCategories);
   }, [expenseCategories]);
 
   React.useEffect(() => {
-    localStorage.setItem('user_income_categories', JSON.stringify(incomeCategories));
+    safeStorageSet('user_income_categories', incomeCategories);
   }, [incomeCategories]);
 
   React.useEffect(() => {
-    localStorage.setItem('user_accounts_list', JSON.stringify(accountsList));
+    safeStorageSet('user_accounts_list', accountsList);
   }, [accountsList]);
 
-  // Note History & Modal state
-  const [noteHistory, setNoteHistory] = useState([]);
+  // Note Suggestions & Modal state
   const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const [tempName, setTempName] = useState(profileName);
   const [tempProfileImage, setTempProfileImage] = useState(profileImage);
+  const [isEditingName, setIsEditingName] = useState(false);
+
+  const handleSaveInlineName = () => {
+    const finalName = tempName.trim() || 'Pengguna';
+    setProfileName(finalName);
+    setTempName(finalName);
+    safeStorageSet('user_profile_name', finalName);
+    setIsEditingName(false);
+  };
 
   // Image Crop & Adjustment State (Image 2 Style)
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
-  const [cropZoom, setCropZoom] = useState(1);
   const [cropRotation, setCropRotation] = useState(0);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isDraggingCrop, setIsDraggingCrop] = useState(false);
   const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
 
   const profileFileInputRef = useRef(null);
-  const wallpaperFileInputRef = useRef(null);
   const cropImgRef = useRef(null);
-
-  // Dynamically apply custom wallpaper & brightness detection to root container
-  React.useEffect(() => {
-    const rootEl = document.getElementById('root');
-    if (rootEl) {
-      if (appWallpaper) {
-        rootEl.style.backgroundImage = `url(${appWallpaper})`;
-        rootEl.style.backgroundSize = 'cover';
-        rootEl.style.backgroundPosition = 'center';
-        rootEl.style.backgroundRepeat = 'no-repeat';
-
-        getWallpaperLuminance(appWallpaper).then((avgLum) => {
-          if (avgLum !== null && avgLum > 135) {
-            rootEl.classList.add('light-wallpaper');
-          } else {
-            rootEl.classList.remove('light-wallpaper');
-          }
-        });
-      } else {
-        rootEl.style.backgroundImage = '';
-        rootEl.style.backgroundSize = '';
-        rootEl.style.backgroundPosition = '';
-        rootEl.style.backgroundRepeat = '';
-        rootEl.classList.remove('light-wallpaper');
-      }
-    }
-  }, [appWallpaper]);
 
   const handleOpenProfileModal = () => {
     setTempName(profileName);
     setTempProfileImage(profileImage);
-    setTempWallpaper(appWallpaper);
-    setIsWallpaperJustSelected(false);
+    setIsEditingName(false);
     setIsProfileModalOpen(true);
-  };
-
-  const handleSelectWallpaperFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      // Compress wallpaper to max 1024px wide, JPEG 0.80 — drastically reduces storage
-      const compressed = await compressImage(reader.result, 1024, 0.80);
-      setTempWallpaper(compressed);
-      setIsWallpaperJustSelected(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const handleSelectFile = (e) => {
@@ -767,7 +663,6 @@ function App() {
     const reader = new FileReader();
     reader.onload = () => {
       setCropImageSrc(reader.result);
-      setCropZoom(1);
       setCropRotation(0);
       setCropOffset({ x: 0, y: 0 });
       setIsCropModalOpen(true);
@@ -828,28 +723,24 @@ function App() {
     // quality 0.75 instead of 0.9 — avatar kecil, beda kualitas tidak terlihat
     const croppedUrl = canvas.toDataURL('image/jpeg', 0.75);
     setTempProfileImage(croppedUrl);
+    setProfileImage(croppedUrl);
+    localStorage.setItem('user_profile_image', croppedUrl);
     setIsCropModalOpen(false);
   };
 
   const handleSaveProfile = async () => {
     const finalName = tempName.trim() || 'Pengguna';
-    const isFirstTimeSetup = !localStorage.getItem('user_profile_setup_done');
+    const isFirstTimeSetup = !safeStorageGet('user_profile_setup_done');
 
     setProfileName(finalName);
     setProfileImage(tempProfileImage);
-    setAppWallpaper(tempWallpaper);
-    localStorage.setItem('user_profile_name', finalName);
+    safeStorageSet('user_profile_name', finalName);
     if (tempProfileImage) {
-      localStorage.setItem('user_profile_image', tempProfileImage);
+      safeStorageSet('user_profile_image', tempProfileImage);
     } else {
       localStorage.removeItem('user_profile_image');
     }
-    if (tempWallpaper) {
-      localStorage.setItem('user_app_wallpaper', tempWallpaper);
-    } else {
-      localStorage.removeItem('user_app_wallpaper');
-    }
-    localStorage.setItem('user_profile_setup_done', 'true');
+    safeStorageSet('user_profile_setup_done', 'true');
 
     // Auto activate notifications on profile save ONLY for initial onboarding setup
     if (isFirstTimeSetup) {
@@ -934,21 +825,6 @@ function App() {
   };
 
   const isCurrentMonth = currentDate.getFullYear() === 2026 && currentDate.getMonth() === 7;
-
-  // Format selected date and time to original string format e.g. "8/9/26 (Sun) 08:08"
-  const formatSelectedDateTime = (dateISO, timeHHMM) => {
-    try {
-      const [year, month, day] = dateISO.split('-').map(Number);
-      const [hours, mins] = timeHHMM.split(':');
-      const d = new Date(year, month - 1, day, Number(hours), Number(mins));
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const dayName = days[d.getDay()];
-      const dateFormatted = `${month}/${day}/${String(year).slice(-2)}`;
-      return `${dateFormatted} (${dayName})  ${hours}:${mins}`;
-    } catch {
-      return `${dateISO} ${timeHHMM}`;
-    }
-  };
 
   // Open Full-Page Add Form (Plus button)
   const handleOpenAddModal = () => {
@@ -1075,30 +951,70 @@ function App() {
       party: ['pesta', 'nongkrong', 'klub', 'party']
     };
 
-    if (!budgetSearchQuery.trim()) return expenseCategories;
-
+    let list = expenseCategories;
     const q = budgetSearchQuery.toLowerCase().trim();
 
-    return expenseCategories
-      .map(cat => {
-        const nameLower = cat.name.toLowerCase();
-        const idLower = cat.id.toLowerCase();
-        const keywords = (searchKeywords[cat.id] || []).map(k => k.toLowerCase());
+    if (q) {
+      list = expenseCategories
+        .map(cat => {
+          const nameLower = cat.name.toLowerCase();
+          const idLower = cat.id.toLowerCase();
+          const keywords = (searchKeywords[cat.id] || []).map(k => k.toLowerCase());
 
-        let score = 0;
-        if (nameLower === q) score = 100;
-        else if (nameLower.startsWith(q)) score = 80;
-        else if (nameLower.includes(q)) score = 60;
-        else if (idLower === q) score = 50;
-        else if (idLower.includes(q)) score = 40;
-        else if (keywords.some(kw => kw === q)) score = 30;
-        else if (keywords.some(kw => kw.includes(q))) score = 20;
+          let score = 0;
+          if (nameLower === q) score = 100;
+          else if (nameLower.startsWith(q)) score = 80;
+          else if (nameLower.includes(q)) score = 60;
+          else if (idLower === q) score = 50;
+          else if (idLower.includes(q)) score = 40;
+          else if (keywords.some(kw => kw === q)) score = 30;
+          else if (keywords.some(kw => kw.includes(q))) score = 20;
 
-        return { cat, score };
-      })
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.cat);
+          return { cat, score };
+        })
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.cat);
+    }
+
+    if (budgetFilterTab === 'active') {
+      return list.filter(c => typeof c.monthlyLimit === 'number' && c.monthlyLimit > 0);
+    }
+    if (budgetFilterTab === 'unset') {
+      return list.filter(c => !c.monthlyLimit || c.monthlyLimit <= 0);
+    }
+    return list;
+  };
+
+  const handleOpenCategoryBudgetModal = (cat) => {
+    setActiveBudgetCategory(cat);
+    const currentLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0 ? cat.monthlyLimit : 0;
+    setBudgetModalInputValue(currentLimit > 0 ? new Intl.NumberFormat('id-ID').format(currentLimit) : '');
+  };
+
+  const handleSaveCategoryBudget = () => {
+    if (!activeBudgetCategory) return;
+    const raw = budgetModalInputValue.replace(/\./g, '').replace(/[^0-9]/g, '');
+    const numVal = parseInt(raw, 10) || 0;
+
+    const newCats = expenseCategories.map(c => 
+      c.id === activeBudgetCategory.id ? { ...c, monthlyLimit: numVal > 0 ? numVal : undefined } : c
+    );
+    setExpenseCategories(newCats);
+    localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
+    setActiveBudgetCategory(null);
+    setBudgetModalInputValue('');
+  };
+
+  const handleRemoveCategoryBudget = () => {
+    if (!activeBudgetCategory) return;
+    const newCats = expenseCategories.map(c => 
+      c.id === activeBudgetCategory.id ? { ...c, monthlyLimit: undefined } : c
+    );
+    setExpenseCategories(newCats);
+    localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
+    setActiveBudgetCategory(null);
+    setBudgetModalInputValue('');
   };
 
   const checkAndTriggerBudgetNotifications = (newTx, allTx, categories) => {
@@ -1127,10 +1043,7 @@ function App() {
     if (passedThresholds.length === 0) return;
     
     const storageKey = 'user_budget_notif_state';
-    let notifState = {};
-    try {
-      notifState = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    } catch(e) {}
+    let notifState = safeStorageGet(storageKey, {});
     
     const monthKey = `${newTx.categoryId}_${monthStr}`;
     const notifiedForMonth = notifState[monthKey] || [];
@@ -1139,7 +1052,7 @@ function App() {
     
     if (newThresholds.length > 0) {
       notifState[monthKey] = [...notifiedForMonth, ...newThresholds];
-      localStorage.setItem(storageKey, JSON.stringify(notifState));
+      safeStorageSet(storageKey, notifState);
       
       const highestNewTh = Math.max(...newThresholds);
       const formatIdr = (num) => new Intl.NumberFormat('id-ID').format(num);
@@ -1156,19 +1069,142 @@ function App() {
     }
   };
 
+  // Save / Delete Voice Transaction
+  const handleSaveVoiceTransaction = (result) => {
+    if (!result) return;
+
+    // A. Perintah Hapus Suara (Voice-Command Delete)
+    if (result.action === 'DELETE') {
+      if (transactions.length === 0) {
+        showVoiceToast('Belum ada transaksi untuk dihapus');
+        return;
+      }
+
+      let targetTx = null;
+
+      if (result.isLast) {
+        // Ambil transaksi paling atas / terakhir dibuat
+        targetTx = transactions[0];
+      } else if (result.targetQuery && result.targetAmount) {
+        const q = result.targetQuery.toLowerCase();
+        // Cari transaksi yang cocok judul + nominal
+        targetTx = transactions.find(t => 
+          t.amount === result.targetAmount &&
+          ((t.title && t.title.toLowerCase().includes(q)) ||
+           (t.category && t.category.toLowerCase().includes(q)) ||
+           (t.categoryId && t.categoryId.toLowerCase().includes(q)))
+        );
+        // Fallback jika tidak ketemu tepat keduanya
+        if (!targetTx) {
+          targetTx = transactions.find(t => t.amount === result.targetAmount) ||
+                     transactions.find(t => t.title && t.title.toLowerCase().includes(q));
+        }
+      } else if (result.targetAmount) {
+        // Hapus berdasarkan nominal saja (misal: "Hapus 20 ribu")
+        targetTx = transactions.find(t => t.amount === result.targetAmount);
+      } else if (result.targetQuery) {
+        const q = result.targetQuery.toLowerCase();
+        // Cari transaksi yang cocok dari title, category, atau categoryId
+        targetTx = transactions.find(t => 
+          (t.title && t.title.toLowerCase().includes(q)) ||
+          (t.category && t.category.toLowerCase().includes(q)) ||
+          (t.categoryId && t.categoryId.toLowerCase().includes(q))
+        );
+      }
+
+      if (!targetTx) {
+        const desc = result.targetQuery && result.targetAmount
+          ? `"${result.targetQuery}" Rp ${result.targetAmount.toLocaleString('id-ID')}`
+          : result.targetAmount
+            ? `Rp ${result.targetAmount.toLocaleString('id-ID')}`
+            : `"${result.targetQuery || 'terakhir'}"`;
+        showVoiceToast(`Transaksi ${desc} tidak ditemukan`);
+        return;
+      }
+
+      // Catat pembelajaran & evaluasi penghapusan untuk Dashboard Admin
+      recordDeletionEvaluation(targetTx, result.targetQuery, result.targetAmount, profileName);
+
+      // Animasi 3D Sink Backwards (Tenggelam ke Belakang)
+      setDeletingTxId(targetTx.id);
+      playPopSound();
+      showVoiceToast(`🗑️ Menghapus "${targetTx.title}"...`);
+
+      setTimeout(() => {
+        setTransactions(prev => prev.filter(t => t.id !== targetTx.id));
+        setDeletingTxId(null);
+        showVoiceToast(`✅ Transaksi "${targetTx.title}" berhasil dihapus`);
+      }, 450);
+
+      return;
+    }
+
+    // B. Simpan Transaksi Baru
+    const catName = result.category.name;
+    const catIconClass = result.category.iconClass || 'food-icon';
+    const finalTitle = result.note.trim() || catName;
+
+    // Safety Guard Check: Blokir jika terdapat kata terlarang (rokok, miras, asusila, narkoba, judi)
+    const safetyCheck = checkProhibitedContent(`${finalTitle} ${result.rawText || ''}`);
+    if (safetyCheck.isProhibited) {
+      setSafetyWarning({
+        isOpen: true,
+        categoryLabel: safetyCheck.categoryLabel,
+        reason: safetyCheck.reason
+      });
+      return;
+    }
+
+    const numericAmount = parseFloat(result.amount) || 0;
+    if (numericAmount <= 0) return;
+
+    const newTx = {
+      id: Date.now(),
+      title: finalTitle,
+      category: catName,
+      categoryId: result.category.id || null,
+      account: result.account,
+      amount: numericAmount,
+      type: result.type.toLowerCase(),
+      iconClass: catIconClass,
+      date: getTodayISO()
+    };
+
+    if (result.type === 'Expense') {
+      const isConsumptive = isConsumptiveHybrid(newTx, transactions);
+      if (!isConsumptive) {
+        playPositiveChime();
+      }
+      checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
+    }
+
+    setTransactions(prev => [newTx, ...prev]);
+    showVoiceToast(`✅ "${finalTitle}" Rp ${numericAmount.toLocaleString('id-ID')} tersimpan`);
+  };
+
   // Save Transaction
   const handleSaveTransaction = () => {
+    const catName = selectedCategory.name;
+    const catIconClass = selectedCategory.iconClass || 'food-icon';
+
+    const finalTitle = note.trim() || catName;
+
+    // Safety Guard Check: Blokir jika terdapat kata terlarang (rokok, miras, asusila, narkoba, judi)
+    const safetyCheck = checkProhibitedContent(finalTitle);
+    if (safetyCheck.isProhibited) {
+      setSafetyWarning({
+        isOpen: true,
+        categoryLabel: safetyCheck.categoryLabel,
+        reason: safetyCheck.reason
+      });
+      return;
+    }
+
     const numericAmount = parseFloat(amountVal.replace(/\./g, '')) || 0;
     if (numericAmount <= 0) {
       alert('Masukkan nominal transaksi');
       return;
     }
-
-    const catName = selectedCategory.name;
-    const catIcon = selectedCategory.icon || (transType === 'Expense' ? fastFoodSvg : salarySvg);
-    const catIconClass = selectedCategory.iconClass || 'food-icon';
-
-    const finalTitle = note.trim() || catName;
 
     // Save note to history if non-empty and not already in history
     if (note.trim()) {
@@ -1240,11 +1276,13 @@ function App() {
       categoryMap[t.category] = {
         name: t.category,
         amount: 0,
+        count: 0,
         // Resolve icon at runtime from categoryId, not from stored blob
         categoryId: t.categoryId || null,
       };
     }
     categoryMap[t.category].amount += t.amount;
+    categoryMap[t.category].count += 1;
   });
 
   const CHART_COLORS = [
@@ -1263,9 +1301,7 @@ function App() {
   // Generate SVG Pie Slices with collision-free label positioning
   let cumulativeAngle = -Math.PI / 2;
   const radius = 56;
-  const chartWidth = 380;
   const chartHeight = 260;
-  const centerX = chartWidth / 2;
   const centerY = chartHeight / 2;
 
   // First pass: compute basic slice geometry
@@ -1360,12 +1396,14 @@ function App() {
 
   if (isAdminView) {
     return (
-      <AdminDashboard 
-        onNavigateToApp={() => {
-          window.history.pushState({}, '', window.location.pathname.replace('/admin', '/').replace(/\?admin.*/, ''));
-          setIsAdminView(false);
-        }}
-      />
+      <React.Suspense fallback={<div className="admin-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: '#666' }}>Memuat Dashboard...</div>}>
+        <AdminDashboard 
+          onNavigateToApp={() => {
+            window.history.pushState({}, '', window.location.pathname.replace('/admin', '/').replace(/\?admin.*/, ''));
+            setIsAdminView(false);
+          }}
+        />
+      </React.Suspense>
     );
   }
 
@@ -1504,7 +1542,7 @@ function App() {
                         {/* Transaction Items under this date */}
                         <div className="date-group-items">
                           {groupTxs.map(item => (
-                            <div className="transaction-item" key={item.id}>
+                            <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
                               <div className={`transaction-icon ${item.iconClass}`}>
                                 {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
                               </div>
@@ -1697,7 +1735,9 @@ function App() {
                   </div>
                   <div className="stats-cat-info">
                     {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
-                    <span className="stats-cat-name">{cat.name}</span>
+                    <span className="stats-cat-name">
+                      {cat.name} <span className="stats-cat-count">({cat.count}x)</span>
+                    </span>
                   </div>
                 </div>
                 <div className="stats-item-right">
@@ -1706,6 +1746,27 @@ function App() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'home' && (
+        <VoiceMicButton
+          expenseCategories={expenseCategories}
+          incomeCategories={incomeCategories}
+          accountsList={accountsList}
+          setTransType={setTransType}
+          setAmountVal={setAmountVal}
+          setSelectedCategory={setSelectedCategory}
+          setAccount={setAccount}
+          setNote={setNote}
+          handleSaveVoiceTransaction={handleSaveVoiceTransaction}
+        />
+      )}
+
+      {/* Voice Feedback Toast Notification */}
+      {voiceToastMessage && (
+        <div className="voice-toast-notification">
+          <span>{voiceToastMessage}</span>
         </div>
       )}
 
@@ -1802,7 +1863,6 @@ function App() {
           {transType === 'Andai' ? (
             <AndaiFeatureView 
               transactions={transactions} 
-              expenseCategories={expenseCategories} 
               resolveIcon={resolveIcon} 
             />
           ) : (
@@ -2196,29 +2256,12 @@ function App() {
         </div>
       )}
 
-      {/* Profile Setup / Edit Screen (Pop up untuk user baru, Full Page Screen saat di-klik) */}
-      {isProfileModalOpen && (
-        <div className={`modal-overlay profile-setup-overlay ${localStorage.getItem('user_profile_setup_done') ? 'full-page-profile-screen' : ''}`}>
+      {/* Onboarding Welcome Setup Modal (Hanya untuk pengguna baru saat pertama kali buka aplikasi) */}
+      {isProfileModalOpen && !safeStorageGet('user_profile_setup_done') && (
+        <div className="modal-overlay profile-setup-overlay">
           <div className="profile-modal-card">
             <div className="profile-modal-header">
-              {localStorage.getItem('user_profile_setup_done') && (
-                <button
-                  type="button"
-                  className="back-btn"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  aria-label="Kembali"
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7"/>
-                  </svg>
-                </button>
-              )}
-              <h3 className="profile-modal-title">
-                {localStorage.getItem('user_profile_setup_done') ? 'Pengaturan Profil' : 'Selamat Datang! Atur Profil Anda'}
-              </h3>
-              {localStorage.getItem('user_profile_setup_done') && (
-                <div style={{ width: '32px' }}></div>
-              )}
+              <h3 className="profile-modal-title">Selamat Datang! Atur Profil Anda</h3>
             </div>
 
             <div className="profile-modal-body">
@@ -2253,7 +2296,7 @@ function App() {
                 />
               </div>
 
-              {/* Name Input Field */}
+              {/* Name Input Field (TANPA autoFocus) */}
               <div className="profile-field-group">
                 <label className="profile-field-label">Nama Lengkap / Panggilan</label>
                 <input
@@ -2265,97 +2308,6 @@ function App() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveProfile();
                   }}
-                  autoFocus
-                />
-              </div>
-
-              {/* Budget Cap Option */}
-              <div className="profile-field-group" style={{ marginTop: '12px' }}>
-                <button
-                  type="button"
-                  className="wallpaper-btn budget-cap-profile-btn"
-                  style={{ 
-                    width: '100%', 
-                    justifyContent: 'center', 
-                    background: 'linear-gradient(135deg, #2D5284 0%, #1E3B66 100%)', 
-                    color: '#FFFFFF',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(45, 82, 132, 0.25)',
-                    position: 'relative',
-                    padding: '12px 16px',
-                    borderRadius: '16px'
-                  }}
-                  onClick={handleOpenBudgetCap}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
-                    <polyline points="17 2 12 7 7 2"/>
-                  </svg>
-                  <span style={{ fontWeight: 600, color: '#FFFFFF' }}>Set Limit Kategori (Budget)</span>
-                  {!hasVisitedBudgetCap && (
-                    <span 
-                      style={{ 
-                        position: 'absolute', 
-                        top: '8px', 
-                        right: '10px', 
-                        width: '8px', 
-                        height: '8px', 
-                        backgroundColor: '#FF4D4F', 
-                        borderRadius: '50%',
-                        pointerEvents: 'none'
-                      }} 
-                      title="Belum pernah dibuka"
-                    />
-                  )}
-                </button>
-              </div>
-
-              {/* Wallpaper Customizer Option */}
-              <div className="profile-field-group" style={{ marginTop: '12px' }}>
-                <div className="wallpaper-actions-row" style={{ marginTop: 0 }}>
-                  <button
-                    type="button"
-                    className={`wallpaper-btn wallpaper-pick-btn ${isWallpaperJustSelected ? 'active-uploaded' : ''}`}
-                    onClick={() => wallpaperFileInputRef.current && wallpaperFileInputRef.current.click()}
-                  >
-                    {isWallpaperJustSelected ? (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <span>Wallpaper Terpasang</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <polyline points="21 15 16 10 5 21"/>
-                        </svg>
-                        <span>Ganti Wallpaper</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="wallpaper-btn wallpaper-reset-btn"
-                    onClick={() => setIsResetConfirmOpen(true)}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                      <path d="M3 3v5h5"/>
-                    </svg>
-                    <span>Reset Default</span>
-                  </button>
-                </div>
-
-                <input
-                  ref={wallpaperFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden-file-input"
-                  onChange={handleSelectWallpaperFile}
                 />
               </div>
             </div>
@@ -2373,45 +2325,122 @@ function App() {
         </div>
       )}
 
-      {/* Confirmation Modal for Resetting Wallpaper */}
-      {isResetConfirmOpen && (
-        <div className="modal-overlay wallpaper-confirm-overlay" style={{ zIndex: 1100 }}>
-          <div className="profile-modal-card confirm-modal-card">
-            <div className="profile-modal-header">
-              <h3 className="profile-modal-title">Konfirmasi Wallpaper</h3>
+      {/* Full Page WhatsApp Style Profile Screen (Untuk user terdaftar) */}
+      {isProfileModalOpen && safeStorageGet('user_profile_setup_done') && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
               <button
                 type="button"
-                className="profile-modal-close-btn"
-                onClick={() => setIsResetConfirmOpen(false)}
-                aria-label="Tutup"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="profile-modal-body" style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <p className="confirm-modal-text">
-                Apakah Anda yakin ingin mengembalikan wallpaper ke tampilan default?
-              </p>
-            </div>
-            <div className="profile-modal-footer" style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="button"
-                className="wallpaper-cancel-btn"
-                onClick={() => setIsResetConfirmOpen(false)}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                className="wallpaper-confirm-reset-btn"
+                className="back-btn"
                 onClick={() => {
-                  setTempWallpaper(null);
-                  setIsWallpaperJustSelected(false);
-                  setIsResetConfirmOpen(false);
+                  if (isEditingName) handleSaveInlineName();
+                  setIsProfileModalOpen(false);
                 }}
+                aria-label="Kembali"
               >
-                Ya, Reset
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
               </button>
+              <h3 className="profile-modal-title">Pengaturan Profil</h3>
+              <div style={{ width: '32px' }}></div>
+            </div>
+
+            <div className="wa-profile-scroll-body">
+              {/* Avatar Section */}
+              <div className="wa-profile-hero-section">
+                <div
+                  className="wa-profile-avatar-circle"
+                  onClick={() => profileFileInputRef.current && profileFileInputRef.current.click()}
+                  title="Ganti Foto Profil"
+                >
+                  {profileImage ? (
+                    <img src={profileImage} alt="Foto Profil" className="wa-avatar-img" />
+                  ) : (
+                    <span className="wa-avatar-initial">
+                      {(profileName.trim() || 'P').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="wa-avatar-camera-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <input
+                  ref={profileFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden-file-input"
+                  onChange={handleSelectFile}
+                />
+
+                {/* Name section with inline edit */}
+                <div className="wa-name-wrapper">
+                  {isEditingName ? (
+                    <div className="wa-name-inline-edit">
+                      <input
+                        type="text"
+                        className="wa-name-edit-input"
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveInlineName();
+                        }}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="wa-name-save-icon-btn"
+                        onClick={handleSaveInlineName}
+                        title="Simpan Nama"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="wa-name-display-row" onClick={() => { setTempName(profileName); setIsEditingName(true); }}>
+                      <span className="wa-profile-name-text">{profileName}</span>
+                      <button type="button" className="wa-edit-pen-btn" title="Ubah Nama">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* WA-Style Settings Menu List */}
+              <div className="wa-settings-menu-group">
+                {/* 1. Budget Kategori */}
+                <div className="wa-menu-item" onClick={handleOpenBudgetCap}>
+                  <div className="wa-menu-icon-box budget-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                      <polyline points="17 2 12 7 7 2"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">Budget Kategori Per Bulan</span>
+                      {!hasVisitedBudgetCap && <span className="wa-unread-dot" />}
+                    </div>
+                    <span className="wa-menu-subtitle">Atur batas maksimal pengeluaran kategori</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+              </div>
             </div>
           </div>
         </div>
@@ -2529,8 +2558,8 @@ function App() {
       {/* Budget Cap Full Page UI */}
       {isBudgetCapModalOpen && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
-          <div className="profile-modal-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', padding: 0 }}>
-            <div className="profile-modal-header" style={{ padding: '20px 20px 10px 20px' }}>
+          <div className="budget-cap-screen-wrapper">
+            <div className="profile-modal-header budget-screen-header">
               <button
                 type="button"
                 className="back-btn"
@@ -2546,7 +2575,7 @@ function App() {
             </div>
 
             {/* Search Bar */}
-            <div style={{ padding: '0 20px 12px 20px' }}>
+            <div className="budget-search-section">
               <div className="budget-search-wrapper">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"/>
@@ -2571,150 +2600,204 @@ function App() {
               </div>
             </div>
 
+            {/* Filter Tabs (Solusi C) */}
+            {(() => {
+              const countAll = expenseCategories.length;
+              const countActive = expenseCategories.filter(c => typeof c.monthlyLimit === 'number' && c.monthlyLimit > 0).length;
+              const countUnset = countAll - countActive;
+
+              return (
+                <div className="budget-filter-tabs">
+                  <button 
+                    type="button" 
+                    className={`budget-tab-btn ${budgetFilterTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setBudgetFilterTab('all')}
+                  >
+                    Semua ({countAll})
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`budget-tab-btn ${budgetFilterTab === 'active' ? 'active' : ''}`}
+                    onClick={() => setBudgetFilterTab('active')}
+                  >
+                    Aktif ({countActive})
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`budget-tab-btn ${budgetFilterTab === 'unset' ? 'active' : ''}`}
+                    onClick={() => setBudgetFilterTab('unset')}
+                  >
+                    Belum Diatur ({countUnset})
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Clean Category List (Solusi A) */}
             <div className="budget-list-container">
               {(() => {
                 const filtered = getFilteredBudgetCategories();
                 if (filtered.length === 0) {
                   return (
                     <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
-                      <p style={{ fontSize: '14px', fontWeight: 500 }}>Kategori "{budgetSearchQuery}" tidak ditemukan</p>
+                      <p style={{ fontSize: '14px', fontWeight: 500 }}>
+                        {budgetSearchQuery ? `Kategori "${budgetSearchQuery}" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}
+                      </p>
                     </div>
                   );
                 }
 
                 return filtered.map(cat => {
-                const iconPath = resolveIcon(cat);
-                const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
-                const isEditing = Boolean(editingBudgets[cat.id]);
-                
-                let inputValue = '';
-                if (tempBudgetInputs[cat.id] !== undefined) {
-                  inputValue = tempBudgetInputs[cat.id];
-                } else if (hasLimit) {
-                  inputValue = new Intl.NumberFormat('id-ID').format(cat.monthlyLimit);
-                }
+                  const iconPath = resolveIcon(cat);
+                  const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
 
-                return (
-                  <div key={cat.id} className="budget-item">
-                    <div className={`budget-item-icon-box ${cat.iconClass}`}>
-                      <img src={iconPath} alt={cat.name} />
-                    </div>
-
-                    <div className="budget-item-info">
-                      <span className="budget-item-name">{cat.name}</span>
-                    </div>
-
-                    {(!hasLimit || isEditing) ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div className="budget-input-wrapper">
-                          <span className="budget-input-prefix">Rp</span>
-                          <input 
-                            type="text" 
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            className="budget-input"
-                            placeholder="Belum diatur"
-                            value={inputValue}
-                            autoFocus={isEditing}
-                            onChange={(e) => {
-                              const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-                              const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
-                              setTempBudgetInputs(prev => ({ ...prev, [cat.id]: formatted }));
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const raw = (tempBudgetInputs[cat.id] || '').replace(/\./g, '').replace(/[^0-9]/g, '');
-                                const numVal = parseInt(raw, 10) || 0;
-                                if (numVal > 0) {
-                                  setBudgetConfirmModal({
-                                    isOpen: true,
-                                    categoryId: cat.id,
-                                    categoryName: cat.name,
-                                    amount: numVal
-                                  });
-                                }
-                              }
-                            }}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className="budget-action-btn save-btn"
-                          onClick={() => {
-                            const raw = (tempBudgetInputs[cat.id] || inputValue || '').replace(/\./g, '').replace(/[^0-9]/g, '');
-                            const numVal = parseInt(raw, 10) || 0;
-                            if (numVal <= 0) {
-                              alert('Masukkan nominal limit yang valid');
-                              return;
-                            }
-                            setBudgetConfirmModal({
-                              isOpen: true,
-                              categoryId: cat.id,
-                              categoryName: cat.name,
-                              amount: numVal
-                            });
-                          }}
-                        >
-                          Save
-                        </button>
+                  return (
+                    <div 
+                      key={cat.id} 
+                      className="budget-item-card"
+                      onClick={() => handleOpenCategoryBudgetModal(cat)}
+                    >
+                      <div className={`budget-item-icon-box ${cat.iconClass}`}>
+                        <img src={iconPath} alt={cat.name} />
                       </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
-                          Rp {new Intl.NumberFormat('id-ID').format(cat.monthlyLimit)}
+
+                      <div className="budget-item-info">
+                        <span className="budget-item-name">{cat.name}</span>
+                        <span className="budget-item-sub">
+                          {hasLimit ? 'Batas aktif' : 'Tanpa batas'}
                         </span>
-                        <button
-                          type="button"
-                          className="budget-action-btn edit-btn"
-                          onClick={() => {
-                            setEditingBudgets(prev => ({ ...prev, [cat.id]: true }));
-                            setTempBudgetInputs(prev => ({ ...prev, [cat.id]: new Intl.NumberFormat('id-ID').format(cat.monthlyLimit) }));
-                          }}
-                        >
-                          Edit
-                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              });
-            })()}
+
+                      <div className="budget-item-status-wrapper">
+                        {hasLimit ? (
+                          <span className="budget-status-badge active">
+                            Rp {new Intl.NumberFormat('id-ID').format(cat.monthlyLimit)}
+                          </span>
+                        ) : (
+                          <span className="budget-status-badge unset">
+                            Belum diatur
+                          </span>
+                        )}
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-item-chevron">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
       )}
 
-      {/* Budget Cap Save Confirmation Modal */}
-      {budgetConfirmModal.isOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1000000 }}>
-          <div className="budget-confirm-card">
-            <h3 className="budget-confirm-title">Set Limit Budget</h3>
-            <p className="budget-confirm-msg">
-              Apakah kamu yakin ingin memasang limit <strong>Rp {new Intl.NumberFormat('id-ID').format(budgetConfirmModal.amount)}</strong> untuk kategori <strong>{budgetConfirmModal.categoryName}</strong>?
-            </p>
-            <div className="budget-confirm-actions">
-              <button
-                type="button"
-                className="budget-confirm-btn cancel"
-                onClick={() => setBudgetConfirmModal({ isOpen: false, categoryId: null, categoryName: '', amount: 0 })}
+      {/* Tap-to-Edit Category Budget Modal with Quick Chips (Solusi A) */}
+      {activeBudgetCategory && (
+        <div className="modal-overlay" style={{ zIndex: 1000000 }} onClick={() => setActiveBudgetCategory(null)}>
+          <div className="budget-sheet-card" onClick={(e) => e.stopPropagation()}>
+            <div className="budget-sheet-header">
+              <div className="budget-sheet-cat-summary">
+                <div className={`budget-item-icon-box ${activeBudgetCategory.iconClass}`}>
+                  <img src={resolveIcon(activeBudgetCategory)} alt={activeBudgetCategory.name} />
+                </div>
+                <div>
+                  <h3 className="budget-sheet-title">{activeBudgetCategory.name}</h3>
+                  <p className="budget-sheet-subtitle">Atur batas maksimal pengeluaran per bulan</p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="budget-sheet-close"
+                onClick={() => setActiveBudgetCategory(null)}
               >
-                Batal
+                ✕
               </button>
+            </div>
+
+            <div className="budget-sheet-body">
+              {/* Quick Chips */}
+              <label className="budget-sheet-label">Pilihan Nominal Cepat</label>
+              <div className="budget-quick-chips">
+                {[
+                  { label: '100 Rb', val: 100000 },
+                  { label: '250 Rb', val: 250000 },
+                  { label: '500 Rb', val: 500000 },
+                  { label: '1 Jt', val: 1000000 },
+                  { label: '2 Jt', val: 2000000 },
+                  { label: '5 Jt', val: 5000000 },
+                ].map(chip => (
+                  <button
+                    key={chip.val}
+                    type="button"
+                    className={`budget-chip-btn ${budgetModalInputValue.replace(/\./g, '') === String(chip.val) ? 'selected' : ''}`}
+                    onClick={() => {
+                      setBudgetModalInputValue(new Intl.NumberFormat('id-ID').format(chip.val));
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input box */}
+              <label className="budget-sheet-label" style={{ marginTop: '14px' }}>Nominal Limit</label>
+              <div className="budget-modal-input-wrapper">
+                <span className="budget-modal-input-prefix">Rp</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="budget-modal-input"
+                  placeholder="0"
+                  autoFocus
+                  value={budgetModalInputValue}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                    const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
+                    setBudgetModalInputValue(formatted);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveCategoryBudget();
+                    }
+                  }}
+                />
+                {budgetModalInputValue && (
+                  <button 
+                    type="button" 
+                    className="budget-input-clear-btn"
+                    onClick={() => setBudgetModalInputValue('')}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="budget-sheet-footer">
+              {activeBudgetCategory.monthlyLimit && activeBudgetCategory.monthlyLimit > 0 ? (
+                <button
+                  type="button"
+                  className="budget-sheet-btn delete-btn"
+                  onClick={handleRemoveCategoryBudget}
+                >
+                  Hapus Limit
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="budget-sheet-btn cancel-btn"
+                  onClick={() => setActiveBudgetCategory(null)}
+                >
+                  Batal
+                </button>
+              )}
               <button
                 type="button"
-                className="budget-confirm-btn confirm"
-                onClick={() => {
-                  const { categoryId, amount } = budgetConfirmModal;
-                  const newCats = expenseCategories.map(c => 
-                    c.id === categoryId ? { ...c, monthlyLimit: amount } : c
-                  );
-                  setExpenseCategories(newCats);
-                  localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
-                  setEditingBudgets(prev => ({ ...prev, [categoryId]: false }));
-                  setBudgetConfirmModal({ isOpen: false, categoryId: null, categoryName: '', amount: 0 });
-                }}
+                className="budget-sheet-btn save-btn"
+                onClick={handleSaveCategoryBudget}
               >
-                Ya, Simpan Limit
+                Simpan Limit
               </button>
             </div>
           </div>
@@ -2749,10 +2832,42 @@ function App() {
                 onClick={() => {
                   const rawUrl = updateInfo?.downloadUrl || 'https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk';
                   const cleanUrl = rawUrl.split('?')[0] + `?t=${Date.now()}`;
-                  window.open(cleanUrl, '_system') || (window.location.href = cleanUrl);
+                  const opened = window.open(cleanUrl, '_system');
+                  if (!opened) {
+                    window.location.href = cleanUrl;
+                  }
                 }}
               >
                 Update Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Safety Compliance Warning Modal (Pop-up Merah Transaksi Terlarang) */}
+      {safetyWarning.isOpen && (
+        <div className="modal-overlay safety-warning-overlay" style={{ zIndex: 2000000 }}>
+          <div className="safety-warning-card">
+            <div className="safety-warning-icon-standalone">
+              <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#e11d48" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <h3 className="safety-warning-title">Aktivitas Tidak Diizinkan</h3>
+            <div className="safety-warning-tag">{safetyWarning.categoryLabel || 'Konten Berbahaya'}</div>
+            <p className="safety-warning-desc">
+              {safetyWarning.reason || 'Pencatatan untuk kategori berbahaya, ilegal, rokok, miras, atau asusila tidak diizinkan.'}
+            </p>
+            <div className="safety-warning-footer">
+              <button
+                type="button"
+                className="safety-understand-btn"
+                onClick={() => setSafetyWarning({ isOpen: false, categoryLabel: '', reason: '' })}
+              >
+                Saya Mengerti
               </button>
             </div>
           </div>

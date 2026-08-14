@@ -39,7 +39,9 @@ export const playPopSound = (soundName = 'bubble_pop_2.wav') => {
         gain.connect(audioCtx.destination);
         osc.start();
         osc.stop(audioCtx.currentTime + 0.08);
-      } catch (err) {}
+      } catch {
+        // Ignore audio context cleanup error
+      }
     });
   } catch (e) {
     console.error('Pop sound error:', e);
@@ -58,6 +60,18 @@ export const requestNotificationPermission = async () => {
       const permResult = await LocalNotifications.requestPermissions();
       if (permResult.display === 'granted') {
         localStorage.setItem(NOTIF_STORAGE_KEY, 'true');
+        
+        // Buat notification channel Android dengan prioritas tinggi
+        await LocalNotifications.createChannel({
+          id: 'financial_notifications',
+          name: 'Notifikasi Finansial',
+          description: 'Pengingat dan notifikasi anggaran harian',
+          importance: 5,
+          visibility: 1,
+          sound: 'notification',
+          vibration: true
+        }).catch(() => {});
+
         playSound('notification');
         return true;
       }
@@ -216,8 +230,9 @@ export const sendInstantNotification = (userName) => {
           title: title,
           body: body,
           id: Date.now() % 10000,
-          schedule: { at: new Date(Date.now() + 1000) },
-          sound: 'notification.mp3',
+          schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true },
+          channelId: 'financial_notifications',
+          sound: 'notification',
           smallIcon: 'ic_stat_icon',
           iconColor: '#4f46e5'
         }
@@ -237,12 +252,7 @@ export const sendInstantNotification = (userName) => {
   }
 };
 
-// Schedule background/routine local notifications
-// FIX: Selalu cancel lalu re-schedule dengan pesan TERBARU berdasarkan transaksi saat ini.
-// Dulu: msg di-bake sekali saat pertama app dibuka → pesan "belum ada pengeluaran" beku meski
-//        user sudah input transaksi. Sekarang: setiap kali transactions berubah, notifikasi
-//        di-cancel & dijadwalkan ulang dengan konten fresh. repeats:true dihapus agar
-//        teks lama tidak persist lintas hari secara otomatis oleh OS.
+// Schedule background/routine local notifications on HP / Native Android & Web
 export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = []) => {
   if (!isNotificationEnabled()) return;
 
@@ -251,11 +261,22 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
 
   if (Capacitor.isNativePlatform()) {
     try {
-      // Selalu cancel notifikasi lama sebelum schedule baru
-      await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }] });
+      // Pastikan notification channel tersedia di HP Android
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      // Selalu cancel notifikasi pengingat lama sebelum menjadwalkan yang fresh
+      await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }] }).catch(() => {});
 
       const now = new Date();
-      // Target malam: 19:00 hari ini; jika sudah lewat → besok 19:00
+      // 1. Notifikasi Harian Rutin Malam (19:00)
       let eveningTarget = new Date();
       eveningTarget.setHours(19, 0, 0, 0);
       if (now.getTime() >= eveningTarget.getTime()) {
@@ -270,27 +291,37 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           title: msg.title,
           body: msg.body,
           id: 101,
-          schedule: { at: eveningTarget },
-          sound: 'notification.mp3',
+          schedule: { 
+            at: eveningTarget,
+            allowWhileIdle: true
+          },
+          channelId: 'financial_notifications',
+          sound: 'notification',
           smallIcon: 'ic_stat_icon',
           iconColor: '#4f46e5'
         }
       ];
 
-      // Jadwalkan pengingat harian jam 18:00 HANYA jika user BELUM pernah mengatur limit kategori sama sekali
+      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI di HP jika belum mengisi limit satupun kategori
       if (!hasAnyBudgetLimit) {
         let budgetReminderTarget = new Date();
-        budgetReminderTarget.setHours(18, 0, 0, 0);
+        budgetReminderTarget.setHours(10, 0, 0, 0);
         if (now.getTime() >= budgetReminderTarget.getTime()) {
           budgetReminderTarget.setDate(budgetReminderTarget.getDate() + 1);
         }
 
         notifsToSchedule.push({
           title: `Atur Budget Kategori Bulananmu! 🎯`,
-          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Set Limit Kategori (Budget)" agar keuanganmu lebih teratur!`,
+          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Budget Kategori Per Bulan" agar keuanganmu lebih teratur!`,
           id: 102,
-          schedule: { at: budgetReminderTarget },
-          sound: 'notification.mp3',
+          schedule: { 
+            at: budgetReminderTarget,
+            allowWhileIdle: true,
+            repeats: true,
+            every: 'day'
+          },
+          channelId: 'financial_notifications',
+          sound: 'notification',
           smallIcon: 'ic_stat_icon',
           iconColor: '#2D5284'
         });
@@ -300,10 +331,10 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         notifications: notifsToSchedule
       });
     } catch (e) {
-      console.log('Failed to schedule native local notifications:', e);
+      console.log('Failed to schedule native local notifications on Android:', e);
     }
   } else if ('Notification' in window && Notification.permission === 'granted') {
-    // Web fallback: kirim pada jam yang ditentukan
+    // Web fallback
     try {
       const now = new Date();
       if (now.getHours() === 19 && now.getMinutes() === 0) {
@@ -314,9 +345,9 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           badge: '/app-icon.png'
         });
         playSound('notification');
-      } else if (now.getHours() === 18 && now.getMinutes() === 0 && !hasAnyBudgetLimit) {
+      } else if (now.getHours() === 10 && now.getMinutes() === 0 && !hasAnyBudgetLimit) {
         new Notification(`Atur Budget Kategori Bulananmu! 🎯`, {
-          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Set Limit Kategori (Budget)" agar keuanganmu lebih teratur!`,
+          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Budget Kategori Per Bulan" agar keuanganmu lebih teratur!`,
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
@@ -340,7 +371,8 @@ export const sendInstantBudgetNotification = (title, body) => {
           body: body,
           id: Date.now() % 10000,
           schedule: { at: new Date(Date.now() + 1000) },
-          sound: 'notification.mp3',
+          channelId: 'financial_notifications',
+          sound: 'notification',
           smallIcon: 'ic_stat_icon',
           iconColor: '#cf1322' // Red color for budget alert
         }

@@ -1,10 +1,10 @@
-export const CURRENT_VERSION_CODE = 11;
-export const CURRENT_VERSION_NAME = '1.0.10';
+export const CURRENT_VERSION_CODE = 12;
+export const CURRENT_VERSION_NAME = '1.0.11';
 
 /**
- * Rebuilt In-App Update Checker
+ * Rebuilt In-App Update Checker with Integrity Verification
  * Menggunakan standard GET request sederhana tanpa CORS preflight headers 
- * agar tidak diblokir oleh CORS policy github.
+ * agar tidak diblokir oleh CORS policy github, dilengkapi validasi struktur & integritas hash.
  */
 export const checkForAppUpdates = async () => {
   const timestamp = new Date().getTime();
@@ -19,11 +19,9 @@ export const checkForAppUpdates = async () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 detik timeout
 
-      // JANGAN gunakan custom headers seperti Cache-Control atau Pragma saat request lintas domain (CORS),
-      // karena browser akan memicu Preflight Request (OPTIONS) yang tidak didukung oleh Github Raw CDN.
       const res = await fetch(url, {
         method: 'GET',
-        cache: 'no-store', // 👈 Tambahkan ini agar Android tidak memakai cache lama
+        cache: 'no-store',
         signal: controller.signal
       });
       
@@ -39,6 +37,24 @@ export const checkForAppUpdates = async () => {
         console.warn('Struktur data version.json tidak valid:', data);
         continue;
       }
+
+      // Validasi integritas download URL (hanya izinkan domain terpercaya)
+      const downloadUrl = data.downloadUrl || data.apkUrl;
+      if (downloadUrl) {
+        try {
+          const parsedUrl = new URL(downloadUrl);
+          const isTrusted = ['raw.githubusercontent.com', 'github.com', 'cdn.jsdelivr.net'].some(
+            domain => parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain)
+          );
+          if (!isTrusted) {
+            console.error('[Security] Untrusted download URL host rejected:', parsedUrl.hostname);
+            continue;
+          }
+        } catch {
+          console.error('[Security] Invalid download URL format');
+          continue;
+        }
+      }
       
       const latestVersionCode = data.versionCode;
       console.log(`[UpdateCheck] Versi lokal: ${CURRENT_VERSION_CODE}, Versi server: ${latestVersionCode}`);
@@ -52,7 +68,8 @@ export const checkForAppUpdates = async () => {
           latestVersionName: data.versionName || data.version || '1.0.0',
           version: data.versionName || data.version || '1.0.0',
           changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
-          downloadUrl: data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}`
+          downloadUrl: downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}`,
+          sha256: data.sha256 || null
         };
       }
       

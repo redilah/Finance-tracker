@@ -1,20 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Telemetri Cassiel Command: Izinkan create & update dengan pembatasan ukuran payload
+    match /cassiel_telemetry/{document} {
+      allow create: if request.resource.data.keys().hasAll(['deviceId', 'lastActive'])
+                    && request.resource.data.deviceId is string
+                    && request.resource.data.deviceId.size() < 128;
+      allow update: if request.resource.data.deviceId == resource.data.deviceId;
+      allow read: if true;
+      allow delete: if false;
+    }
+
+    // Telemetri Puncak
+    match /puncak_telemetry/{document} {
+      allow create, update: if request.resource.data.deviceId is string;
+      allow read: if true;
+      allow delete: if false;
+    }
+
+    // Articles & Research Papers (Read-only publik)
     match /articles/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
     match /research_papers/{document} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
-    match /puncak_telemetry/{document} {
-      allow read, write: if true;
-    }
-    match /cassiel_telemetry/{document} {
-      allow read, write: if true;
-    }
+
+    // Default Deny untuk semua koleksi/dokumen lainnya
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

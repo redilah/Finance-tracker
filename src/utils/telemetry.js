@@ -1,6 +1,7 @@
-import { CURRENT_VERSION_NAME } from './version';
+import { CURRENT_VERSION_NAME } from './version.js';
 const CURRENT_VERSION = CURRENT_VERSION_NAME;
-import { db } from './firebase';
+import { db } from './firebase.js';
+import { safeStorageGet } from './secureStorage.js';
 import { 
   collection, 
   doc, 
@@ -33,13 +34,15 @@ const generateId = () => {
 const cleanupDummyRecords = (list) => {
   if (!Array.isArray(list)) return [];
   return list.filter(item => {
-    const isDummyId = item.id === 'dev_windows_pc' || item.id === 'dev_init_system';
+    const isDummyId = item.id === 'dev_windows_pc' || item.id === 'dev_init_system' || (item.id && item.id.startsWith('dev_server_'));
     const isDummyName = /cassiel system|redilah \(pc admin\)/i.test(item.userName || '');
     if (isDummyId || isDummyName) {
       if (item.id) {
         try {
           deleteDoc(doc(db, TELEMETRY_COLLECTION, item.id));
-        } catch (e) {}
+        } catch {
+          // Ignore deletion error for unauthenticated cleanup
+        }
       }
       return false;
     }
@@ -49,15 +52,15 @@ const cleanupDummyRecords = (list) => {
 
 // Detect device name & OS/Browser (extracts phone brand/model like Samsung, Xiaomi, iPhone, or Windows Laptop)
 export const detectDeviceName = () => {
-  const ua = navigator.userAgent || '';
-  const platform = navigator.platform || '';
-  const uadPlatform = navigator.userAgentData?.platform || '';
+  const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+  const platform = typeof navigator !== 'undefined' ? (navigator.platform || '') : '';
+  const uadPlatform = typeof navigator !== 'undefined' ? (navigator.userAgentData?.platform || '') : '';
 
   let os = 'Windows PC';
   let browser = 'Browser';
   let deviceModel = '';
 
-  const isCapacitor = window.Capacitor !== undefined || window.location.protocol === 'capacitor:';
+  const isCapacitor = typeof window !== 'undefined' && (window.Capacitor !== undefined || window.location?.protocol === 'capacitor:');
 
   // 1. Check Windows PC/Laptop first
   const isWindows = /Win/i.test(platform) || /Win/i.test(uadPlatform) || /Windows|Win32|Win64/i.test(ua);
@@ -124,6 +127,7 @@ export const detectDeviceName = () => {
 
 // Get or create device ID
 export const getDeviceId = () => {
+  if (typeof localStorage === 'undefined') return 'dev_server_' + Date.now();
   let devId = localStorage.getItem(DEVICE_ID_KEY);
   if (!devId) {
     devId = generateId();
@@ -134,6 +138,7 @@ export const getDeviceId = () => {
 
 // Get or set installation date
 export const getInstallDate = () => {
+  if (typeof localStorage === 'undefined') return new Date().toISOString();
   let installDate = localStorage.getItem(INSTALL_DATE_KEY);
   if (!installDate) {
     installDate = new Date().toISOString();
@@ -144,15 +149,18 @@ export const getInstallDate = () => {
 
 // Update current device telemetry to Firebase Firestore (with timeout fallback)
 export const updateCurrentDeviceTelemetry = async () => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return null;
+  }
   const currentDeviceId = getDeviceId();
   const installDate = getInstallDate();
-  const currentUserName = localStorage.getItem('user_profile_name') || 'Pengguna Baru';
+  const currentUserName = safeStorageGet('user_profile_name', 'Pengguna Baru');
   const deviceName = detectDeviceName();
 
   let totalTransactions = 0;
   try {
-    const tx = localStorage.getItem('user_transactions');
-    if (tx) totalTransactions = JSON.parse(tx).length;
+    const tx = safeStorageGet('user_transactions', []);
+    if (Array.isArray(tx)) totalTransactions = tx.length;
   } catch {}
 
   const nowIso = new Date().toISOString();
@@ -161,6 +169,7 @@ export const updateCurrentDeviceTelemetry = async () => {
     id: currentDeviceId,
     userName: currentUserName,
     deviceName: deviceName,
+    installDate: installDate,
     installedAt: installDate,
     lastActive: nowIso,
     totalTransactions: totalTransactions,
@@ -176,18 +185,20 @@ export const updateCurrentDeviceTelemetry = async () => {
   }
 
   // Update local cache as well
-  try {
-    const cached = localStorage.getItem(LOCAL_CACHE_KEY);
-    let list = cached ? JSON.parse(cached) : [];
-    list = cleanupDummyRecords(list);
-    const idx = list.findIndex(item => item.id === currentDeviceId);
-    if (idx >= 0) {
-      list[idx] = { ...deviceData, isCurrentDevice: true };
-    } else {
-      list.unshift({ ...deviceData, isCurrentDevice: true });
-    }
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
-  } catch {}
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(LOCAL_CACHE_KEY);
+      let list = cached ? JSON.parse(cached) : [];
+      list = cleanupDummyRecords(list);
+      const idx = list.findIndex(item => item.id === currentDeviceId);
+      if (idx >= 0) {
+        list[idx] = { ...deviceData, isCurrentDevice: true };
+      } else {
+        list.unshift({ ...deviceData, isCurrentDevice: true });
+      }
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
+    } catch {}
+  }
 
   return deviceData;
 };
@@ -229,13 +240,19 @@ export const getTelemetryData = async () => {
     } catch {}
     
     // Default fallback to self device if nothing cached
+    let selfTxCount = 0;
+    try {
+      const tx = safeStorageGet('user_transactions', []);
+      if (Array.isArray(tx)) selfTxCount = tx.length;
+    } catch {}
+
     return [{
       id: currentDevId,
-      userName: localStorage.getItem('user_profile_name') || 'Pengguna Baru',
+      userName: safeStorageGet('user_profile_name', 'Pengguna Baru'),
       deviceName: detectDeviceName(),
       installedAt: getInstallDate(),
       lastActive: new Date().toISOString(),
-      totalTransactions: 0,
+      totalTransactions: selfTxCount,
       appVersion: CURRENT_VERSION,
       isCurrentDevice: true
     }];

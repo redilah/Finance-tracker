@@ -1,9 +1,10 @@
 {
-  "versionCode": 11,
-  "versionName": "1.0.10",
-  "version": "1.0.10",
-  "changelog": "New in this update:\n- [New] Fix In-App Update Bypass Cache\n- [New] Perbaikan bug deteksi notifikasi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.10",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.10"
+  "versionCode": 12,
+  "versionName": "1.0.11",
+  "version": "1.0.11",
+  "changelog": "New in this update:\n- [New] Fitur Voice AI Transaction\n- [New] Keamanan dan Telemetri",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.11",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.11",
+  "sha256": "fa37515674b9f24c4f0cd2c3223c1a7700a97eb6b171c68f19407d51d4377ee3",
+  "minSdkVersion": 22
 }
-
