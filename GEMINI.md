@@ -30,7 +30,7 @@ Follow these steps to prepare a new release or update:
 ## 5. UI Invariants & Design Standards
 * **Warna & Theme**: Hindari penggunaan container/box hitam gelap kaku jika tidak menyatu dengan tema netral/krim (`#F8EFE6`).
 * **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
-* **Navigasi Back**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
+* **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku. Kotak menu/card pengaturan profil wajib menggunakan desain borderless (`border: none`) dengan bayangan halus.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
 
 ## 6. Format Penulisan "What's New" / Update Release Notes
@@ -40,6 +40,7 @@ Follow these steps to prepare a new release or update:
   New in this update:
   - [New] Fitur Budget Kategori
   - [New] Fitur Audio Feedback Transaksi
+  ```
 
 ## 7. In-App Update Anti-Cache Invariants
 * **Fetch Anti-Cache**: Setiap pemanggilan `fetch` untuk `version.json` wajib menyertakan opsi `{ method: 'GET', cache: 'no-store' }`.
@@ -55,4 +56,18 @@ Follow these steps to prepare a new release or update:
   2. Buat skrip automated test suite / benchmark mandiri (misal puluhan hingga ratusan test cases variasi input user nyata).
   3. Jalankan autonomous iteration loop: perbaiki kode/kamus, jalankan skrip pengujian, evaluasi kegagalan, dan ulangi mandiri sampai lulus 100% (Perfect Score).
   4. Hanya laporkan hasil akhir yang sudah teruji dan tuntas kepada user.
+
+## 10. Android Edge-Swipe Gesture & Hierarchical Back-Button Handler
+* **Wajib Mengakomodasi Gestur Usap Tepi Layar**: Seluruh tampilan popup, modal, sheet, dan layar penuh (seperti Halaman Profil, Budget Cap, Cropper) wajib terdaftar pada handler `App.addListener('backButton')`.
+* **Hierarki Penutupan**:
+  1. **Tingkat 1**: Tutup modal/cropper/budget popup/update yang sedang aktif.
+  2. **Tingkat 2**: Tutup Full-Page Profile Screen dan kembali ke Home.
+  3. **Tingkat 3**: Jika berada di tab non-Home (seperti Stats atau Add), kembalikan ke tab Home.
+  4. **Tingkat 4**: Jika sudah di Home root tanpa modal terbuka, tampilkan toast konfirmasi ganda sebelum memanggil `App.exitApp()`.
+
+## 11. Android Native Speech Recognition & R8 ProGuard Invariants
+* **Manifest Queries**: Wajib menyertakan `<queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries>` di `AndroidManifest.xml` agar tidak crash di Android 11+.
+* **ProGuard / R8 Rules**: Wajib mempertahankan class Capacitor Plugins & `@PluginMethod` di `proguard-rules.pro` saat `minifyEnabled true`.
+* **Seamless In-App Voice UX**: Wajib menggunakan opsi `popup: false` pada `SpeechRecognition.start()` sehingga tombol mic berdenyut (*pulsing wave*) langsung di dalam aplikasi tanpa memunculkan jendela dialog Google.
+
 
