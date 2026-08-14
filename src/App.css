@@ -1806,7 +1806,7 @@ img[src*="Kost"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: none;
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
@@ -1964,7 +1964,7 @@ img[src*="Kost"] {
   border-radius: 22px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(90, 60, 30, 0.04);
-  border: 1px solid rgba(180, 150, 120, 0.22);
+  border: none;
 }
 
 .wa-menu-item {
@@ -1974,7 +1974,8 @@ img[src*="Kost"] {
   padding: 16px 18px;
   cursor: pointer;
   transition: background 0.15s ease;
-  border-bottom: 1px solid rgba(180, 150, 120, 0.14);
+  border: none;
+  border-bottom: none;
   user-select: none;
 }
 
