@@ -216,9 +216,7 @@ export default function VoiceMicButton({
   };
 
   const processText = (text) => {
-    if (isProcessingRef.current) return;
     isProcessingRef.current = true;
-
     setStatus('processing'); // Visual State: Oranye Memahami
     
     setTimeout(() => {
