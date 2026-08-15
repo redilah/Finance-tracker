@@ -428,8 +428,8 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
           {currentCursor === 'sub' && <span className="typewriter-cursor">|</span>}
         </span>
       </div>
-      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'right', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-        {displayedAmount}
+      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', minWidth: '105px' }}>
+        <span>{displayedAmount}</span>
         {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
       </div>
     </div>
