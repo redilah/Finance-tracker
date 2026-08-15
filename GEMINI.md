@@ -7,16 +7,22 @@
 ## 2. Android Release APK Build & Publishing Runbook
 Follow these steps to prepare a new release or update:
 
-### A. Pre-Build Validations
+### A. Multi-File Synchronized Version Bump
+Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 lokasi file**:
+1. `android/app/build.gradle`: `versionCode` (integer) dan `versionName` (string).
+2. `src/utils/version.js`: `CURRENT_VERSION_CODE` dan `CURRENT_VERSION_NAME` *(Kritis: jika tidak disinkronkan, app akan memicu update pop-up berulang).*
+3. `package.json`: `"version": "x.y.z"`.
+4. `public/version.json`: `versionCode`, `versionName`, `downloadUrl`, `apkUrl`, dan `sha256`.
+
+### B. Pre-Build Validations
 1. **Icon and Resource Formats**: AAPT is strict. Ensure no JPEGs are renamed to `.png` (check file magic bytes if needed). Status/notification icons must be in `drawable-*` directories, not `mipmap-*`.
-2. **Version Code Increment**: For every update, increment the `versionCode` (integer) and update the `versionName` string inside `android/app/build.gradle`.
 
-### B. Build and Automatic Signing
+### C. Build and Automatic Signing (Windows & OneDrive Safe)
 1. **Keystore Configuration**: Ensure `signingConfigs.release` is configured in `android/app/build.gradle` and references `release.keystore`.
-2. **Build Command**: Navigate to the `android/` directory and run `./gradlew assembleRelease`.
+2. **Build Command**: Gunakan `.\gradlew assembleRelease --no-daemon` untuk mencegah konflik background *file-locking* OneDrive pada folder `build/intermediates/`.
 3. **Verify Signature**: Run `apksigner verify --print-certs <apk-path>` to confirm it is signed with the release key (`CN=Redilah`) rather than the debug key.
+4. **Copy & Sync Root APKs**: Salin file `app-release.apk` hasil build ke `.\Cassiel.apk` dan `.\Cassiel-Release.apk` di direktori root.
 
-### C. Store Asset Constraints
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
@@ -32,6 +38,8 @@ Follow these steps to prepare a new release or update:
 * **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
 * **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku. Kotak menu/card pengaturan profil wajib menggunakan desain borderless (`border: none`) dengan bayangan halus.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
+* **Action Button Persistence**: Tombol aksi utama (seperti tombol *Save* transaksi) harus selalu tampil dan aktif di form tanpa dikunci oleh kondisi panel/input focus (`activePanel === 'note'`).
+* **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
 
 ## 6. Format Penulisan "What's New" / Update Release Notes
 * **Aturan**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure), gunakan format yang simpel, langsung menyebutkan fiturnya saja menggunakan bullet point dan label `[New]` tanpa penjelasan tambahan.
@@ -69,5 +77,3 @@ Follow these steps to prepare a new release or update:
 * **Manifest Queries**: Wajib menyertakan `<queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries>` di `AndroidManifest.xml` agar tidak crash di Android 11+.
 * **ProGuard / R8 Rules**: Wajib mempertahankan class Capacitor Plugins & `@PluginMethod` di `proguard-rules.pro` saat `minifyEnabled true`.
 * **Seamless In-App Voice UX**: Wajib menggunakan opsi `popup: false` pada `SpeechRecognition.start()` sehingga tombol mic berdenyut (*pulsing wave*) langsung di dalam aplikasi tanpa memunculkan jendela dialog Google.
-
-
