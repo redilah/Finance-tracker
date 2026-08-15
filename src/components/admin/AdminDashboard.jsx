@@ -12,7 +12,6 @@ import {
   clearLearnedInsights,
   deleteSingleLearnedInsight
 } from '../../utils/voiceLearner';
-import { syncDecrypt } from '../../utils/secureStorage';
 import { 
   Users, 
   Smartphone, 
@@ -36,75 +35,38 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
-  Check
+  Check,
+  Lock
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
 
 /**
- * Validasi apakah nama pengguna adalah teks manusia yang valid dan bersih (bukan kode / ciphertext / simbol acak)
+ * Format nama pengguna menjadi kode simbol / angka enkripsi anonim
+ * Menjaga privasi finansial pengguna agar nama asli tidak terekspos di dashboard
  */
-export const isCleanUserName = (name) => {
-  if (!name || typeof name !== 'string') return false;
-  const trimmed = name.trim();
-  if (trimmed.startsWith('enc:v1:')) return false;
+export const getAnonymizedUserCode = (rawName, deviceId = null) => {
+  if (!rawName && !deviceId) return 'enc:v1:s1:00000000';
   
-  // Hitung jumlah huruf alfabet
-  const alphaChars = trimmed.replace(/[^a-zA-Z]/g, '');
-  if (alphaChars.length < 2) return false;
-
-  // Cek jika banyak karakter aneh/simbol seperti '6!,<'
-  const symbolCount = (trimmed.match(/[!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?`~]/g) || []).length;
-  if (symbolCount >= 2 && alphaChars.length < 4) return false;
-
-  return true;
-};
-
-/**
- * Menyelesaikan nama pengguna asli (Real Username Resolver)
- * Menghilangkan seluruh kode enkripsi, hash, atau teks rusak dan memetakan ke data perangkat/user asli
- */
-export const resolveRealUserName = (rawName, deviceId = null, telemetryList = []) => {
-  // 1. Jika nama sudah bersih, langsung gunakan
-  if (isCleanUserName(rawName)) {
-    return rawName.trim();
-  }
-
-  // 2. Coba dekripsi Base64 jika format enc:v1:b64:...
-  if (typeof rawName === 'string' && rawName.startsWith('enc:v1:b64:')) {
-    try {
-      const decoded = decodeURIComponent(atob(rawName.slice(11)));
-      if (isCleanUserName(decoded)) return decoded.trim();
-    } catch {}
-  }
-
-  // 3. Coba dekripsi sinkron standard
+  // Jika sudah berformat kode enkripsi (seperti enc:v1:s1:JTAOJTE4JTEOJTB...)
   if (typeof rawName === 'string' && rawName.startsWith('enc:v1:')) {
-    try {
-      const decrypted = syncDecrypt(rawName);
-      if (isCleanUserName(decrypted)) return decrypted.trim();
-    } catch {}
+    return rawName;
   }
 
-  // 4. Cari dari Telemetry List berdasarkan deviceId
-  if (deviceId && Array.isArray(telemetryList)) {
-    const matched = telemetryList.find(t => t.id === deviceId);
-    if (matched) {
-      if (isCleanUserName(matched.userName)) {
-        return matched.userName.trim();
-      }
-      // Jika username tidak ada, gunakan nama model HP bersih (misal: "User Redmi Note 10")
-      if (matched.deviceName && typeof matched.deviceName === 'string') {
-        const cleanDev = matched.deviceName.replace(/\s*•\s*Browser.*$/i, '').replace(/\s*\(Web\).*$/i, '').trim();
-        if (cleanDev && !cleanDev.includes('Tidak Dikenal')) {
-          return `User ${cleanDev}`;
-        }
-      }
+  // Jika nama berupa teks biasa atau device ID, buat kode simbol enkripsi konsisten
+  const seed = (rawName || deviceId || 'user').trim();
+  try {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
     }
+    const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+    const code = btoa(encodeURIComponent(seed.slice(0, 2) + hex)).replace(/=/g, '');
+    return `enc:v1:s1:${code}`;
+  } catch {
+    return `enc:v1:s1:${seed.slice(0, 3)}#${deviceId ? deviceId.slice(-4) : '99'}`;
   }
-
-  // 5. Fallback ramah
-  return 'Pengguna';
 };
 
 export default function AdminDashboard({ onNavigateToApp }) {
@@ -318,11 +280,11 @@ export default function AdminDashboard({ onNavigateToApp }) {
   // Filtered Telemetry List
   const filteredTelemetryList = useMemo(() => {
     return telemetryList.filter((item) => {
-      const realName = resolveRealUserName(item.userName, item.id, telemetryList).toLowerCase();
+      const anonCode = getAnonymizedUserCode(item.userName, item.id).toLowerCase();
       const q = searchQuery.toLowerCase().trim();
 
       const matchesSearch = !q ||
-        realName.includes(q) ||
+        anonCode.includes(q) ||
         (item.deviceName || '').toLowerCase().includes(q) ||
         (item.id || '').toLowerCase().includes(q);
 
@@ -345,27 +307,23 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   const totalTelemetryPages = telemetryPerPage === -1 ? 1 : Math.ceil(filteredTelemetryList.length / telemetryPerPage) || 1;
 
-  // Daftar Nama Pengguna Bersih & Unik (Tanpa Kode Enkripsi / Simbol Rusak)
-  const cleanInsightUserNames = useMemo(() => {
-    const names = new Set();
+  // Daftar Kode Anonim Pengguna (Angka Simbol Enkripsi Sesuai Keinginan User)
+  const anonymousUserCodes = useMemo(() => {
+    const codes = new Set();
     
     // Dari telemetry
     telemetryList.forEach(t => {
-      const resolved = resolveRealUserName(t.userName, t.id, telemetryList);
-      if (resolved && resolved !== 'Pengguna' && isCleanUserName(resolved)) {
-        names.add(resolved);
-      }
+      const code = getAnonymizedUserCode(t.userName, t.id);
+      if (code) codes.add(code);
     });
 
     // Dari learned insights
     learnedInsights.forEach(item => {
-      const resolved = resolveRealUserName(item.userName, item.deviceId, telemetryList);
-      if (resolved && resolved !== 'Pengguna' && isCleanUserName(resolved)) {
-        names.add(resolved);
-      }
+      const code = getAnonymizedUserCode(item.userName, item.deviceId);
+      if (code) codes.add(code);
     });
 
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
+    return Array.from(codes);
   }, [learnedInsights, telemetryList]);
 
   // Filtered Insights List
@@ -376,17 +334,16 @@ export default function AdminDashboard({ onNavigateToApp }) {
     const startOfWeek = startOfToday - (7 * 24 * 60 * 60 * 1000);
 
     return learnedInsights.filter(item => {
-      const realName = resolveRealUserName(item.userName, item.deviceId, telemetryList);
-      const realNameLower = realName.toLowerCase();
+      const anonCode = getAnonymizedUserCode(item.userName, item.deviceId);
       const query = insightSearchQuery.toLowerCase().trim();
 
       const matchesSearch = !query || 
-        realNameLower.includes(query) || 
+        anonCode.toLowerCase().includes(query) || 
         (item.deletedTx && item.deletedTx.toLowerCase().includes(query)) ||
         (item.vocabWord && item.vocabWord.toLowerCase().includes(query)) ||
         (item.category && item.category.toLowerCase().includes(query));
 
-      const matchesDropdown = insightUserFilter === 'all' || realName === insightUserFilter;
+      const matchesDropdown = insightUserFilter === 'all' || anonCode === insightUserFilter;
       
       const isVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
       const matchesType = 
@@ -408,7 +365,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
       return matchesSearch && matchesDropdown && matchesType && matchesDate;
     });
-  }, [learnedInsights, telemetryList, insightSearchQuery, insightUserFilter, insightTypeFilter, insightDateFilter]);
+  }, [learnedInsights, insightSearchQuery, insightUserFilter, insightTypeFilter, insightDateFilter]);
 
   // Paginated Insights List
   const paginatedInsights = useMemo(() => {
@@ -426,13 +383,13 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
 
-  // Selected User Label for Custom Dropdown Button
+  // Selected User Label for Custom Dropdown Button (Menampilkan format angka/simbol privasi)
   const selectedUserDisplayLabel = useMemo(() => {
     if (insightUserFilter === 'all') {
-      return `Semua Pengguna (${cleanInsightUserNames.length})`;
+      return `Semua Pengguna (${anonymousUserCodes.length})`;
     }
     return `User: ${insightUserFilter}`;
-  }, [insightUserFilter, cleanInsightUserNames]);
+  }, [insightUserFilter, anonymousUserCodes]);
 
   useEffect(() => {
     document.title = 'Cassiel Command - Admin Web Monitor';
@@ -453,6 +410,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 <h1>Cassiel Command</h1>
                 <span className="admin-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Flame size={12} color="#FF5722" /> FIREBASE CLOUD
+                </span>
+                <span className="admin-badge" style={{ background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Lock size={11} /> PRIVACY MODE
                 </span>
               </div>
               <p>Pusat Komando & Pemantauan Perangkat Pengguna Real-Time • Diperbarui: {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString('id-ID') : '-'}</p>
@@ -561,7 +521,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   <Search size={18} color="#9CA3AF" />
                   <input 
                     type="text" 
-                    placeholder="Cari user, tipe HP, atau Device ID..." 
+                    placeholder="Cari kode user, tipe HP, atau Device ID..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -627,7 +587,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>PENGGUNA</th>
+                        <th>KODE PENGGUNA (ANONIM)</th>
                         <th>DEVICE</th>
                         <th>TGL & JAM INSTAL</th>
                         <th>TERAKHIR AKTIF</th>
@@ -640,19 +600,21 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         const installDt = formatDateTime(item.installDate || item.installedAt || item.installedDate || item.createdAt);
                         const lastActiveDt = formatDateTime(item.lastActive || item.updatedAt);
                         const statusInfo = getDeviceStatus(item.lastActive || item.updatedAt);
-                        const realName = resolveRealUserName(item.userName, item.id, telemetryList);
-                        const avatarLetter = (realName || 'U').charAt(0).toUpperCase();
+                        const anonCode = getAnonymizedUserCode(item.userName, item.id);
+                        const initialChar = (anonCode.replace(/enc:v1:s1:/, '').charAt(0) || '#').toUpperCase();
 
                         return (
                           <tr key={item.id} className="telemetry-row">
-                            {/* Nama Pengguna Asli */}
+                            {/* Kode Pengguna Terenkripsi Anonim */}
                             <td>
                               <div className="user-profile-cell">
                                 <div className="user-avatar-circle">
-                                  {avatarLetter}
+                                  {initialChar}
                                 </div>
                                 <div className="user-meta">
-                                  <span className="user-name-text">{realName}</span>
+                                  <span className="user-name-text font-mono-code" title={anonCode}>
+                                    {anonCode.length > 20 ? `${anonCode.substring(0, 18)}...` : anonCode}
+                                  </span>
                                   <span className="user-device-id" title={item.id}>
                                     ID: {item.id ? item.id.substring(0, 14) : '-'}...
                                   </span>
@@ -674,7 +636,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                               <div className="datetime-sub">🕒 {installDt.timeStr}</div>
                             </td>
 
-                            {/* Tgl & Jam Terakhir Aktif */}
+                            {/* Tgl & Jam Terakhir AKTIF */}
                             <td>
                               <div className="datetime-primary">{lastActiveDt.dateStr}</div>
                               <div className="datetime-sub">🕒 {lastActiveDt.timeStr}</div>
@@ -794,7 +756,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     Hal yang Dipelajari & Evaluasi Suara
                   </h2>
                   <p className="learned-section-desc" style={{ margin: '4px 0 0 0' }}>
-                    Evaluasi penghapusan transaksi dan penemuan kosakata baru secara otomatis.
+                    Evaluasi penghapusan transaksi dan penemuan kosakata baru secara otomatis (Mode Anonim Privasi).
                   </p>
                 </div>
 
@@ -821,13 +783,13 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 </div>
               </div>
 
-              {/* Bilah Filter Komprehensif dengan Custom User Dropdown Bersih */}
+              {/* Bilah Filter Komprehensif dengan Custom User Dropdown (Simbol/Kode Anonim) */}
               <div className="insights-filter-toolbar">
                 <div className="search-box">
                   <Search size={16} color="#9CA3AF" />
                   <input
                     type="text"
-                    placeholder="Cari kata, transaksi, user..."
+                    placeholder="Cari kata, transaksi, kode user..."
                     value={insightSearchQuery}
                     onChange={(e) => setInsightSearchQuery(e.target.value)}
                   />
@@ -842,21 +804,21 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   )}
                 </div>
 
-                {/* CUSTOM USER DROPDOWN BERSIH (HANYA USERNAME ASLI) */}
+                {/* CUSTOM USER DROPDOWN (BERISI KODE ANGKA/SIMBOL PRIVASI SEPERTI SEBELUMNYA) */}
                 <div className="custom-dropdown-container" ref={userDropdownRef}>
                   <button 
                     className="custom-dropdown-trigger user-filter-trigger"
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                   >
                     <Users size={16} color="#10B981" />
-                    <span className="trigger-label-text">{selectedUserDisplayLabel}</span>
+                    <span className="trigger-label-text font-mono-code">{selectedUserDisplayLabel}</span>
                     <ChevronDown size={15} className={`dropdown-arrow ${isUserDropdownOpen ? 'open' : ''}`} />
                   </button>
 
                   {isUserDropdownOpen && (
                     <div className="custom-dropdown-menu user-dropdown-menu">
                       <div className="dropdown-menu-header">
-                        <span>Pilih Pengguna ({cleanInsightUserNames.length})</span>
+                        <span>Pilih Pengguna ({anonymousUserCodes.length})</span>
                       </div>
                       <div className="dropdown-options-scrollable">
                         <button
@@ -878,24 +840,26 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
                         <div className="dropdown-divider"></div>
 
-                        {cleanInsightUserNames.map(user => {
-                          const initial = user.charAt(0).toUpperCase();
-                          const isSelected = insightUserFilter === user;
+                        {anonymousUserCodes.map(code => {
+                          const initialChar = (code.replace(/enc:v1:s1:/, '').charAt(0) || '#').toUpperCase();
+                          const isSelected = insightUserFilter === code;
 
                           return (
                             <button
-                              key={user}
+                              key={code}
                               className={`custom-dropdown-option user-option-item ${isSelected ? 'selected' : ''}`}
                               onClick={() => {
-                                setInsightUserFilter(user);
+                                setInsightUserFilter(code);
                                 setIsUserDropdownOpen(false);
                               }}
                             >
                               <div className="option-avatar-circle">
-                                {initial}
+                                {initialChar}
                               </div>
                               <div className="option-text-group">
-                                <span className="option-name-primary">{user}</span>
+                                <span className="option-name-primary font-mono-code" title={code}>
+                                  User: {code.length > 22 ? `${code.substring(0, 20)}...` : code}
+                                </span>
                               </div>
                               {isSelected && <Check size={16} color="#10B981" />}
                             </button>
@@ -968,8 +932,8 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 ) : (
                   paginatedInsights.map((item, idx) => {
                     const itemDt = item.timestamp ? formatDateTime(item.timestamp) : null;
-                    const realName = resolveRealUserName(item.userName, item.deviceId, telemetryList);
-                    const avatarLetter = (realName || 'P').trim().charAt(0).toUpperCase();
+                    const anonCode = getAnonymizedUserCode(item.userName, item.deviceId);
+                    const initialChar = (anonCode.replace(/enc:v1:s1:/, '').charAt(0) || '6').toUpperCase();
                     const isNewVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
                     const isExpanded = !!expandedInsights[item.id || idx];
 
@@ -992,12 +956,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
                       return (
                         <div className="insight-modern-card vocab-card" key={item.id || idx}>
-                          {/* Header Bar dengan Username Asli */}
+                          {/* Header Bar dengan Kode Simbol Anonim */}
                           <div className="insight-card-header">
                             <div className="insight-user-pill">
-                              <div className="insight-user-avatar vocab-avatar">{avatarLetter}</div>
+                              <div className="insight-user-avatar vocab-avatar">{initialChar}</div>
                               <div className="insight-user-info">
-                                <span className="insight-user-name">{realName}</span>
+                                <span className="insight-user-name font-mono-code" title={anonCode}>
+                                  {anonCode.length > 20 ? `${anonCode.substring(0, 16)}...` : anonCode}
+                                </span>
                                 <span className="vocab-badge-pill">✨ Kosakata Baru</span>
                               </div>
                             </div>
@@ -1043,15 +1009,17 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       );
                     }
 
-                    // Format Transaksi yang Dihapus dengan Username Asli
+                    // Format Transaksi yang Dihapus dengan Kode Simbol Anonim
                     return (
                       <div className={`insight-modern-card deletion-card ${isExpanded ? 'expanded' : ''}`} key={item.id || idx}>
-                        {/* Header Bar dengan Username Asli */}
+                        {/* Header Bar dengan Kode Simbol Anonim */}
                         <div className="insight-card-header" onClick={() => toggleExpandInsight(item.id || idx)}>
                           <div className="insight-user-pill">
-                            <div className="insight-user-avatar">{avatarLetter}</div>
+                            <div className="insight-user-avatar">{initialChar}</div>
                             <div className="insight-user-info">
-                              <span className="insight-user-name">{realName}</span>
+                              <span className="insight-user-name font-mono-code" title={anonCode}>
+                                {anonCode.length > 20 ? `${anonCode.substring(0, 16)}...` : anonCode}
+                              </span>
                               <span className="deletion-badge-pill">🗑️ Transaksi Dihapus</span>
                             </div>
                           </div>
