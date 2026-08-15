@@ -1,10 +1,10 @@
 {
-  "versionCode": 15,
-  "versionName": "1.0.14",
-  "version": "1.0.14",
+  "versionCode": 16,
+  "versionName": "1.0.15",
+  "version": "1.0.15",
   "changelog": "New in this update:\n- [New] Perbaikan Tombol Save Transaksi\n- [New] Tombol Mic Eksklusif Layar Home",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.14",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.14",
-  "sha256": "336a5175365a24669884fcdf22f4bcbbc6de297fb2542cf5b619eeb2189c4321",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.15",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.15",
+  "sha256": "bf7e62630e9114a45dc63f2c6253ea3f03dd648ae2a8827189f153e3b59570d7",
   "minSdkVersion": 22
 }
