@@ -358,7 +358,7 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
 /**
  * Komponen Kartu Transaksi Baru Khusus Input Suara:
  * 1. Pop Timbul dari Belakang (3D Elevation Depth)
- * 2. Animasi Ketik (Typewriter) mengalir dari Kiri ke Kanan secara tenang (tidak mengulang)
+ * 2. Animasi Ketik (Typewriter) Mengalir Alami dari Kiri ke Kanan (Single Unified Timer - Anti-Stuck)
  */
 function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
   const fullTitle = item.title || item.category || 'Transaksi';
@@ -366,78 +366,52 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
   const prefix = item.type === 'expense' ? '-' : '+';
   const fullAmount = `${prefix}Rp ${item.amount.toLocaleString('id-ID')}`;
 
-  const [displayedTitle, setDisplayedTitle] = useState('');
-  const [displayedSubtitle, setDisplayedSubtitle] = useState('');
-  const [displayedAmount, setDisplayedAmount] = useState('');
-  const [activeStep, setActiveStep] = useState('title'); // 'title' | 'sub' | 'amount' | 'done'
-  
-  const hasRunRef = useRef(false);
+  const [charProgress, setCharProgress] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+
+  const L1 = fullTitle.length;
+  const L2 = fullSubtitle.length;
+  const L3 = fullAmount.length;
+  const totalChars = L1 + L2 + L3;
 
   useEffect(() => {
-    if (hasRunRef.current) return;
-    hasRunRef.current = true;
+    let current = 0;
+    const interval = setInterval(() => {
+      current++;
+      setCharProgress(current);
+      if (current >= totalChars) {
+        clearInterval(interval);
+        setIsFinished(true);
+      }
+    }, 45); // Kecepatan tenang 45ms per karakter
 
-    let isCancelled = false;
-    let titleIdx = 0;
-    let subIdx = 0;
-    let amountIdx = 0;
+    return () => clearInterval(interval);
+  }, [totalChars]);
 
-    // Jeda sejenak ~120ms agar efek timbul kartu terlihat dahulu sebelum teks mulai diketik
-    const startDelay = setTimeout(() => {
-      if (isCancelled) return;
+  // Hitung teks yang tampil berdasarkan progress saat ini
+  let displayedTitle = '';
+  let displayedSubtitle = '';
+  let displayedAmount = '';
+  let currentCursor = 'title'; // 'title' | 'sub' | 'amount' | 'none'
 
-      // Step 1: Ketik Judul dari Kiri ke Kanan (~65ms per huruf)
-      const titleInterval = setInterval(() => {
-        if (isCancelled) return;
-        titleIdx++;
-        setDisplayedTitle(fullTitle.slice(0, titleIdx));
-
-        if (titleIdx >= fullTitle.length) {
-          clearInterval(titleInterval);
-          setActiveStep('sub');
-
-          // Jeda sejenak antar-baris (~80ms)
-          setTimeout(() => {
-            if (isCancelled) return;
-
-            // Step 2: Ketik Subtitle Kategori & Akun dari Kiri ke Kanan (~45ms per huruf)
-            const subInterval = setInterval(() => {
-              if (isCancelled) return;
-              subIdx++;
-              setDisplayedSubtitle(fullSubtitle.slice(0, subIdx));
-
-              if (subIdx >= fullSubtitle.length) {
-                clearInterval(subInterval);
-                setActiveStep('amount');
-
-                // Jeda sejenak (~80ms)
-                setTimeout(() => {
-                  if (isCancelled) return;
-
-                  // Step 3: Ketik Nominal Angka dari Kiri ke Kanan (~55ms per digit)
-                  const amountInterval = setInterval(() => {
-                    if (isCancelled) return;
-                    amountIdx++;
-                    setDisplayedAmount(fullAmount.slice(0, amountIdx));
-
-                    if (amountIdx >= fullAmount.length) {
-                      clearInterval(amountInterval);
-                      setActiveStep('done');
-                    }
-                  }, 55);
-                }, 80);
-              }
-            }, 45);
-          }, 80);
-        }
-      }, 65);
-    }, 120);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(startDelay);
-    };
-  }, []); // Run exactly once on mount
+  if (isFinished) {
+    displayedTitle = fullTitle;
+    displayedSubtitle = fullSubtitle;
+    displayedAmount = fullAmount;
+    currentCursor = 'none';
+  } else if (charProgress <= L1) {
+    displayedTitle = fullTitle.slice(0, charProgress);
+    currentCursor = 'title';
+  } else if (charProgress <= L1 + L2) {
+    displayedTitle = fullTitle;
+    displayedSubtitle = fullSubtitle.slice(0, charProgress - L1);
+    currentCursor = 'sub';
+  } else {
+    displayedTitle = fullTitle;
+    displayedSubtitle = fullSubtitle;
+    displayedAmount = fullAmount.slice(0, charProgress - L1 - L2);
+    currentCursor = 'amount';
+  }
 
   return (
     <div className={`transaction-item voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} key={item.id}>
@@ -447,16 +421,16 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
       <div className="transaction-details" style={{ textAlign: 'left', direction: 'ltr' }}>
         <span className="transaction-title" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
           {displayedTitle}
-          {activeStep === 'title' && <span className="typewriter-cursor">|</span>}
+          {currentCursor === 'title' && <span className="typewriter-cursor">|</span>}
         </span>
         <span className="transaction-category" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
           {displayedSubtitle}
-          {activeStep === 'sub' && <span className="typewriter-cursor">|</span>}
+          {currentCursor === 'sub' && <span className="typewriter-cursor">|</span>}
         </span>
       </div>
       <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'right', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
         {displayedAmount}
-        {activeStep === 'amount' && <span className="typewriter-cursor">|</span>}
+        {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
       </div>
     </div>
   );

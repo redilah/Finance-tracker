@@ -74,6 +74,7 @@ export default function VoiceMicButton({
     }
 
     if (fullText && !isProcessingRef.current) {
+      isProcessingRef.current = true;
       processText(fullText);
     } else if (!isProcessingRef.current) {
       setStatus('idle');
@@ -196,6 +197,7 @@ export default function VoiceMicButton({
           const text = accumulatedTranscriptRef.current.trim();
           accumulatedTranscriptRef.current = '';
           if (text) {
+            isProcessingRef.current = true;
             processText(text);
           } else {
             setStatus(prev => (prev === 'listening' ? 'idle' : prev));
