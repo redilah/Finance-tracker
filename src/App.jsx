@@ -355,6 +355,96 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
   );
 }
 
+/**
+ * Komponen Kartu Transaksi Baru Khusus Input Suara:
+ * 1. Pop Timbul dari Belakang (3D Elevation Depth)
+ * 2. Animasi Ketik (Typewriter) Judul, Subtitle Kategori & Nominal Angka
+ */
+function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onComplete }) {
+  const [displayedTitle, setDisplayedTitle] = useState('');
+  const [displayedSubtitle, setDisplayedSubtitle] = useState('');
+  const [displayedAmount, setDisplayedAmount] = useState('');
+  const [activeStep, setActiveStep] = useState('title'); // 'title' | 'sub' | 'amount' | 'done'
+
+  const fullTitle = item.title || item.category || 'Transaksi';
+  const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
+  const prefix = item.type === 'expense' ? '-' : '+';
+  const fullAmount = `${prefix}Rp ${item.amount.toLocaleString('id-ID')}`;
+
+  useEffect(() => {
+    let isCancelled = false;
+    let titleIdx = 0;
+    let subIdx = 0;
+    let amountIdx = 0;
+
+    // Step 1: Ketik Judul (Kecepatan natural ~40ms per huruf)
+    const titleInterval = setInterval(() => {
+      if (isCancelled) return;
+      titleIdx++;
+      setDisplayedTitle(fullTitle.slice(0, titleIdx));
+
+      if (titleIdx >= fullTitle.length) {
+        clearInterval(titleInterval);
+        setActiveStep('sub');
+
+        // Step 2: Ketik Subtitle Kategori & Akun (~25ms per huruf)
+        const subInterval = setInterval(() => {
+          if (isCancelled) return;
+          subIdx++;
+          setDisplayedSubtitle(fullSubtitle.slice(0, subIdx));
+
+          if (subIdx >= fullSubtitle.length) {
+            clearInterval(subInterval);
+            setActiveStep('amount');
+
+            // Step 3: Ketik Nominal Angka (~30ms per angka)
+            const amountInterval = setInterval(() => {
+              if (isCancelled) return;
+              amountIdx++;
+              setDisplayedAmount(fullAmount.slice(0, amountIdx));
+
+              if (amountIdx >= fullAmount.length) {
+                clearInterval(amountInterval);
+                setActiveStep('done');
+                if (onComplete) {
+                  setTimeout(onComplete, 400);
+                }
+              }
+            }, 30);
+          }
+        }, 25);
+      }
+    }, 40);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(titleInterval);
+    };
+  }, [fullTitle, fullSubtitle, fullAmount, onComplete]);
+
+  return (
+    <div className={`transaction-item voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} key={item.id}>
+      <div className={`transaction-icon ${item.iconClass} voice-icon-pop`}>
+        {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
+      </div>
+      <div className="transaction-details">
+        <span className="transaction-title">
+          {displayedTitle}
+          {activeStep === 'title' && <span className="typewriter-cursor">|</span>}
+        </span>
+        <span className="transaction-category">
+          {displayedSubtitle}
+          {activeStep === 'sub' && <span className="typewriter-cursor">|</span>}
+        </span>
+      </div>
+      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+        {displayedAmount}
+        {activeStep === 'amount' && <span className="typewriter-cursor">|</span>}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'stats'
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -455,6 +545,7 @@ function App() {
 
   // Voice-Command Deletion & Feedback Toast State
   const [deletingTxId, setDeletingTxId] = useState(null);
+  const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
 
   // Safety Warning Modal State (Pencegahan transaksi ilegal / berbahaya / rokok / alkohol / asusila)
@@ -1336,8 +1427,9 @@ function App() {
     const numericAmount = parseFloat(result.amount) || 0;
     if (numericAmount <= 0) return;
 
+    const newTxId = Date.now() + Math.floor(Math.random() * 1000);
     const newTx = {
-      id: Date.now(),
+      id: newTxId,
       title: finalTitle,
       category: catName,
       categoryId: result.category.id || null,
@@ -1356,6 +1448,8 @@ function App() {
       checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
     }
 
+    // Aktifkan efek animasi ketik & timbul dari belakang
+    setVoiceAnimatingTxIds(prev => new Set(prev).add(newTxId));
     setTransactions(prev => [newTx, ...prev]);
     showVoiceToast(`✅ "${finalTitle}" Rp ${numericAmount.toLocaleString('id-ID')} tersimpan`);
   };
@@ -1711,20 +1805,40 @@ function App() {
 
                         {/* Transaction Items under this date */}
                         <div className="date-group-items">
-                          {groupTxs.map(item => (
-                            <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
-                              <div className={`transaction-icon ${item.iconClass}`}>
-                                {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
+                          {groupTxs.map(item => {
+                            if (voiceAnimatingTxIds.has(item.id)) {
+                              return (
+                                <VoiceAnimatedTransactionItem
+                                  key={item.id}
+                                  item={item}
+                                  resolveIcon={resolveIcon}
+                                  isDeleting={deletingTxId === item.id}
+                                  onComplete={() => {
+                                    setVoiceAnimatingTxIds(prev => {
+                                      const next = new Set(prev);
+                                      next.delete(item.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              );
+                            }
+
+                            return (
+                              <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
+                                <div className={`transaction-icon ${item.iconClass}`}>
+                                  {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
+                                </div>
+                                <div className="transaction-details">
+                                  <span className="transaction-title">{item.title}</span>
+                                  <span className="transaction-category">{item.category} • {item.account || 'Bank'}</span>
+                                </div>
+                                <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+                                  {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
+                                </div>
                               </div>
-                              <div className="transaction-details">
-                                <span className="transaction-title">{item.title}</span>
-                                <span className="transaction-category">{item.category} • {item.account || 'Bank'}</span>
-                              </div>
-                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );

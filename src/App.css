@@ -3200,6 +3200,59 @@ img[src*="Kost"] {
   pointer-events: none !important;
 }
 
+/* Animasi Timbul dari Belakang saat Input Suara Berhasil */
+@keyframes cardPopFromDepth {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) translateZ(-70px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: perspective(800px) translateZ(6px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) translateZ(0) scale(1);
+  }
+}
+
+@keyframes iconPopTimbul {
+  0% {
+    transform: scale(0.65) rotate(-6deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.transaction-item.voice-card-timbul {
+  animation: cardPopFromDepth 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.transaction-item.voice-card-timbul .transaction-icon.voice-icon-pop {
+  animation: iconPopTimbul 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  font-weight: 300;
+  color: #10B981;
+  margin-left: 2px;
+  animation: cursorBlink 0.55s infinite;
+}
+
 /* Toast Notifikasi Perintah Suara */
 .voice-toast-notification {
   position: fixed;
