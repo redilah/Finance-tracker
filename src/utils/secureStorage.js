@@ -44,7 +44,7 @@ function syncEncrypt(text) {
   }
 }
 
-function syncDecrypt(cipherText) {
+export function syncDecrypt(cipherText) {
   if (!cipherText || typeof cipherText !== 'string') return cipherText;
   if (!cipherText.startsWith(ENCRYPTION_PREFIX)) {
     return cipherText;

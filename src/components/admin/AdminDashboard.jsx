@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import './AdminDashboard.css';
 import { 
   getTelemetryData, 
@@ -12,6 +12,7 @@ import {
   clearLearnedInsights,
   deleteSingleLearnedInsight
 } from '../../utils/voiceLearner';
+import { syncDecrypt } from '../../utils/secureStorage';
 import { 
   Users, 
   Smartphone, 
@@ -34,10 +35,32 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  Calendar
+  Calendar,
+  Check,
+  UserCheck
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
+
+// Helper to format/decrypt user name for clean display
+export const formatDisplayName = (raw) => {
+  if (!raw) return 'Pengguna';
+  if (typeof raw === 'string' && raw.startsWith('enc:v1:')) {
+    try {
+      const decrypted = syncDecrypt(raw);
+      if (decrypted && !decrypted.startsWith('enc:v1:')) {
+        return decrypted;
+      }
+      const payload = raw.slice(7);
+      if (payload.startsWith('b64:')) {
+        return decodeURIComponent(atob(payload.slice(4)));
+      }
+    } catch {}
+    // If encrypted with different salt, show clean tag
+    return 'Pengguna Terenkripsi';
+  }
+  return raw;
+};
 
 export default function AdminDashboard({ onNavigateToApp }) {
   // Navigation Tab: 'telemetry' | 'insights'
@@ -49,15 +72,23 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'online' | 'offline'
   const [telemetryPage, setTelemetryPage] = useState(1);
   const [telemetryPerPage, setTelemetryPerPage] = useState(8);
+  const [isTelemetryPerPageOpen, setIsTelemetryPerPageOpen] = useState(false);
+  const telemetryPerPageRef = useRef(null);
 
   // Insights state
   const [learnedInsights, setLearnedInsights] = useState(() => getLearnedInsights());
   const [insightSearchQuery, setInsightSearchQuery] = useState('');
   const [insightUserFilter, setInsightUserFilter] = useState('all');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef(null);
+
   const [insightTypeFilter, setInsightTypeFilter] = useState('all'); // 'all' | 'deletion' | 'vocab'
   const [insightDateFilter, setInsightDateFilter] = useState('all'); // 'all' | 'today' | 'yesterday' | 'week'
   const [insightPage, setInsightPage] = useState(1);
   const [insightPerPage, setInsightPerPage] = useState(6);
+  const [isInsightPerPageOpen, setIsInsightPerPageOpen] = useState(false);
+  const insightPerPageRef = useRef(null);
+
   const [expandedInsights, setExpandedInsights] = useState({});
 
   // Global loading & timer state
@@ -65,6 +96,28 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const [isSpinning, setIsSpinning] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(REFRESH_INTERVAL_SECONDS);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(new Date());
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setIsUserDropdownOpen(false);
+      }
+      if (telemetryPerPageRef.current && !telemetryPerPageRef.current.contains(event.target)) {
+        setIsTelemetryPerPageOpen(false);
+      }
+      if (insightPerPageRef.current && !insightPerPageRef.current.contains(event.target)) {
+        setIsInsightPerPageOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, []);
 
   // Manual refresh trigger
   const fetchTelemetry = useCallback(async () => {
@@ -220,10 +273,15 @@ export default function AdminDashboard({ onNavigateToApp }) {
   // Filtered Telemetry List
   const filteredTelemetryList = useMemo(() => {
     return telemetryList.filter((item) => {
+      const dispName = formatDisplayName(item.userName).toLowerCase();
+      const rawName = (item.userName || '').toLowerCase();
+      const q = searchQuery.toLowerCase();
+
       const matchesSearch = 
-        (item.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.deviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.id || '').toLowerCase().includes(searchQuery.toLowerCase());
+        dispName.includes(q) ||
+        rawName.includes(q) ||
+        (item.deviceName || '').toLowerCase().includes(q) ||
+        (item.id || '').toLowerCase().includes(q);
 
       const statusInfo = getDeviceStatus(item.lastActive);
       const matchesStatus = 
@@ -246,12 +304,11 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   // Filtered Insights List
   const insightUserNames = useMemo(() => {
-    return Array.from(
-      new Set([
-        ...learnedInsights.map(item => item.userName).filter(Boolean),
-        ...telemetryList.map(t => t.userName).filter(Boolean)
-      ])
-    );
+    const names = new Set([
+      ...learnedInsights.map(item => item.userName).filter(Boolean),
+      ...telemetryList.map(t => t.userName).filter(Boolean)
+    ]);
+    return Array.from(names);
   }, [learnedInsights, telemetryList]);
 
   const filteredInsights = useMemo(() => {
@@ -261,10 +318,13 @@ export default function AdminDashboard({ onNavigateToApp }) {
     const startOfWeek = startOfToday - (7 * 24 * 60 * 60 * 1000);
 
     return learnedInsights.filter(item => {
-      const uName = (item.userName || '').toLowerCase();
+      const dispName = formatDisplayName(item.userName).toLowerCase();
+      const rawName = (item.userName || '').toLowerCase();
       const query = insightSearchQuery.toLowerCase().trim();
+
       const matchesSearch = !query || 
-        uName.includes(query) || 
+        dispName.includes(query) ||
+        rawName.includes(query) || 
         (item.deletedTx && item.deletedTx.toLowerCase().includes(query)) ||
         (item.vocabWord && item.vocabWord.toLowerCase().includes(query)) ||
         (item.category && item.category.toLowerCase().includes(query));
@@ -308,6 +368,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const totalTransactions = telemetryList.reduce((acc, curr) => acc + (curr.totalTransactions || 0), 0);
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
+
+  // Selected User Label for Custom Dropdown Button
+  const selectedUserDisplayLabel = useMemo(() => {
+    if (insightUserFilter === 'all') {
+      return `Semua Pengguna (${insightUserNames.length})`;
+    }
+    return `User: ${formatDisplayName(insightUserFilter)}`;
+  }, [insightUserFilter, insightUserNames]);
 
   useEffect(() => {
     document.title = 'Cassiel Command - Admin Web Monitor';
@@ -515,7 +583,8 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         const installDt = formatDateTime(item.installDate || item.installedAt || item.installedDate || item.createdAt);
                         const lastActiveDt = formatDateTime(item.lastActive || item.updatedAt);
                         const statusInfo = getDeviceStatus(item.lastActive || item.updatedAt);
-                        const avatarLetter = (item.userName || 'U').charAt(0).toUpperCase();
+                        const displayName = formatDisplayName(item.userName);
+                        const avatarLetter = (displayName || 'U').charAt(0).toUpperCase();
 
                         return (
                           <tr key={item.id} className="telemetry-row">
@@ -526,7 +595,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                                   {avatarLetter}
                                 </div>
                                 <div className="user-meta">
-                                  <span className="user-name-text">{item.userName || 'Tanpa Nama'}</span>
+                                  <span className="user-name-text">{displayName}</span>
                                   <span className="user-device-id" title={item.id}>
                                     ID: {item.id ? item.id.substring(0, 14) : '-'}...
                                   </span>
@@ -577,21 +646,43 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 </div>
               )}
 
-              {/* Telemetry Pagination Bar */}
+              {/* Telemetry Pagination Bar dengan Custom Dropdown */}
               {filteredTelemetryList.length > 0 && (
                 <div className="admin-pagination-bar">
                   <div className="pagination-per-page">
                     <span>Tampilkan:</span>
-                    <select 
-                      value={telemetryPerPage} 
-                      onChange={(e) => setTelemetryPerPage(Number(e.target.value))}
-                      className="pagination-select"
-                    >
-                      <option value={8}>8 baris</option>
-                      <option value={16}>16 baris</option>
-                      <option value={32}>32 baris</option>
-                      <option value={-1}>Semua ({filteredTelemetryList.length})</option>
-                    </select>
+                    <div className="custom-dropdown-container" ref={telemetryPerPageRef}>
+                      <button 
+                        className="custom-dropdown-trigger compact-trigger"
+                        onClick={() => setIsTelemetryPerPageOpen(!isTelemetryPerPageOpen)}
+                      >
+                        <span>{telemetryPerPage === -1 ? `Semua (${filteredTelemetryList.length})` : `${telemetryPerPage} baris`}</span>
+                        <ChevronDown size={14} className={`dropdown-arrow ${isTelemetryPerPageOpen ? 'open' : ''}`} />
+                      </button>
+
+                      {isTelemetryPerPageOpen && (
+                        <div className="custom-dropdown-menu compact-menu">
+                          {[
+                            { value: 8, label: '8 baris' },
+                            { value: 16, label: '16 baris' },
+                            { value: 32, label: '32 baris' },
+                            { value: -1, label: `Semua (${filteredTelemetryList.length})` }
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              className={`custom-dropdown-option ${telemetryPerPage === opt.value ? 'selected' : ''}`}
+                              onClick={() => {
+                                setTelemetryPerPage(opt.value);
+                                setIsTelemetryPerPageOpen(false);
+                              }}
+                            >
+                              <span>{opt.label}</span>
+                              {telemetryPerPage === opt.value && <Check size={14} color="#10B981" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pagination-controls">
@@ -673,7 +764,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 </div>
               </div>
 
-              {/* Bilah Filter Komprehensif: Search, User Dropdown, Type Pills, Date Pills */}
+              {/* Bilah Filter Komprehensif dengan Custom User Dropdown Modern */}
               <div className="insights-filter-toolbar">
                 <div className="search-box">
                   <Search size={16} color="#9CA3AF" />
@@ -694,20 +785,72 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   )}
                 </div>
 
-                <div className="filter-dropdown-wrapper">
-                  <Users size={16} color="#6B7280" className="dropdown-prefix-icon" />
-                  <select
-                    className="user-select-dropdown"
-                    value={insightUserFilter}
-                    onChange={(e) => setInsightUserFilter(e.target.value)}
+                {/* GORGEOUS CUSTOM USER DROPDOWN (Replaces native ugly select) */}
+                <div className="custom-dropdown-container" ref={userDropdownRef}>
+                  <button 
+                    className="custom-dropdown-trigger user-filter-trigger"
+                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                   >
-                    <option value="all">Semua Pengguna ({insightUserNames.length})</option>
-                    {insightUserNames.map(user => (
-                      <option key={user} value={user}>
-                        User: {user}
-                      </option>
-                    ))}
-                  </select>
+                    <Users size={16} color="#10B981" />
+                    <span className="trigger-label-text">{selectedUserDisplayLabel}</span>
+                    <ChevronDown size={15} className={`dropdown-arrow ${isUserDropdownOpen ? 'open' : ''}`} />
+                  </button>
+
+                  {isUserDropdownOpen && (
+                    <div className="custom-dropdown-menu user-dropdown-menu">
+                      <div className="dropdown-menu-header">
+                        <span>Pilih Pengguna ({insightUserNames.length})</span>
+                      </div>
+                      <div className="dropdown-options-scrollable">
+                        <button
+                          className={`custom-dropdown-option user-option-item ${insightUserFilter === 'all' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setInsightUserFilter('all');
+                            setIsUserDropdownOpen(false);
+                          }}
+                        >
+                          <div className="option-avatar-circle all-users-avatar">
+                            <Users size={14} />
+                          </div>
+                          <div className="option-text-group">
+                            <span className="option-name-primary">Semua Pengguna</span>
+                            <span className="option-name-sub">Tampilkan semua catatan user</span>
+                          </div>
+                          {insightUserFilter === 'all' && <Check size={16} color="#10B981" />}
+                        </button>
+
+                        <div className="dropdown-divider"></div>
+
+                        {insightUserNames.map(user => {
+                          const formattedName = formatDisplayName(user);
+                          const initial = formattedName.charAt(0).toUpperCase();
+                          const isSelected = insightUserFilter === user;
+
+                          return (
+                            <button
+                              key={user}
+                              className={`custom-dropdown-option user-option-item ${isSelected ? 'selected' : ''}`}
+                              onClick={() => {
+                                setInsightUserFilter(user);
+                                setIsUserDropdownOpen(false);
+                              }}
+                            >
+                              <div className="option-avatar-circle">
+                                {initial}
+                              </div>
+                              <div className="option-text-group">
+                                <span className="option-name-primary">{formattedName}</span>
+                                {user.startsWith('enc:v1:') && (
+                                  <span className="option-encrypted-badge">ID Terproteksi</span>
+                                )}
+                              </div>
+                              {isSelected && <Check size={16} color="#10B981" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Filter Tipe Catatan */}
@@ -772,7 +915,8 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 ) : (
                   paginatedInsights.map((item, idx) => {
                     const itemDt = item.timestamp ? formatDateTime(item.timestamp) : null;
-                    const avatarLetter = (item.userName || 'P').trim().charAt(0).toUpperCase();
+                    const displayName = formatDisplayName(item.userName);
+                    const avatarLetter = (displayName || 'P').trim().charAt(0).toUpperCase();
                     const isNewVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
                     const isExpanded = !!expandedInsights[item.id || idx];
 
@@ -800,7 +944,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                             <div className="insight-user-pill">
                               <div className="insight-user-avatar vocab-avatar">{avatarLetter}</div>
                               <div className="insight-user-info">
-                                <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
+                                <span className="insight-user-name">{displayName}</span>
                                 <span className="vocab-badge-pill">✨ Kosakata Baru</span>
                               </div>
                             </div>
@@ -854,7 +998,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                           <div className="insight-user-pill">
                             <div className="insight-user-avatar">{avatarLetter}</div>
                             <div className="insight-user-info">
-                              <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
+                              <span className="insight-user-name">{displayName}</span>
                               <span className="deletion-badge-pill">🗑️ Transaksi Dihapus</span>
                             </div>
                           </div>
@@ -914,21 +1058,43 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 )}
               </div>
 
-              {/* Insights Pagination Bar */}
+              {/* Insights Pagination Bar dengan Custom Dropdown */}
               {filteredInsights.length > 0 && (
                 <div className="admin-pagination-bar">
                   <div className="pagination-per-page">
                     <span>Tampilkan:</span>
-                    <select 
-                      value={insightPerPage} 
-                      onChange={(e) => setInsightPerPage(Number(e.target.value))}
-                      className="pagination-select"
-                    >
-                      <option value={6}>6 per halaman</option>
-                      <option value={12}>12 per halaman</option>
-                      <option value={24}>24 per halaman</option>
-                      <option value={-1}>Semua ({filteredInsights.length})</option>
-                    </select>
+                    <div className="custom-dropdown-container" ref={insightPerPageRef}>
+                      <button 
+                        className="custom-dropdown-trigger compact-trigger"
+                        onClick={() => setIsInsightPerPageOpen(!isInsightPerPageOpen)}
+                      >
+                        <span>{insightPerPage === -1 ? `Semua (${filteredInsights.length})` : `${insightPerPage} per halaman`}</span>
+                        <ChevronDown size={14} className={`dropdown-arrow ${isInsightPerPageOpen ? 'open' : ''}`} />
+                      </button>
+
+                      {isInsightPerPageOpen && (
+                        <div className="custom-dropdown-menu compact-menu">
+                          {[
+                            { value: 6, label: '6 per halaman' },
+                            { value: 12, label: '12 per halaman' },
+                            { value: 24, label: '24 per halaman' },
+                            { value: -1, label: `Semua (${filteredInsights.length})` }
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              className={`custom-dropdown-option ${insightPerPage === opt.value ? 'selected' : ''}`}
+                              onClick={() => {
+                                setInsightPerPage(opt.value);
+                                setIsInsightPerPageOpen(false);
+                              }}
+                            >
+                              <span>{opt.label}</span>
+                              {insightPerPage === opt.value && <Check size={14} color="#10B981" />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pagination-controls">
