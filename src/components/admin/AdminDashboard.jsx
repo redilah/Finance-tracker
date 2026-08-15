@@ -363,22 +363,18 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   const totalTelemetryPages = telemetryPerPage === -1 ? 1 : Math.ceil(filteredTelemetryList.length / telemetryPerPage) || 1;
 
-  // TAB 2: Daftar Kode Anonim Pengguna (Angka Simbol Enkripsi KHUSUS untuk AI Learning)
+  // TAB 2: Daftar Kode Anonim Pengguna (HANYA pengguna yang memiliki catatan pembelajaran AI)
   const anonymousUserCodes = useMemo(() => {
     const codes = new Set();
     
-    telemetryList.forEach(t => {
-      const code = getAnonymizedUserCode(t.userName, t.id);
-      if (code) codes.add(code);
-    });
-
+    // Hanya ambil pengguna yang benar-benar memiliki catatan di learnedInsights
     learnedInsights.forEach(item => {
       const code = getAnonymizedUserCode(item.userName, item.deviceId);
       if (code) codes.add(code);
     });
 
     return Array.from(codes);
-  }, [learnedInsights, telemetryList]);
+  }, [learnedInsights]);
 
   // TAB 2: Filtered Insights List (MENGGUNAKAN KODE PRIVASI)
   const filteredInsights = useMemo(() => {
