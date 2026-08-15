@@ -358,86 +358,103 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
 /**
  * Komponen Kartu Transaksi Baru Khusus Input Suara:
  * 1. Pop Timbul dari Belakang (3D Elevation Depth)
- * 2. Animasi Ketik (Typewriter) Judul, Subtitle Kategori & Nominal Angka
+ * 2. Animasi Ketik (Typewriter) mengalir dari Kiri ke Kanan secara tenang (tidak mengulang)
  */
-function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onComplete }) {
-  const [displayedTitle, setDisplayedTitle] = useState('');
-  const [displayedSubtitle, setDisplayedSubtitle] = useState('');
-  const [displayedAmount, setDisplayedAmount] = useState('');
-  const [activeStep, setActiveStep] = useState('title'); // 'title' | 'sub' | 'amount' | 'done'
-
+function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
   const fullTitle = item.title || item.category || 'Transaksi';
   const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
   const prefix = item.type === 'expense' ? '-' : '+';
   const fullAmount = `${prefix}Rp ${item.amount.toLocaleString('id-ID')}`;
 
+  const [displayedTitle, setDisplayedTitle] = useState('');
+  const [displayedSubtitle, setDisplayedSubtitle] = useState('');
+  const [displayedAmount, setDisplayedAmount] = useState('');
+  const [activeStep, setActiveStep] = useState('title'); // 'title' | 'sub' | 'amount' | 'done'
+  
+  const hasRunRef = useRef(false);
+
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     let isCancelled = false;
     let titleIdx = 0;
     let subIdx = 0;
     let amountIdx = 0;
 
-    // Step 1: Ketik Judul (Kecepatan natural ~40ms per huruf)
-    const titleInterval = setInterval(() => {
+    // Jeda sejenak ~120ms agar efek timbul kartu terlihat dahulu sebelum teks mulai diketik
+    const startDelay = setTimeout(() => {
       if (isCancelled) return;
-      titleIdx++;
-      setDisplayedTitle(fullTitle.slice(0, titleIdx));
 
-      if (titleIdx >= fullTitle.length) {
-        clearInterval(titleInterval);
-        setActiveStep('sub');
+      // Step 1: Ketik Judul dari Kiri ke Kanan (~65ms per huruf)
+      const titleInterval = setInterval(() => {
+        if (isCancelled) return;
+        titleIdx++;
+        setDisplayedTitle(fullTitle.slice(0, titleIdx));
 
-        // Step 2: Ketik Subtitle Kategori & Akun (~25ms per huruf)
-        const subInterval = setInterval(() => {
-          if (isCancelled) return;
-          subIdx++;
-          setDisplayedSubtitle(fullSubtitle.slice(0, subIdx));
+        if (titleIdx >= fullTitle.length) {
+          clearInterval(titleInterval);
+          setActiveStep('sub');
 
-          if (subIdx >= fullSubtitle.length) {
-            clearInterval(subInterval);
-            setActiveStep('amount');
+          // Jeda sejenak antar-baris (~80ms)
+          setTimeout(() => {
+            if (isCancelled) return;
 
-            // Step 3: Ketik Nominal Angka (~30ms per angka)
-            const amountInterval = setInterval(() => {
+            // Step 2: Ketik Subtitle Kategori & Akun dari Kiri ke Kanan (~45ms per huruf)
+            const subInterval = setInterval(() => {
               if (isCancelled) return;
-              amountIdx++;
-              setDisplayedAmount(fullAmount.slice(0, amountIdx));
+              subIdx++;
+              setDisplayedSubtitle(fullSubtitle.slice(0, subIdx));
 
-              if (amountIdx >= fullAmount.length) {
-                clearInterval(amountInterval);
-                setActiveStep('done');
-                if (onComplete) {
-                  setTimeout(onComplete, 400);
-                }
+              if (subIdx >= fullSubtitle.length) {
+                clearInterval(subInterval);
+                setActiveStep('amount');
+
+                // Jeda sejenak (~80ms)
+                setTimeout(() => {
+                  if (isCancelled) return;
+
+                  // Step 3: Ketik Nominal Angka dari Kiri ke Kanan (~55ms per digit)
+                  const amountInterval = setInterval(() => {
+                    if (isCancelled) return;
+                    amountIdx++;
+                    setDisplayedAmount(fullAmount.slice(0, amountIdx));
+
+                    if (amountIdx >= fullAmount.length) {
+                      clearInterval(amountInterval);
+                      setActiveStep('done');
+                    }
+                  }, 55);
+                }, 80);
               }
-            }, 30);
-          }
-        }, 25);
-      }
-    }, 40);
+            }, 45);
+          }, 80);
+        }
+      }, 65);
+    }, 120);
 
     return () => {
       isCancelled = true;
-      clearInterval(titleInterval);
+      clearTimeout(startDelay);
     };
-  }, [fullTitle, fullSubtitle, fullAmount, onComplete]);
+  }, []); // Run exactly once on mount
 
   return (
     <div className={`transaction-item voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} key={item.id}>
       <div className={`transaction-icon ${item.iconClass} voice-icon-pop`}>
         {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
       </div>
-      <div className="transaction-details">
-        <span className="transaction-title">
+      <div className="transaction-details" style={{ textAlign: 'left', direction: 'ltr' }}>
+        <span className="transaction-title" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
           {displayedTitle}
           {activeStep === 'title' && <span className="typewriter-cursor">|</span>}
         </span>
-        <span className="transaction-category">
+        <span className="transaction-category" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
           {displayedSubtitle}
           {activeStep === 'sub' && <span className="typewriter-cursor">|</span>}
         </span>
       </div>
-      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'right', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
         {displayedAmount}
         {activeStep === 'amount' && <span className="typewriter-cursor">|</span>}
       </div>
@@ -1813,13 +1830,6 @@ function App() {
                                   item={item}
                                   resolveIcon={resolveIcon}
                                   isDeleting={deletingTxId === item.id}
-                                  onComplete={() => {
-                                    setVoiceAnimatingTxIds(prev => {
-                                      const next = new Set(prev);
-                                      next.delete(item.id);
-                                      return next;
-                                    });
-                                  }}
                                 />
                               );
                             }
