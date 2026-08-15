@@ -12,6 +12,7 @@ import {
   clearLearnedInsights,
   deleteSingleLearnedInsight
 } from '../../utils/voiceLearner';
+import { syncDecrypt } from '../../utils/secureStorage';
 import { 
   Users, 
   Smartphone, 
@@ -42,18 +43,73 @@ import {
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
 
 /**
- * Format nama pengguna menjadi kode simbol / angka enkripsi anonim
- * Menjaga privasi finansial pengguna agar nama asli tidak terekspos di dashboard
+ * Validasi apakah nama pengguna adalah teks manusia yang valid dan bersih
+ */
+export const isCleanUserName = (name) => {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (trimmed.startsWith('enc:v1:')) return false;
+  
+  const alphaChars = trimmed.replace(/[^a-zA-Z]/g, '');
+  if (alphaChars.length < 2) return false;
+
+  const symbolCount = (trimmed.match(/[!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?`~]/g) || []).length;
+  if (symbolCount >= 2 && alphaChars.length < 4) return false;
+
+  return true;
+};
+
+/**
+ * Menyelesaikan NAMA ASLI PENGGUNA untuk Tabel Telemetry & Firestore Monitor
+ */
+export const resolveRealUserName = (rawName, deviceId = null, telemetryList = []) => {
+  if (isCleanUserName(rawName)) {
+    return rawName.trim();
+  }
+
+  if (typeof rawName === 'string' && rawName.startsWith('enc:v1:b64:')) {
+    try {
+      const decoded = decodeURIComponent(atob(rawName.slice(11)));
+      if (isCleanUserName(decoded)) return decoded.trim();
+    } catch {}
+  }
+
+  if (typeof rawName === 'string' && rawName.startsWith('enc:v1:')) {
+    try {
+      const decrypted = syncDecrypt(rawName);
+      if (isCleanUserName(decrypted)) return decrypted.trim();
+    } catch {}
+  }
+
+  if (deviceId && Array.isArray(telemetryList)) {
+    const matched = telemetryList.find(t => t.id === deviceId);
+    if (matched) {
+      if (isCleanUserName(matched.userName)) {
+        return matched.userName.trim();
+      }
+      if (matched.deviceName && typeof matched.deviceName === 'string') {
+        const cleanDev = matched.deviceName.replace(/\s*•\s*Browser.*$/i, '').replace(/\s*\(Web\).*$/i, '').trim();
+        if (cleanDev && !cleanDev.includes('Tidak Dikenal')) {
+          return `User ${cleanDev}`;
+        }
+      }
+    }
+  }
+
+  return 'Pengguna';
+};
+
+/**
+ * Format nama pengguna menjadi kode simbol / angka enkripsi anonim KHUSUS untuk bagian AI Learning
+ * Menjaga privasi finansial saat melihat catatan pengeluaran & evaluasi suara
  */
 export const getAnonymizedUserCode = (rawName, deviceId = null) => {
   if (!rawName && !deviceId) return 'enc:v1:s1:00000000';
   
-  // Jika sudah berformat kode enkripsi (seperti enc:v1:s1:JTAOJTE4JTEOJTB...)
   if (typeof rawName === 'string' && rawName.startsWith('enc:v1:')) {
     return rawName;
   }
 
-  // Jika nama berupa teks biasa atau device ID, buat kode simbol enkripsi konsisten
   const seed = (rawName || deviceId || 'user').trim();
   try {
     let hash = 0;
@@ -73,7 +129,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
   // Navigation Tab: 'telemetry' | 'insights'
   const [activeTab, setActiveTab] = useState('telemetry');
 
-  // Telemetry state
+  // Telemetry state (TAB 1: Menggunakan NAMA ASLI)
   const [telemetryList, setTelemetryList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'online' | 'offline'
@@ -82,7 +138,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const [isTelemetryPerPageOpen, setIsTelemetryPerPageOpen] = useState(false);
   const telemetryPerPageRef = useRef(null);
 
-  // Insights state
+  // Insights state (TAB 2: Menggunakan KODE ANGKA/SIMBOL PRIVASI)
   const [learnedInsights, setLearnedInsights] = useState(() => getLearnedInsights());
   const [insightSearchQuery, setInsightSearchQuery] = useState('');
   const [insightUserFilter, setInsightUserFilter] = useState('all');
@@ -277,14 +333,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
     }));
   };
 
-  // Filtered Telemetry List
+  // TAB 1: Filtered Telemetry List (MENGGUNAKAN NAMA ASLI PENGGUNA)
   const filteredTelemetryList = useMemo(() => {
     return telemetryList.filter((item) => {
-      const anonCode = getAnonymizedUserCode(item.userName, item.id).toLowerCase();
+      const realName = resolveRealUserName(item.userName, item.id, telemetryList).toLowerCase();
       const q = searchQuery.toLowerCase().trim();
 
       const matchesSearch = !q ||
-        anonCode.includes(q) ||
+        realName.includes(q) ||
         (item.deviceName || '').toLowerCase().includes(q) ||
         (item.id || '').toLowerCase().includes(q);
 
@@ -307,17 +363,15 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   const totalTelemetryPages = telemetryPerPage === -1 ? 1 : Math.ceil(filteredTelemetryList.length / telemetryPerPage) || 1;
 
-  // Daftar Kode Anonim Pengguna (Angka Simbol Enkripsi Sesuai Keinginan User)
+  // TAB 2: Daftar Kode Anonim Pengguna (Angka Simbol Enkripsi KHUSUS untuk AI Learning)
   const anonymousUserCodes = useMemo(() => {
     const codes = new Set();
     
-    // Dari telemetry
     telemetryList.forEach(t => {
       const code = getAnonymizedUserCode(t.userName, t.id);
       if (code) codes.add(code);
     });
 
-    // Dari learned insights
     learnedInsights.forEach(item => {
       const code = getAnonymizedUserCode(item.userName, item.deviceId);
       if (code) codes.add(code);
@@ -326,7 +380,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
     return Array.from(codes);
   }, [learnedInsights, telemetryList]);
 
-  // Filtered Insights List
+  // TAB 2: Filtered Insights List (MENGGUNAKAN KODE PRIVASI)
   const filteredInsights = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -383,7 +437,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
 
-  // Selected User Label for Custom Dropdown Button (Menampilkan format angka/simbol privasi)
+  // Selected User Label for Custom Dropdown Button di Tab 2 (Format Angka/Simbol)
   const selectedUserDisplayLabel = useMemo(() => {
     if (insightUserFilter === 'all') {
       return `Semua Pengguna (${anonymousUserCodes.length})`;
@@ -410,9 +464,6 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 <h1>Cassiel Command</h1>
                 <span className="admin-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Flame size={12} color="#FF5722" /> FIREBASE CLOUD
-                </span>
-                <span className="admin-badge" style={{ background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Lock size={11} /> PRIVACY MODE
                 </span>
               </div>
               <p>Pusat Komando & Pemantauan Perangkat Pengguna Real-Time • Diperbarui: {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString('id-ID') : '-'}</p>
@@ -511,7 +562,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
           </div>
         </div>
 
-        {/* TAB 1: PEMANTAUAN PENGGUNA & PERANGKAT */}
+        {/* TAB 1: PEMANTAUAN PENGGUNA & PERANGKAT (MENGGUNAKAN NAMA ASLI PENGGUNA) */}
         {activeTab === 'telemetry' && (
           <div className="tab-pane-content">
             {/* Monitoring Control & Filters */}
@@ -521,7 +572,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   <Search size={18} color="#9CA3AF" />
                   <input 
                     type="text" 
-                    placeholder="Cari kode user, tipe HP, atau Device ID..." 
+                    placeholder="Cari nama user, tipe HP, atau Device ID..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -587,7 +638,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>KODE PENGGUNA (ANONIM)</th>
+                        <th>PENGGUNA</th>
                         <th>DEVICE</th>
                         <th>TGL & JAM INSTAL</th>
                         <th>TERAKHIR AKTIF</th>
@@ -600,21 +651,20 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         const installDt = formatDateTime(item.installDate || item.installedAt || item.installedDate || item.createdAt);
                         const lastActiveDt = formatDateTime(item.lastActive || item.updatedAt);
                         const statusInfo = getDeviceStatus(item.lastActive || item.updatedAt);
-                        const anonCode = getAnonymizedUserCode(item.userName, item.id);
-                        const initialChar = (anonCode.replace(/enc:v1:s1:/, '').charAt(0) || '#').toUpperCase();
+                        // NAMA ASLI PENGGUNA (Amura, Redi, Dina, Gracia, Susan, dll.)
+                        const realName = resolveRealUserName(item.userName, item.id, telemetryList);
+                        const avatarLetter = (realName || 'U').charAt(0).toUpperCase();
 
                         return (
                           <tr key={item.id} className="telemetry-row">
-                            {/* Kode Pengguna Terenkripsi Anonim */}
+                            {/* Nama Pengguna Asli & Jelas */}
                             <td>
                               <div className="user-profile-cell">
                                 <div className="user-avatar-circle">
-                                  {initialChar}
+                                  {avatarLetter}
                                 </div>
                                 <div className="user-meta">
-                                  <span className="user-name-text font-mono-code" title={anonCode}>
-                                    {anonCode.length > 20 ? `${anonCode.substring(0, 18)}...` : anonCode}
-                                  </span>
+                                  <span className="user-name-text">{realName}</span>
                                   <span className="user-device-id" title={item.id}>
                                     ID: {item.id ? item.id.substring(0, 14) : '-'}...
                                   </span>
@@ -745,7 +795,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
           </div>
         )}
 
-        {/* TAB 2: AI VOICE & BEHAVIORAL LEARNING */}
+        {/* TAB 2: AI VOICE & BEHAVIORAL LEARNING (MENGGUNAKAN KODE ANGKA/SIMBOL PRIVASI & DROPDOWN SIMBOL) */}
         {activeTab === 'insights' && (
           <div className="tab-pane-content">
             <section className="admin-card learned-insights-section">
@@ -756,7 +806,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     Hal yang Dipelajari & Evaluasi Suara
                   </h2>
                   <p className="learned-section-desc" style={{ margin: '4px 0 0 0' }}>
-                    Evaluasi penghapusan transaksi dan penemuan kosakata baru secara otomatis (Mode Anonim Privasi).
+                    Evaluasi penghapusan transaksi dan penemuan kosakata baru secara otomatis (Mode Privasi Anonim).
                   </p>
                 </div>
 
@@ -783,7 +833,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 </div>
               </div>
 
-              {/* Bilah Filter Komprehensif dengan Custom User Dropdown (Simbol/Kode Anonim) */}
+              {/* Bilah Filter Komprehensif dengan Custom User Dropdown (Berisi Kode Angka/Simbol Sesuai Keinginan User) */}
               <div className="insights-filter-toolbar">
                 <div className="search-box">
                   <Search size={16} color="#9CA3AF" />
