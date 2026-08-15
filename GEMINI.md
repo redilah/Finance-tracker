@@ -77,3 +77,18 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Manifest Queries**: Wajib menyertakan `<queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries>` di `AndroidManifest.xml` agar tidak crash di Android 11+.
 * **ProGuard / R8 Rules**: Wajib mempertahankan class Capacitor Plugins & `@PluginMethod` di `proguard-rules.pro` saat `minifyEnabled true`.
 * **Seamless In-App Voice UX**: Wajib menggunakan opsi `popup: false` pada `SpeechRecognition.start()` sehingga tombol mic berdenyut (*pulsing wave*) langsung di dalam aplikasi tanpa memunculkan jendela dialog Google.
+
+## 12. Privacy Separation in Admin Dashboard
+* **Tab 1 (Telemetry)**: Tampilkan nama asli pengguna (`resolveRealUserName`) dan avatar inisial asli untuk keperluan teknis perangkat.
+* **Tab 2 (AI Learning)**: Wajib menyamarkan nama pengguna menggunakan kode enkripsi privasi (`enc:v1:s1:...`) dan dropdown filter hanya mencantumkan pengguna dengan data insight aktif.
+
+## 13. Voice AI Parsing & Deletion Matcher Invariants
+* **Scored Token Relevance Matcher**: Penghapusan transaksi via suara wajib mendukung pencocokan sebagian kata (*partial token match*) berbobot skor agar pengguna cukup menyebut 1–2 kata inti tanpa menyebut judul panjang.
+* **Compound / Multi-Action Commands**: Parser wajib mendukung pemecahan klausa majemuk (hapus + tambah, multi-pengeluaran, pemasukan + pengeluaran) dan mengeksekusinya secara sekuensial.
+* **Non-Split Protection**: Kalimat majemuk tunggal dengan 1 nominal (seperti *"beli roti dan selai 20 ribu"*) tidak boleh dipecah.
+
+## 14. Voice Transaction Typewriter Animation & Speech Lock
+* **Single Unified Progress Loop**: Efek ketik kartu transaksi suara wajib menggunakan 1 interval progress terpadu (`charProgress`) untuk mencegah benturan timer, text freeze, dan double execution.
+* **Strict Left-to-Right Flow**: Seluruh pengetikan teks dan nominal angka (`-Rp xx.xxx`) wajib mengalir dari kiri ke kanan dengan anchor kiri (`justify-content: flex-start`).
+* **Synchronous Speech Processing Lock**: Kunci `isProcessingRef.current = true` secara sinkron sebelum memproses transkrip untuk mencegah pemicuan ganda dari `silenceTimer` dan event `recognition.onend`.
+

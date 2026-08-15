@@ -1,5 +1,6 @@
 import { findClosestMatch } from './fuzzyMatch.js';
 import { getLearnedVocabulary } from './voiceLearner.js';
+import { evaluateNoise } from './noiseFilter.js';
 
 // 1. Kamus Konversi Nominal Gaul & Slang Indonesia (Urutan dari yang paling panjang ke pendek)
 const SLANG_NUMBER_MAP = [
@@ -288,6 +289,20 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     .trim();
 
   const preRalatText = text;
+
+  // 0a. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
+  const noiseEval = evaluateNoise(rawText);
+  if (noiseEval.isNoise) {
+    const hasStrongTransactionIntent = /\b(beli|membeli|bayar|membayar|terbayar|gajian|gaji|dapat|dapet|terima|cair|catat|catatkan|tambah|tambahkan|masukkan|masukin|input|simpan|hapus|delete|batalin|batalkan)\b/i.test(rawText);
+    if (!hasStrongTransactionIntent) {
+      return {
+        success: false,
+        reason: 'noise_detected',
+        noiseType: noiseEval.noiseType,
+        message: noiseEval.reason
+      };
+    }
+  }
 
   // 0. Deteksi Perintah Hapus (Voice-Command Delete)
   const DELETE_KEYWORDS = [
@@ -638,6 +653,18 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   if (foundCategoryId) {
     categoryObj = activeCategoryList.find(c => c.id === foundCategoryId) || { id: foundCategoryId, name: foundCategoryId };
   } else {
+    // Validasi Semantik: Jika tidak ada kategori yang cocok, pastikan ada kata kerja finansial atau satuan uang
+    const hasFinancialVerb = /\b(beli|membeli|bayar|membayar|terbayar|gajian|gaji|dapat|dapet|terima|cair|catat|catatkan|tambah|tambahkan|masukkan|masukin|input|simpan|sebesar|senilai|nominal|harga|harganya|ongkos|tarif|biaya|uang|rupiah|belanja|pesan|pesen|order)\b/i.test(fullContextText);
+    const hasCurrencyUnit = Boolean(unit) || /rp/i.test(matchedAmountStr) || SLANG_NUMBER_MAP.some(item => item.pattern.test(rawText));
+
+    if (!hasFinancialVerb && !hasCurrencyUnit && amount < 1000) {
+      return {
+        success: false,
+        reason: 'non_financial_intent',
+        message: 'Bukan ucapan transaksi keuangan'
+      };
+    }
+
     categoryObj = activeCategoryList[0] || { id: isIncome ? 'gaji' : 'food', name: isIncome ? 'Gaji' : 'Food' };
   }
 
@@ -742,6 +769,20 @@ function clauseHasActionOrAmount(clause) {
 export function parseVoiceTransaction(rawText, options = {}) {
   if (!rawText || typeof rawText !== 'string') {
     return { success: false, reason: 'empty_text' };
+  }
+
+  // 0. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
+  const noiseEval = evaluateNoise(rawText);
+  if (noiseEval.isNoise) {
+    const hasStrongTransactionIntent = /\b(beli|membeli|bayar|membayar|terbayar|gajian|gaji|dapat|dapet|terima|cair|catat|catatkan|tambah|tambahkan|masukkan|masukin|input|simpan|hapus|delete|batalin|batalkan)\b/i.test(rawText);
+    if (!hasStrongTransactionIntent) {
+      return {
+        success: false,
+        reason: 'noise_detected',
+        noiseType: noiseEval.noiseType,
+        message: noiseEval.reason
+      };
+    }
   }
 
   // Cek apakah ada koreksi ralat (ralat memiliki prioritas penggantian, bukan multi-transaksi)
