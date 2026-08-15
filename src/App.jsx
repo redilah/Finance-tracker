@@ -1222,55 +1222,71 @@ function App() {
 
       if (result.isLast) {
         targetTx = transactions[0];
-      } else if (q && result.targetAmount) {
-        // 1a. Amount + Exact Title
-        targetTx = transactions.find(t => t.amount === result.targetAmount && cleanStr(t.title) === q);
-        // 1b. Amount + Substring Match
-        if (!targetTx) {
-          targetTx = transactions.find(t => 
-            t.amount === result.targetAmount &&
-            (cleanStr(t.title).includes(q) || q.includes(cleanStr(t.title)) || cleanStr(t.category).includes(q) || cleanStr(t.categoryId).includes(q))
-          );
+      } else if (q || result.targetAmount) {
+        // Scored Relevance Matcher (Cerdas mendeteksi kecocokan sebagian kata seperti "bakwan pink" pada "Apa maksudku bakwan pink")
+        let bestCandidate = null;
+        let highestScore = 0;
+
+        for (const t of transactions) {
+          let score = 0;
+          const ct = cleanStr(t.title);
+          const cc = cleanStr(t.category);
+          const cid = cleanStr(t.categoryId);
+
+          // 1. Cocok Nominal
+          const amountMatched = result.targetAmount && t.amount === result.targetAmount;
+          if (amountMatched) {
+            score += 500;
+          }
+
+          if (q) {
+            // 2a. Judul Persis Sama
+            if (ct === q) {
+              score += 1000;
+            }
+            // 2b. Substring Match (misal user sebut "bakwan pink", cocok pada "Apa maksudku bakwan pink")
+            else if (ct.includes(q)) {
+              score += 600;
+            }
+            // 2c. Reverse Substring Match (misal user sebut "nasi goreng spesial", judul "nasi goreng")
+            else if (q.includes(ct) && ct.length >= 3) {
+              score += 450;
+            }
+            // 2d. Semua token kata pencarian ada di dalam judul
+            else if (qTokens.length > 1 && qTokens.every(tok => ct.includes(tok))) {
+              score += 550;
+            }
+            // 2e. Sebagian token kata pencarian cocok
+            else {
+              let matchedTokenCount = 0;
+              for (const tok of qTokens) {
+                if (tok.length >= 3 && ct.includes(tok)) {
+                  matchedTokenCount++;
+                }
+              }
+              if (matchedTokenCount > 0) {
+                score += (matchedTokenCount / qTokens.length) * 300;
+              }
+            }
+
+            // 2f. Kategori Cocok
+            if (cc.includes(q) || cid.includes(q)) {
+              score += 150;
+            }
+          }
+
+          if (!q && amountMatched) {
+            score += 500;
+          }
+
+          if (score > highestScore) {
+            highestScore = score;
+            bestCandidate = t;
+          }
         }
-        // 1c. Amount + Token Overlap
-        if (!targetTx) {
-          targetTx = transactions.find(t => 
-            t.amount === result.targetAmount &&
-            qTokens.some(tok => tok.length >= 3 && cleanStr(t.title).includes(tok))
-          );
-        }
-        // 1d. Fallback: amount match or title match
-        if (!targetTx) {
-          targetTx = transactions.find(t => t.amount === result.targetAmount) ||
-                     transactions.find(t => cleanStr(t.title).includes(q));
-        }
-      } else if (result.targetAmount) {
-        // Hapus berdasarkan nominal saja (misal: "Hapus 20 ribu")
-        targetTx = transactions.find(t => t.amount === result.targetAmount);
-      } else if (q) {
-        // 2a. Exact Title Match
-        targetTx = transactions.find(t => cleanStr(t.title) === q);
-        // 2b. Title Substring (Dua Arah: "bakwan" cocok dengan "bakwan jagung" & sebaliknya)
-        if (!targetTx) {
-          targetTx = transactions.find(t => {
-            const ct = cleanStr(t.title);
-            return ct.includes(q) || q.includes(ct);
-          });
-        }
-        // 2c. Category Match
-        if (!targetTx) {
-          targetTx = transactions.find(t => {
-            const cc = cleanStr(t.category);
-            const cid = cleanStr(t.categoryId);
-            return cc.includes(q) || cid.includes(q) || q.includes(cc);
-          });
-        }
-        // 2d. Token Overlap Match
-        if (!targetTx) {
-          targetTx = transactions.find(t => {
-            const ct = cleanStr(t.title);
-            return qTokens.some(tok => tok.length >= 3 && ct.includes(tok));
-          });
+
+        if (highestScore > 0) {
+          targetTx = bestCandidate;
         }
       }
 
