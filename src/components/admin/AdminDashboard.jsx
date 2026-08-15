@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './AdminDashboard.css';
 import { 
   getTelemetryData, 
@@ -29,22 +29,41 @@ import {
   Lightbulb,
   Brain,
   Trash2,
-  Tag
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Calendar
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
 
 export default function AdminDashboard({ onNavigateToApp }) {
+  // Navigation Tab: 'telemetry' | 'insights'
+  const [activeTab, setActiveTab] = useState('telemetry');
+
+  // Telemetry state
   const [telemetryList, setTelemetryList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'online' | 'offline'
+  const [telemetryPage, setTelemetryPage] = useState(1);
+  const [telemetryPerPage, setTelemetryPerPage] = useState(8);
+
+  // Insights state
   const [learnedInsights, setLearnedInsights] = useState(() => getLearnedInsights());
   const [insightSearchQuery, setInsightSearchQuery] = useState('');
   const [insightUserFilter, setInsightUserFilter] = useState('all');
   const [insightTypeFilter, setInsightTypeFilter] = useState('all'); // 'all' | 'deletion' | 'vocab'
+  const [insightDateFilter, setInsightDateFilter] = useState('all'); // 'all' | 'today' | 'yesterday' | 'week'
+  const [insightPage, setInsightPage] = useState(1);
+  const [insightPerPage, setInsightPerPage] = useState(6);
+  const [expandedInsights, setExpandedInsights] = useState({});
+
+  // Global loading & timer state
   const [isLoading, setIsLoading] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(REFRESH_INTERVAL_SECONDS);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'online' | 'offline'
   const [lastRefreshedAt, setLastRefreshedAt] = useState(new Date());
 
   // Manual refresh trigger
@@ -75,21 +94,17 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   // Initial load & Firebase Realtime Subscription
   useEffect(() => {
-    // Immediately remove HTML splash screen if present when viewing Admin Dashboard
     const splash = document.getElementById('app-splash-screen');
     if (splash && splash.parentNode) {
       splash.parentNode.removeChild(splash);
     }
 
-    // 1. Update this device telemetry on load
     updateCurrentDeviceTelemetry();
 
-    // 2. Fetch latest insights from cloud
     fetchLearnedInsightsFromCloud().then(data => {
       if (Array.isArray(data)) setLearnedInsights(data);
     });
 
-    // 3. Subscribe to Firebase Firestore real-time changes
     const unsubscribeTelemetry = subscribeToTelemetry((data) => {
       setTelemetryList(data);
       setLastRefreshedAt(new Date());
@@ -121,6 +136,15 @@ export default function AdminDashboard({ onNavigateToApp }) {
     return () => clearInterval(timer);
   }, [fetchTelemetry]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setTelemetryPage(1);
+  }, [searchQuery, filterStatus]);
+
+  useEffect(() => {
+    setInsightPage(1);
+  }, [insightSearchQuery, insightUserFilter, insightTypeFilter, insightDateFilter]);
+
   // Format seconds to mm:ss
   const formatTimer = (totalSeconds) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -130,7 +154,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   // Date and Time Formatter (Indonesian format)
   const formatDateTime = (rawVal) => {
-    if (!rawVal) return { dateStr: '-', timeStr: '-', full: '-' };
+    if (!rawVal) return { dateStr: '-', timeStr: '-', full: '-', dateObj: null };
     try {
       let date;
       if (typeof rawVal === 'number') {
@@ -144,7 +168,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
       }
 
       if (isNaN(date.getTime())) {
-        return { dateStr: '-', timeStr: '-', full: '-' };
+        return { dateStr: '-', timeStr: '-', full: '-', dateObj: null };
       }
 
       const day = date.getDate().toString().padStart(2, '0');
@@ -158,10 +182,11 @@ export default function AdminDashboard({ onNavigateToApp }) {
       return {
         dateStr: `${day} ${month} ${year}`,
         timeStr: `${hours}:${minutes}:${seconds}`,
-        full: `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`
+        full: `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`,
+        dateObj: date
       };
     } catch {
-      return { dateStr: '-', timeStr: '-', full: '-' };
+      return { dateStr: '-', timeStr: '-', full: '-', dateObj: null };
     }
   };
 
@@ -184,26 +209,105 @@ export default function AdminDashboard({ onNavigateToApp }) {
     }
   };
 
-  // Filter & Search Logic
-  const filteredList = telemetryList.filter((item) => {
-    const matchesSearch = 
-      (item.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.deviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.id || '').toLowerCase().includes(searchQuery.toLowerCase());
+  // Toggle card expansion
+  const toggleExpandInsight = (id) => {
+    setExpandedInsights(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
-    const statusInfo = getDeviceStatus(item.lastActive);
-    const matchesStatus = 
-      filterStatus === 'all' ? true :
-      filterStatus === 'online' ? (statusInfo.status === 'online' || statusInfo.status === 'idle') :
-      (statusInfo.status === 'offline');
+  // Filtered Telemetry List
+  const filteredTelemetryList = useMemo(() => {
+    return telemetryList.filter((item) => {
+      const matchesSearch = 
+        (item.userName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.deviceName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.id || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch && matchesStatus;
-  });
+      const statusInfo = getDeviceStatus(item.lastActive);
+      const matchesStatus = 
+        filterStatus === 'all' ? true :
+        filterStatus === 'online' ? (statusInfo.status === 'online' || statusInfo.status === 'idle') :
+        (statusInfo.status === 'offline');
 
-  // Calculate statistics
+      return matchesSearch && matchesStatus;
+    });
+  }, [telemetryList, searchQuery, filterStatus]);
+
+  // Paginated Telemetry List
+  const paginatedTelemetry = useMemo(() => {
+    if (telemetryPerPage === -1) return filteredTelemetryList;
+    const start = (telemetryPage - 1) * telemetryPerPage;
+    return filteredTelemetryList.slice(start, start + telemetryPerPage);
+  }, [filteredTelemetryList, telemetryPage, telemetryPerPage]);
+
+  const totalTelemetryPages = telemetryPerPage === -1 ? 1 : Math.ceil(filteredTelemetryList.length / telemetryPerPage) || 1;
+
+  // Filtered Insights List
+  const insightUserNames = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...learnedInsights.map(item => item.userName).filter(Boolean),
+        ...telemetryList.map(t => t.userName).filter(Boolean)
+      ])
+    );
+  }, [learnedInsights, telemetryList]);
+
+  const filteredInsights = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - (24 * 60 * 60 * 1000);
+    const startOfWeek = startOfToday - (7 * 24 * 60 * 60 * 1000);
+
+    return learnedInsights.filter(item => {
+      const uName = (item.userName || '').toLowerCase();
+      const query = insightSearchQuery.toLowerCase().trim();
+      const matchesSearch = !query || 
+        uName.includes(query) || 
+        (item.deletedTx && item.deletedTx.toLowerCase().includes(query)) ||
+        (item.vocabWord && item.vocabWord.toLowerCase().includes(query)) ||
+        (item.category && item.category.toLowerCase().includes(query));
+
+      const matchesDropdown = insightUserFilter === 'all' || item.userName === insightUserFilter;
+      
+      const isVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
+      const matchesType = 
+        insightTypeFilter === 'all' ? true :
+        insightTypeFilter === 'vocab' ? isVocab :
+        !isVocab;
+
+      let matchesDate = true;
+      if (insightDateFilter !== 'all' && item.timestamp) {
+        const itemTime = new Date(item.timestamp).getTime();
+        if (insightDateFilter === 'today') {
+          matchesDate = itemTime >= startOfToday;
+        } else if (insightDateFilter === 'yesterday') {
+          matchesDate = itemTime >= startOfYesterday && itemTime < startOfToday;
+        } else if (insightDateFilter === 'week') {
+          matchesDate = itemTime >= startOfWeek;
+        }
+      }
+
+      return matchesSearch && matchesDropdown && matchesType && matchesDate;
+    });
+  }, [learnedInsights, insightSearchQuery, insightUserFilter, insightTypeFilter, insightDateFilter]);
+
+  // Paginated Insights List
+  const paginatedInsights = useMemo(() => {
+    if (insightPerPage === -1) return filteredInsights;
+    const start = (insightPage - 1) * insightPerPage;
+    return filteredInsights.slice(start, start + insightPerPage);
+  }, [filteredInsights, insightPage, insightPerPage]);
+
+  const totalInsightPages = insightPerPage === -1 ? 1 : Math.ceil(filteredInsights.length / insightPerPage) || 1;
+
+  // Counts for Badges
   const totalUsers = telemetryList.length;
   const activeDevices = telemetryList.filter(item => getDeviceStatus(item.lastActive).status !== 'offline').length;
   const totalTransactions = telemetryList.reduce((acc, curr) => acc + (curr.totalTransactions || 0), 0);
+  const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
+  const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
 
   useEffect(() => {
     document.title = 'Cassiel Command - Admin Web Monitor';
@@ -300,208 +404,253 @@ export default function AdminDashboard({ onNavigateToApp }) {
           </div>
         </section>
 
-        {/* Monitoring Control & Filters */}
-        <section className="admin-controls-card">
-          <div className="controls-row">
-            <div className="search-box">
-              <Search size={18} color="#9CA3AF" />
-              <input 
-                type="text" 
-                placeholder="Cari user, tipe HP, atau Device ID..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button 
-                  className="clear-search-btn" 
-                  onClick={() => setSearchQuery('')}
-                  title="Hapus pencarian"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <div className="status-filters">
-              <button 
-                className={`filter-pill ${filterStatus === 'all' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('all')}
-              >
-                Semua ({totalUsers})
-              </button>
-              <button 
-                className={`filter-pill ${filterStatus === 'online' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('online')}
-              >
-                <span className="dot dot-online"></span> Online ({activeDevices})
-              </button>
-              <button 
-                className={`filter-pill ${filterStatus === 'offline' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('offline')}
-              >
-                <span className="dot dot-offline"></span> Offline ({totalUsers - activeDevices})
-              </button>
-            </div>
+        {/* Segmented View Navigation Tabs */}
+        <div className="admin-view-tabs-container">
+          <div className="admin-view-tabs">
+            <button 
+              className={`view-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+              onClick={() => setActiveTab('telemetry')}
+            >
+              <Smartphone size={18} />
+              <span>Pemantauan Perangkat</span>
+              <span className="tab-badge-count">{totalUsers}</span>
+            </button>
+            <button 
+              className={`view-tab-btn ${activeTab === 'insights' ? 'active' : ''}`}
+              onClick={() => setActiveTab('insights')}
+            >
+              <Sparkles size={18} />
+              <span>AI Learning & Kosakata</span>
+              <span className="tab-badge-count highlight">{learnedInsights.length}</span>
+            </button>
           </div>
-        </section>
+        </div>
 
-        {/* Real-time Telemetry Table */}
-        <section className="admin-card">
-          <div className="table-header-row">
-            <h2 className="admin-section-title">
-              <Smartphone size={20} color="#10B981" />
-              Tabel Pemantauan Pengguna Aktif
-            </h2>
-            <span className="table-counter-badge">
-              Menampilkan {filteredList.length} dari {totalUsers} perangkat
-            </span>
-          </div>
+        {/* TAB 1: PEMANTAUAN PENGGUNA & PERANGKAT */}
+        {activeTab === 'telemetry' && (
+          <div className="tab-pane-content">
+            {/* Monitoring Control & Filters */}
+            <section className="admin-controls-card">
+              <div className="controls-row">
+                <div className="search-box">
+                  <Search size={18} color="#9CA3AF" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari user, tipe HP, atau Device ID..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button 
+                      className="clear-search-btn" 
+                      onClick={() => setSearchQuery('')}
+                      title="Hapus pencarian"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-          {isLoading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Menghubungkan ke Firebase Cloud Realtime...</p>
-            </div>
-          ) : filteredList.length === 0 ? (
-            <div className="empty-telemetry">
-              <AlertCircle size={40} color="#9CA3AF" />
-              <h3>Belum ada data perangkat yang cocok</h3>
-              <p>Pastikan aplikasi dibuka pada HP atau ubah kata kunci pencarian Anda.</p>
-            </div>
-          ) : (
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>PENGGUNA</th>
-                    <th>DEVICE</th>
-                    <th>TGL & JAM INSTAL</th>
-                    <th>TERAKHIR AKTIF</th>
-                    <th>TRANSAKSI</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredList.map((item) => {
-                    const installDt = formatDateTime(item.installDate || item.installedAt || item.installedDate || item.createdAt);
-                    const lastActiveDt = formatDateTime(item.lastActive || item.updatedAt);
-                    const statusInfo = getDeviceStatus(item.lastActive || item.updatedAt);
-                    const avatarLetter = (item.userName || 'U').charAt(0).toUpperCase();
+                <div className="status-filters">
+                  <button 
+                    className={`filter-pill ${filterStatus === 'all' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('all')}
+                  >
+                    Semua ({totalUsers})
+                  </button>
+                  <button 
+                    className={`filter-pill ${filterStatus === 'online' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('online')}
+                  >
+                    <span className="dot dot-online"></span> Online ({activeDevices})
+                  </button>
+                  <button 
+                    className={`filter-pill ${filterStatus === 'offline' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('offline')}
+                  >
+                    <span className="dot dot-offline"></span> Offline ({totalUsers - activeDevices})
+                  </button>
+                </div>
+              </div>
+            </section>
 
-                    return (
-                      <tr key={item.id} className="telemetry-row">
-                        {/* Nama Pengguna */}
-                        <td>
-                          <div className="user-profile-cell">
-                            <div className="user-avatar-circle">
-                              {avatarLetter}
-                            </div>
-                            <div className="user-meta">
-                              <span className="user-name-text">{item.userName || 'Tanpa Nama'}</span>
-                              <span className="user-device-id" title={item.id}>
-                                ID: {item.id.substring(0, 14)}...
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Nama Device */}
-                        <td>
-                          <div className="device-badge">
-                            <Smartphone size={14} color="#4B5563" />
-                            <span>{item.deviceName || 'Perangkat Tidak Dikenal'}</span>
-                          </div>
-                        </td>
-
-                        {/* Tgl & Jam Instal */}
-                        <td>
-                          <div className="datetime-primary">{installDt.dateStr}</div>
-                          <div className="datetime-sub">🕒 {installDt.timeStr}</div>
-                        </td>
-
-                        {/* Tgl & Jam Terakhir Aktif */}
-                        <td>
-                          <div className="datetime-primary">{lastActiveDt.dateStr}</div>
-                          <div className="datetime-sub">🕒 {lastActiveDt.timeStr}</div>
-                        </td>
-
-                        {/* Jumlah Transaksi per User */}
-                        <td>
-                          <div className="tx-count-cell">
-                            <span className="tx-count-badge">{item.totalTransactions ?? 0}</span>
-                            <span className="tx-count-label">transaksi</span>
-                          </div>
-                        </td>
-
-                        {/* Status Online/Idle/Offline */}
-                        <td>
-                          <span className={`status-pill status-${statusInfo.status}`}>
-                            <span className="status-dot"></span>
-                            {statusInfo.text}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Auto Refresh Footer Banner */}
-          <div className="auto-refresh-banner">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={16} />
-              <span>Koneksi <b>Firebase Firestore Real-time Live</b> aktif. Auto refresh otomatis setiap <b>20 menit sekali</b>.</span>
-            </div>
-            <div className="refresh-timer-badge">
-              <Clock size={13} />
-              <span>Refresh berikutnya: {formatTimer(secondsRemaining)}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION: HAL YANG DIPELAJARI (VOICE AI & BEHAVIOR INSIGHTS) */}
-        {(() => {
-          // Daftar unik user dari catatan pembelajaran dan telemetry
-          const insightUserNames = Array.from(
-            new Set([
-              ...learnedInsights.map(item => item.userName).filter(Boolean),
-              ...telemetryList.map(t => t.userName).filter(Boolean)
-            ])
-          );
-
-          const filteredInsights = learnedInsights.filter(item => {
-            const uName = (item.userName || '').toLowerCase();
-            const query = insightSearchQuery.toLowerCase().trim();
-            const matchesSearch = !query || 
-              uName.includes(query) || 
-              (item.deletedTx && item.deletedTx.toLowerCase().includes(query)) ||
-              (item.vocabWord && item.vocabWord.toLowerCase().includes(query));
-
-            const matchesDropdown = insightUserFilter === 'all' || item.userName === insightUserFilter;
-            
-            // Filter tipe kotak: deletion vs vocab
-            const isVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
-            const matchesType = 
-              insightTypeFilter === 'all' ? true :
-              insightTypeFilter === 'vocab' ? isVocab :
-              !isVocab;
-
-            return matchesSearch && matchesDropdown && matchesType;
-          });
-
-          const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
-          const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
-
-          return (
-            <section className="admin-card learned-insights-section">
+            {/* Real-time Telemetry Table */}
+            <section className="admin-card">
               <div className="table-header-row">
                 <h2 className="admin-section-title">
-                  <Sparkles size={20} color="#F59E0B" />
-                  Hal yang Dipelajari & Evaluasi Suara
+                  <Smartphone size={20} color="#10B981" />
+                  Tabel Pemantauan Pengguna Aktif
                 </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="table-counter-badge">
+                  Menampilkan {paginatedTelemetry.length} dari {filteredTelemetryList.length} perangkat
+                </span>
+              </div>
+
+              {isLoading ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Menghubungkan ke Firebase Cloud Realtime...</p>
+                </div>
+              ) : filteredTelemetryList.length === 0 ? (
+                <div className="empty-telemetry">
+                  <AlertCircle size={40} color="#9CA3AF" />
+                  <h3>Belum ada data perangkat yang cocok</h3>
+                  <p>Pastikan aplikasi dibuka pada HP atau ubah kata kunci pencarian Anda.</p>
+                </div>
+              ) : (
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>PENGGUNA</th>
+                        <th>DEVICE</th>
+                        <th>TGL & JAM INSTAL</th>
+                        <th>TERAKHIR AKTIF</th>
+                        <th>TRANSAKSI</th>
+                        <th>STATUS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedTelemetry.map((item) => {
+                        const installDt = formatDateTime(item.installDate || item.installedAt || item.installedDate || item.createdAt);
+                        const lastActiveDt = formatDateTime(item.lastActive || item.updatedAt);
+                        const statusInfo = getDeviceStatus(item.lastActive || item.updatedAt);
+                        const avatarLetter = (item.userName || 'U').charAt(0).toUpperCase();
+
+                        return (
+                          <tr key={item.id} className="telemetry-row">
+                            {/* Nama Pengguna */}
+                            <td>
+                              <div className="user-profile-cell">
+                                <div className="user-avatar-circle">
+                                  {avatarLetter}
+                                </div>
+                                <div className="user-meta">
+                                  <span className="user-name-text">{item.userName || 'Tanpa Nama'}</span>
+                                  <span className="user-device-id" title={item.id}>
+                                    ID: {item.id ? item.id.substring(0, 14) : '-'}...
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Nama Device */}
+                            <td>
+                              <div className="device-badge">
+                                <Smartphone size={14} color="#4B5563" />
+                                <span>{item.deviceName || 'Perangkat Tidak Dikenal'}</span>
+                              </div>
+                            </td>
+
+                            {/* Tgl & Jam Instal */}
+                            <td>
+                              <div className="datetime-primary">{installDt.dateStr}</div>
+                              <div className="datetime-sub">🕒 {installDt.timeStr}</div>
+                            </td>
+
+                            {/* Tgl & Jam Terakhir Aktif */}
+                            <td>
+                              <div className="datetime-primary">{lastActiveDt.dateStr}</div>
+                              <div className="datetime-sub">🕒 {lastActiveDt.timeStr}</div>
+                            </td>
+
+                            {/* Jumlah Transaksi per User */}
+                            <td>
+                              <div className="tx-count-cell">
+                                <span className="tx-count-badge">{item.totalTransactions ?? 0}</span>
+                                <span className="tx-count-label">transaksi</span>
+                              </div>
+                            </td>
+
+                            {/* Status Online/Idle/Offline */}
+                            <td>
+                              <span className={`status-pill status-${statusInfo.status}`}>
+                                <span className="status-dot"></span>
+                                {statusInfo.text}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Telemetry Pagination Bar */}
+              {filteredTelemetryList.length > 0 && (
+                <div className="admin-pagination-bar">
+                  <div className="pagination-per-page">
+                    <span>Tampilkan:</span>
+                    <select 
+                      value={telemetryPerPage} 
+                      onChange={(e) => setTelemetryPerPage(Number(e.target.value))}
+                      className="pagination-select"
+                    >
+                      <option value={8}>8 baris</option>
+                      <option value={16}>16 baris</option>
+                      <option value={32}>32 baris</option>
+                      <option value={-1}>Semua ({filteredTelemetryList.length})</option>
+                    </select>
+                  </div>
+
+                  <div className="pagination-controls">
+                    <button 
+                      className="btn-page-nav"
+                      disabled={telemetryPage <= 1}
+                      onClick={() => setTelemetryPage(prev => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <div className="pagination-page-indicator">
+                      Halaman <b>{telemetryPage}</b> dari <b>{totalTelemetryPages}</b>
+                    </div>
+
+                    <button 
+                      className="btn-page-nav"
+                      disabled={telemetryPage >= totalTelemetryPages}
+                      onClick={() => setTelemetryPage(prev => Math.min(totalTelemetryPages, prev + 1))}
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Auto Refresh Footer Banner */}
+              <div className="auto-refresh-banner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={16} />
+                  <span>Koneksi <b>Firebase Firestore Real-time Live</b> aktif. Auto refresh otomatis setiap <b>20 menit sekali</b>.</span>
+                </div>
+                <div className="refresh-timer-badge">
+                  <Clock size={13} />
+                  <span>Refresh berikutnya: {formatTimer(secondsRemaining)}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 2: AI VOICE & BEHAVIORAL LEARNING */}
+        {activeTab === 'insights' && (
+          <div className="tab-pane-content">
+            <section className="admin-card learned-insights-section">
+              <div className="table-header-row">
+                <div className="section-title-group">
+                  <h2 className="admin-section-title">
+                    <Sparkles size={20} color="#F59E0B" />
+                    Hal yang Dipelajari & Evaluasi Suara
+                  </h2>
+                  <p className="learned-section-desc" style={{ margin: '4px 0 0 0' }}>
+                    Evaluasi penghapusan transaksi dan penemuan kosakata baru secara otomatis.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <span className="insights-count-badge">
                     <Brain size={14} />
                     {filteredInsights.length} Catatan
@@ -511,7 +660,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       className="btn-clear-all-log"
                       title="Hapus semua log pembelajaran dari Firebase Cloud"
                       onClick={async () => {
-                        if (window.confirm('Hapus semua catatan pembelajaran dari Firebase Cloud?')) {
+                        if (window.confirm('Hapus semua catatan pembelajaran dari Firebase Cloud? Tindakan ini tidak dapat dibatalkan.')) {
                           await clearLearnedInsights();
                           setLearnedInsights([]);
                         }
@@ -523,17 +672,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   )}
                 </div>
               </div>
-              <p className="learned-section-desc">
-                Catatan evaluasi penghapusan transaksi dan penemuan kosakata baru oleh pengguna.
-              </p>
 
-              {/* Bilah Filter Tab, Search & Dropdown User */}
+              {/* Bilah Filter Komprehensif: Search, User Dropdown, Type Pills, Date Pills */}
               <div className="insights-filter-toolbar">
                 <div className="search-box">
                   <Search size={16} color="#9CA3AF" />
                   <input
                     type="text"
-                    placeholder="Cari berdasarkan nama user atau kata..."
+                    placeholder="Cari kata, transaksi, user..."
                     value={insightSearchQuery}
                     onChange={(e) => setInsightSearchQuery(e.target.value)}
                   />
@@ -555,7 +701,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     value={insightUserFilter}
                     onChange={(e) => setInsightUserFilter(e.target.value)}
                   >
-                    <option value="all">Semua User ({insightUserNames.length})</option>
+                    <option value="all">Semua Pengguna ({insightUserNames.length})</option>
                     {insightUserNames.map(user => (
                       <option key={user} value={user}>
                         User: {user}
@@ -564,7 +710,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   </select>
                 </div>
 
-                {/* Tab Filter Tipe Kotak */}
+                {/* Filter Tipe Catatan */}
                 <div className="insight-type-pills">
                   <button 
                     className={`type-pill ${insightTypeFilter === 'all' ? 'active' : ''}`}
@@ -573,43 +719,72 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     Semua ({learnedInsights.length})
                   </button>
                   <button 
+                    className={`type-pill ${insightTypeFilter === 'vocab' ? 'active' : ''}`}
+                    onClick={() => setInsightTypeFilter('vocab')}
+                  >
+                    ✨ Kosakata ({vocabCount})
+                  </button>
+                  <button 
                     className={`type-pill ${insightTypeFilter === 'deletion' ? 'active' : ''}`}
                     onClick={() => setInsightTypeFilter('deletion')}
                   >
                     🗑️ Dihapus ({deletionCount})
                   </button>
+                </div>
+
+                {/* Filter Tanggal */}
+                <div className="insight-date-pills">
                   <button 
-                    className={`type-pill ${insightTypeFilter === 'vocab' ? 'active' : ''}`}
-                    onClick={() => setInsightTypeFilter('vocab')}
+                    className={`date-pill ${insightDateFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setInsightDateFilter('all')}
                   >
-                    ✨ Kosakata Baru ({vocabCount})
+                    Semua Waktu
+                  </button>
+                  <button 
+                    className={`date-pill ${insightDateFilter === 'today' ? 'active' : ''}`}
+                    onClick={() => setInsightDateFilter('today')}
+                  >
+                    Hari Ini
+                  </button>
+                  <button 
+                    className={`date-pill ${insightDateFilter === 'yesterday' ? 'active' : ''}`}
+                    onClick={() => setInsightDateFilter('yesterday')}
+                  >
+                    Kemarin
+                  </button>
+                  <button 
+                    className={`date-pill ${insightDateFilter === 'week' ? 'active' : ''}`}
+                    onClick={() => setInsightDateFilter('week')}
+                  >
+                    7 Hari Terakhir
                   </button>
                 </div>
               </div>
 
-              {/* Daftar Kotak Pembelajaran */}
-              <div className="insights-bullet-list">
+              {/* Grid 2-Kolom Responsive untuk Kartu Pembelajaran */}
+              <div className="insights-grid-layout">
                 {filteredInsights.length === 0 ? (
-                  <div className="empty-insights">
-                    <Lightbulb size={32} color="#9CA3AF" />
-                    <p>Tidak ada catatan pembelajaran yang cocok.</p>
+                  <div className="empty-insights-full">
+                    <Lightbulb size={36} color="#9CA3AF" />
+                    <h3>Tidak ada catatan pembelajaran yang cocok</h3>
+                    <p>Coba ubah kata kunci pencarian, filter pengguna, atau filter tipe.</p>
                   </div>
                 ) : (
-                  filteredInsights.map((item, idx) => {
+                  paginatedInsights.map((item, idx) => {
                     const itemDt = item.timestamp ? formatDateTime(item.timestamp) : null;
                     const avatarLetter = (item.userName || 'P').trim().charAt(0).toUpperCase();
-                    
-                    // Deteksi apakah ini Kotak Kosakata Baru atau Kotak Transaksi Dihapus
                     const isNewVocab = item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'));
+                    const isExpanded = !!expandedInsights[item.id || idx];
 
-                    const handleDeleteThisItem = async () => {
-                      if (window.confirm(`Hapus catatan ini?`)) {
+                    const handleDeleteThisItem = async (e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Hapus catatan ini dari database Firebase?`)) {
                         await deleteSingleLearnedInsight(item.id);
                         setLearnedInsights(prev => prev.filter(p => p.id !== item.id));
                       }
                     };
 
-                    // Format Simpel untuk Kotak Kosakata Baru
+                    // Format Kosakata Baru
                     if (isNewVocab) {
                       let displayVocabWord = item.vocabWord;
                       if (!displayVocabWord && item.deletedTx) {
@@ -619,39 +794,46 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       displayVocabWord = displayVocabWord || item.title || 'Kata Baru';
 
                       return (
-                        <div className="insight-clean-card vocab-card" key={item.id || idx}>
-                          {/* 1. Header: Nama User & Badge Kosakata Baru + Tombol Tong Sampah Individual */}
-                          <div className="insight-card-user-header">
+                        <div className="insight-modern-card vocab-card" key={item.id || idx}>
+                          {/* Header Bar */}
+                          <div className="insight-card-header">
                             <div className="insight-user-pill">
                               <div className="insight-user-avatar vocab-avatar">{avatarLetter}</div>
-                              <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
-                              <span className="vocab-badge-pill">✨ Kosakata Baru</span>
+                              <div className="insight-user-info">
+                                <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
+                                <span className="vocab-badge-pill">✨ Kosakata Baru</span>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="insight-card-actions">
                               {itemDt && (
-                                <span className="insight-time-badge">🕒 {itemDt.timeStr} • {itemDt.dateStr}</span>
+                                <span className="insight-time-badge">🕒 {itemDt.timeStr}</span>
                               )}
                               <button 
                                 className="btn-item-trash"
                                 title="Hapus catatan ini"
                                 onClick={handleDeleteThisItem}
                               >
-                                <Trash2 size={15} />
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </div>
 
-                          {/* 2. Format Simpel Kosakata Baru */}
-                          <div className="insight-card-details">
-                            <div className="insight-detail-row">
-                              <span className="insight-label">📖 Kosakata Baru:</span>
-                              <span className="insight-value vocab-word-highlight">"{displayVocabWord}"</span>
+                          {/* Body Content */}
+                          <div className="insight-card-body">
+                            <div className="insight-vocab-main">
+                              <span className="vocab-word-large">"{displayVocabWord}"</span>
                               {item.category && (
                                 <span className="vocab-category-tag">
                                   <Tag size={12} /> {item.category}
                                 </span>
                               )}
                             </div>
+
+                            {itemDt && (
+                              <div className="insight-date-row">
+                                <Calendar size={12} /> <span>Tercatat: {itemDt.dateStr}</span>
+                              </div>
+                            )}
 
                             {item.learningPoint && !item.learningPoint.includes('Daftarkan mapping') && (
                               <div className="insight-detail-row learning-row vocab-learning-row">
@@ -664,44 +846,65 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       );
                     }
 
-                    // Format Lengkap untuk Kotak Transaksi yang Dihapus
+                    // Format Transaksi yang Dihapus (dengan Toggle Expandable Accordion)
                     return (
-                      <div className="insight-clean-card deletion-card" key={item.id || idx}>
-                        {/* 1. Header Kotak: Nama User + Tombol Tong Sampah Individual */}
-                        <div className="insight-card-user-header">
+                      <div className={`insight-modern-card deletion-card ${isExpanded ? 'expanded' : ''}`} key={item.id || idx}>
+                        {/* Header Bar */}
+                        <div className="insight-card-header" onClick={() => toggleExpandInsight(item.id || idx)}>
                           <div className="insight-user-pill">
                             <div className="insight-user-avatar">{avatarLetter}</div>
-                            <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
-                            <span className="deletion-badge-pill">🗑️ Transaksi Dihapus</span>
+                            <div className="insight-user-info">
+                              <span className="insight-user-name">{item.userName || 'Pengguna'}</span>
+                              <span className="deletion-badge-pill">🗑️ Transaksi Dihapus</span>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="insight-card-actions">
                             {itemDt && (
-                              <span className="insight-time-badge">🕒 {itemDt.timeStr} • {itemDt.dateStr}</span>
+                              <span className="insight-time-badge">🕒 {itemDt.timeStr}</span>
                             )}
                             <button 
                               className="btn-item-trash"
                               title="Hapus catatan ini"
                               onClick={handleDeleteThisItem}
                             >
-                              <Trash2 size={15} />
+                              <Trash2 size={14} />
+                            </button>
+                            <button 
+                              className="btn-item-expand"
+                              title={isExpanded ? "Tutup detail" : "Lihat detail"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpandInsight(item.id || idx);
+                              }}
+                            >
+                              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
                           </div>
                         </div>
 
-                        {/* 2, 3, 4: Baris Konten Singkat & Real Transaksi yang Dihapus */}
-                        <div className="insight-card-details">
+                        {/* Body Content */}
+                        <div className="insight-card-body">
                           <div className="insight-detail-row">
-                            <span className="insight-label">🗑️ Transaksi yang Dihapus:</span>
+                            <span className="insight-label">🗑️ Transaksi:</span>
                             <span className="insight-value deleted-highlight">{item.deletedTx || item.title}</span>
                           </div>
 
-                          <div className="insight-detail-row">
-                            <span className="insight-label">❓ Kemungkinan Kenapa Dihapus:</span>
-                            <span className="insight-value">{item.reason || item.description}</span>
-                          </div>
+                          {itemDt && (
+                            <div className="insight-date-row">
+                              <Calendar size={12} /> <span>Tercatat: {itemDt.dateStr}</span>
+                            </div>
+                          )}
+
+                          {/* Detail yang bisa di-expand atau langsung tampil ringkas */}
+                          {(isExpanded || (item.reason && item.reason.length < 60)) && (
+                            <div className="insight-detail-row">
+                              <span className="insight-label">❓ Kemungkinan Alasan:</span>
+                              <span className="insight-value">{item.reason || item.description || '-'}</span>
+                            </div>
+                          )}
 
                           <div className="insight-detail-row learning-row">
-                            <span className="insight-label">💡 Poin Pembelajaran:</span>
+                            <span className="insight-label">💡 Poin Evaluasi:</span>
                             <span className="insight-value learning-highlight">{item.learningPoint || item.evaluation}</span>
                           </div>
                         </div>
@@ -710,9 +913,52 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   })
                 )}
               </div>
+
+              {/* Insights Pagination Bar */}
+              {filteredInsights.length > 0 && (
+                <div className="admin-pagination-bar">
+                  <div className="pagination-per-page">
+                    <span>Tampilkan:</span>
+                    <select 
+                      value={insightPerPage} 
+                      onChange={(e) => setInsightPerPage(Number(e.target.value))}
+                      className="pagination-select"
+                    >
+                      <option value={6}>6 per halaman</option>
+                      <option value={12}>12 per halaman</option>
+                      <option value={24}>24 per halaman</option>
+                      <option value={-1}>Semua ({filteredInsights.length})</option>
+                    </select>
+                  </div>
+
+                  <div className="pagination-controls">
+                    <button 
+                      className="btn-page-nav"
+                      disabled={insightPage <= 1}
+                      onClick={() => setInsightPage(prev => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <div className="pagination-page-indicator">
+                      Halaman <b>{insightPage}</b> dari <b>{totalInsightPages}</b>
+                    </div>
+
+                    <button 
+                      className="btn-page-nav"
+                      disabled={insightPage >= totalInsightPages}
+                      onClick={() => setInsightPage(prev => Math.min(totalInsightPages, prev + 1))}
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
-          );
-        })()}
+          </div>
+        )}
 
       </div>
     </div>

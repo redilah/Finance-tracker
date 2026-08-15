@@ -22,7 +22,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
   background: #FFFFFF;
@@ -139,13 +139,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .admin-stat-card {
   background: #FFFFFF;
   border-radius: 20px;
-  padding: 20px;
+  padding: 18px 20px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
   display: flex;
   align-items: center;
@@ -190,65 +190,159 @@
 }
 
 .stat-info span {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #6B7280;
   display: block;
 }
 
 .stat-info h3 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: #111827;
-  margin: 4px 0 0 0;
+  margin: 4px 0 2px 0;
 }
 
 .stat-subtext {
   font-size: 11px;
   color: #9CA3AF;
-  margin-top: 2px;
+  margin: 0;
 }
 
-/* Monitoring Control & Filters */
+/* ==========================================================================
+   SEGMENTED VIEW NAVIGATION TABS
+   ========================================================================== */
+.admin-view-tabs-container {
+  margin-bottom: 20px;
+}
+
+.admin-view-tabs {
+  display: inline-flex;
+  background: #EBE1D7;
+  padding: 5px;
+  border-radius: 20px;
+  gap: 6px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.view-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.view-tab-btn:hover {
+  color: #1F2937;
+}
+
+.view-tab-btn.active {
+  background: #FFFFFF;
+  color: #111827;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.tab-badge-count {
+  font-size: 11px;
+  font-weight: 700;
+  background: #F3F4F6;
+  color: #4B5563;
+  padding: 2px 8px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.view-tab-btn.active .tab-badge-count {
+  background: #DEF7EC;
+  color: #03543F;
+}
+
+.view-tab-btn.active .tab-badge-count.highlight {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Tab Pane Transition */
+.tab-pane-content {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   CONTROLS & FILTER SECTION
+   ========================================================================== */
 .admin-controls-card {
   background: #FFFFFF;
-  border-radius: 24px;
-  padding: 20px 24px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
-  margin-bottom: 24px;
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
 }
 
 .controls-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
 
 .search-box {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
   background: #F9FAFB;
   border: 1px solid #E5E7EB;
-  padding: 10px 16px;
   border-radius: 14px;
-  flex: 1;
-  min-width: 260px;
+  padding: 0 14px;
+  width: 320px;
+  transition: all 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: #10B981;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 .search-box input {
-  border: none;
-  outline: none;
-  background: transparent;
   width: 100%;
-  font-size: 14px;
-  color: #1F2937;
-  font-family: 'Outfit', sans-serif;
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  font-size: 13.5px;
+  color: #111827;
+  outline: none;
+  font-family: inherit;
 }
 
-/* Status Filters Pill Container */
+.clear-search-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 12px;
+  border-radius: 50%;
+}
+
+.clear-search-btn:hover {
+  color: #374151;
+}
+
+/* Status Filters */
 .status-filters {
   display: flex;
   align-items: center;
@@ -257,125 +351,134 @@
 }
 
 .filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #F3F4F6;
-  border: 1px solid transparent;
-  color: #4B5563;
-  padding: 8px 16px;
-  border-radius: 14px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  padding: 8px 14px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
+  color: #4B5563;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 
 .filter-pill:hover {
-  background: #E5E7EB;
+  background: #F3F4F6;
   color: #111827;
 }
 
 .filter-pill.active {
   background: #111827;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.2);
+  border-color: #111827;
 }
 
-.filter-pill .dot {
+.dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  display: inline-block;
 }
 
-.filter-pill .dot-online {
+.dot-online {
   background: #10B981;
-  box-shadow: 0 0 6px #10B981;
 }
 
-.filter-pill .dot-offline {
+.dot-offline {
   background: #9CA3AF;
 }
 
-/* User & Device Monitoring Section (Card Putih Bersih) */
+/* ==========================================================================
+   ADMIN CARD & TELEMETRY TABLE
+   ========================================================================== */
 .admin-card {
   background: #FFFFFF;
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.03);
-  margin-bottom: 24px;
-  overflow: hidden;
 }
 
 .table-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.section-title-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-section-title {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
   margin: 0;
+  color: #1F2937;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .table-counter-badge {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #6B7280;
-  font-weight: 500;
   background: #F3F4F6;
   padding: 4px 12px;
   border-radius: 12px;
+  font-weight: 600;
 }
 
-/* Responsive Table */
 .admin-table-container {
-  width: 100%;
   overflow-x: auto;
+  margin: 0 -24px;
+  padding: 0 24px;
 }
 
 .admin-table {
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .admin-table th {
   background: #F9FAFB;
-  padding: 14px 16px;
-  font-size: 12px;
+  color: #4B5563;
+  font-size: 11.5px;
   font-weight: 700;
-  color: #6B7280;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  text-align: left;
   border-bottom: 1px solid #E5E7EB;
 }
 
+.admin-table th:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.admin-table th:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
 .admin-table td {
-  padding: 16px;
+  padding: 14px 16px;
+  font-size: 13.5px;
   border-bottom: 1px solid #F3F4F6;
-  font-size: 14px;
   vertical-align: middle;
 }
 
-.admin-table tr:last-child td {
-  border-bottom: none;
+.telemetry-row:hover td {
+  background: #FAFAFA;
 }
 
-.admin-table tr:hover td {
-  background-color: #F9FAFB;
-}
-
-/* User profile cell info */
 .user-profile-cell {
   display: flex;
   align-items: center;
@@ -388,13 +491,13 @@
   border-radius: 50%;
   background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: white;
-  font-weight: 700;
-  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
 .user-meta {
@@ -415,8 +518,6 @@
   font-family: monospace;
 }
 
-
-/* Device cell */
 .device-badge {
   display: inline-flex;
   align-items: center;
@@ -429,7 +530,6 @@
   font-weight: 600;
 }
 
-/* Status Pill */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -474,7 +574,6 @@
   background: #9CA3AF;
 }
 
-/* Date and Time formatting */
 .datetime-primary {
   font-weight: 600;
   color: #1F2937;
@@ -484,6 +583,115 @@
   font-size: 11px;
   color: #6B7280;
   margin-top: 2px;
+}
+
+.tx-count-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.tx-count-badge {
+  font-size: 16px;
+  font-weight: 700;
+  color: #10B981;
+  line-height: 1;
+  background: #D1FAE5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  min-width: 36px;
+  text-align: center;
+}
+
+.tx-count-label {
+  font-size: 10px;
+  color: #9CA3AF;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ==========================================================================
+   PAGINATION BAR
+   ========================================================================== */
+.admin-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #F3F4F6;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.pagination-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.pagination-select {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pagination-select:focus {
+  border-color: #10B981;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-page-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-page-nav:hover:not(:disabled) {
+  background: #F3F4F6;
+  border-color: #D1D5DB;
+  color: #111827;
+}
+
+.btn-page-nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-page-indicator {
+  font-size: 13px;
+  color: #4B5563;
+  padding: 0 4px;
+}
+
+.pagination-page-indicator b {
+  color: #111827;
 }
 
 /* Auto Refresh Banner */
@@ -513,134 +721,13 @@
   gap: 4px;
 }
 
-/* Empty State */
-.empty-telemetry {
-  text-align: center;
-  padding: 40px 20px;
-  color: #6B7280;
-}
-
-.empty-telemetry h3 {
-  margin: 12px 0 6px 0;
-  color: #111827;
-}
-
-/* Modal styling */
-.admin-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 20px;
-}
-
-.admin-modal-content {
-  background: #FFFFFF;
-  border-radius: 24px;
-  padding: 24px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.admin-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.admin-modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.btn-close-modal {
-  background: #F3F4F6;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #4B5563;
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  .admin-wrapper {
-    padding: 16px 12px 40px 12px;
-  }
-  .admin-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 16px;
-  }
-  .admin-header-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .controls-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .search-box {
-    width: 100%;
-  }
-  .admin-table th, .admin-table td {
-    padding: 10px 12px;
-  }
-}
-
-/* Transaction count per user */
-.tx-count-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.tx-count-badge {
-  font-size: 18px;
-  font-weight: 700;
-  color: #10B981;
-  line-height: 1;
-  background: #D1FAE5;
-  padding: 4px 12px;
-  border-radius: 20px;
-  min-width: 36px;
-  text-align: center;
-}
-
-.tx-count-label {
-  font-size: 10px;
-  color: #9CA3AF;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
 /* ==========================================================================
-   HAL YANG DIPELAJARI (LEARNED INSIGHTS & VOICE BEHAVIOR) STYLES
+   AI VOICE & BEHAVIORAL LEARNING SECTION (2-COLUMN GRID & COMPACT CARDS)
    ========================================================================== */
 .learned-insights-section {
-  margin-top: 24px;
   background: #FFFFFF;
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .insights-count-badge {
@@ -658,7 +745,6 @@
 .learned-section-desc {
   font-size: 13px;
   color: #6B7280;
-  margin: 4px 0 18px 0;
   line-height: 1.5;
 }
 
@@ -666,14 +752,14 @@
 .insights-filter-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .insights-filter-toolbar .search-box {
   flex: 1;
-  min-width: 240px;
+  min-width: 220px;
 }
 
 .filter-dropdown-wrapper {
@@ -694,7 +780,7 @@
   background-color: #F9FAFB;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
-  padding: 10px 36px 10px 36px;
+  padding: 9px 36px 9px 36px;
   font-size: 13px;
   font-weight: 600;
   color: #374151;
@@ -713,38 +799,81 @@
   background-color: #FFFFFF;
 }
 
-/* List Container */
-.insights-bullet-list {
+/* Tab Filter Tipe Kotak */
+.insight-type-pills,
+.insight-date-pills {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 4px;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 14px;
 }
 
-/* 1 Kotak Card Format Sederhana */
-.insight-clean-card {
+.type-pill,
+.date-pill {
+  background: transparent;
+  border: none;
+  padding: 6px 11px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4B5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.type-pill:hover,
+.date-pill:hover {
+  color: #111827;
+}
+
+.type-pill.active,
+.date-pill.active {
+  background: #FFFFFF;
+  color: #111827;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* RESPONSIVE 2-COLUMN GRID FOR INSIGHTS */
+.insights-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .insights-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* MODERN COMPACT INSIGHT CARD */
+.insight-modern-card {
   background: #FAFAFA;
   border: 1px solid #E5E7EB;
   border-radius: 18px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   transition: all 0.2s ease;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.insight-clean-card:hover {
+.insight-modern-card:hover {
   background: #FFFFFF;
   border-color: #D1D5DB;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
 }
 
-/* 1. Header: Nama User */
-.insight-card-user-header {
+/* Card Header */
+.insight-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #E5E7EB;
+  cursor: pointer;
 }
 
 .insight-user-pill {
@@ -753,9 +882,15 @@
   gap: 10px;
 }
 
+.insight-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .insight-user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: #FFFFFF;
@@ -765,33 +900,120 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
 }
 
 .insight-user-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #111827;
 }
 
+.deletion-badge-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #DC2626;
+  background: #FEE2E2;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid #FECACA;
+  align-self: flex-start;
+}
+
+.vocab-badge-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #D97706;
+  background: #FEF3C7;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid #FDE68A;
+  align-self: flex-start;
+}
+
+.insight-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .insight-time-badge {
-  font-size: 11.5px;
+  font-size: 11px;
   color: #9CA3AF;
   font-weight: 500;
 }
 
-/* 2, 3, 4: Baris Detail */
-.insight-card-details {
+.btn-item-expand {
+  background: #F3F4F6;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-item-expand:hover {
+  background: #E5E7EB;
+  color: #111827;
+}
+
+/* Card Body */
+.insight-card-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F3F4F6;
+}
+
+.insight-vocab-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vocab-word-large {
+  font-size: 16px;
+  font-weight: 800;
+  color: #92400E;
+  background: #FEF3C7;
+  padding: 2px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.vocab-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4B5563;
+  background: #E5E7EB;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.insight-date-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #9CA3AF;
 }
 
 .insight-detail-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  font-size: 13.5px;
-  line-height: 1.5;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
   color: #4B5563;
 }
 
@@ -810,7 +1032,7 @@
   font-weight: 600;
   color: #DC2626;
   background: #FEE2E2;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 6px;
   display: inline-block;
 }
@@ -818,9 +1040,9 @@
 .insight-detail-row.learning-row {
   background: #F0FDF4;
   border: 1px solid #BBF7D0;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 12px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .learning-highlight {
@@ -828,116 +1050,21 @@
   color: #166534;
 }
 
-.empty-insights {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 36px 20px;
-  color: #9CA3AF;
-  text-align: center;
-  gap: 8px;
-}
-
-.empty-insights p {
-  margin: 0;
-  font-size: 13.5px;
-}
-
-/* Tab Filter Tipe Kotak */
-.insight-type-pills {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #F3F4F6;
-  padding: 4px;
-  border-radius: 14px;
-}
-
-.type-pill {
-  background: transparent;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #4B5563;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.type-pill:hover {
-  color: #111827;
-}
-
-.type-pill.active {
-  background: #FFFFFF;
-  color: #111827;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-/* Badge Tipe di Header Card */
-.deletion-badge-pill {
-  font-size: 11px;
-  font-weight: 700;
-  color: #DC2626;
-  background: #FEE2E2;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid #FECACA;
-}
-
-.vocab-badge-pill {
-  font-size: 11px;
-  font-weight: 700;
-  color: #D97706;
-  background: #FEF3C7;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid #FDE68A;
-}
-
-/* Khusus Kotak Kosakata Baru: Desain Bersih & Elegan Sesuai Permintaan User */
-.insight-clean-card.vocab-card {
+/* Card Vocab Variant */
+.insight-modern-card.vocab-card {
   background: #FFFDF9;
-  border: 1px solid #FDE68A;
+  border-color: #FDE68A;
   border-left: 4px solid #F59E0B;
 }
 
-.insight-clean-card.vocab-card:hover {
+.insight-modern-card.vocab-card:hover {
   background: #FFFFFF;
   border-color: #F59E0B;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.1);
 }
 
-.insight-user-avatar.vocab-avatar {
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
-}
-
-.vocab-word-highlight {
-  font-size: 15px;
-  font-weight: 800;
-  color: #92400E;
-  background: #FEF3C7;
-  padding: 2px 10px;
-  border-radius: 8px;
-  display: inline-block;
-  letter-spacing: 0.2px;
-}
-
-.vocab-category-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #4B5563;
-  background: #F3F4F6;
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-left: 6px;
+.vocab-avatar {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3) !important;
 }
 
 .vocab-learning-row {
@@ -949,7 +1076,12 @@
   color: #92400E !important;
 }
 
-/* Tombol Bersihkan Log Header: Desain Premium, Bersih & Elegan */
+/* Deletion card accent */
+.insight-modern-card.deletion-card {
+  border-left: 4px solid #EF4444;
+}
+
+/* Buttons */
 .btn-clear-all-log {
   display: inline-flex;
   align-items: center;
@@ -974,20 +1106,15 @@
   box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
 }
 
-.btn-clear-all-log:active {
-  transform: scale(0.96);
-}
-
-/* Tombol Tong Sampah Individual di Ujung Kanan Setiap Kotak Log */
 .btn-item-trash {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #F9FAFB;
   border: 1px solid #E5E7EB;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #9CA3AF;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1000,13 +1127,82 @@
   border-color: #FECACA;
   color: #DC2626;
   transform: scale(1.08);
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
 }
 
-.btn-item-trash:active {
-  transform: scale(0.92);
+.empty-insights-full {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #9CA3AF;
+  text-align: center;
+  gap: 8px;
+  background: #F9FAFB;
+  border-radius: 16px;
+  border: 1px dashed #E5E7EB;
 }
 
+.empty-insights-full h3 {
+  margin: 4px 0 2px 0;
+  color: #374151;
+  font-size: 15px;
+}
 
+.empty-insights-full p {
+  margin: 0;
+  font-size: 13px;
+}
 
-
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .admin-wrapper {
+    padding: 16px 12px 40px 12px;
+  }
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .admin-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .admin-view-tabs {
+    width: 100%;
+    display: flex;
+  }
+  .view-tab-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-box {
+    width: 100%;
+  }
+  .insights-filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .user-select-dropdown {
+    width: 100%;
+  }
+  .insight-type-pills,
+  .insight-date-pills {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .admin-table th, .admin-table td {
+    padding: 10px 12px;
+  }
+  .admin-pagination-bar {
+    flex-direction: column;
+    align-items: center;
+  }
+}
