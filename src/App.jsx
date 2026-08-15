@@ -1205,34 +1205,63 @@ function App() {
 
       let targetTx = null;
 
+      // Robust Multi-Stage Voice Deletion Matcher
+      const cleanStr = (s) => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      const q = cleanStr(result.targetQuery);
+      const qTokens = q.split(' ').filter(Boolean);
+
       if (result.isLast) {
-        // Ambil transaksi paling atas / terakhir dibuat
         targetTx = transactions[0];
-      } else if (result.targetQuery && result.targetAmount) {
-        const q = result.targetQuery.toLowerCase();
-        // Cari transaksi yang cocok judul + nominal
-        targetTx = transactions.find(t => 
-          t.amount === result.targetAmount &&
-          ((t.title && t.title.toLowerCase().includes(q)) ||
-           (t.category && t.category.toLowerCase().includes(q)) ||
-           (t.categoryId && t.categoryId.toLowerCase().includes(q)))
-        );
-        // Fallback jika tidak ketemu tepat keduanya
+      } else if (q && result.targetAmount) {
+        // 1a. Amount + Exact Title
+        targetTx = transactions.find(t => t.amount === result.targetAmount && cleanStr(t.title) === q);
+        // 1b. Amount + Substring Match
+        if (!targetTx) {
+          targetTx = transactions.find(t => 
+            t.amount === result.targetAmount &&
+            (cleanStr(t.title).includes(q) || q.includes(cleanStr(t.title)) || cleanStr(t.category).includes(q) || cleanStr(t.categoryId).includes(q))
+          );
+        }
+        // 1c. Amount + Token Overlap
+        if (!targetTx) {
+          targetTx = transactions.find(t => 
+            t.amount === result.targetAmount &&
+            qTokens.some(tok => tok.length >= 3 && cleanStr(t.title).includes(tok))
+          );
+        }
+        // 1d. Fallback: amount match or title match
         if (!targetTx) {
           targetTx = transactions.find(t => t.amount === result.targetAmount) ||
-                     transactions.find(t => t.title && t.title.toLowerCase().includes(q));
+                     transactions.find(t => cleanStr(t.title).includes(q));
         }
       } else if (result.targetAmount) {
         // Hapus berdasarkan nominal saja (misal: "Hapus 20 ribu")
         targetTx = transactions.find(t => t.amount === result.targetAmount);
-      } else if (result.targetQuery) {
-        const q = result.targetQuery.toLowerCase();
-        // Cari transaksi yang cocok dari title, category, atau categoryId
-        targetTx = transactions.find(t => 
-          (t.title && t.title.toLowerCase().includes(q)) ||
-          (t.category && t.category.toLowerCase().includes(q)) ||
-          (t.categoryId && t.categoryId.toLowerCase().includes(q))
-        );
+      } else if (q) {
+        // 2a. Exact Title Match
+        targetTx = transactions.find(t => cleanStr(t.title) === q);
+        // 2b. Title Substring (Dua Arah: "bakwan" cocok dengan "bakwan jagung" & sebaliknya)
+        if (!targetTx) {
+          targetTx = transactions.find(t => {
+            const ct = cleanStr(t.title);
+            return ct.includes(q) || q.includes(ct);
+          });
+        }
+        // 2c. Category Match
+        if (!targetTx) {
+          targetTx = transactions.find(t => {
+            const cc = cleanStr(t.category);
+            const cid = cleanStr(t.categoryId);
+            return cc.includes(q) || cid.includes(q) || q.includes(cc);
+          });
+        }
+        // 2d. Token Overlap Match
+        if (!targetTx) {
+          targetTx = transactions.find(t => {
+            const ct = cleanStr(t.title);
+            return qTokens.some(tok => tok.length >= 3 && ct.includes(tok));
+          });
+        }
       }
 
       if (!targetTx) {

@@ -38,35 +38,55 @@ const SLANG_NUMBER_MAP = [
   { pattern: /\b(cepek|sepek|ce\s*pek)\b/gi, value: 100 }
 ];
 
-// 2. Kamus Penanda Koreksi / Ralat Spontan
+// 2. Kamus Penanda Koreksi / Ralat Spontan (Diurutkan dari frasa terpanjang)
 const CORRECTION_MARKERS = [
-  'eh maksudku', 'maksud aku', 'maksud saya', 'eh bukan', 'eh salah', 'ralat', 'bukan maksudnya', 'maksud gue', 'salah sebut'
+  'apa maksudku', 'apa maksudnya', 'apa maksud saya', 'apa maksud gue',
+  'eh maksudku', 'eh maksudnya', 'eh maksud saya', 'eh maksud gue',
+  'maksud aku', 'maksud saya', 'maksud gue', 'maksud gua', 'maksud ane', 'maksud ana', 'maksud kulo',
+  'maksudku', 'maksudnya',
+  'bukan maksudnya', 'bukan maksudku', 'bukan tapi', 'bukan deng', 'bukan deh', 'bukan dong', 'bukan itu',
+  'eh bukan', 'eh salah', 'salah sebut', 'salah tadi', 'salah deng', 'salah deh', 'salah maksudnya',
+  'ralat ya', 'ralat dong', 'ralat deh', 'ralat',
+  'gak jadi tapi', 'nggak jadi tapi', 'ga jadi tapi', 'gak jadi', 'nggak jadi', 'ga jadi'
 ];
 
-// 2b. Kamus Kata Filler & Perintah Suara (Speech Fillers & Command Phrases)
+// 2b. Kamus Kata Filler, Ragu-ragu & Perintah Suara (Speech Fillers & Inquiry Phrases)
 const PHRASE_FILLERS = [
-  'tolong tambahkan', 'tolong buatkan', 'tolong masukkan', 'tolong simpan', 'tolong input', 'tolong catat', 'tolong catatkan',
-  'bantu tambahkan', 'bantu buatkan', 'bantu masukkan', 'bantu simpan', 'bantu input', 'bantu catat', 'bantu catatkan',
-  'coba tambahkan', 'coba buatkan', 'coba masukkan', 'coba simpan', 'coba input', 'coba catat',
-  'tambahkan dong', 'buatkan dong', 'masukkan dong', 'simpan dong', 'input dong', 'catat dong', 'tulis dong',
-  'tambahkan ya', 'buatkan ya', 'masukkan ya', 'simpan ya', 'input ya', 'catat ya',
+  // Hesitation inquiry & speech disfluency
+  'apa ya namanya', 'apa namanya ya', 'apa namanya tuh', 'apa namanya nih', 'apa namanya',
+  'apa sih namanya', 'apa tuh namanya', 'apa tadi ya', 'apa tadi', 'apaan ya', 'apa itu ya', 'ini apa ya',
+  'apa ya', 'apa tuh', 'gimana ya', 'gimana sih', 'gimana tadi',
+  'apa maksudku', 'apa maksudnya',
+
+  // Command openers & politeness prefixes
+  'tolong catatkan dong', 'tolong catatkan ya', 'tolong catatkan', 'tolong catat dong', 'tolong catat ya', 'tolong catat',
+  'tolong tambahkan', 'tolong buatkan', 'tolong masukkan', 'tolong masukin', 'tolong simpan', 'tolong simpen', 'tolong input',
+  'bantu catatkan', 'bantu catat', 'bantu tambahkan', 'bantu buatkan', 'bantu masukkan', 'bantu masukin', 'bantu simpan', 'bantu input',
+  'coba catatkan', 'coba catat', 'coba tambahkan', 'coba buatkan', 'coba masukkan', 'coba masukin', 'coba simpan', 'coba input',
+  'tambahkan dong', 'buatkan dong', 'masukkan dong', 'masukin dong', 'simpan dong', 'simpen dong', 'input dong', 'catat dong', 'catatin dong', 'tulis dong', 'tulisin dong',
+  'tambahkan ya', 'buatkan ya', 'masukkan ya', 'masukin ya', 'simpan ya', 'input ya', 'catat ya', 'catatin ya', 'tulis ya',
   'tambahkan transaksi', 'masukkan transaksi', 'catat transaksi', 'simpan transaksi', 'buat transaksi',
-  'apa ya', 'apa itu ya', 'ini apa ya', 'gimana ya',
-  'oh iya', 'oh ya', 'bentar ya',
-  'bentar', 'tunggu dulu', 'tunggu sebentar', 'apa namanya', 'pokoknya'
+
+  // Pauses & fillers
+  'oh iya', 'oh ya', 'bentar ya', 'bentar dulu', 'tunggu dulu', 'tunggu sebentar', 'pokoknya'
 ];
 
 const SINGLE_FILLERS = [
-  'eh', 'ee', 'eee', 'aa', 'aaa', 'oh', 'ohh', 'hmm', 'hm', 'em', 'eu', 'euh', 'anu', 'apaan', 'nah', 'uh'
+  'eh', 'ee', 'eee', 'aa', 'aaa', 'oh', 'ohh', 'hmm', 'hm', 'em', 'eu', 'euh',
+  'anu', 'apaan', 'nah', 'uh', 'tuh', 'nih', 'sih', 'dong', 'deh', 'kan', 'loh', 'kok', 'lah', 'ya'
 ];
 
 // 3. Kamus Kategori Komprehensif (24 Expense + 6 Income)
 export const EXPENSE_CATEGORY_KEYWORDS = {
+  gofood: [
+    'gofood', 'go food', 'go-food', 'grabfood', 'grab food', 'grab-food', 'shopeefood', 'shopee food', 'shopee-food',
+    'pesan antar makanan', 'pesan antar', 'delivery makanan', 'pesen gofood', 'order gofood', 'pesen grabfood', 'order grabfood'
+  ],
   food: [
     'nasi padang', 'ayam geprek', 'ayam goreng', 'ayam bakar', 'nasi goreng', 'mie ayam', 'mie instan',
     'bubur ayam', 'pecel lele', 'ikan bakar', 'mie gacoan', 'rujak buah', 'rujak pepaya', 'rujak mentimun', 'rujak',
     'makan siang', 'makan malam', 'makan', 'sarapan', 'maksi', 'dinner', 'nasi', 'geprek', 'bakso', 'mie', 'indomie',
-    'soto', 'sate', 'rawon', 'gule', 'bubur', 'martabak', 'gorengan', 'tahu', 'tempe', 'seblak', 'cilok', 'cireng',
+    'soto', 'sate', 'rawon', 'gule', 'bubur', 'martabak', 'gorengan', 'bakwan', 'tahu', 'tempe', 'seblak', 'cilok', 'cireng',
     'batagor', 'siomay', 'warteg', 'angkringan', 'kantin', 'seafood', 'burger', 'mcd', 'mekdi', 'kfc', 'hokben',
     'gacoan', 'pizza', 'pasta', 'ramen', 'sushi', 'roti', 'kue', 'donat', 'jco', 'snack', 'cemilan',
     'jajan', 'kuliner', 'bebek'
@@ -75,10 +95,6 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'kopi kenangan', 'janji jiwa', 'point coffee', 'kopi susu', 'starbucks', 'espresso',
     'cappuccino', 'americano', 'tomoro', 'chatime', 'es teh', 'esteh', 'ngopi', 'coffee', 'kopsu',
     'latte', 'sbux', 'kenangan', 'fore', 'kulo', 'cafe', 'kafe', 'tongkrongan', 'boba', 'teh', 'kopi'
-  ],
-  gofood: [
-    'gofood', 'go food', 'grabfood', 'grab food', 'shopeefood', 'shopee food', 'pesan antar',
-    'delivery makanan', 'pesen gofood', 'order gofood', 'order grabfood'
   ],
   transport: [
     'commuterline', 'transjakarta', 'bensin grab', 'bluebird', 'maxim', 'indrive', 'taksi', 'taxi',
@@ -212,7 +228,6 @@ const ACCOUNT_KEYWORDS = {
   ]
 };
 
-// Aliases Akun Pengguna untuk pencocokan nama akun
 const ACCOUNT_SYNONYMS = {
   'shopeepay': 'ShopeePay',
   'spay': 'ShopeePay',
@@ -239,29 +254,30 @@ const NOTE_MARKERS = [
 
 // 6. Kata Hubung, Kata Kerja & Istilah Perintah Umum (Dibersihkan secara mutlak agar judul note murni item/keperluan)
 export const CONNECTING_WORDS = [
-  // A. Kata Perintah & Interaksi Suara (Voice Command Verbs & Prefixes)
-  'tambahkan', 'tambah', 'masukkan', 'masukan', 'input', 'tuliskan', 'tulis', 'buatkan', 'buat',
-  'simpanlah', 'simpan', 'isikan', 'isikanlah', 'catatkan', 'catat', 'rekam', 'inputkan', 'add', 'create', 'save', 'insert',
+  // A. Kata Perintah & Interaksi Suara
+  'tambahkan', 'tambah', 'masukkan', 'masukin', 'input', 'tuliskan', 'tulisin', 'tulis', 'buatkan', 'buat',
+  'simpanlah', 'simpan', 'simpen', 'isikan', 'isikanlah', 'catatkan', 'catatin', 'catat', 'rekam', 'inputkan', 'add', 'create', 'save', 'insert',
   'bantu', 'tolong', 'coba', 'silakan', 'silahkan', 'mohon', 'minta',
 
-  // B. Kata Ganti Orang & Waktu
-  'aku', 'saya', 'gue', 'gw', 'kami', 'kita', 'dia', 'nanti', 'tadi', 'kemarin', 'hari ini', 'mau', 'ini', 'itu',
+  // B. Kata Ganti & Ragu-ragu
+  'apa', 'apaan', 'maksudku', 'maksudnya', 'maksud', 'aku', 'saya', 'gue', 'gw', 'kami', 'kita', 'dia',
+  'nanti', 'tadi', 'kemarin', 'hari ini', 'mau', 'ini', 'itu', 'tuh', 'nih', 'sih',
   'lapar', 'laper', 'kenyang', 'haus', 'banget', 'terus', 'lalu', 'kemudian',
 
-  // C. Kata Aksi Finansial & Transaksi
+  // C. Kata Aksi Finansial
   'dengan', 'pake', 'pakai', 'harga', 'harganya', 'beli', 'membeli', 'bayar', 'membayar', 'terbayar',
   'isi', 'ngisi', 'mengisi', 'pesan', 'pesen', 'order', 'pesan antar', 'delivery',
   'belanja', 'tiket', 'kategori', 'transaksi', 'pengeluaran', 'pemasukan', 'biaya', 'ongkos', 'tarif',
 
-  // D. Delivery Platform & Pembayaran
+  // D. Platform & Pembayaran
   'gofood', 'go-food', 'go food', 'grabfood', 'grab-food', 'grab food', 'shopeefood', 'shopee-food', 'shopee food',
   'scan', 'barcode', 'scan barcode', 'transfer', 'tf', 'debit', 'rekening', 'qris', 'kris', 'keris', 'cash', 'tunai', 'mbanking', 'm-banking',
   'bca', 'mandiri', 'bri', 'bni', 'gopay', 'ovo', 'dana', 'shopeepay', 'spay',
 
-  // E. Preposisi & Partikel Kalimat
-  'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'nih', 'ya', 'kan', 'ada',
+  // E. Preposisi & Partikel
+  'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'ya', 'kan', 'ada',
   'buat', 'untuk', 'sebesar', 'senilai', 'nominal', 'sejumlah', 'uang', 'keluar', 'masuk', 'terima', 'dapat', 'dapet', 'oleh',
-  'enggak', 'nggak', 'ngga', 'gak', 'ga'
+  'enggak', 'nggak', 'ngga', 'gak', 'ga', 'bukan', 'salah'
 ];
 
 /**
@@ -272,7 +288,12 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     return { success: false, reason: 'empty_text' };
   }
 
-  let text = rawText.toLowerCase().trim();
+  // Bersihkan tanda baca di luar angka (titik desimal 1.5jt atau ribuan 50.000 tetap aman)
+  let text = rawText
+    .toLowerCase()
+    .replace(/(?<!\d)[.,!?:;"'“”’/]+|[.,!?:;"'“”’/]+(?!\d)/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   // Simpan teks asli sebelum pemotongan ralat untuk ekstraksi kategori & konteks
   const preRalatText = text;
@@ -337,7 +358,8 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     });
     LAST_KEYWORDS.forEach(kw => { queryText = queryText.split(kw).join(' '); });
 
-    const targetQuery = queryText.replace(/\s+/g, ' ').trim();
+    // Bersihkan tanda baca secara ketat agar tidak ada '.' atau '!'
+    const targetQuery = queryText.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 
     return {
       success: true,
@@ -376,7 +398,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     text = text.replace(item.pattern, ` ${item.value} `);
   }
 
-  // C. Ekstraksi Nominal (Mendukung format angka bertitik seperti 1.200.000, 50.000 atau desimal 2.5jt)
+  // C. Ekstraksi Nominal
   const amountRegex = /(?:rp\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|rebu|k|juta|jt|miliar|milyar)?(?!\w)/gi;
   const amountMatches = [...text.matchAll(amountRegex)].filter(m => m[0].trim().length > 0);
 
@@ -384,7 +406,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     return { success: false, reason: 'amount_not_found', text };
   }
 
-  // Ambil match nominal terakhir (strategi koreksi ucapan)
+  // Ambil match nominal terakhir
   const lastAmountMatch = amountMatches[amountMatches.length - 1];
   let numStr = lastAmountMatch[1];
   let rawNumber = 0;
@@ -421,12 +443,12 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     'beasiswa', 'kip', 'lpdp', 'affiliate', 'afiliasi', 'endorse', 'hasil jualan', 'omset', 'omzet'
   ];
 
-  // E. Deteksi Akun / Metode Pembayaran (Prioritas Nama Akun Pengguna / Spesifik)
+  // E. Deteksi Akun / Metode Pembayaran
   let account = 'Cash';
   let latestAccountIndex = -1;
   let accountMatchedWord = '';
 
-  // 1. Cek Akun Kustom / Daftar Akun Pengguna DULUAN (BCA, Mandiri, GoPay, OVO, Dana, ShopeePay, BRI, BNI, dll)
+  // 1. Cek Akun Kustom / Daftar Akun Pengguna DULUAN
   if (accountsList && Array.isArray(accountsList)) {
     for (const customAcc of accountsList) {
       const kw = customAcc.toLowerCase();
@@ -452,7 +474,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // 2. Jika belum cocok dengan akun spesifik, cek Akun Standar (Cash, Bank, QRIS)
+  // 2. Cek Akun Standar (Cash, Bank, QRIS)
   if (latestAccountIndex === -1) {
     for (const accType of Object.keys(ACCOUNT_KEYWORDS)) {
       const keywords = ACCOUNT_KEYWORDS[accType];
@@ -496,9 +518,11 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
 
   // G. Deteksi Tipe (Income vs Expense) & Kategori Secara Menyeluruh
   const fullContextText = `${text} ${preRalatText}`;
-  let isIncome = INCOME_SIGNALS.some(sig => fullContextText.includes(sig));
+  let isIncome = INCOME_SIGNALS.some(sig => {
+    const regex = new RegExp(`\\b${sig}\\b`, 'i');
+    return regex.test(fullContextText);
+  });
 
-  // Cek apakah ada kecocokan eksplisit pada kategori Income
   let matchedIncomeCatId = null;
   let latestIncomeIdx = -1;
   let incomeMatchedWord = '';
@@ -525,21 +549,20 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // Cek apakah ada kecocokan eksplisit pada kategori Expense
   let matchedExpenseCatId = null;
   let latestExpenseIdx = -1;
   let expenseMatchedWord = '';
 
-  // Prioritas khusus 1: Makanan Pokok Spesifik (Nasi Padang, Bakso, Seblak, Ayam, Soto, Mie, Rujak)
-  if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakso|soto|sate|rawon|seblak|rujak)\b/i.test(fullContextText)) {
-    matchedExpenseCatId = 'food';
-    latestExpenseIdx = 9500;
-    expenseMatchedWord = 'food';
-  } else if (/\b(gofood|go[- ]*food|grabfood|grab[- ]*food|shopeefood|shopee[- ]*food|pesan\s*antar)\b/i.test(fullContextText)) {
-    // Prioritas khusus 2: GoFood / GrabFood / ShopeeFood
+  // Prioritas khusus 1: Delivery Platform (GoFood / GrabFood / ShopeeFood) HARUS LEBIH TINGGI daripada Food biasa
+  if (/\b(gofood|go[- ]*food|grabfood|grab[- ]*food|shopeefood|shopee[- ]*food|pesan\s*antar)\b/i.test(fullContextText)) {
     matchedExpenseCatId = 'gofood';
     latestExpenseIdx = 9999;
     expenseMatchedWord = 'gofood';
+  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakso|soto|sate|rawon|seblak|rujak|bakwan)\b/i.test(fullContextText)) {
+    // Prioritas khusus 2: Makanan Pokok Spesifik
+    matchedExpenseCatId = 'food';
+    latestExpenseIdx = 9500;
+    expenseMatchedWord = 'food';
   } else if (/\b(grabcar|goride|gocar|grabride|transjakarta|commuterline|krl|mrt|lrt|e-toll|etoll|angkot|busway)\b/i.test(fullContextText)) {
     // Prioritas khusus 3: Transportasi
     matchedExpenseCatId = 'transport';
@@ -601,7 +624,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     });
   }
 
-  // Tentukan apakah Income atau Expense berdasarkan sinyal dan posisi kategori
   if (matchedIncomeCatId && (!matchedExpenseCatId || latestIncomeIdx >= latestExpenseIdx || isIncome)) {
     isIncome = true;
   } else if (matchedExpenseCatId && !isIncome) {
@@ -614,7 +636,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   let foundCategoryId = isIncome ? matchedIncomeCatId : matchedExpenseCatId;
   let categoryMatchedWord = isIncome ? incomeMatchedWord : expenseMatchedWord;
 
-  // Fallback Cerdas: Fuzzy Matching untuk toleransi typo suara / logat daerah ringan
+  // Fallback Cerdas: Fuzzy Matching
   if (!foundCategoryId) {
     const targetDict = isIncome ? INCOME_CATEGORY_KEYWORDS : EXPENSE_CATEGORY_KEYWORDS;
     const textWords = text.split(/\s+/).filter(w => w.length >= 3 && !CONNECTING_WORDS.includes(w));
@@ -695,7 +717,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   }
 
   let note = finalNoteString.trim();
-  // Hapus tanda baca di awal/akhir kalimat (seperti titik, koma, tanda tanya, dll)
+  // Hapus tanda baca di awal/akhir
   note = note.replace(/^[.,!?:;\s]+|[.,!?:;\s]+$/g, '').trim();
 
   if (note.length >= 2) {
