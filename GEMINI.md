@@ -42,7 +42,9 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
 
 ## 6. Format Penulisan "What's New" / Update Release Notes
-* **Aturan**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure), gunakan format yang simpel, langsung menyebutkan fiturnya saja menggunakan bullet point dan label `[New]` tanpa penjelasan tambahan.
+* **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
+  1. **Wajib Audit Komprehensif via Git Diff**: Dilarang hanya mencantumkan fitur dari topik obrolan terakhir. Wajib memeriksa perubahan riil secara menyeluruh menggunakan `git diff` / riwayat perubahan terhadap versi rilis sebelumnya untuk mendeteksi seluruh fitur baru, aset, optimasi, dan perbaikan yang masuk ke dalam build rilis tersebut.
+  2. **Format Ringkas Bullet Point**: Gunakan format yang simpel, langsung menyebutkan seluruh fitur/perubahan yang ditemukan menggunakan bullet point dan label `[New]` tanpa penjelasan tambahan.
 * **Format Contoh**:
   ```text
   New in this update:
