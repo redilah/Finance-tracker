@@ -230,6 +230,19 @@ export default function VoiceMicButton({
           return;
         }
 
+        if (result.isMultiple && Array.isArray(result.commands)) {
+          handleSaveVoiceTransaction(result);
+          setStatus('success');
+
+          setTimeout(() => {
+            setStatus('idle');
+            isProcessingRef.current = false;
+            setAmountVal('');
+            setNote('');
+          }, 1000);
+          return;
+        }
+
         // A. Perintah Hapus (Voice-Command DELETE)
         if (result.action === 'DELETE') {
           handleSaveVoiceTransaction(result);

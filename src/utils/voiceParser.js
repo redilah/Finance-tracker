@@ -50,15 +50,13 @@ const CORRECTION_MARKERS = [
   'gak jadi tapi', 'nggak jadi tapi', 'ga jadi tapi', 'gak jadi', 'nggak jadi', 'ga jadi'
 ];
 
-// 2b. Kamus Kata Filler, Ragu-ragu & Perintah Suara (Speech Fillers & Inquiry Phrases)
+// 2b. Kamus Kata Filler, Ragu-ragu & Perintah Suara
 const PHRASE_FILLERS = [
-  // Hesitation inquiry & speech disfluency
   'apa ya namanya', 'apa namanya ya', 'apa namanya tuh', 'apa namanya nih', 'apa namanya',
   'apa sih namanya', 'apa tuh namanya', 'apa tadi ya', 'apa tadi', 'apaan ya', 'apa itu ya', 'ini apa ya',
   'apa ya', 'apa tuh', 'gimana ya', 'gimana sih', 'gimana tadi',
   'apa maksudku', 'apa maksudnya',
 
-  // Command openers & politeness prefixes
   'tolong catatkan dong', 'tolong catatkan ya', 'tolong catatkan', 'tolong catat dong', 'tolong catat ya', 'tolong catat',
   'tolong tambahkan', 'tolong buatkan', 'tolong masukkan', 'tolong masukin', 'tolong simpan', 'tolong simpen', 'tolong input',
   'bantu catatkan', 'bantu catat', 'bantu tambahkan', 'bantu buatkan', 'bantu masukkan', 'bantu masukin', 'bantu simpan', 'bantu input',
@@ -67,7 +65,6 @@ const PHRASE_FILLERS = [
   'tambahkan ya', 'buatkan ya', 'masukkan ya', 'masukin ya', 'simpan ya', 'input ya', 'catat ya', 'catatin ya', 'tulis ya',
   'tambahkan transaksi', 'masukkan transaksi', 'catat transaksi', 'simpan transaksi', 'buat transaksi',
 
-  // Pauses & fillers
   'oh iya', 'oh ya', 'bentar ya', 'bentar dulu', 'tunggu dulu', 'tunggu sebentar', 'pokoknya'
 ];
 
@@ -83,7 +80,7 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'pesan antar makanan', 'pesan antar', 'delivery makanan', 'pesen gofood', 'order gofood', 'pesen grabfood', 'order grabfood'
   ],
   food: [
-    'nasi padang', 'ayam geprek', 'ayam goreng', 'ayam bakar', 'nasi goreng', 'mie ayam', 'mie instan',
+    'nasi padang', 'ayam geprek', 'ayam goreng', 'ayam bakar', 'nasi goreng', 'mie ayam', 'mie instan', 'bakmie',
     'bubur ayam', 'pecel lele', 'ikan bakar', 'mie gacoan', 'rujak buah', 'rujak pepaya', 'rujak mentimun', 'rujak',
     'makan siang', 'makan malam', 'makan', 'sarapan', 'maksi', 'dinner', 'nasi', 'geprek', 'bakso', 'mie', 'indomie',
     'soto', 'sate', 'rawon', 'gule', 'bubur', 'martabak', 'gorengan', 'bakwan', 'tahu', 'tempe', 'seblak', 'cilok', 'cireng',
@@ -252,38 +249,33 @@ const NOTE_MARKERS = [
   'notenya', 'note nya', 'notnya', 'not nya', 'not e', 'note', 'not', 'keterangannya', 'keterangan', 'alasannya', 'alasan'
 ];
 
-// 6. Kata Hubung, Kata Kerja & Istilah Perintah Umum (Dibersihkan secara mutlak agar judul note murni item/keperluan)
+// 6. Kata Hubung, Kata Kerja & Istilah Perintah Umum
 export const CONNECTING_WORDS = [
-  // A. Kata Perintah & Interaksi Suara
   'tambahkan', 'tambah', 'masukkan', 'masukin', 'input', 'tuliskan', 'tulisin', 'tulis', 'buatkan', 'buat',
   'simpanlah', 'simpan', 'simpen', 'isikan', 'isikanlah', 'catatkan', 'catatin', 'catat', 'rekam', 'inputkan', 'add', 'create', 'save', 'insert',
   'bantu', 'tolong', 'coba', 'silakan', 'silahkan', 'mohon', 'minta',
 
-  // B. Kata Ganti & Ragu-ragu
   'apa', 'apaan', 'maksudku', 'maksudnya', 'maksud', 'aku', 'saya', 'gue', 'gw', 'kami', 'kita', 'dia',
   'nanti', 'tadi', 'kemarin', 'hari ini', 'mau', 'ini', 'itu', 'tuh', 'nih', 'sih',
   'lapar', 'laper', 'kenyang', 'haus', 'banget', 'terus', 'lalu', 'kemudian',
 
-  // C. Kata Aksi Finansial
   'dengan', 'pake', 'pakai', 'harga', 'harganya', 'beli', 'membeli', 'bayar', 'membayar', 'terbayar',
   'isi', 'ngisi', 'mengisi', 'pesan', 'pesen', 'order', 'pesan antar', 'delivery',
   'belanja', 'tiket', 'kategori', 'transaksi', 'pengeluaran', 'pemasukan', 'biaya', 'ongkos', 'tarif',
 
-  // D. Platform & Pembayaran
   'gofood', 'go-food', 'go food', 'grabfood', 'grab-food', 'grab food', 'shopeefood', 'shopee-food', 'shopee food',
   'scan', 'barcode', 'scan barcode', 'transfer', 'tf', 'debit', 'rekening', 'qris', 'kris', 'keris', 'cash', 'tunai', 'mbanking', 'm-banking',
   'bca', 'mandiri', 'bri', 'bni', 'gopay', 'ovo', 'dana', 'shopeepay', 'spay',
 
-  // E. Preposisi & Partikel
   'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'ya', 'kan', 'ada',
   'buat', 'untuk', 'sebesar', 'senilai', 'nominal', 'sejumlah', 'uang', 'keluar', 'masuk', 'terima', 'dapat', 'dapet', 'oleh',
   'enggak', 'nggak', 'ngga', 'gak', 'ga', 'bukan', 'salah'
 ];
 
 /**
- * Main Voice Parser Function
+ * Parser untuk 1 klausa tunggal transaksi atau perintah suara
  */
-export function parseVoiceTransaction(rawText, { expenseCategories, incomeCategories, accountsList } = {}) {
+export function parseSingleVoiceTransaction(rawText, { expenseCategories, incomeCategories, accountsList } = {}) {
   if (!rawText || typeof rawText !== 'string') {
     return { success: false, reason: 'empty_text' };
   }
@@ -295,7 +287,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Simpan teks asli sebelum pemotongan ralat untuk ekstraksi kategori & konteks
   const preRalatText = text;
 
   // 0. Deteksi Perintah Hapus (Voice-Command Delete)
@@ -358,7 +349,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     });
     LAST_KEYWORDS.forEach(kw => { queryText = queryText.split(kw).join(' '); });
 
-    // Bersihkan tanda baca secara ketat agar tidak ada '.' atau '!'
     const targetQuery = queryText.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 
     return {
@@ -371,7 +361,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     };
   }
 
-  // 0b. Deteksi Koreksi / Ralat Spontan (Buang kalimat yang salah sebelum kata ralat)
+  // 0b. Deteksi Koreksi / Ralat Spontan
   let detectedCorrectionMarker = null;
   let preCorrectionText = '';
   for (const marker of CORRECTION_MARKERS) {
@@ -406,7 +396,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     return { success: false, reason: 'amount_not_found', text };
   }
 
-  // Ambil match nominal terakhir
   const lastAmountMatch = amountMatches[amountMatches.length - 1];
   let numStr = lastAmountMatch[1];
   let rawNumber = 0;
@@ -428,7 +417,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   const amount = Math.round(rawNumber);
   const matchedAmountStr = lastAmountMatch[0];
 
-  // Hapus nominal dari text
   const amountIdx = text.lastIndexOf(matchedAmountStr);
   if (amountIdx !== -1) {
     text = text.substring(0, amountIdx) + ' ' + text.substring(amountIdx + matchedAmountStr.length);
@@ -448,7 +436,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   let latestAccountIndex = -1;
   let accountMatchedWord = '';
 
-  // 1. Cek Akun Kustom / Daftar Akun Pengguna DULUAN
   if (accountsList && Array.isArray(accountsList)) {
     for (const customAcc of accountsList) {
       const kw = customAcc.toLowerCase();
@@ -474,7 +461,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // 2. Cek Akun Standar (Cash, Bank, QRIS)
   if (latestAccountIndex === -1) {
     for (const accType of Object.keys(ACCOUNT_KEYWORDS)) {
       const keywords = ACCOUNT_KEYWORDS[accType];
@@ -493,7 +479,7 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // F. Cek Apakah Ada Explicit Note Marker
+  // F. Cek Explicit Note Marker
   let explicitNote = '';
   let noteMarkerFound = false;
 
@@ -511,12 +497,11 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // Hapus kata akun dari sisa text agar note bersih
   if (latestAccountIndex !== -1 && accountMatchedWord) {
     text = text.replace(new RegExp(`\\b${accountMatchedWord}\\b`, 'gi'), ' ');
   }
 
-  // G. Deteksi Tipe (Income vs Expense) & Kategori Secara Menyeluruh
+  // G. Deteksi Tipe & Kategori
   const fullContextText = `${text} ${preRalatText}`;
   let isIncome = INCOME_SIGNALS.some(sig => {
     const regex = new RegExp(`\\b${sig}\\b`, 'i');
@@ -553,23 +538,19 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   let latestExpenseIdx = -1;
   let expenseMatchedWord = '';
 
-  // Prioritas khusus 1: Delivery Platform (GoFood / GrabFood / ShopeeFood) HARUS LEBIH TINGGI daripada Food biasa
   if (/\b(gofood|go[- ]*food|grabfood|grab[- ]*food|shopeefood|shopee[- ]*food|pesan\s*antar)\b/i.test(fullContextText)) {
     matchedExpenseCatId = 'gofood';
     latestExpenseIdx = 9999;
     expenseMatchedWord = 'gofood';
-  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakso|soto|sate|rawon|seblak|rujak|bakwan)\b/i.test(fullContextText)) {
-    // Prioritas khusus 2: Makanan Pokok Spesifik
+  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan)\b/i.test(fullContextText)) {
     matchedExpenseCatId = 'food';
     latestExpenseIdx = 9500;
     expenseMatchedWord = 'food';
   } else if (/\b(grabcar|goride|gocar|grabride|transjakarta|commuterline|krl|mrt|lrt|e-toll|etoll|angkot|busway)\b/i.test(fullContextText)) {
-    // Prioritas khusus 3: Transportasi
     matchedExpenseCatId = 'transport';
     latestExpenseIdx = 9000;
     expenseMatchedWord = 'transport';
   } else if (/\b(barbershop|pangkas rambut|potong rambut|cukur rambut|cukur jenggot)\b/i.test(fullContextText)) {
-    // Prioritas khusus 4: Barber
     matchedExpenseCatId = 'barber';
     latestExpenseIdx = 9000;
     expenseMatchedWord = 'barbershop';
@@ -597,7 +578,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     }
   }
 
-  // Gabungkan kosakata hasil belajar mandiri lokal
   const learnedVocab = getLearnedVocabulary();
   if (learnedVocab && learnedVocab.categories) {
     Object.keys(learnedVocab.categories).forEach(catId => {
@@ -636,7 +616,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   let foundCategoryId = isIncome ? matchedIncomeCatId : matchedExpenseCatId;
   let categoryMatchedWord = isIncome ? incomeMatchedWord : expenseMatchedWord;
 
-  // Fallback Cerdas: Fuzzy Matching
   if (!foundCategoryId) {
     const targetDict = isIncome ? INCOME_CATEGORY_KEYWORDS : EXPENSE_CATEGORY_KEYWORDS;
     const textWords = text.split(/\s+/).filter(w => w.length >= 3 && !CONNECTING_WORDS.includes(w));
@@ -665,12 +644,10 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   // H. Penyusunan Catatan Akhir (Final Note)
   let finalNoteString = '';
 
-  // 1. Ekstraksi token dari teks hasil ralat
   let itemTokens = text.split(/\s+/).filter(Boolean);
   itemTokens = itemTokens.filter(t => !CONNECTING_WORDS.includes(t));
   let itemName = itemTokens.join(' ').trim();
 
-  // 2. Jika ralat hanya mengoreksi nominal (misal: "beli bakso 15rb eh maksudku 20rb"), ambil nama item dari preCorrectionText
   if (!itemName && detectedCorrectionMarker && preCorrectionText) {
     let cleanPre = preCorrectionText;
     for (const item of SLANG_NUMBER_MAP) {
@@ -717,7 +694,6 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
   }
 
   let note = finalNoteString.trim();
-  // Hapus tanda baca di awal/akhir
   note = note.replace(/^[.,!?:;\s]+|[.,!?:;\s]+$/g, '').trim();
 
   if (note.length >= 2) {
@@ -735,4 +711,75 @@ export function parseVoiceTransaction(rawText, { expenseCategories, incomeCatego
     note,
     rawText
   };
+}
+
+/**
+ * Deteksi apakah suatu klausa memiliki potensi aksi (Hapus atau memiliki nominal)
+ */
+function clauseHasActionOrAmount(clause) {
+  if (!clause || typeof clause !== 'string') return false;
+  const lower = clause.toLowerCase();
+
+  // 1. Cek perintah hapus
+  const isDelete = /\b(hapus|delete|batalin|batalkan|buang|hilangkan)\b/i.test(lower);
+  if (isDelete) return true;
+
+  // 2. Cek apakah ada slang nominal
+  for (const item of SLANG_NUMBER_MAP) {
+    if (item.pattern.test(lower)) return true;
+  }
+
+  // 3. Cek apakah ada angka / nominal
+  const amountRegex = /(?:rp\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|rebu|k|juta|jt|miliar|milyar)?(?!\w)/i;
+  return amountRegex.test(lower);
+}
+
+/**
+ * Multi-Intent Voice Parser:
+ * Mampu mengeksekusi multi-transaksi dalam 1 kalimat ucapan sekaligus
+ * (misal: "hapus bakwan tambahkan bakmie 13 ribu" atau "beli bakso 15rb dan es teh 5rb")
+ */
+export function parseVoiceTransaction(rawText, options = {}) {
+  if (!rawText || typeof rawText !== 'string') {
+    return { success: false, reason: 'empty_text' };
+  }
+
+  // Cek apakah ada koreksi ralat (ralat memiliki prioritas penggantian, bukan multi-transaksi)
+  const hasCorrection = CORRECTION_MARKERS.some(m => rawText.toLowerCase().includes(m));
+  if (hasCorrection) {
+    return parseSingleVoiceTransaction(rawText, options);
+  }
+
+  // Pola pembatas multi-klausa (Conjunctions & Secondary Action Openers)
+  // Contoh: "... dan ...", "... lalu ...", "... kemudian ...", "... terus ...", "... sama beli ...", "... tambahkan ...", "... masukkan ..."
+  const splitRegex = /\b(?:dan\s+juga|dan\s+lagi|dan|lalu|kemudian|terus|serta|sekaligus|plus|sama\s+beli|sama\s+tambah|sama\s+masuk|sama\s+isi|sama\s+catat)\b|(?<=\S)\s+(?=(?:tolong\s+|bantu\s+|coba\s+)?(?:tambahkan|tambah|masukkan|masukin|catat|catatkan|input|tulis|beli|dapat|gajian|cair|hapus|hapusin|delete|batalin|batalkan)\b)/gi;
+
+  const rawClauses = rawText.split(splitRegex).map(c => c.trim()).filter(Boolean);
+
+  if (rawClauses.length >= 2) {
+    // Verifikasi bahwa SETIAP klausa memiliki aksi (Hapus) atau memiliki nominal transaksi
+    const allClausesValid = rawClauses.every(clauseHasActionOrAmount);
+
+    if (allClausesValid) {
+      const parsedCommands = [];
+      for (const clause of rawClauses) {
+        const res = parseSingleVoiceTransaction(clause, options);
+        if (res && res.success) {
+          parsedCommands.push(res);
+        }
+      }
+
+      if (parsedCommands.length === rawClauses.length) {
+        return {
+          success: true,
+          isMultiple: true,
+          commands: parsedCommands,
+          rawText
+        };
+      }
+    }
+  }
+
+  // Fallback ke single transaction
+  return parseSingleVoiceTransaction(rawText, options);
 }

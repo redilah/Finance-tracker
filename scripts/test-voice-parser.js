@@ -342,10 +342,77 @@ const testCases = [
     input: 'beli buku novel di gramedia 85 ribu',
     expected: { type: 'Expense', amount: 85000, categoryId: 'edukasi' }
   },
+  // 7. Multi-Action Voice Commands (Multi-Intent / Compound Commands)
   {
-    name: 'Fashion Baju Kaos',
-    input: 'thrifting beli baju kemeja di uniqlo 150 ribu',
-    expected: { type: 'Expense', amount: 150000, categoryId: 'fashion' }
+    name: 'Multi-Action: Hapus + Tambah Baru',
+    input: 'hapus bakwan tambahkan bakmie 13 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { action: 'DELETE', targetQuery: 'bakwan' },
+        { type: 'Expense', amount: 13000, note: 'Bakmie', categoryId: 'food' }
+      ]
+    }
+  },
+  {
+    name: 'Multi-Action: Hapus Terakhir + Tambah Baru',
+    input: 'hapus transaksi terakhir lalu catat kopi susu 18 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { action: 'DELETE', isLast: true },
+        { type: 'Expense', amount: 18000, note: 'Kopi susu', categoryId: 'coffee' }
+      ]
+    }
+  },
+  {
+    name: 'Multi-Action: Dua Pengeluaran (dan)',
+    input: 'beli bakso 15 ribu dan es teh 5 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { type: 'Expense', amount: 15000, note: 'Bakso', categoryId: 'food' },
+        { type: 'Expense', amount: 5000, note: 'Es teh', categoryId: 'coffee' }
+      ]
+    }
+  },
+  {
+    name: 'Multi-Action: Makan + Bensin (sama beli)',
+    input: 'makan siang nasi padang 25 ribu sama beli bensin 30 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { type: 'Expense', amount: 25000, note: 'Makan siang nasi padang', categoryId: 'food' },
+        { type: 'Expense', amount: 30000, note: 'Bensin', categoryId: 'bensin' }
+      ]
+    }
+  },
+  {
+    name: 'Multi-Action: Gaji + Beli Baju (terus)',
+    input: 'dapat gaji 5 juta terus beli baju 200 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { type: 'Income', amount: 5000000, note: 'Gaji', categoryId: 'gaji' },
+        { type: 'Expense', amount: 200000, note: 'Baju', categoryId: 'fashion' }
+      ]
+    }
+  },
+  {
+    name: 'Multi-Action: Dua Hapus Sekaligus',
+    input: 'hapus bakwan dan hapus es teh',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { action: 'DELETE', targetQuery: 'bakwan' },
+        { action: 'DELETE', targetQuery: 'es teh' }
+      ]
+    }
+  },
+  {
+    name: 'Single Non-Split: Roti dan Selai',
+    input: 'beli roti dan selai 20 ribu',
+    expected: { type: 'Expense', amount: 20000, note: 'Roti dan selai', categoryId: 'food' }
   }
 ];
 
@@ -360,7 +427,31 @@ function runTests() {
     let isMatch = true;
     const errors = [];
 
-    if (tc.expected.action === 'DELETE') {
+    if (tc.expected.isMultiple) {
+      if (!res.isMultiple || !Array.isArray(res.commands)) {
+        isMatch = false;
+        errors.push(`Expected isMultiple=true but got single result`);
+      } else if (res.commands.length !== tc.expected.commands.length) {
+        isMatch = false;
+        errors.push(`Expected ${tc.expected.commands.length} commands but got ${res.commands.length}`);
+      } else {
+        for (let i = 0; i < tc.expected.commands.length; i++) {
+          const expCmd = tc.expected.commands[i];
+          const actCmd = res.commands[i];
+          if (expCmd.action === 'DELETE') {
+            if (actCmd.action !== 'DELETE') errors.push(`Cmd[${i}] action expected DELETE but got ${actCmd.action}`);
+            if (expCmd.targetQuery && actCmd.targetQuery !== expCmd.targetQuery) errors.push(`Cmd[${i}] targetQuery expected "${expCmd.targetQuery}" but got "${actCmd.targetQuery}"`);
+            if (expCmd.isLast !== undefined && actCmd.isLast !== expCmd.isLast) errors.push(`Cmd[${i}] isLast expected ${expCmd.isLast} but got ${actCmd.isLast}`);
+          } else {
+            if (expCmd.type && actCmd.type !== expCmd.type) errors.push(`Cmd[${i}] type expected ${expCmd.type} but got ${actCmd.type}`);
+            if (expCmd.amount && actCmd.amount !== expCmd.amount) errors.push(`Cmd[${i}] amount expected ${expCmd.amount} but got ${actCmd.amount}`);
+            if (expCmd.note && actCmd.note !== expCmd.note) errors.push(`Cmd[${i}] note expected "${expCmd.note}" but got "${actCmd.note}"`);
+            if (expCmd.categoryId && actCmd.category?.id !== expCmd.categoryId) errors.push(`Cmd[${i}] categoryId expected "${expCmd.categoryId}" but got "${actCmd.category?.id}"`);
+          }
+        }
+        if (errors.length > 0) isMatch = false;
+      }
+    } else if (tc.expected.action === 'DELETE') {
       if (res.action !== 'DELETE') {
         isMatch = false;
         errors.push(`Action expected DELETE but got ${res.action}`);

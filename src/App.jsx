@@ -1196,6 +1196,16 @@ function App() {
   const handleSaveVoiceTransaction = (result) => {
     if (!result) return;
 
+    // Multi-Action Voice Command Execution (misal: "hapus bakwan tambahkan bakmie 13 ribu")
+    if (result.isMultiple && Array.isArray(result.commands)) {
+      result.commands.forEach((cmd, idx) => {
+        setTimeout(() => {
+          handleSaveVoiceTransaction(cmd);
+        }, idx * 650);
+      });
+      return;
+    }
+
     // A. Perintah Hapus Suara (Voice-Command Delete)
     if (result.action === 'DELETE') {
       if (transactions.length === 0) {
