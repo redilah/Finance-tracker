@@ -11,6 +11,7 @@ import {
   limit 
 } from '@firebase/firestore';
 import { getDeviceId, updateCurrentDeviceTelemetry } from './telemetry.js';
+import { safeStorageGet } from './secureStorage.js';
 import { EXPENSE_CATEGORY_KEYWORDS, INCOME_CATEGORY_KEYWORDS, CONNECTING_WORDS } from './voiceParser.js';
 
 const LEARNED_VOCAB_KEY = 'cassiel_learned_voice_vocab';
@@ -344,7 +345,9 @@ export function recordDeletionEvaluation(targetTx, voiceQuery = '', targetAmount
   const title = targetTx.title || targetTx.category || 'Transaksi';
   const amountStr = (targetTx.amount || 0).toLocaleString('id-ID');
   const accStr = targetTx.account || 'Cash';
-  const finalUserName = userName && userName.trim() ? userName.trim() : (typeof localStorage !== 'undefined' ? (localStorage.getItem('user_profile_name') || 'Pengguna') : 'Pengguna');
+  const finalUserName = userName && userName.trim() && !userName.startsWith('enc:v1:') 
+    ? userName.trim() 
+    : (safeStorageGet('user_profile_name') || 'Pengguna');
 
   const reason = analyzeDeletionReason(targetTx, voiceQuery, targetAmount);
   const learningPoint = generateSensibleLearningPoint(targetTx, voiceQuery, targetAmount);
@@ -422,7 +425,7 @@ export function syncLearnerWithUserData(customCategories = [], transactions = []
     // Jika menemukan kata baru yang benar-benar unik (bukan bawaan), simpan dengan tipe NEW_VOCAB dengan format simpel
     if (newWordsDiscovered.length > 0) {
       const topWord = newWordsDiscovered[0];
-      const userName = typeof localStorage !== 'undefined' ? (localStorage.getItem('user_profile_name') || 'Pengguna') : 'Pengguna';
+      const userName = safeStorageGet('user_profile_name') || 'Pengguna';
       recordLearnedInsight({
         type: 'NEW_VOCAB',
         userName: userName,
