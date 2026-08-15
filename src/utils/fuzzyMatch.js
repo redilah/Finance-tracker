@@ -32,6 +32,13 @@ export function levenshteinDistance(a, b) {
   return matrix[b.length][a.length];
 }
 
+// Blacklist pasangan kata yang sering salah cocok padahal maknanya sangat berbeda
+const FALSE_POSITIVE_PAIRS = new Set([
+  'hijau:hijab', 'hijab:hijau',
+  'merah:murah', 'murah:merah',
+  'kuning:kucing', 'kucing:kuning'
+]);
+
 /**
  * Mencari kecocokan terdekat dari daftar target
  * @param {string} word - Kata input
@@ -50,8 +57,12 @@ export function findClosestMatch(word, candidates, maxDistance = 2) {
     const lowerCandidate = candidate.toLowerCase().trim();
     if (lowerWord === lowerCandidate) return candidate;
 
-    // Untuk kata pendek (< 4 huruf), batasi jarak toleransi maks 1
-    const allowedDist = lowerCandidate.length <= 3 ? 1 : maxDistance;
+    if (FALSE_POSITIVE_PAIRS.has(`${lowerWord}:${lowerCandidate}`)) {
+      continue;
+    }
+
+    // Untuk kata pendek (<= 5 huruf), batasi jarak toleransi maks 1
+    const allowedDist = lowerCandidate.length <= 5 ? 1 : maxDistance;
     const dist = levenshteinDistance(lowerWord, lowerCandidate);
 
     if (dist <= allowedDist && dist < minDistance) {

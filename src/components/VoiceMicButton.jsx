@@ -19,6 +19,7 @@ export default function VoiceMicButton({
   const silenceTimerRef = useRef(null);
   const accumulatedTranscriptRef = useRef('');
   const isProcessingRef = useRef(false); // Flag anti duplikasi / double trigger
+  const lastProcessedInfoRef = useRef({ text: '', timestamp: 0 }); // Deduplication timestamp guard
 
   // Hentikan rekaman dan batalkan / proses
   const handleCancelOrStop = () => {
@@ -139,7 +140,15 @@ export default function VoiceMicButton({
       // 2. Web / Laptop Browser (Continuous listening with 1.2s silence debounce)
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              voiceIsolation: true,
+              channelCount: 1
+            }
+          });
           stream.getTracks().forEach(track => track.stop());
         }
 
@@ -216,6 +225,22 @@ export default function VoiceMicButton({
   };
 
   const processText = (text) => {
+    const clean = (text || '').trim().toLowerCase();
+    const now = Date.now();
+
+    if (!clean) {
+      isProcessingRef.current = false;
+      setStatus('idle');
+      return;
+    }
+
+    // Blokir pemicuan ganda jika teks sama diproses dalam kurun waktu kurang dari 2.5 detik
+    if (lastProcessedInfoRef.current.text === clean && (now - lastProcessedInfoRef.current.timestamp) < 2500) {
+      console.warn('Blocked duplicate speech trigger:', clean);
+      return;
+    }
+    lastProcessedInfoRef.current = { text: clean, timestamp: now };
+
     isProcessingRef.current = true;
     setStatus('processing'); // Visual State: Oranye Memahami
     

@@ -1,6 +1,7 @@
 import { findClosestMatch } from './fuzzyMatch.js';
 import { getLearnedVocabulary } from './voiceLearner.js';
 import { evaluateNoise } from './noiseFilter.js';
+import { checkProhibitedContent } from './safetyGuard.js';
 
 // 1. Kamus Konversi Nominal Gaul & Slang Indonesia (Urutan dari yang paling panjang ke pendek)
 const SLANG_NUMBER_MAP = [
@@ -83,6 +84,10 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
   food: [
     'nasi padang', 'ayam geprek', 'ayam goreng', 'ayam bakar', 'nasi goreng', 'mie ayam', 'mie instan', 'bakmie',
     'bubur ayam', 'pecel lele', 'ikan bakar', 'mie gacoan', 'rujak buah', 'rujak pepaya', 'rujak mentimun', 'rujak',
+    'es kacang hijau', 'es kacang ijo', 'kacang hijau', 'kacang ijo', 'bubur kacang ijo', 'burjo',
+    'es campur', 'es teler', 'es buah', 'es cendol', 'es dawet', 'es doger', 'kolak',
+    'telur dadar', 'telur goreng', 'telur ceplok', 'telur gulung', 'telur balado', 'telur asin',
+    'telor dadar', 'telor goreng', 'telor ceplok', 'telor gulung', 'telor balado', 'telor asin',
     'makan siang', 'makan malam', 'makan', 'sarapan', 'maksi', 'dinner', 'nasi', 'geprek', 'bakso', 'mie', 'indomie',
     'soto', 'sate', 'rawon', 'gule', 'bubur', 'martabak', 'gorengan', 'bakwan', 'tahu', 'tempe', 'seblak', 'cilok', 'cireng',
     'batagor', 'siomay', 'warteg', 'angkringan', 'kantin', 'seafood', 'burger', 'mcd', 'mekdi', 'kfc', 'hokben',
@@ -130,7 +135,7 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
   supermarket: [
     'belanja bulanan', 'minyak goreng', 'belanjaan rumah', 'supermarket', 'minimarket', 'indomaret',
     'alfamart', 'alfamidi', 'superindo', 'hypermart', 'transmart', 'sabun cuci', 'deterjen',
-    'pewangi', 'sembako', 'lotte', 'beras', 'gula', 'telur', 'tissue', 'tisu'
+    'pewangi', 'sembako', 'lotte', 'beras', 'gula', 'telur ayam', 'telur bebek', 'telur', 'telor', 'tissue', 'tisu'
   ],
   sub: [
     'youtube premium', 'yt premium', 'prime video', 'apple music', 'google one', 'member gym',
@@ -182,9 +187,63 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'uang jajan adik', 'uang saku adek', 'uang jajan adek', 'uang jajan anak', 'jajanan adek',
     'jajan adek', 'jajan adik', 'jajan anak', 'saku adek', 'adek', 'adik'
   ],
+  buah: [
+    'buah-buahan', 'buah buahan', 'toko buah', 'tukang buah', 'pasar buah', 'jus buah', 'buah potong',
+    'buah nanas', 'nanas madu', 'nanas subang', 'nanas', 'pineapple',
+    'buah apel', 'apel fuji', 'apel manalagi', 'apel washington', 'apel merah', 'apel hijau', 'apel', 'apple',
+    'buah pisang', 'pisang ambon', 'pisang raja', 'pisang cavendish', 'pisang kepok', 'pisang sunpride', 'pisang', 'banana',
+    'buah jeruk', 'jeruk medan', 'jeruk pontianak', 'jeruk santang', 'jeruk nipis', 'jeruk purut', 'jeruk peras', 'jeruk bali', 'jeruk sunkist', 'jeruk', 'orange',
+    'buah semangka', 'semangka merah', 'semangka kuning', 'semangka inul', 'semangka non biji', 'semangka', 'watermelon',
+    'buah melon', 'melon hijau', 'melon kuning', 'melon madu', 'melon',
+    'buah mangga', 'mangga harum manis', 'mangga arumanis', 'mangga indramayu', 'mangga gedong', 'mangga simanalagi', 'mangga', 'mango',
+    'buah durian', 'durian montong', 'durian musang king', 'durian bawor', 'durian', 'duren',
+    'buah alpukat', 'alpukat mentega', 'alpukat aligator', 'alpukat kocok', 'alpukat', 'avocado',
+    'buah anggur', 'anggur merah', 'anggur hijau', 'anggur hitam', 'anggur shine muscat', 'anggur autumn', 'anggur', 'grape',
+    'buah pepaya', 'pepaya calina', 'pepaya california', 'pepaya bangkok', 'pepaya', 'papaya',
+    'buah naga', 'buah naga merah', 'buah naga putih', 'dragon fruit',
+    'buah salak', 'salak pondoh', 'salak bali', 'salak madu', 'salak',
+    'buah rambutan', 'rambutan rapiah', 'rambutan binjai', 'rambutan',
+    'buah stroberi', 'buah strawberry', 'stroberi', 'strawberry',
+    'buah jambu', 'jambu kristal', 'jambu biji', 'jambu air', 'jambu jamaika', 'jambu bol', 'jambu',
+    'buah pear', 'buah pir', 'pir xiang lie', 'pir singo', 'pir century', 'pear', 'pir',
+    'buah kelengkeng', 'kelengkeng bangkok', 'kelengkeng', 'lengkeng',
+    'buah duku', 'duku palembang', 'duku', 'langsat',
+    'buah manggis', 'manggis',
+    'buah kiwi', 'kiwi gold', 'kiwi hijau', 'kiwi',
+    'buah sirsak', 'sirsak',
+    'buah blewah', 'blewah',
+    'buah belimbing', 'belimbing madu', 'belimbing',
+    'buah cempedak', 'cempedak',
+    'buah nangka', 'nangka',
+    'buah markisa', 'markisa',
+    'buah kedondong', 'kedondong',
+    'buah srikaya', 'srikaya',
+    'buah sawo', 'sawo',
+    'buah plum', 'plum',
+    'buah kurma', 'kurma ajwa', 'kurma sukari', 'kurma medjool', 'kurma',
+    'buah delima', 'delima',
+    'buah kelapa', 'kelapa muda', 'degan', 'kelapa',
+    'buah segar', 'buah'
+  ],
   party: [
     'hadiah ultah', 'kado ulang tahun', 'ulang tahun', 'traktiran', 'perayaan', 'pesta', 'party', 'ultah', 'kado',
     'traktir', 'arisan', 'bukber', 'reuni', 'karaoke'
+  ],
+  minuman: [
+    'es buah', 'es campur', 'es teler', 'es kacang hijau', 'es kacang ijo', 'bubur kacang ijo', 'burjo',
+    'es cendol', 'es dawet', 'es doger', 'es pisang ijo', 'es cincau', 'es kuwut', 'es selasih', 'es timun suri',
+    'es blewah', 'es oyen', 'es podeng', 'es tebu', 'es kopyor', 'es pleret', 'es degan', 'es kelapa muda',
+    'coca cola', 'coca-cola', 'cocacola', 'coke', 'sprite', 'fanta', 'pepsi', 'big cola',
+    'pocari sweat', 'pocari', 'mizone', 'isotonic', 'you c 1000', 'you c1000', 'larutan cap kaki tiga',
+    'adem sari', 'ademsari', 'tebs', 'floridina', 'pulpy orange', 'minute maid', 'buavita', 'nutrisari', 'nutri sari', 'hydro coco',
+    'teh botol', 'teh botol sosro', 'teh kotak', 'teh pucuk', 'teh pucuk harum', 'fruit tea',
+    'ultra milk', 'susu uht', 'susu beruang', 'bear brand', 'indomilk', 'milo', 'dancow', 'susu kedelai', 'soya milk', 'soya',
+    'yogurt', 'yakult', 'cimory', 'teh tarik', 'thai tea', 'green tea', 'matcha', 'boba drink', 'bubble tea',
+    'jus alpukat', 'jus mangga', 'jus jeruk', 'jus buah', 'jus jambu', 'jus sirsak', 'jus apel', 'jus melon', 'jus tomat', 'jus semangka', 'jus',
+    'es teh manis', 'es teh tawar', 'es teh', 'esteh', 'es jeruk', 'es lemon tea', 'lemon tea', 'liang teh',
+    'wedang ronde', 'wedang jahe', 'bajigur', 'bandrek', 'sekoteng', 'jamu', 'beras kencur', 'kunyit asam', 'temulawak',
+    'susu jahe', 'susu coklat', 'susu murni', 'susu sapi', 'susu kambing', 'susu',
+    'minuman dingin', 'minuman segar', 'minuman kemasan', 'beli minuman', 'botol minum', 'kedai minuman', 'aneka minuman', 'minuman'
   ]
 };
 
@@ -270,6 +329,7 @@ export const CONNECTING_WORDS = [
 
   'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'ya', 'kan', 'ada',
   'buat', 'untuk', 'sebesar', 'senilai', 'nominal', 'sejumlah', 'uang', 'keluar', 'masuk', 'terima', 'dapat', 'dapet', 'oleh',
+  'kilo', 'kilos', 'kg', 'sekilo', 'ons', 'gram', 'gr', 'liter', 'ikat', 'biji', 'butir', 'potong', 'porsi', 'bungkus', 'pack', 'dus', 'kotak', 'keranjang', 'paket',
   'enggak', 'nggak', 'ngga', 'gak', 'ga', 'bukan', 'salah'
 ];
 
@@ -290,7 +350,21 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
 
   const preRalatText = text;
 
-  // 0a. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
+  // 0a. Safety Guard: Cegah Konten Terlarang (Miras, Alkohol, Narkoba, Judi, dll.)
+  const isFreshFruitContext = /\b(buah anggur|anggur buah|anggur shine|anggur hijau|anggur hitam|anggur autumn|anggur manis|sekilo anggur|kilo anggur)\b/i.test(rawText);
+  if (!isFreshFruitContext) {
+    const safetyCheck = checkProhibitedContent(rawText);
+    if (safetyCheck && safetyCheck.isProhibited) {
+      return {
+        success: false,
+        reason: 'prohibited_content',
+        prohibitedCategory: safetyCheck.category,
+        message: safetyCheck.reason
+      };
+    }
+  }
+
+  // 0b. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
   const noiseEval = evaluateNoise(rawText);
   if (noiseEval.isNoise) {
     const hasStrongTransactionIntent = /\b(beli|membeli|bayar|membayar|terbayar|gajian|gaji|dapat|dapet|terima|cair|catat|catatkan|tambah|tambahkan|masukkan|masukin|input|simpan|hapus|delete|batalin|batalkan)\b/i.test(rawText);
@@ -553,22 +627,36 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   let latestExpenseIdx = -1;
   let expenseMatchedWord = '';
 
-  if (/\b(gofood|go[- ]*food|grabfood|grab[- ]*food|shopeefood|shopee[- ]*food|pesan\s*antar)\b/i.test(fullContextText)) {
+  const primaryText = (text + ' ' + (explicitNote || '')).trim() || fullContextText;
+
+  if (/\b(gofood|go[- ]*food|grabfood|grab[- ]*food|shopeefood|shopee[- ]*food|pesan\s*antar)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'gofood';
     latestExpenseIdx = 9999;
     expenseMatchedWord = 'gofood';
-  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan)\b/i.test(fullContextText)) {
+  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan|telur dadar|telur goreng|telur ceplok|telur gulung|telur balado|telor dadar|telor goreng|telor ceplok)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'food';
     latestExpenseIdx = 9500;
     expenseMatchedWord = 'food';
-  } else if (/\b(grabcar|goride|gocar|grabride|transjakarta|commuterline|krl|mrt|lrt|e-toll|etoll|angkot|busway)\b/i.test(fullContextText)) {
+  } else if (/\b(kopi susu|kopi hitam|kopi latte|kopi kenangan|janji jiwa|point coffee|starbucks|espresso|cappuccino|americano|tomoro|chatime|ngopi|coffee|kopsu|latte|sbux|fore|kopi)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'coffee';
+    latestExpenseIdx = 9600;
+    expenseMatchedWord = 'coffee';
+  } else if (/\b(coca cola|coca-cola|cocacola|coke|sprite|fanta|pepsi|big cola|pocari sweat|pocari|mizone|you c 1000|you c1000|adem sari|ademsari|tebs|floridina|pulpy orange|minute maid|buavita|nutrisari|nutri sari|hydro coco|teh botol|teh kotak|teh pucuk|fruit tea|ultra milk|susu uht|susu beruang|bear brand|indomilk|milo|dancow|susu kedelai|soya milk|yakult|cimory|thai tea|green tea|matcha|boba drink|bubble tea|es buah|es campur|es teler|es kacang hijau|es kacang ijo|bubur kacang ijo|burjo|es cendol|es dawet|es doger|es pisang ijo|es cincau|es kuwut|es selasih|es timun suri|es blewah|es oyen|es podeng|es tebu|es kopyor|es pleret|es degan|es kelapa muda|jus alpukat|jus mangga|jus jeruk|jus buah|jus jambu|jus sirsak|jus apel|jus melon|jus tomat|jus semangka|jus|es teh manis|es teh tawar|es lemon tea|lemon tea|liang teh|wedang ronde|wedang jahe|bajigur|bandrek|sekoteng|jamu|beras kencur|kunyit asam|temulawak|susu jahe|susu coklat|susu murni|minuman dingin|minuman segar|minuman kemasan|minuman)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'minuman';
+    latestExpenseIdx = 9450;
+    expenseMatchedWord = 'minuman';
+  } else if (/\b(grabcar|goride|gocar|grabride|transjakarta|commuterline|krl|mrt|lrt|e-toll|etoll|angkot|busway)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'transport';
     latestExpenseIdx = 9000;
     expenseMatchedWord = 'transport';
-  } else if (/\b(barbershop|pangkas rambut|potong rambut|cukur rambut|cukur jenggot)\b/i.test(fullContextText)) {
+  } else if (/\b(barbershop|pangkas rambut|potong rambut|cukur rambut|cukur jenggot)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'barber';
     latestExpenseIdx = 9000;
     expenseMatchedWord = 'barbershop';
+  } else if (/\b(buah-buahan|buah buahan|toko buah|tukang buah|pasar buah|buah nanas|nanas madu|nanas|buah apel|apel fuji|apel|buah pisang|pisang ambon|pisang|buah jeruk|jeruk medan|jeruk|buah semangka|semangka|buah melon|melon|buah mangga|mangga harum manis|mangga|buah durian|durian|duren|buah alpukat|alpukat|buah anggur|anggur|buah pepaya|pepaya|buah naga|buah salak|salak|buah rambutan|rambutan|buah stroberi|buah strawberry|stroberi|strawberry|buah jambu|jambu|buah pear|buah pir|pear|pir|buah kelengkeng|kelengkeng|lengkeng|buah duku|duku|buah manggis|manggis|buah kiwi|kiwi|buah sirsak|sirsak|buah blewah|blewah|buah belimbing|belimbing|buah nangka|nangka|buah cempedak|cempedak|buah markisa|markisa|buah kedondong|kedondong|buah srikaya|srikaya|buah sawo|sawo|buah plum|plum|buah kurma|kurma|buah delima|delima|buah kelapa|kelapa muda|degan|buah)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'buah';
+    latestExpenseIdx = 9300;
+    expenseMatchedWord = 'buah';
   } else {
     const sortedExpenseCatKeys = Object.keys(EXPENSE_CATEGORY_KEYWORDS).sort((a, b) => {
       return (EXPENSE_CATEGORY_KEYWORDS[b][0]?.length || 0) - (EXPENSE_CATEGORY_KEYWORDS[a][0]?.length || 0);
@@ -771,7 +859,21 @@ export function parseVoiceTransaction(rawText, options = {}) {
     return { success: false, reason: 'empty_text' };
   }
 
-  // 0. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
+  // 0a. Safety Guard: Cegah Konten Terlarang (Miras, Alkohol, Narkoba, Judi, dll.)
+  const isFreshFruitContext = /\b(buah anggur|anggur buah|anggur shine|anggur hijau|anggur hitam|anggur autumn|anggur manis|sekilo anggur|kilo anggur)\b/i.test(rawText);
+  if (!isFreshFruitContext) {
+    const safetyCheck = checkProhibitedContent(rawText);
+    if (safetyCheck && safetyCheck.isProhibited) {
+      return {
+        success: false,
+        reason: 'prohibited_content',
+        prohibitedCategory: safetyCheck.category,
+        message: safetyCheck.reason
+      };
+    }
+  }
+
+  // 0b. Filter Suara Kebisingan Lingkungan, Hewan, Musik & Benda Jatuh
   const noiseEval = evaluateNoise(rawText);
   if (noiseEval.isNoise) {
     const hasStrongTransactionIntent = /\b(beli|membeli|bayar|membayar|terbayar|gajian|gaji|dapat|dapet|terima|cair|catat|catatkan|tambah|tambahkan|masukkan|masukin|input|simpan|hapus|delete|batalin|batalkan)\b/i.test(rawText);

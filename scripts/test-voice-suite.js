@@ -2,7 +2,7 @@
  * Autonomous Voice Test Harness & Benchmark Suite - Expanded with Command Verbs Sanitization (120+ Scenarios)
  */
 
-import { parseVoiceTransaction } from './src/utils/voiceParser.js';
+import { parseVoiceTransaction } from '../src/utils/voiceParser.js';
 
 if (typeof global.localStorage === 'undefined') {
   global.localStorage = {
@@ -38,7 +38,8 @@ const mockExpenseCategories = [
   { id: 'rumahSakit', name: 'Rumah Sakit' },
   { id: 'obatSakit', name: 'Obat & Apotek' },
   { id: 'jajanAdek', name: 'Jajan Adik' },
-  { id: 'party', name: 'Pesta & Hadiah' }
+  { id: 'party', name: 'Pesta & Hadiah' },
+  { id: 'buah', name: 'Buah' }
 ];
 
 const mockIncomeCategories = [

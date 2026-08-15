@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './App.css';
 import fastFoodSvg from './assets/fast-food.svg';
 import gameSvg from './assets/3d-movie.svg';
@@ -33,11 +33,15 @@ import rumahSakitSvg from './assets/Rumah Sakit.svg';
 import obatSakitSvg from './assets/Obat Sakit.svg';
 import jajanAdekSvg from './assets/Jajan adek.svg';
 import partySvg from './assets/Party.svg';
+import buahSvg from './assets/Buah.svg';
+import minumanSvg from './assets/Minuman.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
 import { checkForAppUpdates } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
+import CategoryInsightScreen from './components/CategoryInsightScreen';
+import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
@@ -48,7 +52,9 @@ import {
   toggleNotificationState,
   sendInstantNotification, 
   sendInstantBudgetNotification,
-  schedulePersonalizedNotifications, 
+  schedulePersonalizedNotifications,
+  scheduleFeatureIntroNotification,
+  scheduleNewCategoryNotification,
   playSound,
   playPopSound 
 } from './utils/notifications';
@@ -79,6 +85,8 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'obatSakit', name: 'Obat Sakit', iconClass: 'obat-sakit-icon' },
   { id: 'jajanAdek', name: 'Jajan Adek', iconClass: 'jajan-adek-icon' },
   { id: 'party', name: 'Party', iconClass: 'party-icon' },
+  { id: 'buah', name: 'Buah', iconClass: 'buah-icon' },
+  { id: 'minuman', name: 'Minuman', iconClass: 'minuman-icon' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
@@ -119,6 +127,8 @@ const ICON_MAP = {
   obatSakit: obatSakitSvg,
   jajanAdek: jajanAdekSvg,
   party: partySvg,
+  buah: buahSvg,
+  minuman: minumanSvg,
   gaji: salarySvg,
   bonus: bonusSvg,
   kip: kipSvg,
@@ -144,7 +154,8 @@ const migrateTransactions = (list) => {
     'Bensin': 'bensin', 'Investasi': 'investasi', 'Bisnis': 'bisnis',
     'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
     'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
-    'Jajan Adek': 'jajanAdek', 'Party': 'party',
+    'Jajan Adek': 'jajanAdek', 'Party': 'party', 'Buah': 'buah',
+    'Minuman': 'minuman',
   };
   let changed = false;
   const migrated = list.map(tx => {
@@ -360,33 +371,44 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
  * 1. Pop Timbul dari Belakang (3D Elevation Depth)
  * 2. Animasi Ketik (Typewriter) Mengalir Alami dari Kiri ke Kanan (Single Unified Timer - Anti-Stuck)
  */
-function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting }) {
+function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete }) {
   const fullTitle = item.title || item.category || 'Transaksi';
   const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
   const prefix = item.type === 'expense' ? '-' : '+';
   const fullAmount = `${prefix}Rp ${item.amount.toLocaleString('id-ID')}`;
-
-  const [charProgress, setCharProgress] = useState(0);
-  const [isFinished, setIsFinished] = useState(false);
 
   const L1 = fullTitle.length;
   const L2 = fullSubtitle.length;
   const L3 = fullAmount.length;
   const totalChars = L1 + L2 + L3;
 
+  const [charProgress, setCharProgress] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+
   useEffect(() => {
     let current = 0;
+    let finishTimer = null;
+
     const interval = setInterval(() => {
       current++;
       setCharProgress(current);
       if (current >= totalChars) {
         clearInterval(interval);
         setIsFinished(true);
+        // Setelah selesai mengetik, lepaskan dari state animasi agar menjadi kartu statis permanen
+        finishTimer = setTimeout(() => {
+          if (onAnimationComplete) {
+            onAnimationComplete(item.id);
+          }
+        }, 500);
       }
-    }, 45); // Kecepatan tenang 45ms per karakter
+    }, 35); // Kecepatan mengalir 35ms per karakter
 
-    return () => clearInterval(interval);
-  }, [totalChars]);
+    return () => {
+      clearInterval(interval);
+      if (finishTimer) clearTimeout(finishTimer);
+    };
+  }, [totalChars, item.id, onAnimationComplete]);
 
   // Hitung teks yang tampil berdasarkan progress saat ini
   let displayedTitle = '';
@@ -442,6 +464,35 @@ function App() {
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [statsType, setStatsType] = useState('expense'); // 'expense' | 'income'
+  const [selectedInsightCategory, setSelectedInsightCategory] = useState(null);
+  
+  // Track which category insights have been read per month
+  const [insightReadMap, setInsightReadMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user_category_insights_read');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const isCategoryInsightRead = (catName, year, monthIdx) => {
+    const key = `${catName}_${year}_${monthIdx}`;
+    return Boolean(insightReadMap[key]);
+  };
+
+  const handleOpenCategoryInsight = (cat) => {
+    if (!cat) return;
+    const year = currentDate.getFullYear();
+    const monthIdx = currentDate.getMonth();
+    const key = `${cat.name}_${year}_${monthIdx}`;
+    const nextMap = { ...insightReadMap, [key]: true };
+    setInsightReadMap(nextMap);
+    try {
+      localStorage.setItem('user_category_insights_read', JSON.stringify(nextMap));
+    } catch {}
+    setSelectedInsightCategory(cat);
+  };
   
   // LocalStorage Persistence for Transactions
   const [transactions, setTransactions] = useState(() => {
@@ -539,6 +590,22 @@ function App() {
   const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
 
+  const handleVoiceAnimationComplete = useCallback((txId) => {
+    setVoiceAnimatingTxIds(prev => {
+      if (!prev.has(txId)) return prev;
+      const next = new Set(prev);
+      next.delete(txId);
+      return next;
+    });
+  }, []);
+
+  // Reset semua animasi kartu suara jika pengguna berpindah tab dari Home
+  useEffect(() => {
+    if (activeTab !== 'home') {
+      setVoiceAnimatingTxIds(new Set());
+    }
+  }, [activeTab]);
+
   // Safety Warning Modal State (Pencegahan transaksi ilegal / berbahaya / rokok / alkohol / asusila)
   const [safetyWarning, setSafetyWarning] = useState({ isOpen: false, categoryLabel: '', reason: '' });
 
@@ -606,6 +673,12 @@ function App() {
       playSound('app_open');
     }
   }, []);
+
+  // Schedule 1-day feature intro notification on Android native (08:00 & 18:00)
+  React.useEffect(() => {
+    scheduleFeatureIntroNotification(profileName);
+    scheduleNewCategoryNotification(profileName);
+  }, [profileName]);
 
   // Schedule / sync notifications when profile name, transactions, or expenseCategories update
   React.useEffect(() => {
@@ -906,7 +979,10 @@ function App() {
     return `${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const isCurrentMonth = currentDate.getFullYear() === 2026 && currentDate.getMonth() === 7;
+  const isCurrentMonth = (() => {
+    const now = new Date();
+    return currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
+  })();
 
   // Open Full-Page Add Form (Plus button)
   const handleOpenAddModal = () => {
@@ -943,6 +1019,8 @@ function App() {
   // Edge-Swipe Back Gesture & Android System Back Button Handler
   const backHandlerStateRef = useRef({});
   backHandlerStateRef.current = {
+    selectedInsightCategory,
+    setSelectedInsightCategory,
     isCropModalOpen,
     setIsCropModalOpen,
     activeBudgetCategory,
@@ -970,6 +1048,12 @@ function App() {
 
   const handleAppBack = () => {
     const s = backHandlerStateRef.current;
+
+    // 0. Layar Full-Page Category Insight
+    if (s.selectedInsightCategory) {
+      s.setSelectedInsightCategory(null);
+      return;
+    }
 
     // 1. Modal Crop / Zoom Foto
     if (s.isCropModalOpen) {
@@ -1153,7 +1237,9 @@ function App() {
       rumahSakit: ['dokter', 'kesehatan', 'medis', 'rumah sakit'],
       obatSakit: ['farmasi', 'apotek', 'obat'],
       jajanAdek: ['uang jajan', 'keluarga', 'anak', 'adek'],
-      party: ['pesta', 'nongkrong', 'klub', 'party']
+      party: ['pesta', 'nongkrong', 'klub', 'party'],
+      buah: ['buah', 'nanas', 'apel', 'jeruk', 'pisang', 'mangga', 'semangka', 'alpukat', 'durian', 'melon', 'anggur', 'pepaya', 'toko buah', 'buah buahan'],
+      minuman: ['minuman', 'es buah', 'es campur', 'es teler', 'coca cola', 'sprite', 'fanta', 'jus', 'susu', 'teh', 'boba', 'cendol', 'dawet', 'minuman segar', 'minuman dingin']
     };
 
     let list = expenseCategories;
@@ -1513,12 +1599,19 @@ function App() {
 
   // Filter transactions according to period (monthly/weekly/yearly)
   const filteredTransactions = transactions.filter(t => {
-    if (!isCurrentMonth) return false;
-    if (periodFilter === 'weekly') {
-      // Show subset for weekly view
-      return t.id <= 6;
+    if (!t.date) return true;
+    const [y, m] = t.date.split('-');
+    const tYear = Number(y);
+    const tMonth = Number(m) - 1;
+
+    if (periodFilter === 'yearly') {
+      return tYear === currentDate.getFullYear();
     }
-    return true;
+    if (periodFilter === 'weekly') {
+      return tYear === currentDate.getFullYear() && tMonth === currentDate.getMonth();
+    }
+    // Default 'monthly': match selected month and year
+    return tYear === currentDate.getFullYear() && tMonth === currentDate.getMonth();
   });
 
   // Calculate Category Totals & Percentages for Stats
@@ -1804,6 +1897,7 @@ function App() {
                                   item={item}
                                   resolveIcon={resolveIcon}
                                   isDeleting={deletingTxId === item.id}
+                                  onAnimationComplete={handleVoiceAnimationComplete}
                                 />
                               );
                             }
@@ -1955,6 +2049,8 @@ function App() {
                         fill={slice.color}
                         stroke="none"
                         className="pie-slice"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleOpenCategoryInsight(slice)}
                       />
                     ))}
 
@@ -1962,7 +2058,12 @@ function App() {
                     {pieSlices.map((slice, idx) => {
                       const textAnchor = slice.isRight ? 'start' : 'end';
                       return (
-                        <g key={`label-${idx}`} className="pie-label-group">
+                        <g 
+                          key={`label-${idx}`} 
+                          className="pie-label-group"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleOpenCategoryInsight(slice)}
+                        >
                           <text
                             x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
                             y={slice.pLabel.y - 3}
@@ -1995,24 +2096,42 @@ function App() {
 
           {/* Category Breakdown List */}
           <div className="stats-breakdown-list">
-            {statsCategories.map((cat, idx) => (
-              <div key={idx} className="stats-breakdown-item">
-                <div className="stats-item-left">
-                  <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
-                    {Math.round(cat.percentage)}%
+            {statsCategories.map((cat, idx) => {
+              const isUnlockedMonth = isEndOfMonthOrTesting(currentDate.getFullYear(), currentDate.getMonth());
+              const isRead = isCategoryInsightRead(cat.name, currentDate.getFullYear(), currentDate.getMonth());
+              const showPulsingCta = statsType === 'expense' && isUnlockedMonth && !isRead;
+
+              return (
+                <div 
+                  key={idx} 
+                  className="stats-breakdown-item interactive"
+                  onClick={() => handleOpenCategoryInsight(cat)}
+                  title="Klik untuk melihat insight lengkap"
+                >
+                  <div className="stats-item-left">
+                    <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
+                      {Math.round(cat.percentage)}%
+                    </div>
+                    <div className="stats-cat-info">
+                      {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <span className="stats-cat-name">
+                          {cat.name} <span className="stats-cat-count">({cat.count}x)</span>
+                        </span>
+                        {showPulsingCta && (
+                          <span className="stats-insight-cta">
+                            ✨ Klik lihat insight mu {profileName || 'Pengguna'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="stats-cat-info">
-                    {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
-                    <span className="stats-cat-name">
-                      {cat.name} <span className="stats-cat-count">({cat.count}x)</span>
-                    </span>
+                  <div className="stats-item-right">
+                    <span className="stats-cat-amount">Rp {cat.amount.toLocaleString('id-ID')}</span>
                   </div>
                 </div>
-                <div className="stats-item-right">
-                  <span className="stats-cat-amount">Rp {cat.amount.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -3138,6 +3257,18 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full-Page Category Insight & Monthly Wrapped Screen */}
+      {selectedInsightCategory && (
+        <CategoryInsightScreen
+          category={selectedInsightCategory}
+          initialDate={currentDate}
+          allTransactions={transactions}
+          userName={profileName || 'Pengguna'}
+          resolveIcon={resolveIcon}
+          onClose={() => setSelectedInsightCategory(null)}
+        />
       )}
     </div>
   );

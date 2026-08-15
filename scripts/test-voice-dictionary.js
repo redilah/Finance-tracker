@@ -1,4 +1,4 @@
-import { parseVoiceTransaction } from './src/utils/voiceParser.js';
+import { parseVoiceTransaction } from '../src/utils/voiceParser.js';
 
 const expenseCategories = [
   { id: 'food', name: 'Food' },
@@ -24,7 +24,8 @@ const expenseCategories = [
   { id: 'rumahSakit', name: 'Rumah Sakit' },
   { id: 'obatSakit', name: 'Obat Sakit' },
   { id: 'jajanAdek', name: 'Jajan Adek' },
-  { id: 'party', name: 'Party' }
+  { id: 'party', name: 'Party' },
+  { id: 'buah', name: 'Buah' }
 ];
 
 const incomeCategories = [

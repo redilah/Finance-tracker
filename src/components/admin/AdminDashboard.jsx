@@ -43,6 +43,46 @@ import {
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
 
 /**
+ * Memastikan kategori pada kartu AI Learning selalu logis dan masuk akal
+ */
+export const getSensibleVocabCategory = (vocabWord, rawCategory) => {
+  const clean = (vocabWord || '').toLowerCase().trim();
+  if (!clean) return rawCategory || 'Umum';
+
+  // 1. Buah
+  if (/nanas|apel|pisang|jeruk|semangka|melon|mangga|durian|duren|alpukat|anggur|pepaya|salak|rambutan|stroberi|strawberry|jambu|pear|pir|kelengkeng|lengkeng|duku|manggis|kiwi|sirsak|blewah|belimbing|nangka|cempedak|markisa|kedondong|srikaya|sawo|plum|kurma|delima|buah/i.test(clean)) {
+    return 'Buah';
+  }
+
+  // 2. Minuman
+  if (/es kacang|kacang hijau|kacang ijo|burjo|es buah|es campur|es teler|cendol|dawet|doger|cincau|selasih|tebu|kopyor|coca|sprite|fanta|pepsi|pocari|teh|jus|susu|minuman|boba|matcha|yakult|cimory|wedang|bajigur|bandrek|sekoteng|jamu/i.test(clean)) {
+    return 'Minuman';
+  }
+
+  // 3. Kopi / Coffee
+  if (/kopi|coffee|kopsu|espresso|latte|cappuccino|americano|starbucks|sbux|tomoro|fore|kenangan/i.test(clean)) {
+    return 'Coffee';
+  }
+
+  // 4. Makanan / Food
+  if (/makan|nasi|ayam|mie|bakso|soto|sate|rawon|gule|bubur|martabak|gorengan|bakwan|tahu|tempe|seblak|cilok|cireng|batagor|siomay|warteg|burger|kfc|mcd|pizza|pasta|ramen|sushi|roti|kue|donat|snack|cemilan|telur dadar|telur goreng|telur ceplok/i.test(clean)) {
+    return 'Food';
+  }
+
+  // 5. Supermarket
+  if (/indomaret|alfamart|superindo|sembako|beras|gula|minyak goreng|deterjen|sabun cuci|supermarket|minimarket/i.test(clean)) {
+    return 'Supermarket';
+  }
+
+  // 6. Fashion
+  if (/baju|kaos|kemeja|jeans|jaket|hoodie|jas|rok|dress|gamis|hijab|jilbab|topi|sabuk|sepatu|sandal|pakaian|fashion/i.test(clean)) {
+    return 'Fashion';
+  }
+
+  return rawCategory || 'Umum';
+};
+
+/**
  * Validasi apakah nama pengguna adalah teks manusia yang valid dan bersih
  */
 export const isCleanUserName = (name) => {
@@ -1031,9 +1071,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
                           <div className="insight-card-body">
                             <div className="insight-vocab-main">
                               <span className="vocab-word-large">"{displayVocabWord}"</span>
-                              {item.category && (
+                              {getSensibleVocabCategory(displayVocabWord, item.category) && (
                                 <span className="vocab-category-tag">
-                                  <Tag size={12} /> {item.category}
+                                  <Tag size={12} /> {getSensibleVocabCategory(displayVocabWord, item.category)}
                                 </span>
                               )}
                             </div>

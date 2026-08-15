@@ -413,6 +413,275 @@ const testCases = [
     name: 'Single Non-Split: Roti dan Selai',
     input: 'beli roti dan selai 20 ribu',
     expected: { type: 'Expense', amount: 20000, note: 'Roti dan selai', categoryId: 'food' }
+  },
+
+  // 8. Filter Suara Kebisingan Lingkungan (Noise / Musik / Hewan / Benda Jatuh / Tes Mic)
+  {
+    name: 'Noise: Suara Kucing (Meong)',
+    input: 'meong meong meong',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Suara Anjing (Guk Guk)',
+    input: 'guk guk guk guguk',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Suara Ayam Berkokok (Kukuruyuk)',
+    input: 'kukuruyuk petok petok',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Suara Musik / Senandung (Lalala Nanana)',
+    input: 'la la la lalala nanana',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Suara Instrumen / Lirik Lagu',
+    input: 'jreng jreng suara gitar nada dering',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Benda Jatuh / Benturan (Gubrak)',
+    input: 'gubrak gedebuk suara jatuh',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Piring Pecah / Klontang',
+    input: 'prang klontang piring pecah',
+    expected: { shouldReject: true, reason: 'noise_detected' }
+  },
+  {
+    name: 'Noise: Tes Mic / Obrolan Non-Finansial (Tes 1 2 3)',
+    input: 'tes mic 1 2 3 cek suara',
+    expected: { shouldReject: true }
+  },
+  {
+    name: 'Noise: Sapaan Santai (Halo halo apa kabar)',
+    input: 'halo halo apa kabar selamat pagi',
+    expected: { shouldReject: true }
+  },
+  {
+    name: 'Noise: Ucapan Vokal Acak / Desah',
+    input: 'uhh',
+    expected: { shouldReject: true }
+  },
+
+  // 9. Validasi Transaksi Manusia Nyata yang Mirip Kata Noise (Anti-False-Positive)
+  {
+    name: 'Human Voice: Beli Makanan Kucing (Valid)',
+    input: 'beli makanan kucing 45 ribu',
+    expected: { type: 'Expense', amount: 45000, categoryId: 'food' }
+  },
+  {
+    name: 'Human Voice: Ayam Goreng (Valid)',
+    input: 'beli ayam goreng 25 ribu',
+    expected: { type: 'Expense', amount: 25000, categoryId: 'food' }
+  },
+  {
+    name: 'Human Voice: Bayar Kursus Musik / Gitar (Valid)',
+    input: 'bayar kursus gitar 250 ribu',
+    expected: { type: 'Expense', amount: 250000, categoryId: 'edukasi' }
+  },
+  {
+    name: 'Human Voice: Ganti Piring Pecah (Valid)',
+    input: 'beli piring baru 30 ribu',
+    expected: { type: 'Expense', amount: 30000 }
+  },
+
+  // 10. Kategori Buah-buahan (Fresh Fruit Transaction Multi-Variations)
+  {
+    name: 'Buah: Nanas 1 kilo 5 ribu (Kasus Utama)',
+    input: 'buah nanas 1 kilo 5 ribu',
+    expected: { type: 'Expense', amount: 5000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Beli Buah Nanas Madu 15 Ribu',
+    input: 'beli buah nanas madu 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Beli Apel Fuji Sekilo 35 Ribu',
+    input: 'beli apel fuji sekilo 35 ribu',
+    expected: { type: 'Expense', amount: 35000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Semangka Merah 20rb Pake QRIS',
+    input: 'semangka merah 20rb pake qris',
+    expected: { type: 'Expense', amount: 20000, categoryId: 'buah', account: 'QRIS' }
+  },
+  {
+    name: 'Buah: Mangga Harum Manis 2 Kilo 40 Ribu',
+    input: 'mangga harum manis 2 kilo 40 ribu',
+    expected: { type: 'Expense', amount: 40000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Durian Montong 150 Ribu Bayar Cash',
+    input: 'durian montong 150 ribu bayar cash',
+    expected: { type: 'Expense', amount: 150000, categoryId: 'buah', account: 'Cash' }
+  },
+  {
+    name: 'Buah: Beli Jeruk Medan Sekilo 28 Ribu',
+    input: 'beli jeruk medan sekilo 28 ribu',
+    expected: { type: 'Expense', amount: 28000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Pisang Cavendish 30 Ribu Transfer BCA',
+    input: 'pisang cavendish 30 ribu transfer bca',
+    expected: { type: 'Expense', amount: 30000, categoryId: 'buah', account: 'Bank' }
+  },
+  {
+    name: 'Buah: Alpukat Mentega 1 Kilo 25 Ribu',
+    input: 'alpukat mentega 1 kilo 25 ribu',
+    expected: { type: 'Expense', amount: 25000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Anggur Shine Muscat 85 Ribu Scan QRIS',
+    input: 'anggur shine muscat 85 ribu scan qris',
+    expected: { type: 'Expense', amount: 85000, categoryId: 'buah', account: 'QRIS' }
+  },
+  {
+    name: 'Buah: Belanja di Toko Buah 100 Ribu',
+    input: 'belanja di toko buah 100 ribu',
+    expected: { type: 'Expense', amount: 100000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Buah Naga Merah 22 Ribu',
+    input: 'buah naga merah 22 ribu',
+    expected: { type: 'Expense', amount: 22000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Salak Pondoh Sekilo 15 Ribu',
+    input: 'salak pondoh sekilo 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'buah' }
+  },
+  {
+    name: 'Buah: Kelengkeng Bangkok 45 Ribu Pake Mandiri',
+    input: 'kelengkeng bangkok 45 ribu pake mandiri',
+    expected: { type: 'Expense', amount: 45000, categoryId: 'buah', account: 'Bank' }
+  },
+  {
+    name: 'Buah: Pepaya California 18 Ribu Tunai',
+    input: 'pepaya california 18 ribu tunai',
+    expected: { type: 'Expense', amount: 18000, categoryId: 'buah', account: 'Cash' }
+  },
+  {
+    name: 'Buah: Multi-Action Buah + Makanan (dan)',
+    input: 'beli buah nanas 5 ribu dan mie ayam 15 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { type: 'Expense', amount: 5000, categoryId: 'buah' },
+        { type: 'Expense', amount: 15000, categoryId: 'food' }
+      ]
+    }
+  },
+
+  // 11. Kategori Minuman Segar & Kemasan (Beverages)
+  {
+    name: 'Minuman: Beli Es Buah 15 Ribu',
+    input: 'beli es buah 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Es Kacang Hijau 8 Ribu',
+    input: 'es kacang hijau 8 ribu',
+    expected: { type: 'Expense', amount: 8000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Coca Cola Dingin 7 Ribu Tunai',
+    input: 'coca cola dingin 7 ribu tunai',
+    expected: { type: 'Expense', amount: 7000, categoryId: 'minuman', account: 'Cash' }
+  },
+  {
+    name: 'Minuman: Pocari Sweat 10 Ribu Transfer BCA',
+    input: 'pocari sweat 10 ribu transfer bca',
+    expected: { type: 'Expense', amount: 10000, categoryId: 'minuman', account: 'Bank' }
+  },
+  {
+    name: 'Minuman: Jus Alpukat 12 Ribu Scan QRIS',
+    input: 'jus alpukat 12 ribu scan qris',
+    expected: { type: 'Expense', amount: 12000, categoryId: 'minuman', account: 'QRIS' }
+  },
+  {
+    name: 'Minuman: Teh Pucuk Harum 4 Ribu',
+    input: 'teh pucuk harum 4 ribu',
+    expected: { type: 'Expense', amount: 4000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Ultra Milk Coklat 6 Ribu',
+    input: 'ultra milk coklat 6 ribu',
+    expected: { type: 'Expense', amount: 6000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Es Cendol Dawet 10 Ribu',
+    input: 'es cendol dawet 10 ribu',
+    expected: { type: 'Expense', amount: 10000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Es Degan Kelapa Muda 12 Ribu',
+    input: 'es degan kelapa muda 12 ribu',
+    expected: { type: 'Expense', amount: 12000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Wedang Jahe Ronde 15 Ribu',
+    input: 'wedang jahe ronde 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'minuman' }
+  },
+  {
+    name: 'Minuman: Multi-Action Sprite + Fanta',
+    input: 'beli sprite 6 ribu dan fanta 6 ribu',
+    expected: {
+      isMultiple: true,
+      commands: [
+        { type: 'Expense', amount: 6000, categoryId: 'minuman' },
+        { type: 'Expense', amount: 6000, categoryId: 'minuman' }
+      ]
+    }
+  },
+
+  // 12. Safety Guard: Penolakan Minuman Keras / Miras / Alkohol
+  {
+    name: 'Safety Guard: Penolakan Miras',
+    input: 'beli miras 100 ribu',
+    expected: { shouldReject: true, reason: 'prohibited_content' }
+  },
+  {
+    name: 'Safety Guard: Penolakan Bir Bintang',
+    input: 'beli bir bintang 50 ribu',
+    expected: { shouldReject: true, reason: 'prohibited_content' }
+  },
+  {
+    name: 'Safety Guard: Penolakan Whiskey Transfer BCA',
+    input: 'whiskey 500 ribu transfer bca',
+    expected: { shouldReject: true, reason: 'prohibited_content' }
+  },
+  {
+    name: 'Safety Guard: Penolakan Arak Bali',
+    input: 'arak bali 75 ribu',
+    expected: { shouldReject: true, reason: 'prohibited_content' }
+  },
+  {
+    name: 'Safety Guard: Penolakan Soju',
+    input: 'beli soju 80 ribu bayar qris',
+    expected: { shouldReject: true, reason: 'prohibited_content' }
+  },
+
+  // 13. Pembedaan Buah Segar vs Minuman (Anti-False-Positive)
+  {
+    name: 'Distinction: Buah Anggur Merah (Bukan Miras Amer)',
+    input: 'buah anggur merah sekilo 45 ribu',
+    expected: { type: 'Expense', amount: 45000, categoryId: 'buah' }
+  },
+  {
+    name: 'Distinction: Buah Nanas (Kategori Buah)',
+    input: 'buah nanas madu 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'buah' }
+  },
+  {
+    name: 'Distinction: Es Buah (Kategori Minuman)',
+    input: 'es buah segar 15 ribu',
+    expected: { type: 'Expense', amount: 15000, categoryId: 'minuman' }
   }
 ];
 
@@ -427,7 +696,12 @@ function runTests() {
     let isMatch = true;
     const errors = [];
 
-    if (tc.expected.isMultiple) {
+    if (tc.expected.shouldReject) {
+      if (res.success) {
+        isMatch = false;
+        errors.push(`Expected rejection for noise/non-transaction but got success with amount ${res.amount}`);
+      }
+    } else if (tc.expected.isMultiple) {
       if (!res.isMultiple || !Array.isArray(res.commands)) {
         isMatch = false;
         errors.push(`Expected isMultiple=true but got single result`);

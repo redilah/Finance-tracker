@@ -219,7 +219,7 @@ export const generateNotificationMessage = (userName = 'Teman', transactions = [
 export const sendInstantNotification = (userName) => {
   if (!isNotificationEnabled()) return;
 
-  const name = userName.trim() || 'Teman';
+  const name = userName && userName.trim() ? userName.trim() : 'Teman';
   const title = `Halo ${name}! ✨`;
   const body = `Selamat datang di Cassiel, semoga catatan keuanganmu lebih teratur ya!`;
 
@@ -235,6 +235,39 @@ export const sendInstantNotification = (userName) => {
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
           iconColor: '#4f46e5'
+        }
+      ]
+    }).catch(err => console.log('Capacitor local notification error:', err));
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: '/app-icon.png',
+        badge: '/app-icon.png'
+      });
+      playSound('notification');
+    } catch (e) {
+      console.log('Web notification error:', e);
+    }
+  }
+};
+
+// Trigger immediate budget cap threshold warning notification
+export const sendInstantBudgetNotification = (title, body) => {
+  if (!isNotificationEnabled()) return;
+
+  if (Capacitor.isNativePlatform()) {
+    LocalNotifications.schedule({
+      notifications: [
+        {
+          title: title,
+          body: body,
+          id: (Date.now() % 10000) + 500,
+          schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
+          channelId: 'financial_notifications',
+          sound: 'notification',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#ef4444'
         }
       ]
     }).catch(err => console.log('Capacitor local notification error:', err));
@@ -359,35 +392,174 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
   }
 };
 
-// Trigger immediate budget limit notification
-export const sendInstantBudgetNotification = (title, body) => {
-  if (!isNotificationEnabled()) return;
+// Schedule 1-Day Intro Notification for New Category Insight Feature (08:00 AM & 18:00 PM)
+export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
+  if (typeof localStorage === 'undefined') return;
+  const ALREADY_SCHEDULED_KEY = 'feature_intro_insight_notif_v1';
+  if (localStorage.getItem(ALREADY_SCHEDULED_KEY) === 'true') {
+    return;
+  }
+
+  const name = userName && userName.trim() ? userName.trim() : 'Teman';
+  const now = new Date();
+
+  const morningTarget = new Date();
+  morningTarget.setHours(8, 0, 0, 0);
+
+  const eveningTarget = new Date();
+  eveningTarget.setHours(18, 0, 0, 0);
+
+  const notifsToSchedule = [];
+
+  if (now.getTime() < morningTarget.getTime()) {
+    // 1. Install/Update pagi sebelum jam 8 -> kirim jam 8 pagi & jam 18 sore hari ini
+    notifsToSchedule.push(
+      {
+        id: 201,
+        title: `✨ Fitur Baru: Insight Kategori Bulanan`,
+        body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+        schedule: { at: morningTarget, allowWhileIdle: true },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        iconColor: '#2D5284'
+      },
+      {
+        id: 202,
+        title: `📊 Rangkuman Kategori di Akhir Bulan`,
+        body: `Catat pengeluaranmu secara rutin setiap hari agar analisis dan insight akhir bulanmu semakin lengkap & akurat!`,
+        schedule: { at: eveningTarget, allowWhileIdle: true },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        iconColor: '#2D5284'
+      }
+    );
+  } else if (now.getTime() < eveningTarget.getTime()) {
+    // 2. Install/Update siang antara jam 8 s.d. 18 -> kirim jam 18 sore hari ini
+    notifsToSchedule.push({
+      id: 202,
+      title: `✨ Fitur Baru: Insight Kategori Bulanan`,
+      body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+      schedule: { at: eveningTarget, allowWhileIdle: true },
+      channelId: 'financial_notifications',
+      sound: 'notification',
+      smallIcon: 'ic_stat_icon',
+      iconColor: '#2D5284'
+    });
+  } else {
+    // 3. Install/Update malam setelah jam 18 -> kirim besok pagi jam 8 & besok sore jam 18
+    const tomorrowMorning = new Date(morningTarget);
+    tomorrowMorning.setDate(tomorrowMorning.getDate() + 1);
+
+    const tomorrowEvening = new Date(eveningTarget);
+    tomorrowEvening.setDate(tomorrowEvening.getDate() + 1);
+
+    notifsToSchedule.push(
+      {
+        id: 201,
+        title: `✨ Fitur Baru: Insight Kategori Bulanan`,
+        body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+        schedule: { at: tomorrowMorning, allowWhileIdle: true },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        iconColor: '#2D5284'
+      },
+      {
+        id: 202,
+        title: `📊 Rangkuman Kategori di Akhir Bulan`,
+        body: `Catat pengeluaranmu secara rutin setiap hari agar analisis dan insight akhir bulanmu semakin lengkap & akurat!`,
+        schedule: { at: tomorrowEvening, allowWhileIdle: true },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        iconColor: '#2D5284'
+      }
+    );
+  }
+
+  if (Capacitor.isNativePlatform() && notifsToSchedule.length > 0) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: notifsToSchedule
+      });
+      localStorage.setItem(ALREADY_SCHEDULED_KEY, 'true');
+    } catch (e) {
+      console.warn('Failed to schedule feature intro notification:', e);
+    }
+  } else {
+    localStorage.setItem(ALREADY_SCHEDULED_KEY, 'true');
+  }
+};
+
+// Schedule 1-Time 5-Second Post-Update Notification for New Categories (Buah & Minuman)
+export const scheduleNewCategoryNotification = async (userName = 'Teman') => {
+  if (typeof localStorage === 'undefined') return;
+  const NOTIF_KEY = 'new_categories_buah_minuman_notif_v1';
+  if (localStorage.getItem(NOTIF_KEY) === 'true') {
+    return;
+  }
+
+  const name = userName && userName.trim() ? userName.trim() : 'Teman';
+  const title = '🍎 Kategori Baru: Buah & Minuman';
+  const body = `Halo ${name}! Telah hadir 2 kategori baru di Cassiel, yaitu Buah dan Minuman lengkap dengan ikon terbarunya.`;
 
   if (Capacitor.isNativePlatform()) {
-    LocalNotifications.schedule({
-      notifications: [
-        {
-          title: title,
-          body: body,
-          id: Date.now() % 10000,
-          schedule: { at: new Date(Date.now() + 1000) },
-          channelId: 'financial_notifications',
-          sound: 'notification',
-          smallIcon: 'ic_stat_icon',
-          iconColor: '#cf1322' // Red color for budget alert
-        }
-      ]
-    }).catch(err => console.log('Capacitor local notification error:', err));
-  } else if ('Notification' in window && Notification.permission === 'granted') {
     try {
-      new Notification(title, {
-        body: body,
-        icon: '/app-icon.png',
-        badge: '/app-icon.png'
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 301,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
+            channelId: 'financial_notifications',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            iconColor: '#2D5284'
+          }
+        ]
       });
-      playSound('notification');
+      localStorage.setItem(NOTIF_KEY, 'true');
     } catch (e) {
-      console.log('Web notification error:', e);
+      console.warn('Failed to schedule new category notification:', e);
     }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+        localStorage.setItem(NOTIF_KEY, 'true');
+      } catch (e) {
+        console.log('Web notification error:', e);
+      }
+    }, 5000);
+  } else {
+    localStorage.setItem(NOTIF_KEY, 'true');
   }
 };

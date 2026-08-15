@@ -399,9 +399,21 @@ export function syncLearnerWithUserData(customCategories = [], transactions = []
         cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
 
         if (cleanTitle.length >= 3 && cleanTitle.length <= 30) {
+          // Evaluasi kategori yang masuk akal secara cerdas
+          let rationalCat = t.category || 'Umum';
+          if (/nanas|apel|pisang|jeruk|semangka|melon|mangga|durian|duren|alpukat|anggur|pepaya|salak|rambutan|stroberi|strawberry|jambu|pear|pir|kelengkeng|lengkeng|duku|manggis|kiwi|sirsak|blewah|belimbing|nangka|cempedak|markisa|kedondong|srikaya|sawo|plum|kurma|delima|buah/i.test(cleanTitle)) {
+            rationalCat = 'Buah';
+          } else if (/es kacang|kacang hijau|kacang ijo|burjo|es buah|es campur|es teler|cendol|dawet|doger|cincau|selasih|tebu|kopyor|coca|sprite|fanta|pocari|teh|jus|susu|minuman|boba|matcha|yakult|cimory|wedang|bajigur|bandrek|sekoteng|jamu/i.test(cleanTitle)) {
+            rationalCat = 'Minuman';
+          } else if (/kopi|coffee|kopsu|espresso|latte|cappuccino|americano|starbucks|sbux|tomoro|fore|kenangan/i.test(cleanTitle)) {
+            rationalCat = 'Coffee';
+          } else if (/makan|nasi|ayam|mie|bakso|soto|sate|rawon|gule|bubur|martabak|gorengan|bakwan|tahu|tempe|seblak|cilok|cireng|batagor|siomay|warteg|burger|kfc|mcd|pizza|pasta|ramen|sushi|roti|kue|donat|snack|cemilan|telur dadar|telur goreng|telur ceplok/i.test(cleanTitle)) {
+            rationalCat = 'Food';
+          }
+
           if (!customKeywordsSet.has(cleanTitle)) {
             if (!isRegisteredKeyword(cleanTitle)) {
-              newWordsDiscovered.push({ word: cleanTitle, cat: t.category || 'Umum' });
+              newWordsDiscovered.push({ word: cleanTitle, cat: rationalCat });
             }
           }
           customKeywordsSet.add(cleanTitle);
