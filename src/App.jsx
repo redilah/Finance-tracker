@@ -1329,15 +1329,7 @@ function App() {
       return;
     }
 
-    // Save note to history if non-empty and not already in history
-    if (note.trim()) {
-      setNoteHistory(prev => {
-        if (!prev.includes(note.trim())) {
-          return [note.trim(), ...prev];
-        }
-        return prev;
-      });
-    }
+
 
     const newTx = {
       id: Date.now(),
@@ -1872,7 +1864,7 @@ function App() {
         </div>
       )}
 
-      {activeTab === 'home' && (
+      {activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen && (
         <VoiceMicButton
           expenseCategories={expenseCategories}
           incomeCategories={incomeCategories}
@@ -2226,18 +2218,16 @@ function App() {
                 )}
               </div>
 
-              {/* Save Button ONLY when activePanel === 'note' */}
-              {activePanel === 'note' && (
-                <div className="note-save-container">
-                  <button
-                    type="button"
-                    className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
-                    onClick={handleSaveTransaction}
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
+              {/* Save Button for Expense & Income */}
+              <div className="note-save-container">
+                <button
+                  type="button"
+                  className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
+                  onClick={handleSaveTransaction}
+                >
+                  Save
+                </button>
+              </div>
             </div>
           )}
 

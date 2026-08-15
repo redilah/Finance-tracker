@@ -1,10 +1,10 @@
 {
-  "versionCode": 14,
-  "versionName": "1.0.13",
-  "version": "1.0.13",
-  "changelog": "New in this update:\n- [New] Seamless in-app pulsing mic (tanpa pop-up Google)",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.13",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.13",
-  "sha256": "78721cac053bcbe30cc8c9c023cefb6f6335d4f7c17e694fa84a93de053a9822",
+  "versionCode": 15,
+  "versionName": "1.0.14",
+  "version": "1.0.14",
+  "changelog": "New in this update:\n- [New] Perbaikan Tombol Save Transaksi\n- [New] Tombol Mic Eksklusif Layar Home",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.14",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.14",
+  "sha256": "336a5175365a24669884fcdf22f4bcbbc6de297fb2542cf5b619eeb2189c4321",
   "minSdkVersion": 22
 }
