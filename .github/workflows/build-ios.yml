@@ -28,33 +28,31 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
-      - name: Build Xcode Archive & IPA
+      - name: Build iOS App (.app & .ipa)
         run: |
           cd ios/App
-          # If workspace exists use workspace, else use project
-          if [ -d "App.xcworkspace" ]; then
-            TARGET_ARG="-workspace App.xcworkspace"
-          else
-            TARGET_ARG="-project App.xcodeproj"
-          fi
-
-          echo "Building with target $TARGET_ARG..."
+          echo "Resolving Swift Packages..."
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj
           
-          # Build without signing requirement (Ad-Hoc / Sideloadable IPA)
-          xcodebuild clean archive \
-            $TARGET_ARG \
+          echo "Compiling iOS Release build..."
+          xcodebuild clean build \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath build/App.xcarchive \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE=""
+            PROVISIONING_PROFILE="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
-          # Package Payload into .ipa
+          # Create Payload directory and copy App.app
           mkdir -p build/Payload
-          cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          echo "Found app at: $APP_PATH"
+          cp -r "$APP_PATH" build/Payload/
+          
           cd build
           zip -r Cassiel.ipa Payload
           cd ../..
