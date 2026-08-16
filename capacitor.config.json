@@ -1,7 +1,13 @@
 {
   "appId": "com.redilah.financetracker",
-  "appName": "Finance Tracker",
+  "appName": "Cassiel",
   "webDir": "dist",
+  "ios": {
+    "includePlugins": [
+      "@capacitor/app",
+      "@capacitor/local-notifications"
+    ]
+  },
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_notification",

@@ -97,7 +97,7 @@ export default function VoiceMicButton({
     accumulatedTranscriptRef.current = '';
     isProcessingRef.current = false;
 
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       // 1. Native Android
       try {
         const isAvail = await SpeechRecognition.available().catch(() => ({ available: false }));

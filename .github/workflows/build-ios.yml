@@ -25,15 +25,10 @@ jobs:
       - name: Build Web Assets
         run: npm run build
 
-      - name: Patch SPM & Sync Capacitor iOS
+      - name: Sync Capacitor iOS
         run: |
-          echo "=== Running patch script before sync ==="
-          node scripts/patch-speech-spm.js
-          echo "=== Running npx cap sync ios ==="
           npx cap sync ios
-          echo "=== Running patch script after sync ==="
-          node scripts/patch-speech-spm.js
-          cat ios/App/CapApp-SPM/Package.swift
+          node -e "const fs=require('fs'),p='ios/App/CapApp-SPM/Package.swift';if(fs.existsSync(p)){fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace(/\\\\/g,'/'),'utf8');}"
 
       - name: Build iOS App (.app & .ipa)
         run: |
