@@ -25,8 +25,11 @@ jobs:
       - name: Build Web Assets
         run: npm run build
 
-      - name: Copy Web Assets to iOS
-        run: npx cap copy ios
+      - name: Copy Assets to iOS Bundle
+        run: |
+          mkdir -p ios/App/App/public
+          cp -r dist/* ios/App/App/public/
+          echo "Web assets successfully copied into iOS bundle."
 
       - name: Build iOS App (.app & .ipa)
         run: |
