@@ -246,7 +246,7 @@ export const DICTIONARY = {
     noExpenseDesc: 'Mboten wonten cathetan pangetrapan ing wekdal punika',
     
     // Form Labels (Krama Mataraman)
-    formDate: 'Dinten / Titimangsa',
+    formDate: 'Titimangsa',
     formAmount: 'Gunggungipun Arta',
     formCategory: 'Jinis Kategori',
     formAccount: 'Wadhah Arta',

@@ -931,8 +931,8 @@ img[src*="Kost"] {
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px 6px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 10px;
   padding: 16px 12px;
   background-color: #EFE6DC;
   max-height: 260px;
