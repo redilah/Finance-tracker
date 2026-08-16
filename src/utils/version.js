@@ -9,6 +9,33 @@ export const CURRENT_VERSION_NAME = '1.0.19';
 export const checkForAppUpdates = async () => {
   const timestamp = new Date().getTime();
   
+  // 1. Coba GitHub API terlebih dahulu (Instant zero-cache, real-time tanpa delay Fastly CDN)
+  try {
+    const apiController = new AbortController();
+    const apiTimeout = setTimeout(() => apiController.abort(), 4000);
+    const apiRes = await fetch(`https://api.github.com/repos/redilah/Finance-tracker/contents/public/version.json?t=${timestamp}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
+      cache: 'no-store',
+      signal: apiController.signal
+    });
+    clearTimeout(apiTimeout);
+
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData && apiData.content) {
+        const decodedStr = atob(apiData.content.replace(/\s/g, ''));
+        const data = JSON.parse(decodedStr);
+        if (data && typeof data.versionCode === 'number') {
+          return await formatUpdateResult(data);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[UpdateCheck] GitHub API fetch error, fallback to raw CDN URLs:', err?.message || err);
+  }
+
+  // 2. Fallback ke Raw CDN URLs jika GitHub API tidak merespon
   const urls = [
     `https://raw.githubusercontent.com/redilah/Finance-tracker/main/public/version.json?t=${timestamp}`,
     `https://cdn.jsdelivr.net/gh/redilah/Finance-tracker@main/public/version.json?t=${timestamp}`
@@ -17,7 +44,7 @@ export const checkForAppUpdates = async () => {
   for (const url of urls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 detik timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const res = await fetch(url, {
         method: 'GET',
@@ -27,57 +54,58 @@ export const checkForAppUpdates = async () => {
       
       clearTimeout(timeoutId);
       
-      if (!res.ok) {
-        console.warn(`HTTP error ${res.status} untuk URL: ${url}`);
-        continue;
-      }
+      if (!res.ok) continue;
       
       const data = await res.json();
-      if (!data || typeof data.versionCode !== 'number') {
-        console.warn('Struktur data version.json tidak valid:', data);
-        continue;
+      if (data && typeof data.versionCode === 'number') {
+        const result = await formatUpdateResult(data);
+        if (result) return result;
+        break;
       }
-
-      // Validasi integritas download URL (hanya izinkan domain terpercaya)
-      const downloadUrl = data.downloadUrl || data.apkUrl;
-      if (downloadUrl) {
-        try {
-          const parsedUrl = new URL(downloadUrl);
-          const isTrusted = ['raw.githubusercontent.com', 'github.com', 'cdn.jsdelivr.net'].some(
-            domain => parsedUrl.hostname === domain || parsedUrl.hostname.endsWith('.' + domain)
-          );
-          if (!isTrusted) {
-            console.error('[Security] Untrusted download URL host rejected:', parsedUrl.hostname);
-            continue;
-          }
-        } catch {
-          console.error('[Security] Invalid download URL format');
-          continue;
-        }
-      }
-      
-      const latestVersionCode = data.versionCode;
-      console.log(`[UpdateCheck] Versi lokal: ${CURRENT_VERSION_CODE}, Versi server: ${latestVersionCode}`);
-
-      if (latestVersionCode > CURRENT_VERSION_CODE) {
-        return {
-          hasUpdate: true,
-          currentVersionCode: CURRENT_VERSION_CODE,
-          currentVersionName: CURRENT_VERSION_NAME,
-          latestVersionCode: latestVersionCode,
-          latestVersionName: data.versionName || data.version || '1.0.0',
-          version: data.versionName || data.version || '1.0.0',
-          changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
-          downloadUrl: downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}`,
-          sha256: data.sha256 || null
-        };
-      }
-      
-      // Jika berhasil mendapat respon tapi tidak ada update lebih baru, hentikan loop.
-      break;
     } catch (e) {
       console.warn(`Gagal memuat info update dari URL (${url}):`, e?.message || e);
     }
+  }
+  return null;
+};
+
+/**
+ * Helper untuk memformat objek update dan mencocokkan target APK (Cassiel vs Udin)
+ */
+const formatUpdateResult = async (data) => {
+  const latestVersionCode = data.versionCode;
+  console.log(`[UpdateCheck] Versi lokal: ${CURRENT_VERSION_CODE}, Versi server: ${latestVersionCode}`);
+
+  if (latestVersionCode > CURRENT_VERSION_CODE) {
+    let isUdinApp = false;
+    try {
+      const { App } = await import('@capacitor/app');
+      const appInfo = await App.getInfo();
+      if (appInfo && appInfo.id === 'com.redilah.udin') {
+        isUdinApp = true;
+      }
+    } catch {
+      // Web fallback check
+      if (typeof window !== 'undefined' && window.location.hostname.includes('udin')) {
+        isUdinApp = true;
+      }
+    }
+
+    const baseApkName = isUdinApp ? 'udin.apk' : 'Cassiel.apk';
+    const downloadUrl = `https://raw.githubusercontent.com/redilah/Finance-tracker/main/${baseApkName}?v=${latestVersionCode}&t=${Date.now()}`;
+
+    return {
+      hasUpdate: true,
+      currentVersionCode: CURRENT_VERSION_CODE,
+      currentVersionName: CURRENT_VERSION_NAME,
+      latestVersionCode: latestVersionCode,
+      latestVersionName: data.versionName || data.version || '1.0.0',
+      version: data.versionName || data.version || '1.0.0',
+      changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
+      downloadUrl: downloadUrl,
+      sha256: data.sha256 || null,
+      isUdinApp: isUdinApp
+    };
   }
   return null;
 };
