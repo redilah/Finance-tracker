@@ -58,9 +58,10 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - [New] Fitur Saran Pengguna untuk Pengembang
   ```
 
-## 7. In-App Update Anti-Cache Invariants
-* **Fetch Anti-Cache**: Setiap pemanggilan `fetch` untuk `version.json` wajib menyertakan opsi `{ method: 'GET', cache: 'no-store' }`.
-* **Dynamic URL Cache-Buster**: Tombol "Update Sekarang" / property `downloadUrl` & `apkUrl` wajib menyertakan parameter anti-cache dinamis (contoh: `?t=${Date.now()}` atau `?v=${versionCode}`) agar CDN GitHub/browser HP tidak menyajikan file APK lama.
+## 7. In-App Update Anti-Cache & Dynamic Routing Invariants
+* **GitHub API Zero-Cache Priority**: Pengecekan pembaruan wajib memanggil GitHub API Contents Endpoint (`https://api.github.com/repos/redilah/Finance-tracker/contents/public/version.json`) dengan header `{ 'Accept': 'application/vnd.github.v3+json', cache: 'no-store' }` sebagai jalur utama untuk melewati jeda cache Fastly CDN (5–10 menit) pada URL raw.
+* **Fetch Anti-Cache Fallback**: Jika fallback ke `version.json` raw/jsdelivr, wajib menyertakan opsi `{ method: 'GET', cache: 'no-store' }` dan parameter timestamp `?t=${Date.now()}`.
+* **Dynamic Target APK Routing (Cassiel vs Udin)**: Pengecekan update wajib mendeteksi package ID runtime (`App.getInfo()`). Jika aplikasi berjalan dengan `applicationId "com.redilah.udin"`, tautan update diarahkan secara otomatis ke `udin.apk`, bukan `Cassiel.apk`.
 
 ## 8. Sideload Test Build (Debug Ramping)
 * **Debug Build dengan R8 Shrinker**: Untuk build pengujian lokal agar tidak terjadi konflik keystore ("package invalid"), gunakan `./gradlew assembleDebug` dengan `minifyEnabled true` & `shrinkResources true` di `buildTypes.debug` agar file APK tetap berukuran ~5 MB namun menggunakan kunci debug bawaan Android.
@@ -103,4 +104,8 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 15. Feature Introduction Notification Workflow & 5-Second Delay
 * **Proactive Feature Intro Proposal**: Setiap kali user meminta rilis atau push kode APK baru ke GitHub, asisten **wajib** terlebih dahulu menyiapkan dan mengusulkan draf ringkas teks Notifikasi Perkenalan Fitur Baru yang spesifik (hanya menyebutkan fitur inti baru rilis tersebut tanpa menyebutkan seluruh riwayat lama).
 * **5-Second Post-Update Delay**: Notifikasi perkenalan lokal Android wajib dijadwalkan muncul tepat **5 detik** (`Date.now() + 5000 ms`) setelah aplikasi selesai di-update dan dibuka pertama kali oleh pengguna.
+
+## 16. Transaction Form 3-Column Category Grid Invariant
+* **Strict 3-Column Grid**: Susunan ikon dan label kategori pada panel bawah form transaksi (`.category-grid`) bersifat mutlak **3 kolom ke samping** (`grid-template-columns: repeat(3, 1fr)`) agar nama kategori (termasuk terjemahan daerah seperti Basa Jawa) memiliki ruang baca yang proporsional dan tidak terpotong.
+
 
