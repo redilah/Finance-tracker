@@ -45,15 +45,16 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Action Button Persistence**: Tombol aksi utama (seperti tombol *Save* transaksi) harus selalu tampil dan aktif di form tanpa dikunci oleh kondisi panel/input focus (`activePanel === 'note'`).
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
 
-## 6. Format Penulisan "What's New" / Update Release Notes
+## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
   1. **Wajib Audit Komprehensif via Git Diff**: Dilarang hanya mencantumkan fitur dari topik obrolan terakhir. Wajib memeriksa perubahan riil secara menyeluruh menggunakan `git diff` / riwayat perubahan terhadap versi rilis sebelumnya untuk mendeteksi seluruh fitur baru, aset, optimasi, dan perbaikan yang masuk ke dalam build rilis tersebut.
-  2. **Format Ringkas Bullet Point**: Gunakan format yang simpel, langsung menyebutkan seluruh fitur/perubahan yang ditemukan menggunakan bullet point dan label `[New]` tanpa penjelasan tambahan.
+  2. **Format Ringkas 1–2 Poin Utama**: Changelog pada pop-up modal update wajib dibuat sangat ringkas (cukup **1–2 poin fitur utama** saja, tidak perlu menuliskan seluruh daftar panjang).
+  3. **No Nested White Box**: Tampilan daftar pembaruan pada modal pop-up update dilarang menggunakan container/box putih terpisah (`background: transparent; border: none; box-shadow: none;`) agar menyatu mulus dan bersih dengan latar kartu modal tanpa kesan kotak di dalam kotak.
 * **Format Contoh**:
   ```text
   New in this update:
-  - [New] Fitur Budget Kategori
-  - [New] Fitur Audio Feedback Transaksi
+  - [New] Fitur Multi-Bahasa Aplikasi
+  - [New] Fitur Saran Pengguna untuk Pengembang
   ```
 
 ## 7. In-App Update Anti-Cache Invariants

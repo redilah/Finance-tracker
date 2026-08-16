@@ -3612,6 +3612,7 @@ function App() {
                     <ul className="update-changelog-list">
                       {lines
                         .filter(line => !line.toLowerCase().startsWith('new in this update') && !line.toLowerCase().startsWith('yang baru'))
+                        .slice(0, 2)
                         .map((line, idx) => {
                           const cleanText = line.replace(/^[-•*]\s*/, '').replace(/^\[New\]\s*/i, '');
                           return (
