@@ -25,18 +25,20 @@ jobs:
       - name: Build Web Assets
         run: npm run build
 
-      - name: Install CocoaPods & Copy Capacitor iOS
+      - name: Patch SPM & Sync Capacitor iOS
         run: |
-          npx cap copy ios
-          cd ios/App
-          pod install
+          node scripts/patch-speech-spm.js
+          npx cap sync ios
 
       - name: Build iOS App (.app & .ipa)
         run: |
           cd ios/App
-          echo "Compiling iOS Release build with Xcode..."
+          echo "Resolving Swift Packages..."
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj
+          
+          echo "Compiling iOS Release build..."
           xcodebuild clean build \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
