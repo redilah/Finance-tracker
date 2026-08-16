@@ -675,8 +675,8 @@ export const scheduleV18FeatureIntroNotification = async (userName = 'Teman') =>
   }
 
   const name = userName && userName.trim() ? userName.trim() : 'Teman';
-  const title = '🌐 Fitur Baru: Multi-Bahasa & Saran Pengembang';
-  const body = `Halo ${name}! Kini kamu bisa mengganti bahasa aplikasi dan mengirimkan saran/keluh kesah langsung ke developer melalui menu Profil.`;
+  const title = '✨ Fitur Baru: Gaya Tulisan & Bahasa!';
+  const body = 'Kini Anda bisa mengubah gaya font tampilan aplikasi dan pilihan bahasa melalui menu Profil ✨';
 
   if (Capacitor.isNativePlatform()) {
     try {

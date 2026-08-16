@@ -5,7 +5,7 @@
   "changelog": "New in this update:\n- [New] Fitur Multi-Bahasa Aplikasi (Profil → Pilihan Bahasa)\n- [New] Fitur Saran & Keluh Kesah Pengguna untuk Pengembang\n- [New] Voice AI Support Bioskop & Filter Redundansi Otomatis\n- [New] Telemetri Rasio Input Transaksi Suara vs Manual\n- [New] Tampilan Changelog Interaktif & Sinkronisasi AI Cloud",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.18",
   "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.18",
-  "sha256": "ce512263b969b241a315c6c3d51de342e58f86bc000d8b824f1de84051f8e4c5",
+  "sha256": "eca5275c23ed6e6ad0d7ce8099da28d385003ddeeae43529659f4e21d004684f",
   "minSdkVersion": 22
 }
 
