@@ -47,7 +47,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO
+            ONLY_ACTIVE_ARCH=NO > xcode_build.log 2>&1 || (echo "=== XCODE BUILD ERROR LOG ===" && tail -n 80 xcode_build.log && exit 1)
 
           # Create Payload directory and copy App.app
           mkdir -p build/Payload
