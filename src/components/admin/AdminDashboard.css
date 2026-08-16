@@ -586,6 +586,41 @@
   font-family: 'JetBrains Mono', Consolas, monospace;
 }
 
+/* Input Method Badges (Mic vs Manual) */
+.input-method-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.input-method-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.input-method-badge b {
+  font-weight: 700;
+}
+
+.input-method-badge.mic-badge {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #DBEAFE;
+}
+
+.input-method-badge.manual-badge {
+  background: #FDF4FF;
+  color: #86198F;
+  border: 1px solid #F5D0FE;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -1438,3 +1473,255 @@
     align-items: center;
   }
 }
+
+/* ==========================================================================
+   Admin Dashboard TAB 3 (Feedbacks & Keluh Kesah) Styles
+   ========================================================================== */
+.tab-badge-count.feedback-count {
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+}
+
+.feedback-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.admin-feedback-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-feedback-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.admin-feedback-card.unread-feedback {
+  border-left: 4px solid #F59E0B;
+  background: linear-gradient(to right, rgba(254, 243, 199, 0.2), #FFFFFF 15%);
+}
+
+.feedback-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.feedback-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feedback-cat-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+.feedback-cat-tag.cat-saranfitur,
+.feedback-cat-tag[class*="saran"] {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.feedback-cat-tag.cat-keluhkesah,
+.feedback-cat-tag[class*="keluh"] {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.feedback-cat-tag.cat-masalah,
+.feedback-cat-tag.cat-laporbug,
+.feedback-cat-tag[class*="masalah"],
+.feedback-cat-tag[class*="bug"] {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.feedback-unread-badge {
+  background: #F59E0B;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feedback-card-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #9CA3AF;
+}
+
+.feedback-card-body {
+  flex: 1;
+}
+
+.feedback-message-text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.feedback-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #F3F4F6;
+  padding-top: 12px;
+  margin-top: 4px;
+  gap: 12px;
+}
+
+.feedback-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.feedback-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #E0E7FF;
+  color: #4F46E5;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feedback-user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.feedback-user-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1F2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feedback-device-id {
+  font-size: 10.5px;
+  color: #9CA3AF;
+}
+
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-feedback-action {
+  border: none;
+  background: #F3F4F6;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4B5563;
+  transition: all 0.15s ease;
+}
+
+.btn-feedback-action:hover {
+  background: #E5E7EB;
+}
+
+.btn-feedback-action.delete {
+  background: #FEF2F2;
+  padding: 6px 8px;
+}
+
+.btn-feedback-action.delete:hover {
+  background: #FEE2E2;
+}
+
+/* ==========================================================================
+   FEEDBACK TAB 3 CONTROLS & PILL FILTERS
+   ========================================================================== */
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B7280;
+  letter-spacing: 0.3px;
+}
+
+.filter-buttons {
+  display: inline-flex;
+  align-items: center;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.btn-filter {
+  border: none;
+  background: transparent;
+  padding: 7px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4B5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.btn-filter:hover {
+  color: #111827;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.btn-filter.active {
+  background: #FFFFFF;
+  color: #111827;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+

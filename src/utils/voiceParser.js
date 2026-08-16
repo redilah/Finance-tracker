@@ -106,7 +106,8 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
   ],
   bioskop: [
     'nonton film', 'tiket bioskop', 'popcorn bioskop', 'cinepolis', 'premiere', 'bioskop', 'nonton',
-    'cinema', 'xxi', 'cgv', 'imax', 'film'
+    'cinema', 'xxi', 'cgv', 'imax', 'film', 'movie', 'spiderman', 'spider-man', 'marvel', 'avatar',
+    'oppenheimer', 'barbie', 'batman', 'avengers', 'disney', 'anime', 'cinema 21', '21'
   ],
   barber: [
     'barbershop', 'potong rambut', 'pangkas rambut', 'cukur jenggot', 'creambath', 'styling rambut',
@@ -695,6 +696,10 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'skincare';
     latestExpenseIdx = 9700;
     expenseMatchedWord = 'skincare';
+  } else if (/\b(nonton film|tiket bioskop|popcorn bioskop|cinepolis|premiere|bioskop|nonton|cinema|xxi|cgv|imax|film|movie|spiderman|spider-man|marvel|avatar|batman|avengers|disney|anime|cinema 21)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'bioskop';
+    latestExpenseIdx = 9650;
+    expenseMatchedWord = 'bioskop';
   } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan|telur dadar|telur goreng|telur ceplok|telur gulung|telur balado|telor dadar|telor goreng|telor ceplok)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'food';
     latestExpenseIdx = 9500;
@@ -871,6 +876,27 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   }
 
   let note = finalNoteString.trim();
+
+  // Smart Redundancy & Filler Cleaner:
+  // 1. If Coffee brand is detected, remove generic 'coffee' / 'kopi' / 'ngopi' / 'pesan' / 'beli'
+  if (/\b(starbucks|sbux|fore|tomoro|janji\s*jiwa|point\s*coffee|kopi\s*kenangan|chatime)\b/i.test(note)) {
+    note = note.replace(/\b(coffee|kopi|ngopi)\b/gi, ' ').trim();
+  }
+
+  // 2. If Barbershop activity is detected, remove redundant 'barbershop' / 'di barbershop' / 'salon'
+  if (/\b(cukur\s*rambut|potong\s*rambut|pangkas\s*rambut|cukur\s*jenggot)\b/i.test(note)) {
+    note = note.replace(/\b(di\s+)?(barbershop|barber|salon)\b/gi, ' ').trim();
+  }
+
+  // 3. If Income / Gaji: clean temporal and status words ('bulan ini', 'bulan', 'cair', 'cairnya', 'masuk', 'turun', 'dapat')
+  if (isIncome || categoryObj?.id === 'gaji' || /\bgaji\b/i.test(note)) {
+    note = note.replace(/\b(bulan\s*ini|bulan|cair|cairnya|dapat|dapet|masuk|turun)\b/gi, ' ').trim();
+    if (!note || note.toLowerCase() === 'gaji') {
+      note = 'Gaji';
+    }
+  }
+
+  note = note.replace(/\s+/g, ' ').trim();
   note = note.replace(/^[.,!?:;\s]+|[.,!?:;\s]+$/g, '').trim();
 
   if (note.length >= 2) {

@@ -158,9 +158,15 @@ export const updateCurrentDeviceTelemetry = async () => {
   const deviceName = detectDeviceName();
 
   let totalTransactions = 0;
+  let voiceTxCount = 0;
+  let manualTxCount = 0;
   try {
     const tx = safeStorageGet('user_transactions', []);
-    if (Array.isArray(tx)) totalTransactions = tx.length;
+    if (Array.isArray(tx)) {
+      totalTransactions = tx.length;
+      voiceTxCount = tx.filter(t => t.inputMethod === 'voice' || t.source === 'voice' || t.isVoice).length;
+      manualTxCount = totalTransactions - voiceTxCount;
+    }
   } catch {}
 
   const nowIso = new Date().toISOString();
@@ -173,6 +179,8 @@ export const updateCurrentDeviceTelemetry = async () => {
     installedAt: installDate,
     lastActive: nowIso,
     totalTransactions: totalTransactions,
+    voiceTxCount: voiceTxCount,
+    manualTxCount: manualTxCount,
     appVersion: CURRENT_VERSION,
     updatedAt: Date.now()
   };

@@ -14,16 +14,37 @@
   
   --shadow-sm: 0 4px 12px rgba(0,0,0,0.03);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.06);
+  --app-font: 'Outfit', sans-serif;
+}
+
+[data-font="outfit"] {
+  --app-font: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+[data-font="lora"] {
+  --app-font: 'Lora', Georgia, serif;
+}
+
+[data-font="the-seasons"] {
+  --app-font: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+}
+
+[data-font="amoresa"] {
+  --app-font: 'Great Vibes', cursive;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--app-font, 'Outfit', sans-serif);
   -webkit-tap-highlight-color: transparent;
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+input, button, textarea, select {
+  font-family: inherit;
 }
 
 *::-webkit-scrollbar {

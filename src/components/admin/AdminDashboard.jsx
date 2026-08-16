@@ -12,6 +12,11 @@ import {
   clearLearnedInsights,
   deleteSingleLearnedInsight
 } from '../../utils/voiceLearner';
+import { 
+  subscribeToFeedbacks, 
+  deleteFeedbackItem, 
+  updateFeedbackItemStatus 
+} from '../../utils/feedback';
 import { syncDecrypt } from '../../utils/secureStorage';
 import { 
   Users, 
@@ -37,7 +42,9 @@ import {
   ChevronUp,
   Calendar,
   Check,
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  Heart
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
@@ -200,6 +207,16 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
   const [expandedInsights, setExpandedInsights] = useState({});
 
+  // Feedback state (TAB 3: SARAN & KELUH KESAH PENGGUNA)
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbackSearchQuery, setFeedbackSearchQuery] = useState('');
+  const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all'); // 'all' | 'Saran Fitur' | 'Keluh Kesah' | 'Masalah'
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackPerPage, setFeedbackPerPage] = useState(8);
+  const [isFeedbackPerPageOpen, setIsFeedbackPerPageOpen] = useState(false);
+  const feedbackPerPageRef = useRef(null);
+
   // Global loading & timer state
   const [isLoading, setIsLoading] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -217,6 +234,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
       }
       if (insightPerPageRef.current && !insightPerPageRef.current.contains(event.target)) {
         setIsInsightPerPageOpen(false);
+      }
+      if (feedbackPerPageRef.current && !feedbackPerPageRef.current.contains(event.target)) {
+        setIsFeedbackPerPageOpen(false);
       }
     };
 
@@ -277,9 +297,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
       setLearnedInsights(data);
     });
 
+    const unsubscribeFeedbacks = subscribeToFeedbacks((data) => {
+      setFeedbacks(data);
+    });
+
     return () => {
       if (typeof unsubscribeTelemetry === 'function') unsubscribeTelemetry();
       if (typeof unsubscribeInsights === 'function') unsubscribeInsights();
+      if (typeof unsubscribeFeedbacks === 'function') unsubscribeFeedbacks();
     };
   }, []);
 
@@ -470,7 +495,47 @@ export default function AdminDashboard({ onNavigateToApp }) {
     return filteredInsights.slice(start, start + insightPerPage);
   }, [filteredInsights, insightPage, insightPerPage]);
 
-  const totalInsightPages = insightPerPage === -1 ? 1 : Math.ceil(filteredInsights.length / insightPerPage) || 1;
+  const totalInsightPages = insightPerPage === -1 
+    ? 1 
+    : Math.ceil(filteredInsights.length / insightPerPage) || 1;
+
+  // Feedbacks memoized filtering
+  const filteredFeedbacks = useMemo(() => {
+    return feedbacks.filter((fb) => {
+      // 1. Search Query
+      if (feedbackSearchQuery.trim()) {
+        const query = feedbackSearchQuery.toLowerCase().trim();
+        const msg = (fb.message || '').toLowerCase();
+        const user = (fb.userName || '').toLowerCase();
+        const dev = (fb.deviceId || '').toLowerCase();
+        if (!msg.includes(query) && !user.includes(query) && !dev.includes(query)) {
+          return false;
+        }
+      }
+
+      // 2. Category Filter
+      if (feedbackCategoryFilter !== 'all') {
+        if (fb.category !== feedbackCategoryFilter) return false;
+      }
+
+      // 3. Status Filter
+      if (feedbackStatusFilter !== 'all') {
+        if (fb.status !== feedbackStatusFilter) return false;
+      }
+
+      return true;
+    });
+  }, [feedbacks, feedbackSearchQuery, feedbackCategoryFilter, feedbackStatusFilter]);
+
+  const totalFeedbackPages = feedbackPerPage === -1 
+    ? 1 
+    : Math.ceil(filteredFeedbacks.length / feedbackPerPage) || 1;
+
+  const paginatedFeedbacks = useMemo(() => {
+    if (feedbackPerPage === -1) return filteredFeedbacks;
+    const start = (feedbackPage - 1) * feedbackPerPage;
+    return filteredFeedbacks.slice(start, start + feedbackPerPage);
+  }, [filteredFeedbacks, feedbackPage, feedbackPerPage]);
 
   // Counts for Badges
   const totalUsers = telemetryList.length;
@@ -478,6 +543,10 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const totalTransactions = telemetryList.reduce((acc, curr) => acc + (curr.totalTransactions || 0), 0);
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
+  
+  const feedbackIdeaCount = feedbacks.filter(f => f.category === 'Saran Fitur' || f.category?.includes('Saran')).length;
+  const feedbackGripeCount = feedbacks.filter(f => f.category === 'Keluh Kesah' || f.category?.includes('Keluh')).length;
+  const feedbackBugCount = feedbacks.filter(f => f.category === 'Masalah' || f.category?.includes('Masalah') || f.category?.includes('Bug')).length;
 
   // Selected User Label for Custom Dropdown Button di Tab 2 (Format Angka/Simbol)
   const selectedUserDisplayLabel = useMemo(() => {
@@ -609,6 +678,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
               <span>AI Learning & Kosakata</span>
               <span className="tab-badge-count highlight">{learnedInsights.length}</span>
             </button>
+            <button 
+              className={`view-tab-btn ${activeTab === 'feedback' ? 'active' : ''}`}
+              onClick={() => setActiveTab('feedback')}
+            >
+              <MessageSquare size={18} />
+              <span>Saran & Keluh Kesah</span>
+              <span className="tab-badge-count feedback-count">{feedbacks.length}</span>
+            </button>
           </div>
         </div>
 
@@ -690,6 +767,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       <tr>
                         <th>PENGGUNA</th>
                         <th>DEVICE</th>
+                        <th>METODE INPUT</th>
                         <th>VERSI</th>
                         <th>TGL & JAM INSTAL</th>
                         <th>TERAKHIR AKTIF</th>
@@ -705,6 +783,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         // NAMA ASLI PENGGUNA (Amura, Redi, Dina, Gracia, Susan, dll.)
                         const realName = resolveRealUserName(item.userName, item.id, telemetryList);
                         const avatarLetter = (realName || 'U').charAt(0).toUpperCase();
+
+                        const voiceCount = item.voiceTxCount ?? 0;
+                        const manualCount = item.manualTxCount ?? (item.totalTransactions ? Math.max(0, item.totalTransactions - voiceCount) : 0);
 
                         return (
                           <tr key={item.id} className="telemetry-row">
@@ -728,6 +809,18 @@ export default function AdminDashboard({ onNavigateToApp }) {
                               <div className="device-badge">
                                 <Smartphone size={14} color="#4B5563" />
                                 <span>{item.deviceName || 'Perangkat Tidak Dikenal'}</span>
+                              </div>
+                            </td>
+
+                            {/* Metode Input: Mic vs Manual */}
+                            <td>
+                              <div className="input-method-badge-group">
+                                <span className="input-method-badge mic-badge" title={`${voiceCount} transaksi via Voice Mic`}>
+                                  🎙️ Mic: <b>{voiceCount}</b>
+                                </span>
+                                <span className="input-method-badge manual-badge" title={`${manualCount} transaksi via Nulis Manual`}>
+                                  ✍️ Manual: <b>{manualCount}</b>
+                                </span>
                               </div>
                             </td>
 
@@ -1244,6 +1337,211 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       className="btn-page-nav"
                       disabled={insightPage >= totalInsightPages}
                       onClick={() => setInsightPage(prev => Math.min(totalInsightPages, prev + 1))}
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight size={16} />
+                    </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+        {/* TAB 3: SARAN & KELUH KESAH PENGGUNA */}
+        {activeTab === 'feedback' && (
+          <div className="tab-pane-content">
+            {/* Feedback Controls & Search */}
+            <section className="admin-controls-card">
+              <div className="controls-row">
+                <div className="search-box">
+                  <Search size={18} color="#9CA3AF" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari pesan saran, keluh kesah, atau nama pengguna..." 
+                    value={feedbackSearchQuery}
+                    onChange={(e) => setFeedbackSearchQuery(e.target.value)}
+                  />
+                  {feedbackSearchQuery && (
+                    <button 
+                      className="btn-clear-search" 
+                      onClick={() => setFeedbackSearchQuery('')}
+                      title="Hapus pencarian"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="filter-group">
+                  <span className="filter-label">Kategori:</span>
+                  <div className="filter-buttons">
+                    <button 
+                      className={`btn-filter ${feedbackCategoryFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackCategoryFilter('all'); setFeedbackPage(1); }}
+                    >
+                      Semua ({feedbacks.length})
+                    </button>
+                    <button 
+                      className={`btn-filter ${feedbackCategoryFilter === 'Saran Fitur' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackCategoryFilter('Saran Fitur'); setFeedbackPage(1); }}
+                    >
+                      💡 Saran ({feedbackIdeaCount})
+                    </button>
+                    <button 
+                      className={`btn-filter ${feedbackCategoryFilter === 'Keluh Kesah' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackCategoryFilter('Keluh Kesah'); setFeedbackPage(1); }}
+                    >
+                      💬 Keluh Kesah ({feedbackGripeCount})
+                    </button>
+                    <button 
+                      className={`btn-filter ${feedbackCategoryFilter === 'Masalah' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackCategoryFilter('Masalah'); setFeedbackPage(1); }}
+                    >
+                      ⚠️ Bug ({feedbackBugCount})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="filter-group">
+                  <span className="filter-label">Status:</span>
+                  <div className="filter-buttons">
+                    <button 
+                      className={`btn-filter ${feedbackStatusFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackStatusFilter('all'); setFeedbackPage(1); }}
+                    >
+                      Semua
+                    </button>
+                    <button 
+                      className={`btn-filter ${feedbackStatusFilter === 'unread' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackStatusFilter('unread'); setFeedbackPage(1); }}
+                    >
+                      Belum Dibaca
+                    </button>
+                    <button 
+                      className={`btn-filter ${feedbackStatusFilter === 'read' ? 'active' : ''}`}
+                      onClick={() => { setFeedbackStatusFilter('read'); setFeedbackPage(1); }}
+                    >
+                      Sudah Dibaca
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Feedback Cards List */}
+            <section className="feedbacks-display-section">
+              {filteredFeedbacks.length === 0 ? (
+                <div className="empty-state-card">
+                  <MessageSquare size={48} color="#D1D5DB" />
+                  <h3>Belum Ada Saran atau Keluh Kesah</h3>
+                  <p>
+                    {feedbackSearchQuery || feedbackCategoryFilter !== 'all' || feedbackStatusFilter !== 'all'
+                      ? 'Tidak ada masukan yang sesuai dengan filter pencarian.'
+                      : 'Masukan dan keluh kesah dari pengguna yang dikirim via menu Profil akan muncul di sini secara real-time.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="feedback-cards-grid">
+                  {paginatedFeedbacks.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className={`admin-feedback-card ${item.status === 'unread' ? 'unread-feedback' : ''}`}
+                    >
+                      <div className="feedback-card-header">
+                        <div className="feedback-card-badges">
+                          <span className={`feedback-cat-tag cat-${(item.category || 'saran').toLowerCase().replace(/[^a-z]/g, '')}`}>
+                            {item.category || 'Saran Fitur'}
+                          </span>
+                          {item.status === 'unread' && (
+                            <span className="feedback-unread-badge">Baru</span>
+                          )}
+                        </div>
+                        <div className="feedback-card-time">
+                          <Clock size={12} />
+                          <span>{item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Baru saja'}</span>
+                        </div>
+                      </div>
+
+                      <div className="feedback-card-body">
+                        <p className="feedback-message-text">{item.message}</p>
+                      </div>
+
+                      <div className="feedback-card-footer">
+                        <div className="feedback-user-meta">
+                          <div className="feedback-user-avatar">
+                            {(item.userName || 'P').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="feedback-user-details">
+                            <span className="feedback-user-name">{item.userName || 'Anonim'}</span>
+                            <span className="feedback-device-id">{item.deviceId ? `ID: ${item.deviceId.slice(0, 10)}...` : 'Mobile'}</span>
+                          </div>
+                        </div>
+
+                        <div className="feedback-actions">
+                          <button
+                            type="button"
+                            className="btn-feedback-action toggle-status"
+                            title={item.status === 'read' ? 'Tandai belum dibaca' : 'Tandai sudah dibaca'}
+                            onClick={async () => {
+                              try {
+                                await updateFeedbackItemStatus(item.id, item.status === 'read' ? 'unread' : 'read');
+                              } catch (e) {
+                                console.error('Status update error:', e);
+                              }
+                            }}
+                          >
+                            <CheckCircle size={15} color={item.status === 'read' ? '#10B981' : '#9CA3AF'} />
+                            <span>{item.status === 'read' ? 'Dibaca' : 'Tandai Baca'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-feedback-action delete"
+                            title="Hapus masukan ini"
+                            onClick={async () => {
+                              if (window.confirm('Hapus saran/keluh kesah ini?')) {
+                                try {
+                                  await deleteFeedbackItem(item.id);
+                                } catch (e) {
+                                  console.error('Delete feedback error:', e);
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 size={15} color="#EF4444" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Feedback Pagination Footer */}
+              {filteredFeedbacks.length > 0 && (
+                <div className="pagination-footer">
+                  <div className="pagination-info">
+                    Menampilkan <b>{paginatedFeedbacks.length}</b> dari <b>{filteredFeedbacks.length}</b> masukan
+                  </div>
+
+                  <div className="pagination-controls">
+                    <button 
+                      className="btn-page-nav"
+                      disabled={feedbackPage <= 1}
+                      onClick={() => setFeedbackPage(prev => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <div className="pagination-page-indicator">
+                      Halaman <b>{feedbackPage}</b> dari <b>{totalFeedbackPages}</b>
+                    </div>
+
+                    <button 
+                      className="btn-page-nav"
+                      disabled={feedbackPage >= totalFeedbackPages}
+                      onClick={() => setFeedbackPage(prev => Math.min(totalFeedbackPages, prev + 1))}
                     >
                       <span>Berikutnya</span>
                       <ChevronRight size={16} />

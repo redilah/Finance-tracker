@@ -42,6 +42,8 @@ import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
+import { getTranslation, getCategoryName, LANGUAGES, FONTS } from './utils/i18n';
+import { submitUserFeedback } from './utils/feedback';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
@@ -56,6 +58,7 @@ import {
   schedulePersonalizedNotifications,
   scheduleFeatureIntroNotification,
   scheduleNewCategoryNotification,
+  scheduleV18FeatureIntroNotification,
   playSound,
   playPopSound 
 } from './utils/notifications';
@@ -200,7 +203,7 @@ const INVESTMENT_INSTRUMENTS = [
   { id: 'obligasi', name: 'Obligasi', rate: 0.065, label: '6.5%' },
 ];
 
-function AndaiFeatureView({ transactions, resolveIcon }) {
+function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (k) => k }) {
   const [investmentYear, setInvestmentYear] = useState(5); // 1, 3, 5, 10
   const [selectedInstrument, setSelectedInstrument] = useState(INVESTMENT_INSTRUMENTS[0]); // Big Bank (8%)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -217,13 +220,15 @@ function AndaiFeatureView({ transactions, resolveIcon }) {
   const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
   const gain = futureValue - totalConsumptiveAmount;
 
+  const yearUnit = t('andaiYearUnit') || 'Thn';
+
   return (
     <div className="andai-container-clean">
       {/* Stat Card Ringkas */}
       <div className="andai-hero-card">
-        <span className="andai-hero-label">Konsumtif Bulan Ini</span>
+        <span className="andai-hero-label">{t('andaiHeroLabel')}</span>
         <h2 className="andai-hero-amount">Rp {totalConsumptiveAmount.toLocaleString('id-ID')}</h2>
-        <span className="andai-hero-sub">{consumptiveTransactions.length} transaksi terdeteksi</span>
+        <span className="andai-hero-sub">{consumptiveTransactions.length} {t('andaiTxDetected')}</span>
       </div>
 
       {/* Kontrol Ringkas (Pill selector & Custom Dropdown) */}
@@ -236,7 +241,7 @@ function AndaiFeatureView({ transactions, resolveIcon }) {
               className={`andai-mini-pill ${investmentYear === yr ? 'active' : ''}`}
               onClick={() => setInvestmentYear(yr)}
             >
-              {yr} Thn
+              {yr} {yearUnit}
             </button>
           ))}
         </div>
@@ -280,13 +285,13 @@ function AndaiFeatureView({ transactions, resolveIcon }) {
       {/* Hero Visual Hasil Investment vs Hangus */}
       <div className="andai-comparison-card">
         <div className="andai-compare-item current">
-          <span className="compare-lbl">Jika Dibeli</span>
+          <span className="compare-lbl">{t('andaiIfBought')}</span>
           <span className="compare-val zero">Rp 0</span>
-          <span className="compare-desc">Hangus</span>
+          <span className="compare-desc">{t('andaiBurnt')}</span>
         </div>
 
         <div className="andai-compare-item future">
-          <span className="compare-lbl">Andai Diinvestasikan ({investmentYear} Thn)</span>
+          <span className="compare-lbl">{t('andaiIfInvested')} ({investmentYear} {yearUnit})</span>
           <span className="compare-val grow">Rp {futureValue.toLocaleString('id-ID')}</span>
           <span className="compare-gain">+Rp {gain.toLocaleString('id-ID')} (+{Math.round((gain / (totalConsumptiveAmount || 1)) * 100)}%)</span>
         </div>
@@ -294,9 +299,9 @@ function AndaiFeatureView({ transactions, resolveIcon }) {
 
       {/* Ringkasan Transaksi Konsumtif Minimalis */}
       <div className="andai-list-clean">
-        <div className="list-clean-title">Rincian Pengeluaran Konsumtif</div>
+        <div className="list-clean-title">{t('andaiConsumptiveTitle')}</div>
         {consumptiveTransactions.length === 0 ? (
-          <div className="empty-clean-text">Tidak ada pengeluaran konsumtif bulan ini.</div>
+          <div className="empty-clean-text">{t('andaiEmptyClean')}</div>
         ) : (
           consumptiveTransactions.map(item => (
             <div className="item-clean-row" key={item.id}>
@@ -310,7 +315,7 @@ function AndaiFeatureView({ transactions, resolveIcon }) {
                 </div>
                 <div className="item-clean-meta">
                   <span className="item-clean-title">{item.title}</span>
-                  <span className="item-clean-sub">{item.subtext || item.category}</span>
+                  <span className="item-clean-sub">{item.subtext || getCategoryName(item.category, appLanguage)}</span>
                 </div>
               </div>
               <span className="item-clean-amount">-Rp {Number(item.amount).toLocaleString('id-ID')}</span>
@@ -586,10 +591,102 @@ function App() {
     setIsBudgetCapModalOpen(true);
   };
 
+  // Home Transaction Type Filter ('expense' | 'income')
+  const [homeTxFilter, setHomeTxFilter] = useState('expense');
+
+  // Font and Language Settings
+  const [appFont, setAppFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
+  const [tempFont, setTempFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
+  const [appLanguage, setAppLanguage] = useState(() => {
+    const savedLang = safeStorageGet('user_app_lang');
+    const migratedVersion = safeStorageGet('user_lang_migrated_v19');
+    // Khusus update ke versi ini (v1.0.18 / code 19), aktifkan Basa Jawa langsung jika belum pernah migrasi
+    if (!migratedVersion) {
+      safeStorageSet('user_lang_migrated_v19', 'done');
+      safeStorageSet('user_app_lang', 'jv');
+      return 'jv';
+    }
+    return savedLang || 'id';
+  });
+  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'jv');
+  const [isFontModalOpen, setIsFontModalOpen] = useState(false);
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+
+  // Feedback for Developer State
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState('Saran Fitur');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  // Translation helper
+  const t = useCallback((key) => getTranslation(appLanguage, key), [appLanguage]);
+
+  // Apply Font globally
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font', appFont);
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      rootEl.setAttribute('data-font', appFont);
+    }
+  }, [appFont]);
+
+  const handleOpenFontModal = () => {
+    setTempFont(appFont);
+    setIsFontModalOpen(true);
+  };
+
+  const handleOpenLangModal = () => {
+    setTempLanguage(appLanguage);
+    setIsLangModalOpen(true);
+  };
+
+  const handleSelectFont = (fontId) => {
+    setAppFont(fontId);
+    safeStorageSet('user_app_font', fontId);
+  };
+
+  const handleSelectLanguage = (langCode) => {
+    setAppLanguage(langCode);
+    safeStorageSet('user_app_lang', langCode);
+  };
+
   // Voice-Command Deletion & Feedback Toast State
   const [deletingTxId, setDeletingTxId] = useState(null);
   const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showVoiceToast = useCallback((msg) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    setVoiceToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => {
+      setVoiceToastMessage(null);
+      toastTimerRef.current = null;
+    }, 2800);
+  }, []);
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) return;
+    setIsSubmittingFeedback(true);
+    try {
+      await submitUserFeedback({
+        category: feedbackCategory,
+        message: feedbackText,
+        userName: profileName
+      });
+      setFeedbackText('');
+      setIsFeedbackModalOpen(false);
+      showVoiceToast(t('feedbackSuccess'));
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      showVoiceToast(t('feedbackError'));
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const handleVoiceAnimationComplete = useCallback((txId) => {
     setVoiceAnimatingTxIds(prev => {
@@ -614,13 +711,6 @@ function App() {
   useEffect(() => {
     syncLearnerWithUserData(expenseCategories, transactions);
   }, [expenseCategories, transactions]);
-
-  const showVoiceToast = (msg) => {
-    setVoiceToastMessage(msg);
-    setTimeout(() => {
-      setVoiceToastMessage(null);
-    }, 2800);
-  };
 
   // In-App Update Check State
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -679,6 +769,7 @@ function App() {
   React.useEffect(() => {
     scheduleFeatureIntroNotification(profileName);
     scheduleNewCategoryNotification(profileName);
+    scheduleV18FeatureIntroNotification(profileName);
   }, [profileName]);
 
   // Schedule / sync notifications when profile name, transactions, or expenseCategories update
@@ -790,7 +881,7 @@ function App() {
   const [isEditingName, setIsEditingName] = useState(false);
 
   const handleSaveInlineName = () => {
-    const finalName = tempName.trim() || 'Pengguna';
+    const finalName = tempName.trim() || 'No Name';
     setProfileName(finalName);
     setTempName(finalName);
     safeStorageSet('user_profile_name', finalName);
@@ -887,7 +978,7 @@ function App() {
   };
 
   const handleSaveProfile = async () => {
-    const finalName = tempName.trim() || 'Pengguna';
+    const finalName = tempName.trim() || 'No Name';
     const isFirstTimeSetup = !safeStorageGet('user_profile_setup_done');
 
     setProfileName(finalName);
@@ -1034,6 +1125,12 @@ function App() {
     setSafetyWarning,
     updateInfo,
     setUpdateInfo,
+    isFontModalOpen,
+    setIsFontModalOpen,
+    isLangModalOpen,
+    setIsLangModalOpen,
+    isFeedbackModalOpen,
+    setIsFeedbackModalOpen,
     isAddModalOpen,
     setIsAddModalOpen,
     isProfileModalOpen,
@@ -1055,6 +1152,20 @@ function App() {
     // 0. Layar Full-Page Category Insight
     if (s.selectedInsightCategory) {
       s.setSelectedInsightCategory(null);
+      return;
+    }
+
+    // 0.1 Sub-Modals di Profile
+    if (s.isFeedbackModalOpen) {
+      s.setIsFeedbackModalOpen(false);
+      return;
+    }
+    if (s.isFontModalOpen) {
+      s.setIsFontModalOpen(false);
+      return;
+    }
+    if (s.isLangModalOpen) {
+      s.setIsLangModalOpen(false);
       return;
     }
 
@@ -1517,7 +1628,8 @@ function App() {
       amount: numericAmount,
       type: result.type.toLowerCase(),
       iconClass: catIconClass,
-      date: getTodayISO()
+      date: getTodayISO(),
+      inputMethod: 'voice'
     };
 
     if (result.type === 'Expense') {
@@ -1570,7 +1682,8 @@ function App() {
       amount: numericAmount,
       type: transType.toLowerCase(),
       iconClass: catIconClass,
-      date: selectedDateVal || getTodayISO()
+      date: selectedDateVal || getTodayISO(),
+      inputMethod: 'manual'
     };
 
     if (transType === 'Expense') {
@@ -1798,13 +1911,13 @@ function App() {
                 <span className="greeting-text">
                   Good Day,
                 </span>
-                <span className="profile-name">{profileName || 'Pengguna'}</span>
+                <span className="profile-name">{profileName || 'No Name'}</span>
               </div>
               <div className="profile-avatar">
                 {profileImage ? (
                   <img src={profileImage} alt={profileName} className="profile-avatar-img" />
                 ) : (
-                  (profileName || 'P').trim().charAt(0).toUpperCase()
+                  (profileName || 'N').trim().charAt(0).toUpperCase()
                 )}
               </div>
             </div>
@@ -1813,21 +1926,21 @@ function App() {
           {/* Balance Cards */}
           <section className="balance-section">
             <div className="balance-card expenses-card">
-              <span className="card-label">Expenses</span>
+              <span className="card-label">{t('expenses')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? `Rp ${totalExpenses.toLocaleString('id-ID')}` : 'Rp 0'}</span>
                 <span className="icon-down">▼</span>
               </div>
             </div>
             <div className="balance-card income-card">
-              <span className="card-label">Income</span>
+              <span className="card-label">{t('income')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? `Rp ${totalIncome.toLocaleString('id-ID')}` : 'Rp 0'}</span>
                 <span className="icon-up">▲</span>
               </div>
             </div>
             <div className="balance-card total-card">
-              <span className="card-label">Total</span>
+              <span className="card-label">{t('total')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? `Rp ${totalBalance.toLocaleString('id-ID')}` : 'Rp 0'}</span>
                 <span className="icon-total font-bold">💰</span>
@@ -1842,101 +1955,135 @@ function App() {
             />
           )}
 
+          {/* Home Transaction Filter Tabs (Income / Expense) */}
+          {isCurrentMonth && transactions.length > 0 && (
+            <div className="home-tx-filter-bar">
+              <button
+                type="button"
+                className={`home-tx-filter-btn ${homeTxFilter === 'income' ? 'active income-active' : ''}`}
+                onClick={() => setHomeTxFilter('income')}
+              >
+                {t('filterIncome')}
+              </button>
+              <button
+                type="button"
+                className={`home-tx-filter-btn ${homeTxFilter === 'expense' ? 'active expense-active' : ''}`}
+                onClick={() => setHomeTxFilter('expense')}
+              >
+                {t('filterExpense')}
+              </button>
+            </div>
+          )}
+
           {/* Transactions List Grouped by Date */}
           <section className="transactions-container">
             {isCurrentMonth ? (
-              transactions.length > 0 ? (
-                (() => {
-                  // Group transactions by YYYY-MM-DD
-                  const groupedMap = {};
-                  transactions.forEach(tx => {
-                    const txDate = tx.date || '2026-08-09';
-                    if (!groupedMap[txDate]) {
-                      groupedMap[txDate] = [];
-                    }
-                    groupedMap[txDate].push(tx);
-                  });
+              (() => {
+                const displayedHomeTransactions = transactions.filter(tx => {
+                  if (homeTxFilter === 'income') return tx.type === 'income';
+                  if (homeTxFilter === 'expense') return tx.type === 'expense';
+                  return true;
+                });
 
-                  // Sort dates descending
-                  const sortedDates = Object.keys(groupedMap).sort((a, b) => b.localeCompare(a));
+                if (displayedHomeTransactions.length === 0) {
+                  return (
+                    <div className="empty-transactions">
+                      <span className="empty-icon">📂</span>
+                      <span className="empty-title">{t('noTransactions')}</span>
+                      <span className="empty-subtitle">
+                        {homeTxFilter === 'income' 
+                          ? t('noIncomeDesc') 
+                          : homeTxFilter === 'expense' 
+                          ? t('noExpenseDesc') 
+                          : t('noTransactionsDesc')}
+                      </span>
+                    </div>
+                  );
+                }
 
-                  return sortedDates.map(dateKey => {
-                    const groupTxs = groupedMap[dateKey];
-                    const [yearStr, monthStr, dayStr] = dateKey.split('-');
-                    const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
-                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                    const dayName = days[dateObj.getDay()];
+                // Group transactions by YYYY-MM-DD
+                const groupedMap = {};
+                displayedHomeTransactions.forEach(tx => {
+                  const txDate = tx.date || '2026-08-09';
+                  if (!groupedMap[txDate]) {
+                    groupedMap[txDate] = [];
+                  }
+                  groupedMap[txDate].push(tx);
+                });
 
-                    // Compute totals for this date
-                    const dayIncome = groupTxs
-                      .filter(t => t.type === 'income')
-                      .reduce((sum, t) => sum + t.amount, 0);
-                    const dayExpense = groupTxs
-                      .filter(t => t.type === 'expense')
-                      .reduce((sum, t) => sum + t.amount, 0);
+                // Sort dates descending
+                const sortedDates = Object.keys(groupedMap).sort((a, b) => b.localeCompare(a));
 
-                    return (
-                      <div className="date-transaction-group" key={dateKey}>
-                        {/* Date Group Header Row */}
-                        <div className="date-group-header">
-                          <div className="date-group-left">
-                            <span className="date-day-number">{dayStr}</span>
-                            <span className={`date-day-badge day-${dayName.toLowerCase()}`}>{dayName}</span>
-                            <span className="date-month-year">{monthStr}.{yearStr}</span>
-                          </div>
-                          <div className="date-group-right">
-                            <span className="day-income-amount">Rp {dayIncome.toLocaleString('id-ID')}</span>
-                            <span className="day-expense-amount">Rp {dayExpense.toLocaleString('id-ID')}</span>
-                          </div>
+                return sortedDates.map(dateKey => {
+                  const groupTxs = groupedMap[dateKey];
+                  const [yearStr, monthStr, dayStr] = dateKey.split('-');
+                  const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+                  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                  const dayName = days[dateObj.getDay()];
+
+                  // Compute totals for this date
+                  const dayIncome = groupTxs
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  const dayExpense = groupTxs
+                    .filter(t => t.type === 'expense')
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                  return (
+                    <div className="date-transaction-group" key={dateKey}>
+                      {/* Date Group Header Row */}
+                      <div className="date-group-header">
+                        <div className="date-group-left">
+                          <span className="date-day-number">{dayStr}</span>
+                          <span className={`date-day-badge day-${dayName.toLowerCase()}`}>{dayName}</span>
+                          <span className="date-month-year">{monthStr}.{yearStr}</span>
                         </div>
-
-                        {/* Transaction Items under this date */}
-                        <div className="date-group-items">
-                          {groupTxs.map(item => {
-                            if (voiceAnimatingTxIds.has(item.id)) {
-                              return (
-                                <VoiceAnimatedTransactionItem
-                                  key={item.id}
-                                  item={item}
-                                  resolveIcon={resolveIcon}
-                                  isDeleting={deletingTxId === item.id}
-                                  onAnimationComplete={handleVoiceAnimationComplete}
-                                />
-                              );
-                            }
-
-                            return (
-                              <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
-                                <div className={`transaction-icon ${item.iconClass}`}>
-                                  {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
-                                </div>
-                                <div className="transaction-details">
-                                  <span className="transaction-title">{item.title}</span>
-                                  <span className="transaction-category">{item.category} • {item.account || 'Bank'}</span>
-                                </div>
-                                <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                  {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
-                                </div>
-                              </div>
-                            );
-                          })}
+                        <div className="date-group-right">
+                          <span className="day-income-amount">Rp {dayIncome.toLocaleString('id-ID')}</span>
+                          <span className="day-expense-amount">Rp {dayExpense.toLocaleString('id-ID')}</span>
                         </div>
                       </div>
-                    );
-                  });
-                })()
-              ) : (
-                <div className="empty-transactions">
-                  <span className="empty-icon">📂</span>
-                  <span className="empty-title">Belum ada transaksi</span>
-                  <span className="empty-subtitle">Tidak ada riwayat transaksi pada bulan {formatMonthYear(currentDate)}</span>
-                </div>
-              )
+
+                      {/* Transaction Items under this date */}
+                      <div className="date-group-items">
+                        {groupTxs.map(item => {
+                          if (voiceAnimatingTxIds.has(item.id)) {
+                            return (
+                              <VoiceAnimatedTransactionItem
+                                key={item.id}
+                                item={item}
+                                resolveIcon={resolveIcon}
+                                isDeleting={deletingTxId === item.id}
+                                onAnimationComplete={handleVoiceAnimationComplete}
+                              />
+                            );
+                          }
+
+                          return (
+                            <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
+                              <div className={`transaction-icon ${item.iconClass}`}>
+                                {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
+                              </div>
+                              <div className="transaction-details">
+                                <span className="transaction-title">{item.title}</span>
+                                <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'Bank'}</span>
+                              </div>
+                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+                                {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()
             ) : (
               <div className="empty-transactions">
                 <span className="empty-icon">📂</span>
-                <span className="empty-title">Belum ada transaksi</span>
-                <span className="empty-subtitle">Tidak ada riwayat transaksi pada bulan {formatMonthYear(currentDate)}</span>
+                <span className="empty-title">{t('noTransactions')}</span>
+                <span className="empty-subtitle">{t('noTransactionsDesc')}</span>
               </div>
             )}
           </section>
@@ -2052,8 +2199,6 @@ function App() {
                         fill={slice.color}
                         stroke="none"
                         className="pie-slice"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleOpenCategoryInsight(slice)}
                       />
                     ))}
 
@@ -2064,8 +2209,6 @@ function App() {
                         <g 
                           key={`label-${idx}`} 
                           className="pie-label-group"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleOpenCategoryInsight(slice)}
                         >
                           <text
                             x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
@@ -2073,7 +2216,7 @@ function App() {
                             textAnchor={textAnchor}
                             className="pie-label-name"
                           >
-                            {slice.name}
+                            {getCategoryName(slice.name, appLanguage)}
                           </text>
                           <text
                             x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
@@ -2119,11 +2262,11 @@ function App() {
                       {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                         <span className="stats-cat-name">
-                          {cat.name} <span className="stats-cat-count">({cat.count}x)</span>
+                          {getCategoryName(cat.name, appLanguage)} <span className="stats-cat-count">({cat.count}x)</span>
                         </span>
                         {showPulsingCta && (
                           <span className="stats-insight-cta">
-                            ✨ Klik lihat insight mu {profileName || 'Pengguna'}
+                            ✨ Klik lihat insight mu {profileName || 'No Name'}
                           </span>
                         )}
                       </div>
@@ -2220,7 +2363,9 @@ function App() {
                 <path d="M7 12h13"/>
               </svg>
             </button>
-            <span className="full-page-title">{transType}</span>
+            <span className="full-page-title">
+              {transType === 'Expense' ? (appLanguage === 'jv' ? 'Pangetrapan' : 'Expense') : transType === 'Income' ? (appLanguage === 'jv' ? 'Pamasukan' : 'Income') : (appLanguage === 'jv' ? 'Menawi' : 'Andai')}
+            </span>
           </div>
 
           {/* Type Switcher Tabs */}
@@ -2243,7 +2388,7 @@ function App() {
                     }
                   }}
                 >
-                  {type}
+                  {type === 'Expense' ? (appLanguage === 'jv' ? 'Pangetrapan' : 'Expense') : type === 'Income' ? (appLanguage === 'jv' ? 'Pamasukan' : 'Income') : (appLanguage === 'jv' ? 'Menawi' : 'Andai')}
                 </button>
               ))}
             </div>
@@ -2253,14 +2398,16 @@ function App() {
           {transType === 'Andai' ? (
             <AndaiFeatureView 
               transactions={transactions} 
-              resolveIcon={resolveIcon} 
+              resolveIcon={resolveIcon}
+              appLanguage={appLanguage}
+              t={t}
             />
           ) : (
             /* Form Fields List for Expense & Income */
             <div className="full-page-form">
               {/* Date Row (Split Date & Time Click Triggers for Native Android/iOS Pickers) */}
               <div className="form-row date-row-container">
-                <span className="field-label">Date</span>
+                <span className="field-label">{t('formDate')}</span>
                 <div className="date-display-wrapper">
                   <span
                     className="field-value-date-clickable"
@@ -2331,7 +2478,7 @@ function App() {
                   if (amountInputRef.current) amountInputRef.current.focus();
                 }}
               >
-                <label htmlFor="transaction-amount-input" className="field-label">Amount</label>
+                <label htmlFor="transaction-amount-input" className="field-label">{t('formAmount')}</label>
                 <div className="amount-input-wrapper">
                   <span className="currency-prefix">Rp</span>
                   <input
@@ -2363,13 +2510,13 @@ function App() {
                   if (document.activeElement) document.activeElement.blur();
                 }}
               >
-                <span className="field-label">Category</span>
+                <span className="field-label">{t('formCategory')}</span>
                 <div className="field-value-category">
                   <div className="cat-chip">
                     {resolveIcon(selectedCategory) && (
                       <img src={resolveIcon(selectedCategory)} alt={selectedCategory.name} className="cat-chip-icon" />
                     )}
-                    <span>{selectedCategory.name}</span>
+                    <span>{getCategoryName(selectedCategory, appLanguage)}</span>
                   </div>
                 </div>
               </div>
@@ -2382,7 +2529,7 @@ function App() {
                   if (document.activeElement) document.activeElement.blur();
                 }}
               >
-                <span className="field-label">Account</span>
+                <span className="field-label">{t('formAccount')}</span>
                 <div className="field-value-category">
                   <div className="cat-chip">
                     <span>{account}</span>
@@ -2398,7 +2545,7 @@ function App() {
                   if (noteInputRef.current) noteInputRef.current.focus();
                 }}
               >
-                <label htmlFor="transaction-note-input" className="field-label">Note</label>
+                <label htmlFor="transaction-note-input" className="field-label">{t('formNote')}</label>
                 <div className="note-input-wrapper">
                   <input
                     id="transaction-note-input"
@@ -2433,10 +2580,9 @@ function App() {
                   />
                 </div>
 
-                {/* Floating History Popover Overlay - Only appears WHEN user types letters matching saved transactions history */}
+                {/* Floating History Popover Overlay */}
                 {activePanel === 'note' && isNoteSuggestionsOpen && note.trim().length > 0 && (
                   (() => {
-                    // Extract unique notes from actual user transactions history
                     const actualHistory = Array.from(
                       new Set(
                         transactions
@@ -2500,7 +2646,7 @@ function App() {
                   className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
                   onClick={handleSaveTransaction}
                 >
-                  Save
+                  {t('formSave')}
                 </button>
               </div>
             </div>
@@ -2510,7 +2656,7 @@ function App() {
           {activePanel === 'category' && (
             <div className="panel-category-full">
               <div className="panel-sub-header">
-                <span className="panel-title">Category</span>
+                <span className="panel-title">{t('formCategory')}</span>
                 <div className="panel-header-actions">
                   <button
                     type="button"
@@ -2525,7 +2671,7 @@ function App() {
                     type="button"
                     className="header-action-btn close-btn"
                     onClick={() => setActivePanel('account')}
-                    title="Tutup"
+                    title={t('close')}
                     aria-label="Close category panel"
                   >
                     ✕
@@ -2538,7 +2684,7 @@ function App() {
                   <input
                     type="text"
                     className="custom-cat-input"
-                    placeholder="Tulis kategori baru..."
+                    placeholder={t('formCustomCat')}
                     value={customCatInput}
                     onChange={(e) => setCustomCatInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -2550,7 +2696,7 @@ function App() {
                     autoFocus
                   />
                   <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
-                    + Tambah
+                    + {t('add')}
                   </button>
                 </div>
               )}
@@ -2570,7 +2716,7 @@ function App() {
                           <img src={catIcon} alt={cat.name} />
                         </div>
                       ) : null}
-                      <span className="cat-grid-label">{cat.name}</span>
+                      <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
                     </button>
                   );
                 })}
@@ -2582,7 +2728,7 @@ function App() {
           {activePanel === 'account' && (
             <div className="panel-category-full">
               <div className="panel-sub-header">
-                <span className="panel-title">Account</span>
+                <span className="panel-title">{t('formAccount')}</span>
                 <div className="panel-header-actions">
                   <button
                     type="button"
@@ -2597,7 +2743,7 @@ function App() {
                     type="button"
                     className="header-action-btn close-btn"
                     onClick={() => setActivePanel('note')}
-                    title="Tutup"
+                    title={t('close')}
                     aria-label="Close account panel"
                   >
                     ✕
@@ -2610,7 +2756,7 @@ function App() {
                   <input
                     type="text"
                     className="custom-cat-input"
-                    placeholder="Tulis akun baru..."
+                    placeholder={t('formCustomAcc')}
                     value={customAccountInput}
                     onChange={(e) => setCustomAccountInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -2622,7 +2768,7 @@ function App() {
                     autoFocus
                   />
                   <button type="button" className="add-cat-btn" onClick={handleAddCustomAccount}>
-                    + Tambah
+                    + {t('add')}
                   </button>
                 </div>
               )}
@@ -2664,7 +2810,7 @@ function App() {
                     <img src={tempProfileImage} alt="Foto Profil" className="profile-picker-img" />
                   ) : (
                     <span className="profile-picker-initial">
-                      {(tempName.trim() || 'P').charAt(0).toUpperCase()}
+                      {(tempName.trim() || 'N').charAt(0).toUpperCase()}
                     </span>
                   )}
                   <div className="profile-camera-badge">
@@ -2818,16 +2964,266 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">Budget Kategori Per Bulan</span>
+                      <span className="wa-menu-title">{t('budgetCapTitle')}</span>
                       {!hasVisitedBudgetCap && <span className="wa-unread-dot" />}
                     </div>
-                    <span className="wa-menu-subtitle">Atur batas maksimal pengeluaran kategori</span>
+                    <span className="wa-menu-subtitle">{t('budgetCapSubtitle')}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
 
+                {/* 2. Custom Fonts */}
+                <div className="wa-menu-item" onClick={handleOpenFontModal}>
+                  <div className="wa-menu-icon-box font-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="4 7 4 4 20 4 20 7"/>
+                      <line x1="9" y1="20" x2="15" y2="20"/>
+                      <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('fontSettingTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {FONTS.find(f => f.id === appFont)?.name || 'Lora'}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 3. Multi Language */}
+                <div className="wa-menu-item" onClick={handleOpenLangModal}>
+                  <div className="wa-menu-icon-box lang-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="2" y1="12" x2="22" y2="12"/>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('langSettingTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {LANGUAGES.find(l => l.code === appLanguage)?.name || 'Bahasa Indonesia'}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 4. Saran & Keluh Kesah for Developer */}
+                <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
+                  <div className="wa-menu-icon-box feedback-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('feedbackTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('feedbackSubtitle')}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Pilihan Custom Font */}
+      {isFontModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsFontModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('selectFontTitle')}</h3>
+              <button
+                type="button"
+                className="header-confirm-btn"
+                onClick={() => {
+                  handleSelectFont(tempFont);
+                  setIsFontModalOpen(false);
+                }}
+                title="Konfirmasi Pilihan Font"
+                aria-label="Konfirmasi"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="full-page-settings-group">
+                {FONTS.map(f => (
+                  <div
+                    key={f.id}
+                    className={`full-page-option-row ${tempFont === f.id ? 'selected' : ''}`}
+                    onClick={() => setTempFont(f.id)}
+                  >
+                    <span className="full-page-option-title" style={{ fontFamily: f.fontFamily, fontSize: f.id === 'amoresa' ? '24px' : '16px' }}>
+                      {f.name}
+                    </span>
+                    {tempFont === f.id && (
+                      <div className="full-page-option-check">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Pilihan Multi Bahasa */}
+      {isLangModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsLangModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('selectLangTitle')}</h3>
+              <button
+                type="button"
+                className="header-confirm-btn"
+                onClick={() => {
+                  handleSelectLanguage(tempLanguage);
+                  setIsLangModalOpen(false);
+                }}
+                title="Konfirmasi Pilihan Bahasa"
+                aria-label="Konfirmasi"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="full-page-settings-group">
+                {LANGUAGES.map(l => (
+                  <div
+                    key={l.code}
+                    className={`full-page-option-row ${tempLanguage === l.code ? 'selected' : ''}`}
+                    onClick={() => setTempLanguage(l.code)}
+                  >
+                    <span className="full-page-option-title">
+                      {l.name}
+                    </span>
+                    {tempLanguage === l.code && (
+                      <div className="full-page-option-check">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Saran & Keluh Kesah untuk Developer */}
+      {isFeedbackModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsFeedbackModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('feedbackHeader')}</h3>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="full-page-feedback-container">
+                <p className="feedback-helper-text">
+                  {t('feedbackHelperText')}
+                </p>
+
+                {/* Category Chips */}
+                <div className="feedback-category-chips">
+                  {[
+                    { id: 'Saran Fitur', label: t('feedbackCatIdea') },
+                    { id: 'Keluh Kesah', label: t('feedbackCatGripe') },
+                    { id: 'Masalah', label: t('feedbackCatBug') }
+                  ].map(chip => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`feedback-chip ${feedbackCategory === chip.id ? 'selected' : ''}`}
+                      onClick={() => setFeedbackCategory(chip.id)}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Message Textarea */}
+                <div className="feedback-textarea-container" style={{ minHeight: '180px' }}>
+                  <textarea
+                    className="feedback-textarea"
+                    style={{ height: '180px' }}
+                    placeholder={t('feedbackInputPlaceholder')}
+                    value={feedbackText}
+                    onChange={e => setFeedbackText(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="button"
+                  className="feedback-submit-btn"
+                  disabled={isSubmittingFeedback || !feedbackText.trim()}
+                  onClick={handleSubmitFeedback}
+                >
+                  {isSubmittingFeedback ? t('feedbackSending') : t('feedbackSubmitBtn')}
+                </button>
               </div>
             </div>
           </div>
@@ -3201,7 +3597,34 @@ function App() {
             </div>
             <div className="update-modal-body">
               <h3 className="update-version-title">Update v{updateInfo.version}</h3>
-              <p className="update-changelog-text">{updateInfo.changelog || 'Pembaruan aplikasi telah tersedia.'}</p>
+              {(() => {
+                const rawChangelog = updateInfo.changelog || 'Pembaruan aplikasi telah tersedia.';
+                const lines = rawChangelog.split('\n').map(l => l.trim()).filter(Boolean);
+                const isBulletList = lines.some(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('*'));
+                
+                if (!isBulletList) {
+                  return <p className="update-changelog-text">{rawChangelog}</p>;
+                }
+
+                return (
+                  <div className="update-changelog-container">
+                    <p className="update-changelog-header">Yang baru di versi ini:</p>
+                    <ul className="update-changelog-list">
+                      {lines
+                        .filter(line => !line.toLowerCase().startsWith('new in this update') && !line.toLowerCase().startsWith('yang baru'))
+                        .map((line, idx) => {
+                          const cleanText = line.replace(/^[-•*]\s*/, '').replace(/^\[New\]\s*/i, '');
+                          return (
+                            <li key={idx} className="update-changelog-item">
+                              <span className="update-changelog-bullet">•</span>
+                              <span className="update-changelog-line-text">{cleanText}</span>
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
+                );
+              })()}
             </div>
             <div className="update-modal-footer">
               <button
@@ -3268,7 +3691,7 @@ function App() {
           category={selectedInsightCategory}
           initialDate={currentDate}
           allTransactions={transactions}
-          userName={profileName || 'Pengguna'}
+          userName={profileName || 'No Name'}
           resolveIcon={resolveIcon}
           onClose={() => setSelectedInsightCategory(null)}
         />

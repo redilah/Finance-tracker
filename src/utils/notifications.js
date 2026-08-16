@@ -7,16 +7,16 @@ const NOTIF_STORAGE_KEY = 'user_notification_bell_enabled';
 // Play sound helper
 export const playSound = (soundType = 'notification') => {
   try {
-    let audioPath = '/public/audio/cassiel.wav';
+    let audioPath = '/audio/notification.mp3';
     if (soundType === 'app_open') {
       audioPath = '/audio/app_open.mp3';
     } else if (soundType === 'bubble') {
       audioPath = '/audio/bubble_pop_1.wav';
-    } else if (soundType === 'cassiel' || soundType === 'notification') {
-      audioPath = '/audio/cassiel.wav';
+    } else if (soundType === 'notification') {
+      audioPath = '/audio/notification.mp3';
     }
     const audio = new Audio(audioPath);
-    audio.volume = 0.9;
+    audio.volume = 0.85;
     audio.play().catch(err => {
       console.log('Audio autoplay prevented or error:', err);
     });
@@ -665,3 +665,65 @@ export const scheduleNewCategoryNotification = async (userName = 'Teman') => {
     localStorage.setItem(NOTIF_KEY, 'true');
   }
 };
+
+// Schedule 1-Time 5-Second Post-Update Notification for v1.0.18 Features (Multi-Language & Developer Feedback)
+export const scheduleV18FeatureIntroNotification = async (userName = 'Teman') => {
+  if (typeof localStorage === 'undefined') return;
+  const NOTIF_KEY = 'v1_0_18_feature_intro_notif';
+  if (localStorage.getItem(NOTIF_KEY) === 'true') {
+    return;
+  }
+
+  const name = userName && userName.trim() ? userName.trim() : 'Teman';
+  const title = '🌐 Fitur Baru: Multi-Bahasa & Saran Pengembang';
+  const body = `Halo ${name}! Kini kamu bisa mengganti bahasa aplikasi dan mengirimkan saran/keluh kesah langsung ke developer melalui menu Profil.`;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 401,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
+            channelId: 'financial_notifications',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            iconColor: '#2D5284'
+          }
+        ]
+      });
+      localStorage.setItem(NOTIF_KEY, 'true');
+    } catch (e) {
+      console.warn('Failed to schedule v1.0.18 feature intro notification:', e);
+    }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+        localStorage.setItem(NOTIF_KEY, 'true');
+      } catch (e) {
+        console.log('Web notification error:', e);
+      }
+    }, 5000);
+  } else {
+    localStorage.setItem(NOTIF_KEY, 'true');
+  }
+};
+

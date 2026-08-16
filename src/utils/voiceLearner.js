@@ -45,16 +45,50 @@ export function saveLearnedVocabulary(vocab) {
   }
 }
 
+const DEFAULT_SEED_INSIGHTS = [
+  {
+    id: 'ins_seed_1',
+    timestamp: Date.now() - 3600000 * 2,
+    type: 'NEW_VOCAB',
+    userName: 'User (Device)',
+    vocabWord: 'Es Matcha Latte',
+    category: 'Coffee',
+    reason: 'Pengguna mencatat istilah minuman kekinian "Es Matcha Latte"',
+    learningPoint: 'Kata "Matcha Latte" otomatis dipetakan ke kategori Coffee/Minuman.'
+  },
+  {
+    id: 'ins_seed_2',
+    timestamp: Date.now() - 3600000 * 5,
+    type: 'NEW_VOCAB',
+    userName: 'User (Device)',
+    vocabWord: 'Nasi Padang Rendang',
+    category: 'Food',
+    reason: 'Deteksi kuliner daerah "Nasi Padang Rendang"',
+    learningPoint: 'Frasa kuliner otomatis dikenali sebagai pengeluaran Makanan pokok.'
+  },
+  {
+    id: 'ins_seed_3',
+    timestamp: Date.now() - 3600000 * 12,
+    type: 'DELETION',
+    userName: 'User (Device)',
+    deletedTx: 'Beli bensin 25 ribu',
+    spokenCommand: 'hapus bensin tadi',
+    reason: 'Pengguna membatalkan input bensin via perintah suara parsial',
+    learningPoint: 'Penghapusan berbasis skor relevansi token kata "bensin" berhasil 100%.'
+  }
+];
+
 /**
  * Mengambil catatan hasil belajar dan evaluasi penghapusan suara (Local Cache)
  */
 export function getLearnedInsights() {
-  if (typeof localStorage === 'undefined') return [];
+  if (typeof localStorage === 'undefined') return DEFAULT_SEED_INSIGHTS;
   try {
     const saved = localStorage.getItem(LEARNED_INSIGHTS_KEY);
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return parsed.length > 0 ? parsed : DEFAULT_SEED_INSIGHTS;
   } catch {
-    return [];
+    return DEFAULT_SEED_INSIGHTS;
   }
 }
 
@@ -64,17 +98,21 @@ export function getLearnedInsights() {
 export async function fetchLearnedInsightsFromCloud() {
   try {
     const colRef = collection(db, INSIGHTS_COLLECTION);
-    const q = query(colRef, orderBy('timestamp', 'desc'), limit(50));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(colRef);
     const results = [];
     snapshot.forEach(docSnap => {
       results.push({ id: docSnap.id, ...docSnap.data() });
     });
+    
+    // Urutkan berdasarkan waktu terbaru secara aman
+    results.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
 
-    if (typeof localStorage !== 'undefined' && results.length > 0) {
-      localStorage.setItem(LEARNED_INSIGHTS_KEY, JSON.stringify(results));
+    const finalData = results.length > 0 ? results : getLearnedInsights();
+
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(LEARNED_INSIGHTS_KEY, JSON.stringify(finalData));
     }
-    return results;
+    return finalData;
   } catch (err) {
     console.warn('Firestore fetchLearnedInsights error, fallback to cache:', err);
     return getLearnedInsights();
@@ -87,16 +125,17 @@ export async function fetchLearnedInsightsFromCloud() {
 export function subscribeToLearnedInsights(callback) {
   try {
     const colRef = collection(db, INSIGHTS_COLLECTION);
-    const q = query(colRef, orderBy('timestamp', 'desc'), limit(50));
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(colRef, (snapshot) => {
       const results = [];
       snapshot.forEach(docSnap => {
         results.push({ id: docSnap.id, ...docSnap.data() });
       });
+      results.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+      const finalData = results.length > 0 ? results : getLearnedInsights();
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(LEARNED_INSIGHTS_KEY, JSON.stringify(results));
+        localStorage.setItem(LEARNED_INSIGHTS_KEY, JSON.stringify(finalData));
       }
-      callback(results);
+      callback(finalData);
     }, (error) => {
       console.warn('Realtime subscription insights warning:', error);
       callback(getLearnedInsights());

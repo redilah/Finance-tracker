@@ -19,7 +19,7 @@ export const isEndOfMonthOrTesting = (year, monthIndex) => {
     return true;
   }
 
-  // Jika bulan yang dipilih adalah bulan depan (belum terjadi)
+  // Jika bulan di masa depan, insight belum terbuka
   if (year > currentYear || (year === currentYear && monthIndex > currentMonth)) {
     return false;
   }
@@ -47,13 +47,28 @@ export const generateCategoryInsight = ({
   userName = 'Pengguna'
 }) => {
   const cleanUserName = userName && userName.trim() ? userName.trim() : 'Kamu';
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
 
   // 1. Filter transaksi bulan terpilih
-  const currentMonthTxs = allTransactions.filter(t => {
+  let currentMonthTxs = allTransactions.filter(t => {
     if (!t.date) return false;
     const [y, m] = t.date.split('-');
     return Number(y) === year && Number(m) === (monthIndex + 1);
   });
+
+  // Jika di bulan depan (demo preview) belum ada data, gunakan data riil bulan berjalan (terbaru)
+  if (currentMonthTxs.length === 0 && (year > currentYear || (year === currentYear && monthIndex > currentMonth))) {
+    currentMonthTxs = allTransactions.filter(t => {
+      if (!t.date) return false;
+      const [y, m] = t.date.split('-');
+      return Number(y) === currentYear && Number(m) === (currentMonth + 1);
+    });
+    if (currentMonthTxs.length === 0) {
+      currentMonthTxs = allTransactions;
+    }
+  }
 
   const totalAllExpensesInMonth = currentMonthTxs
     .filter(t => t.type === 'expense')
@@ -72,7 +87,7 @@ export const generateCategoryInsight = ({
   const prevYear = prevMonthDate.getFullYear();
   const prevMonthIndex = prevMonthDate.getMonth();
 
-  const prevMonthCatTxs = allTransactions.filter(t => {
+  let prevMonthCatTxs = allTransactions.filter(t => {
     if (!t.date) return false;
     const [y, m] = t.date.split('-');
     const matchesMonth = Number(y) === prevYear && Number(m) === (prevMonthIndex + 1);
@@ -82,6 +97,20 @@ export const generateCategoryInsight = ({
     );
     return matchesMonth && matchesCat;
   });
+
+  if (prevMonthCatTxs.length === 0 && (year > currentYear || (year === currentYear && monthIndex > currentMonth))) {
+    const prevToCurrent = new Date(currentYear, currentMonth - 1, 1);
+    prevMonthCatTxs = allTransactions.filter(t => {
+      if (!t.date) return false;
+      const [y, m] = t.date.split('-');
+      const matchesMonth = Number(y) === prevToCurrent.getFullYear() && Number(m) === (prevToCurrent.getMonth() + 1);
+      const matchesCat = t.type === 'expense' && (
+        (t.category && t.category.toLowerCase() === categoryName.toLowerCase()) ||
+        (t.categoryId && t.categoryId.toLowerCase() === categoryName.toLowerCase())
+      );
+      return matchesMonth && matchesCat;
+    });
+  }
 
   const currentTotalAmount = catTxs.reduce((sum, t) => sum + t.amount, 0);
   const prevTotalAmount = prevMonthCatTxs.reduce((sum, t) => sum + t.amount, 0);

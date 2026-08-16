@@ -1,10 +1,11 @@
 {
-  "versionCode": 18,
-  "versionName": "1.0.17",
-  "version": "1.0.17",
-  "changelog": "New in this update:\n- [New] Voice AI Support Skincare, Bodycare & Kosmetik Komprehensif\n- [New] Smart Disambiguation Kata 'Cair' (Sabun/Minyak Cair vs Gaji/Dana Cair)\n- [New] Notifikasi Pengingat Pembaruan Sistem (In-App & Push Notification Tray)\n- [New] Badge Versi Aplikasi & Tautan Cepat Firebase Cloud di Admin Dashboard\n- [New] Komponen Kalender Dinamis Periode Insight Kategori\n- [New] Sistem Audio dan Efek Pop Transaksi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.17",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.17",
-  "sha256": "2d4b1eccfd37f77d51c29e2be6a8519106fff4a7d710ade8ced3c2e87daa6ede",
+  "versionCode": 19,
+  "versionName": "1.0.18",
+  "version": "1.0.18",
+  "changelog": "New in this update:\n- [New] Fitur Multi-Bahasa Aplikasi (Profil → Pilihan Bahasa)\n- [New] Fitur Saran & Keluh Kesah Pengguna untuk Pengembang\n- [New] Voice AI Support Bioskop & Filter Redundansi Otomatis\n- [New] Telemetri Rasio Input Transaksi Suara vs Manual\n- [New] Tampilan Changelog Interaktif & Sinkronisasi AI Cloud",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.18",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.18",
+  "sha256": "ce512263b969b241a315c6c3d51de342e58f86bc000d8b824f1de84051f8e4c5",
   "minSdkVersion": 22
 }
+
