@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
+// 1. Create Package.swift for speech recognition plugin
 const pluginDir = path.resolve('node_modules/@capacitor-community/speech-recognition');
 const packageSwiftPath = path.join(pluginDir, 'Package.swift');
 
@@ -17,13 +18,14 @@ let package = Package(
             targets: ["SpeechRecognitionPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", branch: "main")
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.5.0")
     ],
     targets: [
         .target(
             name: "SpeechRecognitionPlugin",
             dependencies: [
-                .product(name: "Capacitor", package: "capacitor-swift-pm")
+                .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
             path: "ios/Plugin"
         )
@@ -33,4 +35,13 @@ let package = Package(
 
   fs.writeFileSync(packageSwiftPath, packageSwiftContent, 'utf8');
   console.log('Successfully created Package.swift for @capacitor-community/speech-recognition');
+}
+
+// 2. Fix backslashes in CapApp-SPM/Package.swift
+const appPackageSwift = path.resolve('ios/App/CapApp-SPM/Package.swift');
+if (fs.existsSync(appPackageSwift)) {
+  let content = fs.readFileSync(appPackageSwift, 'utf8');
+  content = content.replace(/\\\\/g, '/').replace(/\\/g, '/');
+  fs.writeFileSync(appPackageSwift, content, 'utf8');
+  console.log('Successfully normalized paths in CapApp-SPM/Package.swift');
 }
