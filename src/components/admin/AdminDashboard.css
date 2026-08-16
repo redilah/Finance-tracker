@@ -6,14 +6,15 @@
   background-color: #F8EFE6;
   color: #333333;
   font-family: 'Outfit', sans-serif;
-  padding: 24px 20px 60px 20px;
+  padding: 24px 32px 60px 32px;
   box-sizing: border-box;
   overflow-y: auto;
 }
 
-/* Full width layout for admin container */
+/* Full width fluid layout for admin container */
 .admin-container {
-  max-width: 1100px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -67,10 +68,46 @@
   color: #059669;
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 20px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.admin-badge-btn {
+  cursor: pointer;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 87, 34, 0.12) 100%);
+  color: #047857;
+}
+
+.admin-badge-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(255, 87, 34, 0.22) 100%);
+  border-color: rgba(255, 87, 34, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.18);
+  color: #065f46;
+}
+
+.admin-badge-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(255, 87, 34, 0.12);
+}
+
+.admin-badge-ext-icon {
+  opacity: 0.7;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-badge-btn:hover .admin-badge-ext-icon {
+  opacity: 1;
+  transform: translate(1px, -1px);
 }
 
 .admin-header-actions {
@@ -534,6 +571,19 @@
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
+}
+
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #DBEAFE;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', Consolas, monospace;
 }
 
 .status-pill {

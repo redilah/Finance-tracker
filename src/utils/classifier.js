@@ -65,7 +65,9 @@ const CONSUMPTIVE_TAXONOMY = {
     'genshin', 'genshin impact', 'roblox', 'in-game', 'in game',
   ],
   lifestyle: [
-    'barber', 'barbershop', 'salon', 'potong rambut', 'haircut', 'skincare',
+    'barber', 'barbershop', 'salon', 'potong rambut', 'haircut', 'skincare', 'skin care',
+    'face wash', 'facewash', 'facial wash', 'facial foam', 'cleanser', 'micellar water',
+    'moisturizer', 'sunscreen', 'sunblock', 'serum', 'toner', 'pelembab', 'pelembap',
     'cosmetics', 'makeup', 'make up', 'spa', 'massage', 'pijat', 'creambath',
     'facial', 'treatment', 'nail art', 'manicure', 'pedicure',
   ],

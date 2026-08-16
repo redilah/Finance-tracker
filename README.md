@@ -1,6 +1,6 @@
 # 💰 Cassiel — Personal Finance Tracker
 
-> Aplikasi pencatat keuangan pribadi yang cerdas, ringan, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis AI Suara (Voice AI)**, **Simulator Opportunity Cost "Andai"**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran masyarakat Indonesia.
+> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Animasi 3D Typewriter Transaksi**, **Live Category Insight Engine**, **Simulator Opportunity Cost "Andai"**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran masyarakat Indonesia.
 
 ---
 
@@ -8,25 +8,25 @@
 
 - [Tentang Cassiel](#tentang-cassiel)
 - [Fitur Utama](#fitur-utama)
-- [🎙️ Input Transaksi Suara (Voice AI)](#️-input-transaksi-suara-voice-ai)
-- [Fitur Andai (What-If Simulator)](#fitur-andai-what-if-simulator)
-- [Loss Aversion Badge](#loss-aversion-badge)
-- [Audio Feedback — Positive Chime](#audio-feedback--positive-chime)
-- [Hybrid AI Classifier](#hybrid-ai-classifier)
-- [Aturan Threshold Kategori Khusus](#aturan-threshold-kategori-khusus)
-- [Sistem Kategori](#sistem-kategori)
-- [Halaman & Navigasi](#halaman--navigasi)
-- [Keamanan & Integritas Data](#keamanan--integritas-data)
-- [Sistem Notifikasi](#sistem-notifikasi)
-- [Pembaruan Otomatis (In-App Update)](#pembaruan-otomatis-in-app-update)
-- [Admin Dashboard & Telemetri](#admin-dashboard--telemetri)
-- [Tech Stack](#tech-stack)
-- [Struktur Proyek](#struktur-proyek)
-- [Cara Menjalankan (Development)](#cara-menjalankan-development)
-- [Build & Deploy](#build--deploy)
-- [Build APK Android](#build-apk-android)
-- [Penyimpanan Data (Storage Schema)](#penyimpanan-data-storage-schema)
-- [Versi & Changelog](#versi--changelog)
+- [🎙️ Input Transaksi Suara (Voice AI Engine)](#️-input-transaksi-suara-voice-ai-engine)
+- [⏱️ Category Insight & Live Countdown Engine](#️-category-insight--live-countdown-engine)
+- [✨ 3D Pop-in & Typewriter Animation](#-3d-pop-in--typewriter-animation)
+- [🔮 Fitur Andai (What-If Simulator)](#-fitur-andai-what-if-simulator)
+- [⚡ Loss Aversion Badge](#-loss-aversion-badge)
+- [🔔 Audio Feedback — Positive Chime](#-audio-feedback--positive-chime)
+- [🧠 Hybrid AI Classifier](#-hybrid-ai-classifier)
+- [📏 Aturan Threshold Kategori Khusus](#-aturan-threshold-kategori-khusus)
+- [🏷️ Sistem Kategori](#️-sistem-kategori)
+- [🛡️ Keamanan & Integritas Data](#️-keamanan--integritas-data)
+- [📱 Android Edge-Swipe Gesture](#-android-edge-swipe-gesture)
+- [📊 Admin Dashboard & Telemetri Privasi](#-admin-dashboard--telemetri-privasi)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [📂 Struktur Proyek](#-struktur-proyek)
+- [🚀 Cara Menjalankan (Development)](#-cara-menjalankan-development)
+- [📦 Build & Deploy](#-build--deploy)
+- [🤖 Build APK Android](#-build-apk-android)
+- [💾 Penyimpanan Data (Storage Schema)](#-penyimpanan-data-storage-schema)
+- [📜 Versi & Changelog](#-versi--changelog)
 
 ---
 
@@ -37,44 +37,47 @@
 Nama "Cassiel" terinspirasi dari malaikat penjaga waktu dan catatan — merepresentasikan komitmen aplikasi ini untuk menjaga rekam jejak keuangan pengguna dengan teliti, disiplin, dan jujur.
 
 Cassiel tersedia dalam dua platform:
-- **Android Native APK** — dibangun dengan Capacitor, ringan (~3.2 MB), responsif, dan hemat daya.
-- **Progressive Web App (PWA)** — dapat diakses langsung dari browser modern dengan performa tinggi.
+- **Android Native APK** — dibangun dengan Capacitor 8, sangat ringan (~3.2 MB), hemat daya, dan responsif dengan integrasi native speech recognition tanpa pop-up.
+- **Progressive Web App (PWA)** — dapat diakses langsung dari browser modern dengan performa instan dan offline support.
 
 ---
 
 ## Fitur Utama
 
-### 🎙️ Voice AI Transaction Input (Baru)
-- Catat transaksi dalam hitungan detik hanya dengan berbicara (contoh: *"Beli bensin 25 ribu pakai QRIS"*, *"Kopi 18rb kemarin"*, *"Gaji 5 juta"*).
-- Smart Natural Language Parser yang memahami bahasa Indonesia, bahasa gaul, singkatan nominal (`rb`, `k`, `jt`), hingga ejaan angka terbilang.
-- Menggunakan Speech Recognition native di Android dan Web Speech API di browser.
+### 🎙️ Voice AI Transaction Engine (Canggih & Majemuk)
+- **Compound Commands**: Mendukung perintah majemuk dalam satu ucapan (misal: *"hapus bakwan lalu beli kopi 20rb dan bensin 30rb"*).
+- **Scored Relevance Token Matcher**: Penghapusan transaksi via suara cukup dengan menyebutkan kata kunci parsial (misal: *"hapus bakwan pink"* mencocokkan *"Apa maksudku bakwan pink"*).
+- **Self-Repair & Ralat**: Deteksi otomatis koreksi ucapan pengguna (*"beli mie ayam ralat bakso 15 ribu"*).
+- **Seamless Native Mic**: Tombol mic berdenyut halus (*pulsing wave*) langsung di dalam aplikasi tanpa popup dialog Google.
 
-### 📝 Pencatatan Transaksi Cerdas
-- Catat **Pemasukan (Income)** dan **Pengeluaran (Expense)** dalam form interaktif.
-- Input nominal dengan pemformatan **Rupiah otomatis** (contoh: `15000` → `15.000`).
-- Dukungan akun sumber dana: **Bank**, **Cash**, **QRIS**, atau custom.
-- Riwayat saran catatan transaksi otomatis.
-- **Audio Chime Positif** saat menyimpan transaksi kebutuhan pokok / non-konsumtif.
+### ✨ 3D Depth Pop-in & Left-to-Right Typewriter Animation
+- Setiap transaksi yang dibuat via suara tampil dengan efek visual kartu 3D pop-in yang elegan.
+- Animasi pengetikan dinamis (*typewriter*) mengalir mulus dari kiri ke kanan untuk teks deskripsi dan nominal digit angka (`-Rp xx.xxx`).
+- Dilengkapi sinkronisasi penguncian (*speech processing lock*) untuk mencegah eksekusi ganda.
+
+### ⏱️ Category Insight & Live Countdown Engine
+- Pemantauan ritme dan intensitas belanja per kategori secara cerdas.
+- Layar **Category Insight** dengan **Live Countdown Timer** yang menghitung mundur interval jeda belanja sehat berikutnya.
 
 ### 🔮 Fitur "Andai" & Loss Aversion
-- **What-If Simulator**: Menghitung potensi pertumbuhan uang jika pengeluaran konsumtif diinvestasikan ke instrumen finansial (Big Bank, Emas, Obligasi).
-- **Loss Aversion Badge**: Kartu peringatan psikologis di halaman utama yang menghitung potensi kerugian masa depan dari akumulasi gaya hidup konsumtif.
+- **What-If Simulator**: Menghitung potensi pertumbuhan uang jika pengeluaran konsumtif diinvestasikan ke instrumen finansial (Big Bank 10%, Emas 7%, Obligasi 6.5%).
+- **Loss Aversion Badge**: Kartu psikologis di halaman utama yang menghitung akumulasi potensi kerugian masa depan dari gaya hidup konsumtif.
 
 ### 📊 Statistik & Laporan Mendalam
 - Ringkasan **Total Pemasukan**, **Total Pengeluaran**, dan **Arus Kas Bersih**.
 - Filter periode fleksibel: **Bulanan**, **Mingguan**, dan **Tahunan**.
-- Navigasi bulan yang mulus dengan visualisasi grafik interaktif.
+- Visualisasi grafik interaktif dan breakdown persentase kategori.
 
-### 👤 Profil & Personalisasi Tampilan
+### 👤 Personalisasi & Profil Full-Page
 - Kustomisasi nama profil dan foto pengguna dengan fitur **crop & zoom** interaktif.
 - Upload **wallpaper / background** personal dengan kompresi cerdas.
-- Full-page profile screen yang bersih dan elegan.
+- Tampilan profil layar penuh (*full-page*) yang bersih, borderless, dan elegan.
 
 ---
 
-## 🎙️ Input Transaksi Suara (Voice AI)
+## 🎙️ Input Transaksi Suara (Voice AI Engine)
 
-Cassiel v1.0.11 menghadirkan mesin pemroses suara cerdas yang mampu mengekstrak seluruh parameter transaksi dari satu kalimat ucapan:
+Mesin pemroses suara cerdas Cassiel mengekstrak seluruh parameter transaksi dari ucapan alami secara lokal:
 
 ```
                   ┌─────────────────────────────────┐
@@ -86,8 +89,8 @@ Cassiel v1.0.11 menghadirkan mesin pemroses suara cerdas yang mampu mengekstrak 
                └───────────────────┬───────────────────┘
                                    │ (Raw Transcript)
                ┌───────────────────▼───────────────────┐
-               │         Text Sanitizer & Guard        │
-               │   (Punctuation & Slang Normalizer)    │
+               │   STT Noise Filter & Sanitizer        │
+               │   (Punctuation, Noise, Self-Repair)   │
                └───────────────────┬───────────────────┘
                                    │
       ┌────────────────────────────┴────────────────────────────┐
@@ -100,7 +103,7 @@ Cassiel v1.0.11 menghadirkan mesin pemroses suara cerdas yang mampu mengekstrak 
                                    │
                ┌───────────────────▼───────────────────┐
                │      Dynamic Category Classifier      │
-               │  - Pre-defined Dictionary             │
+               │  - Pre-defined Indonesian Dictionary  │
                │  - Learned User Aliases (Local AI)    │
                │  - Levenshtein & Jaro-Winkler Fuzzy   │
                └───────────────────┬───────────────────┘
@@ -110,22 +113,32 @@ Cassiel v1.0.11 menghadirkan mesin pemroses suara cerdas yang mampu mengekstrak 
 ```
 
 ### Kemampuan Pemahaman Suara:
-1. **Ekstraksi Nominal Fleksibel**:
-   - Angka + Singkatan: `15rb`, `25k`, `5jt`, `1.5 juta`.
-   - Ejaan Huruf: `seratus lima puluh ribu`, `dua puluh lima ribu`.
-   - Kombinasi Campuran: `1 juta lima ratus ribu`.
-2. **Deteksi Tipe & Akun Otomatis**:
-   - Kata kunci masuk (`dapat gaji`, `terima transfer`, `nemu uang`, `bonus`) otomatis menjadi **Income**.
-   - Kata kunci keluar (`beli`, `bayar`, `jajan`, `makan`, `isi bensin`) otomatis menjadi **Expense**.
-   - Ekstraksi akun dana (`pake qris`, `lewat bank`, `pake cash`, `tunai`).
-3. **Pencocokan Tanggal Alami**:
-   - Mendukung kata `kemarin`, `lusa`, atau tanggal spesifik.
-4. **Dynamic Voice Learner (Self-Learning)**:
-   - Jika pengguna sering mengaitkan kata tertentu dengan suatu kategori, sistem akan mengingatnya di storage lokal pengguna tanpa perlu update aplikasi.
+1. **Perintah Majemuk (Compound Multi-Action)**: Mengeksekusi multi-pengeluaran, multi-pemasukan, atau kombinasi hapus + tambah dalam 1 sesi bicara.
+2. **Scored Token Relevance Matcher**: Menghapus transaksi berdasarkan skor relevansi token kata kunci.
+3. **Ekstraksi Nominal Fleksibel**: Memahami angka + singkatan (`15rb`, `25k`, `5jt`), ejaan huruf (`dua puluh lima ribu`), maupun kombinasi campuran.
+4. **Deteksi Tipe & Akun Otomatis**: Klasifikasi otomatis Pemasukan/Pengeluaran dan ekstraksi dompet/sumber dana (`QRIS`, `Bank`, `Cash`).
+5. **Self-Learning (Local AI Learner)**: Menghafal alias kata khusus pengguna di penyimpanan lokal secara mandiri.
 
 ---
 
-## Fitur Andai (What-If Simulator)
+## ⏱️ Category Insight & Live Countdown Engine
+
+Sistem analitik berbasis perilaku belanja lokal yang memberikan wawasan disiplin finansial:
+- Menganalisis frekuensi dan interval belanja setiap kategori.
+- Menyajikan **Live Countdown Timer** yang menghitung sisa waktu menuju target jeda belanja yang disarankan.
+- Membantu menahan impuls belanja berulang dalam rentang waktu singkat.
+
+---
+
+## ✨ 3D Pop-in & Typewriter Animation
+
+- **Visual Feedback**: Transaksi yang berhasil dicatat via suara langsung muncul di daftar transaksi teratas dengan transisi 3D Pop-in halus.
+- **Unified Timer Loop**: Menggunakan satu interval progress terpadu (`charProgress`) untuk mencegah benturan timer dan double execution.
+- **Left-to-Right Pacing**: Karakter teks dan nominal angka bergerak stabil dari kiri ke kanan dengan kecepatan yang nyaman dibaca.
+
+---
+
+## 🔮 Fitur Andai (What-If Simulator)
 
 Fitur **Andai** membantu pengguna menyadari **biaya peluang (opportunity cost)** dari pengeluaran konsumtif bulanan mereka.
 
@@ -144,11 +157,11 @@ $$\text{FV} = P \times (1 + r)^n$$
 | **Obligasi** | 6.5% / tahun | Surat Berharga Negara / Fixed Income |
 
 ### Prinsip Anti-Excuse (Kedap Cheating):
-Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasarkan algoritma sistem — tidak ada tombol bypass manual demi menjaga kejujuran finansial pengguna.
+Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasarkan algoritma sistem — tidak ada tombol bypass manual demi menjaga integritas kejujuran finansial.
 
 ---
 
-## Loss Aversion Badge
+## ⚡ Loss Aversion Badge
 
 **Loss Aversion Badge** adalah kartu interaktif di dashboard utama yang mengingatkan potensi nominal yang hilang akibat belanja impulsif/konsumtif bulan ini.
 
@@ -158,7 +171,7 @@ Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasar
 
 ---
 
-## Audio Feedback — Positive Chime
+## 🔔 Audio Feedback — Positive Chime
 
 Untuk membentuk kebiasaan finansial yang sehat, aplikasi memberikan *dopamine reward* positif saat pengguna mencatat pengeluaran non-konsumtif (kebutuhan primer/esensial):
 
@@ -168,20 +181,20 @@ Untuk membentuk kebiasaan finansial yang sehat, aplikasi memberikan *dopamine re
 
 ---
 
-## Hybrid AI Classifier
+## 🧠 Hybrid AI Classifier
 
 Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan bebas kuota internet**.
 
 ### Pipeline Klasifikasi:
-1. **Text Normalizer**: Pembersihan karakter khusus, konversi huruf kecil, dan perataan slang kata.
+1. **Text Normalizer & Noise Stripper**: Pembersihan karakter khusus, konversi huruf kecil, dan perataan slang kata.
 2. **Threshold Rule Engine**: Evaluasi khusus untuk kategori yang bergantung pada batas nominal.
-3. **Exact & Context Match**: Pencocokan kata kunci esensial dan konsumtif.
-4. **Fuzzy Match Engine**: Menggunakan kombinasi algoritma Levenshtein & Jaro-Winkler untuk menangani salah ketik/typo.
+3. **Exact & Context Match**: Pencocokan kata kunci esensial dan konsumtif khas bahasa Indonesia.
+4. **Fuzzy Match Engine**: Kombinasi algoritma Levenshtein & Jaro-Winkler untuk menangani salah ketik/typo.
 5. **Naive Bayes Weighted Voting**: Menggabungkan seluruh bukti untuk menghasilkan status akhir (*Konsumtif* vs *Non-Konsumtif*).
 
 ---
 
-## Aturan Threshold Kategori Khusus
+## 📏 Aturan Threshold Kategori Khusus
 
 | Kategori | Batas Nominal | Logika Keputusan |
 |----------|---------------|------------------|
@@ -191,7 +204,7 @@ Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan beb
 
 ---
 
-## Sistem Kategori
+## 🏷️ Sistem Kategori
 
 ### 21 Kategori Pengeluaran (Expense):
 `food`, `bioskop`, `transport`, `barber`, `skincare`, `edukasi`, `galon`, `fashion`, `supermarket`, `sub`, `pesawat`, `kost`, `coffee`, `gofood`, `sepatu`, `donasi`, `topupGame`, `bensin`, `konser`, `pulsa`, `rumahSakit`, `obatSakit`.
@@ -203,45 +216,35 @@ Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan beb
 
 ---
 
-## Keamanan & Integritas Data
-
-Cassiel v1.0.11 menerapkan standar keamanan data tingkat lanjut:
+## 🛡️ Keamanan & Integritas Data
 
 1. **Local-First Isolation**: Seluruh riwayat transaksi keuangan Anda tersimpan privat di perangkat lokal.
 2. **Secure Storage Wrappers**: Serialisasi data aman dengan validasi schema sebelum disimpan ke storage.
 3. **In-App Update Signature Integrity**: Pengecekan checksum SHA-256 dan validasi URL download terpercaya sebelum mengizinkan pembaruan aplikasi.
-4. **Firestore Rules Hardening**: Aturan Firestore terkunci rapat — hanya mengizinkan pengiriman metrik telemetri agregat perangkat tanpa akses membaca data pengguna lain.
+4. **Firestore Rules Hardening**: Aturan Firestore terkunci rapat — hanya mengizinkan pengiriman metrik telemetri agregat perangkat tanpa akses membaca data pribadi pengguna lain.
 
 ---
 
-## Sistem Notifikasi
+## 📱 Android Edge-Swipe Gesture
 
-- Menggunakan **Capacitor Local Notifications** di Android (berjalan offline di background perangkat).
-- Fallback ke **Web Notifications API** untuk platform web browser.
-- Mendukung pengingat pencatatan harian dan peringatan budget periodik.
-
----
-
-## Pembaruan Otomatis (In-App Update)
-
-Aplikasi memeriksa ketersediaan rilis baru secara berkala melalui endpoint GitHub raw:
-
-- **Bypass Cache Cerdas**: Request `version.json` dilengkapi parameter `cache: 'no-store'` dan timestamp dinamis `?t=...` untuk mencegah caching CDN.
-- **One-Click Update**: Notifikasi pembaruan langsung mengunduh file APK resmi terbaru.
+Sistem navigasi tombol kembali fisik dan usap tepi layar (*edge-swipe gesture*) bertingkat:
+- **Tingkat 1**: Menutup modal, image cropper, budget cap popup, atau update dialog yang aktif.
+- **Tingkat 2**: Menutup Full-Page Profile Screen dan kembali ke layar Home.
+- **Tingkat 3**: Mengembalikan tab non-Home ke tab Home.
+- **Tingkat 4**: Menampilkan toast konfirmasi ganda sebelum memanggil `App.exitApp()`.
 
 ---
 
-## Admin Dashboard & Telemetri
+## 📊 Admin Dashboard & Telemetri Privasi
 
-Panel admin (`/?admin`) memungkinkan pemantauan metrik teknis perangkat secara agregat:
-- Distribusi versi aplikasi aktif.
-- Statistik platform (Android native vs Web).
-- Tingkat keberhasilan in-app update.
-- *Catatan: Tidak ada data nominal, catatan, atau rincian transaksi pengguna yang dikirimkan ke telemetri.*
+Panel admin (`/?admin`) memisahkan ranah teknis dan privasi secara ketat:
+- **Tab 1 (Telemetry)**: Menampilkan metrik teknis perangkat, versi aktif, dan nama profil asli untuk keperluan pemecahan masalah teknis.
+- **Tab 2 (AI Learning)**: Menyamarkan identitas pengguna dengan kode enkripsi privasi (`enc:v1:...`) dan hanya memfilter pengguna dengan data insight aktif.
+- *Catatan: Tidak ada data nominal transaksi finansial yang dikirim ke telemetri cloud.*
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Teknologi |
 |-------|-----------|
@@ -256,7 +259,7 @@ Panel admin (`/?admin`) memungkinkan pemantauan metrik teknis perangkat secara a
 
 ---
 
-## Struktur Proyek
+## 📂 Struktur Proyek
 
 ```
 finance-tracker/
@@ -268,12 +271,15 @@ finance-tracker/
 │   ├── assets/                  # Kumpulan ikon SVG kategori & audio
 │   ├── components/
 │   │   ├── VoiceMicButton.jsx   # Tombol interaktif perekam suara AI
+│   │   ├── CategoryInsightScreen.jsx # Layar analitik & live countdown insight
 │   │   └── admin/
-│   │       ├── AdminDashboard.jsx  # Dashboard telemetri admin
+│   │       ├── AdminDashboard.jsx    # Dashboard telemetri & AI learning admin
 │   │       └── AdminDashboard.css
 │   └── utils/
-│       ├── voiceParser.js       # Natural Language Parser suara Indonesia
+│       ├── voiceParser.js       # Natural Language Parser suara majemuk Indonesia
 │       ├── voiceLearner.js      # Mesin pembelajaran kebiasaan kata lokal
+│       ├── noiseFilter.js       # Pembersih noise transkrip suara & tanda baca
+│       ├── categoryInsightEngine.js # Mesin kalkulasi jeda & wawasan kategori
 │       ├── fuzzyMatch.js        # Algoritma fuzzy string matching
 │       ├── safetyGuard.js       # Sanitasi input & pencegahan manipulasi data
 │       ├── secureStorage.js     # Storage wrapper dengan validasi integritas
@@ -281,13 +287,14 @@ finance-tracker/
 │       ├── soundFeedback.js     # Audio synthesizer feedback positif
 │       ├── notifications.js     # Manajemen notifikasi lokal
 │       ├── telemetry.js         # Pengiriman metrik perangkat anonim
+│       ├── firebase.js          # Inisialisasi Firebase Firestore
 │       └── version.js           # Sistem in-app update checker
 ├── public/
 │   ├── version.json             # Manifest metadata versi APK
 │   ├── favicon.svg              # Logo favicon
 │   └── audio/                   # Audio asset pendukung
 ├── android/                     # Source project Android native (Capacitor)
-├── Cassiel.apk                  # Rilis APK Android terbaru
+├── Cassiel.apk                  # Rilis APK Android terbaru (Signed Release)
 ├── Cassiel-Release.apk          # Mirror rilis APK release
 ├── capacitor.config.json        # Konfigurasi Capacitor
 ├── package.json
@@ -297,7 +304,7 @@ finance-tracker/
 
 ---
 
-## Cara Menjalankan (Development)
+## 🚀 Cara Menjalankan (Development)
 
 ### Prasyarat:
 - Node.js >= 18.x
@@ -321,7 +328,7 @@ Akses Admin Dashboard: **`http://localhost:5173/?admin`**
 
 ---
 
-## Build & Deploy
+## 📦 Build & Deploy
 
 ### Build Web App:
 ```bash
@@ -336,7 +343,7 @@ npm run lint
 
 ---
 
-## Build APK Android
+## 🤖 Build APK Android
 
 ### Prasyarat:
 - Java JDK 17+
@@ -353,7 +360,7 @@ npx cap sync android
 
 # 3. Masuk ke folder Android dan kompilasi APK release
 cd android
-./gradlew assembleRelease
+./gradlew assembleRelease --no-daemon
 ```
 
 File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani akan berada di:  
@@ -361,7 +368,7 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 ---
 
-## Penyimpanan Data (Storage Schema)
+## 💾 Penyimpanan Data (Storage Schema)
 
 | Key LocalStorage | Tipe Data | Deskripsi |
 |------------------|-----------|-----------|
@@ -378,25 +385,28 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 ---
 
-## Versi & Changelog
+## 📜 Versi & Changelog
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |-------|--------------|---------------|--------------------------|
-| **1.0.13** | **14** | **Agustus 2026** | **Seamless In-App Pulsing Mic (Tanpa Pop-up Google)**, Edge-Swipe Back Gesture |
+| **1.0.16** | **17** | **Agustus 2026** | **Live Countdown Timer Category Insight**, Compound Voice Actions, 3D Typewriter Animation |
+| 1.0.15 | 16 | Agustus 2026 | Scored Relevance Token Matcher, Voice Deletion Enhancements |
+| 1.0.14 | 15 | Agustus 2026 | Privacy Anonymization in Admin Dashboard Tab 2 |
+| 1.0.13 | 14 | Agustus 2026 | Seamless In-App Pulsing Mic (Tanpa Pop-up Google), Edge-Swipe Back Gesture |
 | 1.0.12 | 13 | Agustus 2026 | Dukungan Android Edge-Swipe Gesture, Perbaikan Crash Native Speech & ProGuard |
 | 1.0.11 | 12 | Agustus 2026 | Voice AI Transaction Input, Dynamic Voice Learner, Hardening Storage & Rules |
-| 1.0.10 | 11 | Agustus 2026 | Bypass Cache In-App Update, Perbaikan Notifikasi Background |
-| 1.0.9 | 10 | Agustus 2026 | Peningkatan Keamanan Keystore & Verifikasi Hash APK |
 
-### Rilis Terkini — v1.0.13 (Version Code 14)
+### Rilis Terkini — v1.0.16 (Version Code 17)
 
-- 🎙️ **[New] Seamless In-App Pulsing Mic**: Input suara kini berjalan 100% di dalam aplikasi tanpa jendela pop-up Google. Tombol mic berdenyut halus (*indigo pulsing*) saat mendengarkan, persis seperti di browser.
-- 📱 **[New] Android Edge-Swipe Back Gesture**: Navigasi geser dari tepi layar HP kini berfungsi cerdas dan bertingkat.
-- ⚡ **[New] R8 Code Shrinking**: APK rilis terkompresi optimal (~3.2 MB) dan ditandatangani dengan kunci rilis resmi.
+- ⏱️ **[New] Live Countdown Timer Category Insight**: Layar Category Insight baru dengan timer hitung mundur interaktif untuk menjaga kedisiplinan jeda waktu antar pembelian.
+- 🎙️ **[New] Compound & Multi-Action Voice Commands**: Eksekusi perintah multi-pengeluaran, multi-pemasukan, dan kombinasi hapus + tambah dalam satu kalimat ucapan.
+- 🎯 **[New] Scored Token Relevance Voice Deletion**: Penghapusan transaksi suara cerdas berdasarkan pencocokan kata kunci parsial berbobot skor.
+- ✨ **[New] 3D Depth Pop-in & Left-to-Right Typewriter Animation**: Transisi visual kartu transaksi 3D dan animasi ketik nominal mengalir mulus dari kiri ke kanan.
+- 🔒 **[New] Privacy Anonymization Admin Dashboard**: Penyamaran identitas pengguna di Tab 2 (AI Learning) menggunakan kode privasi terenkripsi.
 
 ---
 
-## Lisensi & Privasi
+## 📄 Lisensi & Privasi
 
 - Seluruh data transaksi finansial bersifat **100% lokal** dan tidak pernah diunggah ke server manapun.
 - Informasi lengkap mengenai perlindungan data dapat dibaca di [PRIVACY.md](./PRIVACY.md).

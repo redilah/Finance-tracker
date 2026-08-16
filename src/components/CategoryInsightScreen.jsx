@@ -20,6 +20,12 @@ const calculateTimeLeft = (target) => {
   return { days, hours, minutes, seconds, isExpired: false };
 };
 
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTH_FULL = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
 export default function CategoryInsightScreen({
   category, // { name, color, categoryId, id, ... }
   initialDate = new Date(),
@@ -36,11 +42,6 @@ export default function CategoryInsightScreen({
   const monthIndex = currentDate.getMonth(); // 0-indexed
 
   // Format header bulan & tahun (< Agu 2026 >)
-  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const MONTH_FULL = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
   const monthYearLabel = `${MONTH_SHORT[monthIndex]} ${year}`;
   const fullMonthYearLabel = `${MONTH_FULL[monthIndex]} ${year}`;
 
@@ -192,7 +193,10 @@ export default function CategoryInsightScreen({
           {/* Skenario: Belum Akhir Bulan / Bulan Belum Tersedia */}
           {!isUnlocked ? (
             <div className="category-insight-future-card">
-              <div className="category-insight-future-icon">📅</div>
+              <div className="category-insight-calendar-badge" aria-label={`Kalender ${fullMonthYearLabel}`}>
+                <div className="calendar-badge-header">{MONTH_SHORT[monthIndex].toUpperCase()}</div>
+                <div className="calendar-badge-day">{lastDay}</div>
+              </div>
               <h4>Belum ada insight untuk bulan {fullMonthYearLabel}</h4>
               <p>Periode ini baru bisa dilihat jika sudah tanggal {lastDay} {fullMonthYearLabel}.</p>
               

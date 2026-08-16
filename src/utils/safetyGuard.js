@@ -95,6 +95,11 @@ export function checkProhibitedContent(text) {
   const cleanText = normalizeForSafetyCheck(text);
   const paddedText = ` ${cleanText} `;
 
+  // Pengecualian Aman: tabir surya (skincare), panel surya (energi/elektronik), dll.
+  if (/\b(tabir surya|panel surya|tenaga surya|listrik surya|pembangkit surya)\b/i.test(cleanText)) {
+    return { isProhibited: false };
+  }
+
   for (const entry of ALL_PROHIBITED_ENTRIES) {
     const kw = entry.keyword;
     // Cek whole word match atau phrase match

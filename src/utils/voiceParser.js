@@ -113,10 +113,59 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'haircut', 'barber', 'cukur rambut', 'cukur', 'salon', 'pomade'
   ],
   skincare: [
-    'sabun cuci muka', 'facial wash', 'body lotion', 'sabun mandi', 'masker wajah', 'skintific',
-    'skin tv', 'skintipik', 'skintifik', 'somethinc', 'the originote', 'originote', 'scarlett',
-    'skin care', 'kosmetik', 'make up', 'makeup', 'serum', 'toner', 'moisturizer', 'sunscreen',
-    'lipstik', 'bedak', 'parfum', 'perfume', 'shampoo', 'deodorant', 'wardah', 'skincare'
+    // Facial Wash & Cleansers
+    'sabun cuci muka', 'cuci muka', 'sabun muka', 'facial wash', 'face wash', 'facewash', 'facial foam',
+    'face foam', 'facial cleanser', 'gentle cleanser', 'hydrating cleanser', 'deep cleanser', 'foam cleanser',
+    'oil cleanser', 'cleansing oil', 'cleansing balm', 'micellar water', 'micelar water', 'micellar',
+    'facial scrub', 'face scrub', 'cleanser', 'cleansing',
+
+    // Toners, Essences, Serums & Ampoules
+    'hydrating toner', 'exfoliating toner', 'cica toner', 'toner wajah', 'toner', 'essence', 'ampoule',
+    'cica serum', 'vitamin c serum', 'retinol serum', 'brightening serum', 'face serum', 'serum wajah',
+    'serum', 'booster',
+
+    // Moisturizers, Creams & Gels
+    'moisturizer', 'mosturizer', 'moisturiser', 'pelembab muka', 'pelembab wajah', 'pelembab',
+    'pelembap muka', 'pelembap wajah', 'pelembap', 'day cream', 'night cream', 'krim siang', 'krim malam',
+    'krim mata', 'eye cream', 'sleeping mask', 'soothing gel', 'aloe vera gel', 'petroleum jelly', 'cream',
+
+    // Sunscreen & UV Protection
+    'sunscreen', 'sunblock', 'tabir surya', 'sun screen', 'sun stick', 'sun mist', 'sun cream',
+    'sanscreen', 'sunsrin',
+
+    // Masks & Peels
+    'sheet mask', 'masker wajah', 'masker muka', 'clay mask', 'peel off mask', 'mud mask', 'masker',
+
+    // Body Care & Personal Hygiene
+    'body lotion', 'body serum', 'body wash', 'body scrub', 'body mist', 'hand body', 'hand cream',
+    'lotion', 'sabun mandi cair', 'sabun mandi', 'lulur mandi', 'lulur', 'deodorant', 'antiperspirant',
+    'roll on', 'shampoo', 'sampo', 'conditioner', 'kondisioner', 'hair tonic', 'hair serum', 'vitamin rambut',
+
+    // Makeup & Cosmetics
+    'lip balm', 'lip tint', 'lip gloss', 'lipstik', 'lipstick', 'lip matte', 'lip velvet',
+    'cushion', 'foundation', 'bb cream', 'cc cream', 'concealer', 'loose powder', 'compact powder',
+    'bedak tabur', 'bedak padat', 'bedak', 'blush on', 'eyeliner', 'mascara', 'maskara',
+    'pensil alis', 'eyebrow', 'eyeshadow', 'highlighter', 'contour', 'setting spray',
+    'kapas wajah', 'kapas', 'cotton pad', 'minyak wangi', 'parfum', 'perfume', 'eau de parfum',
+    'eau de toilette', 'cologne', 'kosmetik', 'make up', 'makeup', 'skin care', 'skincare',
+
+    // Active Ingredients
+    'retinol', 'niacinamide', 'salicylic acid', 'salicylic', 'hyaluronic acid', 'hyaluronic',
+    'ceramide', 'centella asiatica', 'centella', 'cica', 'aha bha pha', 'aha bha',
+    'snail mucin', 'alpha arbutin', 'bakuchiol', 'mugwort', 'peptide',
+
+    // Brands (Indonesian & Global)
+    'skintific', 'somethinc', 'the originote', 'originote', 'scarlett whitening', 'scarlett',
+    'wardah', 'avoskin', 'whitelab', 'azarine', 'kahf', 'cetaphil', 'cerave', 'cosrx',
+    'innisfree', 'glad2glow', 'glad 2 glow', 'facetology', 'npure', 'n pure', 'hanasui',
+    'barenbliss', 'bnb', 'luxcrime', 'hada labo', 'senka', 'garnier', 'nivea', 'vaseline',
+    'emina', 'make over', 'makeover', 'maybelline', 'dior', 'chanel', 'laneige', 'bioderma',
+    'la roche posay', 'laroche posay', 'the ordinary', 'implora', 'dazzle me', 'madame gie',
+    'focallure', 'studio tropik', 'biore',
+
+    // Voice / STT phonetic slips
+    'feis was', 'pes was', 'peswas', 'feiswash', 'sunsrin', 'sanscreen', 'mosturaizer',
+    'mosturiser', 'skintipik', 'skintifik', 'skin tv', 'klad tu klo', 'klad tu glow', 'klad tuglo', 'originot'
   ],
   edukasi: [
     'alat tulis', 'sertifikasi', 'pelatihan', 'semester', 'fotocopy', 'bootcamp',
@@ -514,7 +563,8 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   // D. Deteksi Income vs Expense Sinyal
   const INCOME_SIGNALS = [
     'dapat', 'dapet', 'terima', 'gajian', 'gaji', 'salary', 'payroll', 'upah', 'honor',
-    'cair', 'masuk uang', 'transferan masuk', 'uang masuk', 'pemasukan', 'penghasilan',
+    'dana cair', 'uang cair', 'gaji cair', 'gajian cair', 'pinjaman cair', 'klaim cair',
+    'masuk uang', 'transferan masuk', 'uang masuk', 'pemasukan', 'penghasilan',
     'dikirimi', 'ditransfer', 'dapat uang', 'dapat gaji', 'laba', 'profit', 'dividen',
     'komisi', 'cuan', 'bonus', 'thr', 'tunjangan', 'angpao', 'hadiah', 'uang kaget',
     'beasiswa', 'kip', 'lpdp', 'affiliate', 'afiliasi', 'endorse', 'hasil jualan', 'omset', 'omzet'
@@ -593,9 +643,17 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   // G. Deteksi Tipe & Kategori
   const fullContextText = `${text} ${preRalatText}`;
   let isIncome = INCOME_SIGNALS.some(sig => {
+    if (sig === 'cair') {
+      return /\bcair\b/i.test(fullContextText) && !/(?:sabun|deterjen|minyak|pewangi|susu|lem|air|obat|lotion|gel)\s+cair/i.test(fullContextText);
+    }
     const regex = new RegExp(`\\b${sig}\\b`, 'i');
     return regex.test(fullContextText);
   });
+
+  const hasExpenseVerb = /\b(beli|membeli|bayar|membayar|terbayar|pesan|pesen|order|jajan|belanja|checkout|co)\b/i.test(fullContextText);
+  if (hasExpenseVerb && !/\b(gajian|gaji|dapat gaji|terima transfer|dapet transfer)\b/i.test(fullContextText)) {
+    isIncome = false;
+  }
 
   let matchedIncomeCatId = null;
   let latestIncomeIdx = -1;
@@ -633,6 +691,10 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'gofood';
     latestExpenseIdx = 9999;
     expenseMatchedWord = 'gofood';
+  } else if (/\b(sabun cuci muka|cuci muka|sabun muka|facial wash|face wash|facewash|facial foam|face foam|facial cleanser|gentle cleanser|hydrating cleanser|foam cleanser|oil cleanser|cleansing oil|cleansing balm|micellar water|micelar water|micellar|facial scrub|face scrub|cleanser|cleansing|hydrating toner|exfoliating toner|cica toner|toner wajah|toner|essence|ampoule|cica serum|vitamin c serum|retinol serum|brightening serum|face serum|serum wajah|serum|booster|moisturizer|mosturizer|moisturiser|pelembab muka|pelembab wajah|pelembab|pelembap muka|pelembap wajah|pelembap|day cream|night cream|krim siang|krim malam|krim mata|eye cream|sleeping mask|soothing gel|aloe vera gel|petroleum jelly|sunscreen|sunblock|tabir surya|sun screen|sun stick|sun mist|sun cream|sanscreen|sunsrin|sheet mask|masker wajah|masker muka|clay mask|peel off mask|mud mask|body lotion|body serum|body wash|body scrub|body mist|hand body|hand cream|sabun mandi cair|sabun mandi|lulur mandi|lulur|deodorant|antiperspirant|roll on|shampoo|sampo|conditioner|kondisioner|hair tonic|hair serum|vitamin rambut|lip balm|lip tint|lip gloss|lipstik|lipstick|lip matte|lip velvet|cushion|foundation|bb cream|cc cream|concealer|loose powder|compact powder|bedak tabur|bedak padat|bedak|blush on|eyeliner|mascara|maskara|pensil alis|eyebrow|eyeshadow|highlighter|contour|setting spray|kapas wajah|cotton pad|minyak wangi|parfum|perfume|eau de parfum|eau de toilette|cologne|kosmetik|make up|makeup|skin care|skincare|retinol|niacinamide|salicylic acid|salicylic|hyaluronic acid|hyaluronic|ceramide|centella asiatica|centella|cica|aha bha pha|aha bha|snail mucin|alpha arbutin|bakuchiol|mugwort|peptide|skintific|somethinc|the originote|originote|scarlett whitening|scarlett|wardah|avoskin|whitelab|azarine|kahf|cetaphil|cerave|cosrx|innisfree|glad2glow|glad 2 glow|facetology|npure|n pure|hanasui|barenbliss|bnb|luxcrime|hada labo|senka|garnier|nivea|vaseline|emina|make over|makeover|maybelline|dior|chanel|laneige|bioderma|la roche posay|laroche posay|the ordinary|implora|dazzle me|madame gie|focallure|studio tropik|biore|feis was|pes was|peswas|feiswash|klad tu klo|klad tu glow|klad tuglo|originot)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'skincare';
+    latestExpenseIdx = 9700;
+    expenseMatchedWord = 'skincare';
   } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan|telur dadar|telur goreng|telur ceplok|telur gulung|telur balado|telor dadar|telor goreng|telor ceplok)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'food';
     latestExpenseIdx = 9500;

@@ -7,9 +7,16 @@ const NOTIF_STORAGE_KEY = 'user_notification_bell_enabled';
 // Play sound helper
 export const playSound = (soundType = 'notification') => {
   try {
-    const audioPath = soundType === 'app_open' ? '/audio/app_open.mp3' : '/audio/bubble_pop_1.wav';
+    let audioPath = '/public/audio/cassiel.wav';
+    if (soundType === 'app_open') {
+      audioPath = '/audio/app_open.mp3';
+    } else if (soundType === 'bubble') {
+      audioPath = '/audio/bubble_pop_1.wav';
+    } else if (soundType === 'cassiel' || soundType === 'notification') {
+      audioPath = '/audio/cassiel.wav';
+    }
     const audio = new Audio(audioPath);
-    audio.volume = 0.85;
+    audio.volume = 0.9;
     audio.play().catch(err => {
       console.log('Audio autoplay prevented or error:', err);
     });
@@ -245,7 +252,6 @@ export const sendInstantNotification = (userName) => {
         icon: '/app-icon.png',
         badge: '/app-icon.png'
       });
-      playSound('notification');
     } catch (e) {
       console.log('Web notification error:', e);
     }
@@ -278,9 +284,68 @@ export const sendInstantBudgetNotification = (title, body) => {
         icon: '/app-icon.png',
         badge: '/app-icon.png'
       });
-      playSound('notification');
     } catch (e) {
       console.log('Web notification error:', e);
+    }
+  }
+};
+
+// Trigger native status bar notification when a new version update is available
+export const sendUpdateReminderNotification = async (updateInfo) => {
+  if (!updateInfo || !updateInfo.latestVersionName) return;
+
+  const versionTag = updateInfo.latestVersionName;
+  const title = `Pembaruan Cassiel v${versionTag} Tersedia! 🚀`;
+  const body = `Versi terbaru telah rilis dengan fitur & kestabilan baru. Buka aplikasi untuk memperbarui.`;
+
+  // Cegah spam notifikasi update (maksimal 1 kali per hari untuk versi yang sama)
+  const notifKey = `update_notif_sent_${updateInfo.latestVersionCode || versionTag}`;
+  const lastSent = localStorage.getItem(notifKey);
+  const now = Date.now();
+  if (lastSent && now - Number(lastSent) < 24 * 60 * 60 * 1000) {
+    return;
+  }
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'update_notifications',
+        name: 'Pembaruan Aplikasi',
+        description: 'Notifikasi ketersediaan rilis dan versi terbaru Cassiel',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 999,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 1000), allowWhileIdle: true },
+            channelId: 'update_notifications',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            iconColor: '#10B981'
+          }
+        ]
+      });
+      localStorage.setItem(notifKey, String(now));
+    } catch (err) {
+      console.log('[UpdateNotif] Native notification error:', err);
+    }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: '/app-icon.png',
+        badge: '/app-icon.png'
+      });
+      localStorage.setItem(notifKey, String(now));
+    } catch (e) {
+      console.log('[UpdateNotif] Web notification error:', e);
     }
   }
 };
@@ -306,10 +371,13 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       }).catch(() => {});
 
       // Selalu cancel notifikasi pengingat lama sebelum menjadwalkan yang fresh
-      await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }] }).catch(() => {});
+      await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }] }).catch(() => {});
 
       const now = new Date();
-      // 1. Notifikasi Harian Rutin Malam (19:00)
+
+      const notifsToSchedule = [];
+
+      // 1. Notifikasi Harian Rutin Malam (19:00 WIB)
       let eveningTarget = new Date();
       eveningTarget.setHours(19, 0, 0, 0);
       if (now.getTime() >= eveningTarget.getTime()) {
@@ -319,26 +387,26 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       // Generate pesan FRESH menggunakan transaksi terkini
       const msg = generateNotificationMessage(userName, transactions);
 
-      const notifsToSchedule = [
-        {
-          title: msg.title,
-          body: msg.body,
-          id: 101,
-          schedule: { 
-            at: eveningTarget,
-            allowWhileIdle: true
-          },
-          channelId: 'financial_notifications',
-          sound: 'notification',
-          smallIcon: 'ic_stat_icon',
-          iconColor: '#4f46e5'
-        }
-      ];
+      notifsToSchedule.push({
+        title: msg.title,
+        body: msg.body,
+        id: 101,
+        schedule: { 
+          at: eveningTarget,
+          allowWhileIdle: true
+        },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        iconColor: '#4f46e5'
+      });
 
-      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI di HP jika belum mengisi limit satupun kategori
+      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI (Tepat 1x sehari jika belum mengisi budget)
       if (!hasAnyBudgetLimit) {
         let budgetReminderTarget = new Date();
         budgetReminderTarget.setHours(10, 0, 0, 0);
+        
+        // Jika saat ini sudah jam 10:00 atau lebih, jadwalkan strictly untuk besok jam 10:00 pagi
         if (now.getTime() >= budgetReminderTarget.getTime()) {
           budgetReminderTarget.setDate(budgetReminderTarget.getDate() + 1);
         }
@@ -349,9 +417,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           id: 102,
           schedule: { 
             at: budgetReminderTarget,
-            allowWhileIdle: true,
-            repeats: true,
-            every: 'day'
+            allowWhileIdle: true
           },
           channelId: 'financial_notifications',
           sound: 'notification',
@@ -360,9 +426,37 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         });
       }
 
-      await LocalNotifications.schedule({
-        notifications: notifsToSchedule
-      });
+      // 3. Notifikasi Ramah Pengenalan Nama Jam 14:00 SIANG (Tepat 1x sehari jika belum ada nama)
+      const isUnnamed = !userName || userName.trim() === '' || userName.trim().toLowerCase() === 'pengguna' || userName.trim().toLowerCase() === 'teman';
+      if (isUnnamed) {
+        let nameReminderTarget = new Date();
+        nameReminderTarget.setHours(14, 0, 0, 0);
+        
+        // Jika saat ini sudah jam 14:00 atau lebih, jadwalkan strictly untuk besok jam 14:00 siang
+        if (now.getTime() >= nameReminderTarget.getTime()) {
+          nameReminderTarget.setDate(nameReminderTarget.getDate() + 1);
+        }
+
+        notifsToSchedule.push({
+          title: `Halo Sahabat Cassiel! 👋`,
+          body: `Alangkah baiknya jika kamu menuliskan nama panggilan di menu Profil agar Cassiel bisa menyapamu dengan lebih akrab dan personal 😊`,
+          id: 103,
+          schedule: { 
+            at: nameReminderTarget,
+            allowWhileIdle: true
+          },
+          channelId: 'financial_notifications',
+          sound: 'notification',
+          smallIcon: 'ic_stat_icon',
+          iconColor: '#059669'
+        });
+      }
+
+      if (notifsToSchedule.length > 0) {
+        await LocalNotifications.schedule({
+          notifications: notifsToSchedule
+        });
+      }
     } catch (e) {
       console.log('Failed to schedule native local notifications on Android:', e);
     }
@@ -370,6 +464,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
     // Web fallback
     try {
       const now = new Date();
+      const isUnnamed = !userName || userName.trim() === '' || userName.trim().toLowerCase() === 'pengguna' || userName.trim().toLowerCase() === 'teman';
       if (now.getHours() === 19 && now.getMinutes() === 0) {
         const msg = generateNotificationMessage(userName, transactions);
         new Notification(msg.title, {
@@ -381,6 +476,13 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       } else if (now.getHours() === 10 && now.getMinutes() === 0 && !hasAnyBudgetLimit) {
         new Notification(`Atur Budget Kategori Bulananmu! 🎯`, {
           body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Budget Kategori Per Bulan" agar keuanganmu lebih teratur!`,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+      } else if (now.getHours() === 14 && now.getMinutes() === 0 && isUnnamed) {
+        new Notification(`Halo Sahabat Cassiel! 👋`, {
+          body: `Alangkah baiknya jika kamu menuliskan nama panggilan di menu Profil agar Cassiel bisa menyapamu dengan lebih akrab dan personal 😊`,
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
@@ -427,7 +529,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       {
         id: 202,
         title: `📊 Rangkuman Kategori di Akhir Bulan`,
-        body: `Catat pengeluaranmu secara rutin setiap hari agar analisis dan insight akhir bulanmu semakin lengkap & akurat!`,
+        body: `Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨`,
         schedule: { at: eveningTarget, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',
@@ -469,7 +571,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       {
         id: 202,
         title: `📊 Rangkuman Kategori di Akhir Bulan`,
-        body: `Catat pengeluaranmu secara rutin setiap hari agar analisis dan insight akhir bulanmu semakin lengkap & akurat!`,
+        body: `Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨`,
         schedule: { at: tomorrowEvening, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',

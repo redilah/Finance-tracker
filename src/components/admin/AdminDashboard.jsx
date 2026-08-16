@@ -37,10 +37,11 @@ import {
   ChevronUp,
   Calendar,
   Check,
-  Lock
+  ExternalLink
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
+const FIREBASE_CONSOLE_URL = 'https://console.firebase.google.com/u/0/project/regalia-senpai-app/firestore/databases/-default-/data/~2Fcassiel_telemetry~2Fdev_3a8q6za_mst1qfoh';
 
 /**
  * Memastikan kategori pada kartu AI Learning selalu logis dan masuk akal
@@ -79,6 +80,11 @@ export const getSensibleVocabCategory = (vocabWord, rawCategory) => {
     return 'Fashion';
   }
 
+  // 7. Skincare / Kosmetik / Perawatan
+  if (/skincare|skin care|facewash|face wash|facial wash|facial foam|cleanser|micellar|toner|serum|moisturizer|mosturizer|pelembab|pelembap|sunscreen|sunblock|day cream|night cream|krim siang|krim malam|sheet mask|masker wajah|masker muka|lipstik|lipstick|lip balm|lip tint|bedak|cushion|foundation|concealer|parfum|perfume|deodorant|shampoo|sampo|sabun mandi|sabun cuci muka|body lotion|body wash|body scrub|retinol|niacinamide|salicylic|ceramide|hyaluronic|skintific|somethinc|originote|scarlett|wardah|avoskin|whitelab|azarine|kahf|cetaphil|cerave|cosrx|innisfree|laneige|nivea|vaseline|emina|glad2glow|facetology|npure|hanasui|implora|barenbliss|luxcrime/i.test(clean)) {
+    return 'Skincare';
+  }
+
   return rawCategory || 'Umum';
 };
 
@@ -93,7 +99,7 @@ export const isCleanUserName = (name) => {
   const alphaChars = trimmed.replace(/[^a-zA-Z]/g, '');
   if (alphaChars.length < 2) return false;
 
-  const symbolCount = (trimmed.match(/[!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?`~]/g) || []).length;
+  const symbolCount = (trimmed.match(/[!@#$%^&*()_+=[\]{};':"\\|,.<>/?`~]/g) || []).length;
   if (symbolCount >= 2 && alphaChars.length < 4) return false;
 
   return true;
@@ -498,9 +504,17 @@ export default function AdminDashboard({ onNavigateToApp }) {
             <div className="admin-header-text">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h1>Cassiel Command</h1>
-                <span className="admin-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Flame size={12} color="#FF5722" /> FIREBASE CLOUD
-                </span>
+                <a 
+                  href={FIREBASE_CONSOLE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="admin-badge admin-badge-btn"
+                  title="Buka Database Firestore di Firebase Console"
+                >
+                  <Flame size={13} color="#FF5722" />
+                  <span>FIREBASE CLOUD</span>
+                  <ExternalLink size={11} className="admin-badge-ext-icon" />
+                </a>
               </div>
               <p>Pusat Komando & Pemantauan Perangkat Pengguna Real-Time • Diperbarui: {lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString('id-ID') : '-'}</p>
             </div>
@@ -676,6 +690,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       <tr>
                         <th>PENGGUNA</th>
                         <th>DEVICE</th>
+                        <th>VERSI</th>
                         <th>TGL & JAM INSTAL</th>
                         <th>TERAKHIR AKTIF</th>
                         <th>TRANSAKSI</th>
@@ -714,6 +729,13 @@ export default function AdminDashboard({ onNavigateToApp }) {
                                 <Smartphone size={14} color="#4B5563" />
                                 <span>{item.deviceName || 'Perangkat Tidak Dikenal'}</span>
                               </div>
+                            </td>
+
+                            {/* Versi Aplikasi */}
+                            <td>
+                              <span className="version-badge">
+                                v{item.appVersion || item.version || '1.0.0'}
+                              </span>
                             </td>
 
                             {/* Tgl & Jam Instal */}

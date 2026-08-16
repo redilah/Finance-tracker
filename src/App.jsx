@@ -52,6 +52,7 @@ import {
   toggleNotificationState,
   sendInstantNotification, 
   sendInstantBudgetNotification,
+  sendUpdateReminderNotification,
   schedulePersonalizedNotifications,
   scheduleFeatureIntroNotification,
   scheduleNewCategoryNotification,
@@ -704,6 +705,8 @@ function App() {
           if (active && info && !window.hasDismissedUpdate) {
             console.log('[App] Update terdeteksi:', info);
             setUpdateInfo(info);
+            // Picu notifikasi tray sistem Android / Web
+            sendUpdateReminderNotification(info);
           }
         })
         .catch(err => {
@@ -1348,12 +1351,12 @@ function App() {
       const highestNewTh = Math.max(...newThresholds);
       const formatIdr = (num) => new Intl.NumberFormat('id-ID').format(num);
       
-      let title = `Peringatan Budget: ${cat.name}`;
-      let body = `Kamu sudah pakai ${highestNewTh}% budget ${cat.name} bulan ini (Rp ${formatIdr(totalSpent)} dari Rp ${formatIdr(limit)}).`;
+      let title = `⚠️ Peringatan Budget: ${cat.name}`;
+      let body = `Pengeluaran ${cat.name} kamu sudah mencapai ${highestNewTh}% dari limit Rp ${formatIdr(limit)}!`;
       
       if (highestNewTh >= 100) {
         title = `🚨 Budget Habis: ${cat.name}`;
-        body = `Budget ${cat.name} bulan ini sudah habis! (Rp ${formatIdr(totalSpent)} dari Rp ${formatIdr(limit)}).`;
+        body = `Pengeluaran ${cat.name} kamu sudah mencapai 100% dari limit Rp ${formatIdr(limit)}!`;
       }
       
       sendInstantBudgetNotification(title, body);
