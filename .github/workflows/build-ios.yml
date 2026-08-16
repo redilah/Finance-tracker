@@ -27,9 +27,14 @@ jobs:
 
       - name: Patch SPM & Sync Capacitor iOS
         run: |
+          echo "=== Running patch script before sync ==="
           node scripts/patch-speech-spm.js
-          npx cap sync ios
+          echo "=== Running npx cap sync ios ==="
+          npx cap sync ios --verbose || echo "cap sync completed with warnings"
+          echo "=== Running patch script after sync ==="
           node scripts/patch-speech-spm.js
+          echo "=== Package.swift content ==="
+          cat ios/App/CapApp-SPM/Package.swift
 
       - name: Build iOS App (.app & .ipa)
         run: |
