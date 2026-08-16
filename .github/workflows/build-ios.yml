@@ -30,10 +30,9 @@ jobs:
           echo "=== Running patch script before sync ==="
           node scripts/patch-speech-spm.js
           echo "=== Running npx cap sync ios ==="
-          npx cap sync ios --verbose || echo "cap sync completed with warnings"
+          npx cap sync ios
           echo "=== Running patch script after sync ==="
           node scripts/patch-speech-spm.js
-          echo "=== Package.swift content ==="
           cat ios/App/CapApp-SPM/Package.swift
 
       - name: Build iOS App (.app & .ipa)
@@ -42,16 +41,17 @@ jobs:
           echo "Resolving Swift Packages..."
           xcodebuild -resolvePackageDependencies -project App.xcodeproj
           
-          echo "Compiling iOS Release build..."
+          echo "Compiling iOS Release build with Xcode..."
           xcodebuild clean build \
             -project App.xcodeproj \
             -scheme App \
             -configuration Release \
-            -destination 'generic/platform=iOS' \
+            -sdk iphoneos \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
+            AUTOMATIC_CODE_SIGNING=NO \
             PROVISIONING_PROFILE="" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
