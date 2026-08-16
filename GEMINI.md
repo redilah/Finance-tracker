@@ -24,6 +24,7 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 4. **Dedicated APK Folder & Multi-File Sync**: 
    - Kumpulkan seluruh file output APK ke dalam 1 folder khusus di dalam direktori proyek: `.\apk\` (misal `.\apk\Cassiel.apk`, `.\apk\Cassiel-Release.apk`, `.\apk\cassielll1.apk`, `.\apk\udin.apk`).
    - Salin dan sinkronkan juga file rilis ke root: `.\Cassiel.apk`, `.\Cassiel-Release.apk`, `.\cassielll1.apk`, dan `.\udin.apk`.
+   - **Khusus `cassielll1.apk` (Tanpa Release Key Signature)**: File `.\cassielll1.apk` dan `.\apk\cassielll1.apk` **wajib** menggunakan build tanpa release key signature (hasil `./gradlew assembleDebug` dengan R8 shrinker bawaan kunci debug Android) agar kompatibel untuk testing/sideload tanpa konflik keystore. Sedangkan file `Cassiel.apk`, `Cassiel-Release.apk`, dan `udin.apk` wajib ditandatangani dengan release key (`CN=Redilah`).
    - **Git Push APK Invariant**: Setiap kali user meminta push kode ke GitHub, wajib memastikan seluruh file APK (`cassielll1.apk`, `udin.apk`, `Cassiel.apk`, serta isi folder `.\apk\`) ikut disertakan dalam staging `git add`, di-commit, dan di-push ke remote repository.
 
 ## 3. Storage & Data Persistence Guidelines
