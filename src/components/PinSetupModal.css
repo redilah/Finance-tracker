@@ -1,0 +1,257 @@
+/* ==========================================================================
+   PIN SETUP & LOCK SCREEN STYLES (MATCHING CASSIEL THEME & SCREENSHOTS)
+   ========================================================================== */
+
+/* --- Pin Setup Modal / Screen (Image 2) --- */
+.pin-screen-overlay {
+  background: var(--bg-app, #F8EFE6) !important;
+  z-index: 99999;
+}
+
+.pin-setup-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-app, #F8EFE6) !important;
+}
+
+.pin-setup-header {
+  border-bottom: none;
+  padding: 20px 20px 10px 20px;
+}
+
+.pin-setup-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pin-back-arrow-btn {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-main, #1F2937);
+  cursor: pointer;
+}
+
+.pin-header-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main, #1F2937);
+  letter-spacing: -0.2px;
+  margin: 0;
+}
+
+.pin-body-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 36px 24px 28px;
+}
+
+.pin-prompt-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main, #1F2937);
+  margin-bottom: 24px;
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+/* 6 Indicator Dots */
+.pin-dots-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 36px;
+  height: 24px;
+}
+
+.pin-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pin-dot.filled {
+  background: #64748B;
+  transform: scale(1.15);
+  box-shadow: 0 1px 4px rgba(100, 116, 139, 0.3);
+}
+
+/* Numeric Keypad: Bulat Penuh dengan Bayangan Halus (Soft Drop Shadow) */
+.pin-keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 22px 28px;
+  justify-content: center;
+  align-content: center;
+  margin-bottom: 24px;
+}
+
+.pin-key-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none !important;
+  outline: none;
+  background: #F1F3F5;
+  color: var(--text-main, #1F2937);
+  font-size: 26px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.06);
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.pin-key-btn:active {
+  transform: scale(0.92);
+  background: #E5E7EB;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.pin-key-btn:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pin-key-btn-placeholder {
+  width: 72px;
+  height: 72px;
+}
+
+/* Plain Backspace Button (Tanpa Bulatan / Tanpa Background) */
+.pin-backspace-plain-btn {
+  width: 72px;
+  height: 72px;
+  border: none;
+  outline: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-main, #1F2937);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pin-backspace-plain-btn:active {
+  transform: scale(0.88);
+  opacity: 0.7;
+}
+
+.pin-backspace-plain-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Submit Action Button for Step 2 */
+.pin-submit-container {
+  width: 100%;
+  max-width: 280px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.pin-confirm-action-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 28px;
+  background: #3B82F6;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pin-confirm-action-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+}
+
+.pin-confirm-action-btn:disabled {
+  background: #CBD5E1;
+  color: #94A3B8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.pin-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spinAround 0.75s infinite linear;
+}
+
+@keyframes spinAround {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Footer Guide */
+.pin-footer-guide {
+  margin-top: auto;
+  text-align: center;
+  padding-bottom: 12px;
+}
+
+.pin-footer-guide p {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main, #1F2937);
+  line-height: 1.4;
+}
+
+/* Error Banner & Shake */
+.pin-error-banner {
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.shake-animation {
+  animation: pinShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes pinShake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

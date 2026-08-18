@@ -75,6 +75,41 @@ const SINGLE_FILLERS = [
   'anu', 'apaan', 'nah', 'uh', 'tuh', 'nih', 'sih', 'dong', 'deh', 'kan', 'loh', 'kok', 'lah', 'ya'
 ];
 
+// 2c. Kamus Fonetik Bahasa Inggris & Judul Buku / Istilah Populer (Aksen Indonesia / Speech Mishearings)
+export const ENGLISH_PHONETIC_AND_BOOK_MAP = [
+  // Buku Best-Seller & Istilah Finansial / Self-Improvement Populer
+  { pattern: /\b(?:zero|sero)\s*(?:tuan|to\s*wan|tu\s*wan|to\s*one|tu\s*one|to\s*1|tu\s*1)\b/gi, replacement: 'Zero to One' },
+  { pattern: /\b(?:ifluence|infulence|influens|influen)\b/gi, replacement: 'Influence' },
+  { pattern: /\b(?:atomic\s*habits?|atomik\s*habits?|atomic\s*habit)\b/gi, replacement: 'Atomic Habits' },
+  { pattern: /\b(?:the\s*psychology\s*of\s*money|psychology\s*of\s*money|psikologi\s*of\s*money|psikologi\s*op\s*mani|psychology\s*of\s*mani|psikologi\s*uang)\b/gi, replacement: 'The Psychology of Money' },
+  { pattern: /\b(?:rich\s*dad\s*poor\s*dad|ric\s*ded\s*pur\s*ded|ric\s*ded)\b/gi, replacement: 'Rich Dad Poor Dad' },
+  { pattern: /\b(?:deep\s*work|dip\s*work|dip\s*wok)\b/gi, replacement: 'Deep Work' },
+  { pattern: /\b(?:start\s*with\s*why|stat\s*with\s*why|stat\s*wit\s*why)\b/gi, replacement: 'Start with Why' },
+  { pattern: /\b(?:the\s*lean\s*startup|lean\s*startup|lin\s*startup)\b/gi, replacement: 'The Lean Startup' },
+  { pattern: /\b(?:show\s*your\s*work|so\s*yor\s*wok)\b/gi, replacement: 'Show Your Work' },
+  { pattern: /\b(?:steal\s*like\s*an\s*artist|stil\s*laik\s*an\s*artis)\b/gi, replacement: 'Steal Like an Artist' },
+  { pattern: /\b(?:good\s*to\s*great|gud\s*tu\s*grit|gud\s*to\s*great)\b/gi, replacement: 'Good to Great' },
+  { pattern: /\b(?:think\s*and\s*grow\s*rich|tingken\s*grow\s*ric|tingk\s*en\s*grow\s*ric)\b/gi, replacement: 'Think and Grow Rich' },
+  { pattern: /\b(?:cant\s*hurt\s*me|can't\s*hurt\s*me|ken\s*hat\s*mi)\b/gi, replacement: "Can't Hurt Me" },
+  { pattern: /\b(?:essentialism|esensialism)\b/gi, replacement: 'Essentialism' },
+  { pattern: /\b(?:feel\s*good\s*productivity|fil\s*gud\s*produktifiti)\b/gi, replacement: 'Feel-Good Productivity' },
+  { pattern: /\b(?:surrounded\s*by\s*idiots|suroundid\s*bai\s*idiot)\b/gi, replacement: 'Surrounded by Idiots' },
+  { pattern: /\b(?:the\s*subtle\s*art|subtle\s*art|sabtel\s*art)\b/gi, replacement: 'The Subtle Art' },
+  { pattern: /\b(?:the\s*alchemist|alkemis)\b/gi, replacement: 'The Alchemist' },
+  { pattern: /\b(?:sapiens|sapien)\b/gi, replacement: 'Sapiens' },
+  { pattern: /\b(?:ikigai)\b/gi, replacement: 'Ikigai' },
+
+  // Frasa & Istilah Umum Inggris / Logat Indo
+  { pattern: /\b(?:cash\s*flow|kes\s*flo)\b/gi, replacement: 'Cash Flow' },
+  { pattern: /\b(?:freelance|frilens|pri\s*lens)\b/gi, replacement: 'Freelance' },
+  { pattern: /\b(?:checkout|cekout|cek\s*aut)\b/gi, replacement: 'Checkout' },
+  { pattern: /\b(?:headset|hedset|hetset)\b/gi, replacement: 'Headset' },
+  { pattern: /\b(?:earphone|erpon|irpon)\b/gi, replacement: 'Earphone' },
+  { pattern: /\b(?:mousepad|mauspad|maus\s*ped)\b/gi, replacement: 'Mousepad' },
+  { pattern: /\b(?:t-shirt|t\s*shirt|tisort|tisyet)\b/gi, replacement: 'T-Shirt' },
+  { pattern: /\b(?:skincare|skin\s*ker|sekin\s*ker)\b/gi, replacement: 'Skincare' }
+];
+
 // 3. Kamus Kategori Komprehensif (24 Expense + 6 Income)
 export const EXPENSE_CATEGORY_KEYWORDS = {
   gofood: [
@@ -171,7 +206,9 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
   edukasi: [
     'alat tulis', 'sertifikasi', 'pelatihan', 'semester', 'fotocopy', 'bootcamp',
     'gramedia', 'kursus', 'bimbel', 'webinar', 'seminar', 'kuliah', 'sekolah', 'pulpen', 'ujian',
-    'buku', 'novel', 'komik', 'les', 'spp', 'ukt', 'print', 'udemy'
+    'buku', 'novel', 'komik', 'les', 'spp', 'ukt', 'print', 'udemy',
+    'zero to one', 'zero tuan', 'influence', 'ifluence', 'atomic habits', 'psychology of money',
+    'rich dad poor dad', 'deep work', 'start with why', 'sapiens', 'ikigai'
   ],
   galon: [
     'air galon', 'aqua galon', 'isi ulang air', 'isi ulang galon', 'air minum', 'le minerale', 'air isi ulang',
@@ -336,20 +373,57 @@ const ACCOUNT_KEYWORDS = {
 };
 
 const ACCOUNT_SYNONYMS = {
-  'shopeepay': 'ShopeePay',
-  'spay': 'ShopeePay',
-  'shopee pay': 'ShopeePay',
+  'cash': 'Cash',
+  'tunai': 'Cash',
+  'uang tunai': 'Cash',
+  'bca': 'BCA',
+  'bank bca': 'BCA',
+  'mandiri': 'Mandiri',
+  'bank mandiri': 'Mandiri',
+  'livin': 'Livin',
+  'livin mandiri': 'Livin',
+  'livin by mandiri': 'Livin',
+  'bri': 'BRImo',
+  'brimo': 'BRImo',
+  'bank bri': 'BRImo',
+  'bpd': 'BPD DIY',
+  'bpd diy': 'BPD DIY',
+  'bpddiy': 'BPD DIY',
+  'bpd diy mobile': 'BPD DIY',
+  'bpddiy mobile': 'BPD DIY',
+  'bale by btn': 'bale by btn',
+  'bale': 'bale by btn',
+  'btn': 'bale by btn',
+  'bank btn': 'bale by btn',
+  'bale btn': 'bale by btn',
+  'bni': 'BNI',
+  'bank bni': 'BNI',
+  'wondr': 'Wondr',
+  'wondr bni': 'Wondr',
+  'wondr by bni': 'Wondr',
+  'bsi': 'BSI',
+  'bank bsi': 'BSI',
+  'syariah': 'BSI',
+  'jago': 'Bank Jago',
+  'bank jago': 'Bank Jago',
+  'seabank': 'SeaBank',
+  'sea bank': 'SeaBank',
+  'jenius': 'Jenius',
+  'blu': 'blu',
+  'blu bca': 'blu',
+  'cimb': 'CIMB Niaga',
+  'cimb niaga': 'CIMB Niaga',
+  'permata': 'Permata',
+  'bank permata': 'Permata',
   'gopay': 'GoPay',
   'go-pay': 'GoPay',
   'ovo': 'OVO',
-  'dana': 'Dana',
-  'bca': 'BCA',
-  'mandiri': 'Mandiri',
-  'bri': 'BRI',
-  'bni': 'BNI',
-  'jago': 'Bank',
-  'cash': 'Cash',
-  'tunai': 'Cash',
+  'dana': 'DANA',
+  'shopeepay': 'ShopeePay',
+  'spay': 'ShopeePay',
+  'shopee pay': 'ShopeePay',
+  'linkaja': 'LinkAja',
+  'link aja': 'LinkAja',
   'qris': 'QRIS'
 };
 
@@ -525,6 +599,11 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   // B. Konversi Nominal Slang & Bahasa Gaul
   for (const item of SLANG_NUMBER_MAP) {
     text = text.replace(item.pattern, ` ${item.value} `);
+  }
+
+  // B2. Normalisasi Fonetik Bahasa Inggris & Judul Buku Populer
+  for (const item of ENGLISH_PHONETIC_AND_BOOK_MAP) {
+    text = text.replace(item.pattern, item.replacement);
   }
 
   // C. Ekstraksi Nominal
@@ -894,6 +973,11 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     if (!note || note.toLowerCase() === 'gaji') {
       note = 'Gaji';
     }
+  }
+
+  // 4. Polish English phonetic and book titles
+  for (const item of ENGLISH_PHONETIC_AND_BOOK_MAP) {
+    note = note.replace(item.pattern, item.replacement);
   }
 
   note = note.replace(/\s+/g, ' ').trim();

@@ -1,8 +1,21 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { getTranslation } from './i18n';
 
 // Keys for LocalStorage
 const NOTIF_STORAGE_KEY = 'user_notification_bell_enabled';
+
+// Helper: interpolate {placeholders} in translated strings
+const interp = (str = '', vars = {}) =>
+  str.replace(/\{(\w+)\}/g, (_, key) => (vars[key] !== undefined ? vars[key] : `{${key}}`));
+
+// Helper: read language from localStorage (used outside React context)
+const getLang = () => {
+  try { return localStorage.getItem('user_app_lang') || 'id'; } catch { return 'id'; }
+};
+
+// Shorthand t() — resolves from passed lang or falls back to localStorage
+const tr = (lang, key, vars = {}) => interp(getTranslation(lang || getLang(), key), vars);
 
 // Play sound helper
 export const playSound = (soundType = 'notification') => {
@@ -79,14 +92,12 @@ export const requestNotificationPermission = async () => {
           vibration: true
         }).catch(() => {});
 
-        playSound('notification');
         return true;
       }
     } else if ('Notification' in window) {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         localStorage.setItem(NOTIF_STORAGE_KEY, 'true');
-        playSound('notification');
         return true;
       }
     }
@@ -167,9 +178,15 @@ export const getExpenseStatsForNotification = (transactions = []) => {
   };
 };
 
-// Generate smart personal message
-export const generateNotificationMessage = (userName = 'Teman', transactions = []) => {
-  const name = userName.trim() || 'Teman';
+// Generate smart personal message (now language-aware)
+export const generateNotificationMessage = (userName = 'Teman', transactions = [], lang) => {
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend'
+    : l === 'jv' ? 'Mitra'
+    : l === 'zh' ? 'Pengyou'
+    : l === 'ko' ? 'Chingu'
+    : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
   const { todayExpense, yesterdayExpense, hasTodayExpense, todayProductiveItems } = getExpenseStatsForNotification(transactions);
   
   const currentHour = new Date().getHours();
@@ -181,8 +198,8 @@ export const generateNotificationMessage = (userName = 'Teman', transactions = [
   if (todayProductiveItems.length > 0) {
     const itemName = todayProductiveItems[0];
     return {
-      title: `Keputusan Hebat, ${name}! 🚀`,
-      body: `Kamu membeli/menginvestasikan aset produktif (${itemName}) hari ini! Pengeluaran ini adalah investasi masa depan yang sangat bagus!`
+      title: tr(l, 'notifGreatDecision', { name }),
+      body: tr(l, 'notifGreatDecisionBody', { name, item: itemName })
     };
   }
 
@@ -190,13 +207,13 @@ export const generateNotificationMessage = (userName = 'Teman', transactions = [
   if (!hasTodayExpense) {
     if (currentHour >= 19) {
       return {
-        title: `Selamat Malam, ${name}! ✨`,
-        body: `Hari ini belum ada pencatatan pengeluaran nih. Apakah kamu memang tidak membeli sesuatu hari ini?`
+        title: tr(l, 'notifGoodEvening', { name }),
+        body: tr(l, 'notifGoodEveningBody', { name })
       };
     } else {
       return {
-        title: `Halo ${name}! 💡`,
-        body: `Belum ada pengeluaran yang dicatat hari ini. Jangan lupa langsung catat ya jika ada transaksi!`
+        title: tr(l, 'notifHello', { name }),
+        body: tr(l, 'notifHelloBody', { name })
       };
     }
   }
@@ -204,31 +221,34 @@ export const generateNotificationMessage = (userName = 'Teman', transactions = [
   // 3. Pujian hemat dibanding kemarin
   if (yesterdayExpense > 0 && todayExpense < yesterdayExpense) {
     return {
-      title: `Pujian Hemat untuk ${name}! 🎉`,
-      body: `Pengeluaran hari ini (Rp ${formatIdr(todayExpense)}) lebih rendah dari kemarin (Rp ${formatIdr(yesterdayExpense)}). Keren, pertahankan hematnya!`
+      title: tr(l, 'notifSavingPraise', { name }),
+      body: tr(l, 'notifSavingPraiseBody', { name, today: formatIdr(todayExpense), yesterday: formatIdr(yesterdayExpense) })
     };
   }
 
   if (todayExpense > 0) {
     return {
-      title: `Catatan Finansial ${name} 📊`,
-      body: `Total pengeluaranmu hari ini tercatat Rp ${formatIdr(todayExpense)}. Selalu pantau keuanganmu ya!`
+      title: tr(l, 'notifFinancialNote', { name }),
+      body: tr(l, 'notifFinancialNoteBody', { name, today: formatIdr(todayExpense) })
     };
   }
 
   return {
-    title: `Semangat Hari Ini, ${name}! 💪`,
-    body: `Yuk jaga performa keuanganmu tetap sehat hari ini.`
+    title: tr(l, 'notifKeepGoing', { name }),
+    body: tr(l, 'notifKeepGoingBody', { name })
   };
 };
 
 // Trigger immediate welcome notification when bell is turned on
-export const sendInstantNotification = (userName) => {
+export const sendInstantNotification = (userName, transactions, lang) => {
   if (!isNotificationEnabled()) return;
 
-  const name = userName && userName.trim() ? userName.trim() : 'Teman';
-  const title = `Halo ${name}! ✨`;
-  const body = `Selamat datang di Cassiel, semoga catatan keuanganmu lebih teratur ya!`;
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
+
+  const title = tr(l, 'notifWelcome', { name });
+  const body = tr(l, 'notifWelcomeBody', { name });
 
   if (Capacitor.isNativePlatform()) {
     LocalNotifications.schedule({
@@ -290,13 +310,31 @@ export const sendInstantBudgetNotification = (title, body) => {
   }
 };
 
+// Build localized budget notification strings (called from App.jsx)
+export const buildBudgetNotifText = (catName, pct, limit, lang) => {
+  const l = lang || getLang();
+  const formatIdr = (num) => new Intl.NumberFormat('id-ID').format(num);
+  const limitStr = formatIdr(limit);
+  if (pct >= 100) {
+    return {
+      title: tr(l, 'notifBudgetExhausted', { cat: catName }),
+      body: tr(l, 'notifBudgetExhaustedBody', { cat: catName, limit: limitStr })
+    };
+  }
+  return {
+    title: tr(l, 'notifBudgetWarning', { cat: catName }),
+    body: tr(l, 'notifBudgetWarningBody', { cat: catName, pct, limit: limitStr })
+  };
+};
+
 // Trigger native status bar notification when a new version update is available
-export const sendUpdateReminderNotification = async (updateInfo) => {
+export const sendUpdateReminderNotification = async (updateInfo, lang) => {
   if (!updateInfo || !updateInfo.latestVersionName) return;
 
+  const l = lang || getLang();
   const versionTag = updateInfo.latestVersionName;
-  const title = `Pembaruan Cassiel v${versionTag} Tersedia! 🚀`;
-  const body = `Versi terbaru telah rilis dengan fitur & kestabilan baru. Buka aplikasi untuk memperbarui.`;
+  const title = tr(l, 'notifUpdateAvailable', { ver: versionTag });
+  const body = tr(l, 'notifUpdateAvailableBody', { ver: versionTag });
 
   // Cegah spam notifikasi update (maksimal 1 kali per hari untuk versi yang sama)
   const notifKey = `update_notif_sent_${updateInfo.latestVersionCode || versionTag}`;
@@ -351,10 +389,12 @@ export const sendUpdateReminderNotification = async (updateInfo) => {
 };
 
 // Schedule background/routine local notifications on HP / Native Android & Web
-export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = []) => {
+export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = [], lang) => {
   if (!isNotificationEnabled()) return;
 
-  const name = userName.trim() || 'Teman';
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
   const hasAnyBudgetLimit = categories.some(cat => typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0);
 
   if (Capacitor.isNativePlatform()) {
@@ -385,7 +425,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       }
 
       // Generate pesan FRESH menggunakan transaksi terkini
-      const msg = generateNotificationMessage(userName, transactions);
+      const msg = generateNotificationMessage(userName, transactions, l);
 
       notifsToSchedule.push({
         title: msg.title,
@@ -401,19 +441,18 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         iconColor: '#4f46e5'
       });
 
-      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI (Tepat 1x sehari jika belum mengisi budget)
+      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI
       if (!hasAnyBudgetLimit) {
         let budgetReminderTarget = new Date();
         budgetReminderTarget.setHours(10, 0, 0, 0);
         
-        // Jika saat ini sudah jam 10:00 atau lebih, jadwalkan strictly untuk besok jam 10:00 pagi
         if (now.getTime() >= budgetReminderTarget.getTime()) {
           budgetReminderTarget.setDate(budgetReminderTarget.getDate() + 1);
         }
 
         notifsToSchedule.push({
-          title: `Atur Budget Kategori Bulananmu! 🎯`,
-          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Budget Kategori Per Bulan" agar keuanganmu lebih teratur!`,
+          title: tr(l, 'notifSetBudget', { name }),
+          body: tr(l, 'notifSetBudgetBody', { name }),
           id: 102,
           schedule: { 
             at: budgetReminderTarget,
@@ -426,20 +465,19 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         });
       }
 
-      // 3. Notifikasi Ramah Pengenalan Nama Jam 14:00 SIANG (Tepat 1x sehari jika belum ada nama)
+      // 3. Notifikasi Ramah Pengenalan Nama Jam 14:00 SIANG
       const isUnnamed = !userName || userName.trim() === '' || userName.trim().toLowerCase() === 'pengguna' || userName.trim().toLowerCase() === 'teman';
       if (isUnnamed) {
         let nameReminderTarget = new Date();
         nameReminderTarget.setHours(14, 0, 0, 0);
         
-        // Jika saat ini sudah jam 14:00 atau lebih, jadwalkan strictly untuk besok jam 14:00 siang
         if (now.getTime() >= nameReminderTarget.getTime()) {
           nameReminderTarget.setDate(nameReminderTarget.getDate() + 1);
         }
 
         notifsToSchedule.push({
-          title: `Halo Sahabat Cassiel! 👋`,
-          body: `Alangkah baiknya jika kamu menuliskan nama panggilan di menu Profil agar Cassiel bisa menyapamu dengan lebih akrab dan personal 😊`,
+          title: tr(l, 'notifAddName', { name }),
+          body: tr(l, 'notifAddNameBody', { name }),
           id: 103,
           schedule: { 
             at: nameReminderTarget,
@@ -466,7 +504,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       const now = new Date();
       const isUnnamed = !userName || userName.trim() === '' || userName.trim().toLowerCase() === 'pengguna' || userName.trim().toLowerCase() === 'teman';
       if (now.getHours() === 19 && now.getMinutes() === 0) {
-        const msg = generateNotificationMessage(userName, transactions);
+        const msg = generateNotificationMessage(userName, transactions, l);
         new Notification(msg.title, {
           body: msg.body,
           icon: '/app-icon.png',
@@ -474,15 +512,15 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         });
         playSound('notification');
       } else if (now.getHours() === 10 && now.getMinutes() === 0 && !hasAnyBudgetLimit) {
-        new Notification(`Atur Budget Kategori Bulananmu! 🎯`, {
-          body: `Halo ${name}! Kamu belum mengatur limit pengeluaran kategori nih. Yuk atur sekarang di menu Profil → "Budget Kategori Per Bulan" agar keuanganmu lebih teratur!`,
+        new Notification(tr(l, 'notifSetBudget', { name }), {
+          body: tr(l, 'notifSetBudgetBody', { name }),
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
         playSound('notification');
       } else if (now.getHours() === 14 && now.getMinutes() === 0 && isUnnamed) {
-        new Notification(`Halo Sahabat Cassiel! 👋`, {
-          body: `Alangkah baiknya jika kamu menuliskan nama panggilan di menu Profil agar Cassiel bisa menyapamu dengan lebih akrab dan personal 😊`,
+        new Notification(tr(l, 'notifAddName', { name }), {
+          body: tr(l, 'notifAddNameBody', { name }),
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
@@ -495,14 +533,16 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
 };
 
 // Schedule 1-Day Intro Notification for New Category Insight Feature (08:00 AM & 18:00 PM)
-export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
+export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang) => {
   if (typeof localStorage === 'undefined') return;
   const ALREADY_SCHEDULED_KEY = 'feature_intro_insight_notif_v1';
   if (localStorage.getItem(ALREADY_SCHEDULED_KEY) === 'true') {
     return;
   }
 
-  const name = userName && userName.trim() ? userName.trim() : 'Teman';
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
   const now = new Date();
 
   const morningTarget = new Date();
@@ -514,12 +554,11 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
   const notifsToSchedule = [];
 
   if (now.getTime() < morningTarget.getTime()) {
-    // 1. Install/Update pagi sebelum jam 8 -> kirim jam 8 pagi & jam 18 sore hari ini
     notifsToSchedule.push(
       {
         id: 201,
-        title: `✨ Fitur Baru: Insight Kategori Bulanan`,
-        body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+        title: tr(l, 'notifInsightTitle', { name }),
+        body: tr(l, 'notifInsightBody', { name }),
         schedule: { at: morningTarget, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',
@@ -528,8 +567,8 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       },
       {
         id: 202,
-        title: `📊 Rangkuman Kategori di Akhir Bulan`,
-        body: `Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨`,
+        title: tr(l, 'notifInsightEveTitle', { name }),
+        body: tr(l, 'notifInsightEveBody', { name }),
         schedule: { at: eveningTarget, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',
@@ -538,11 +577,10 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       }
     );
   } else if (now.getTime() < eveningTarget.getTime()) {
-    // 2. Install/Update siang antara jam 8 s.d. 18 -> kirim jam 18 sore hari ini
     notifsToSchedule.push({
       id: 202,
-      title: `✨ Fitur Baru: Insight Kategori Bulanan`,
-      body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+      title: tr(l, 'notifInsightTitle', { name }),
+      body: tr(l, 'notifInsightBody', { name }),
       schedule: { at: eveningTarget, allowWhileIdle: true },
       channelId: 'financial_notifications',
       sound: 'notification',
@@ -550,7 +588,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       iconColor: '#2D5284'
     });
   } else {
-    // 3. Install/Update malam setelah jam 18 -> kirim besok pagi jam 8 & besok sore jam 18
     const tomorrowMorning = new Date(morningTarget);
     tomorrowMorning.setDate(tomorrowMorning.getDate() + 1);
 
@@ -560,8 +597,8 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
     notifsToSchedule.push(
       {
         id: 201,
-        title: `✨ Fitur Baru: Insight Kategori Bulanan`,
-        body: `Halo ${name}! Kini kamu bisa melihat rangkuman personal kebiasaan pengeluaran tiap kategori di menu Stats pada akhir bulan.`,
+        title: tr(l, 'notifInsightTitle', { name }),
+        body: tr(l, 'notifInsightBody', { name }),
         schedule: { at: tomorrowMorning, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',
@@ -570,8 +607,8 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
       },
       {
         id: 202,
-        title: `📊 Rangkuman Kategori di Akhir Bulan`,
-        body: `Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨`,
+        title: tr(l, 'notifInsightEveTitle', { name }),
+        body: tr(l, 'notifInsightEveBody', { name }),
         schedule: { at: tomorrowEvening, allowWhileIdle: true },
         channelId: 'financial_notifications',
         sound: 'notification',
@@ -606,16 +643,18 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman') => {
 };
 
 // Schedule 1-Time 5-Second Post-Update Notification for New Categories (Buah & Minuman)
-export const scheduleNewCategoryNotification = async (userName = 'Teman') => {
+export const scheduleNewCategoryNotification = async (userName = 'Teman', lang) => {
   if (typeof localStorage === 'undefined') return;
   const NOTIF_KEY = 'new_categories_buah_minuman_notif_v1';
   if (localStorage.getItem(NOTIF_KEY) === 'true') {
     return;
   }
 
-  const name = userName && userName.trim() ? userName.trim() : 'Teman';
-  const title = '🍎 Kategori Baru: Buah & Minuman';
-  const body = `Halo ${name}! Telah hadir 2 kategori baru di Cassiel, yaitu Buah dan Minuman lengkap dengan ikon terbarunya.`;
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
+  const title = tr(l, 'notifNewCatTitle', { name });
+  const body = tr(l, 'notifNewCatBody', { name });
 
   if (Capacitor.isNativePlatform()) {
     try {
@@ -667,16 +706,16 @@ export const scheduleNewCategoryNotification = async (userName = 'Teman') => {
 };
 
 // Schedule 1-Time 5-Second Post-Update Notification for v1.0.18 Features (Multi-Language & Developer Feedback)
-export const scheduleV18FeatureIntroNotification = async (userName = 'Teman') => {
+export const scheduleV18FeatureIntroNotification = async (userName = 'Teman', lang) => {
   if (typeof localStorage === 'undefined') return;
   const NOTIF_KEY = 'v1_0_18_feature_intro_notif';
   if (localStorage.getItem(NOTIF_KEY) === 'true') {
     return;
   }
 
-  const name = userName && userName.trim() ? userName.trim() : 'Teman';
-  const title = '✨ Fitur Baru: Gaya Tulisan & Bahasa!';
-  const body = 'Kini Anda bisa mengubah gaya font tampilan aplikasi dan pilihan bahasa melalui menu Profil ✨';
+  const l = lang || getLang();
+  const title = tr(l, 'notifNewFeatureTitle');
+  const body = tr(l, 'notifNewFeatureBody');
 
   if (Capacitor.isNativePlatform()) {
     try {
@@ -726,4 +765,3 @@ export const scheduleV18FeatureIntroNotification = async (userName = 'Teman') =>
     localStorage.setItem(NOTIF_KEY, 'true');
   }
 };
-

@@ -40,6 +40,7 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 
 ## 5. UI Invariants & Design Standards
 * **Warna & Theme**: Hindari penggunaan container/box hitam gelap kaku jika tidak menyatu dengan tema netral/krim (`#F8EFE6`).
+* **Security Screen Theme**: Semua layar keamanan (PIN setup, PIN lock screen, biometric prompt container) wajib menggunakan `background: var(--bg-app, #F8EFE6)`. Dilarang menggunakan gradien warna kustom (seperti amber/oranye) yang tidak konsisten dengan tema aplikasi.
 * **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
 * **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku. Kotak menu/card pengaturan profil wajib menggunakan desain borderless (`border: none`) dengan bayangan halus.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
@@ -108,4 +109,72 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 16. Transaction Form 3-Column Category Grid Invariant
 * **Strict 3-Column Grid**: Susunan ikon dan label kategori pada panel bawah form transaksi (`.category-grid`) bersifat mutlak **3 kolom ke samping** (`grid-template-columns: repeat(3, 1fr)`) agar nama kategori (termasuk terjemahan daerah seperti Basa Jawa) memiliki ruang baca yang proporsional dan tidak terpotong.
 
+## 17. Standalone & Emblem-Only Payment Badges Invariant
+* **Emblem/Symbol Only without Redundant Text**: Logo bank dan e-wallet (seperti DANA, SeaBank, Jenius, Bank Jago, BRI, OVO, ShopeePay) wajib menggunakan lambang/emblem inti murni tanpa teks/subteks panjang di dalam kotak badge.
+* **Standalone Badges (No Double White Box)**: Akun dengan aset berwarna mandiri (seperti `Livin`, `Wondr`, `ShopeePay`, `DANA`, `LinkAja`, `OVO`, `GoPay`) wajib didaftarkan di `STANDALONE_BADGES` (`background: transparent`, `padding: 0`) agar tidak terbungkus kotak putih ganda atau padding putih kaku.
+* **Deprecated Account Auto-Migration**: Jika ada akun bawaan yang di-deprecate/dihapus (seperti `Pos Indonesia` dan `Pegadaian`), wajib sertakan filter sanitasi pada inisialisasi `accountsList` di `App.jsx` agar data lama di `localStorage` otomatis bersih tanpa meninggalkan kartu kosong.
 
+## 18. Dynamic Smart Frequency Ranking & One-Time "Terakhir" Discovery Badge
+* **Auto-Priority Ranking**: Susunan kategori (pengeluaran & pemasukan) serta akun di form transaksi wajib bersifat dinamis dengan memprioritaskan item yang paling sering digunakan (`catFreq` / `accFreq`) dan paling baru digunakan (`lastIdx`).
+* **One-Time "Terakhir" Onboarding Badge**:
+  - Item urutan No. 1 (paling sering/terakhir digunakan) menampilkan badge mini elegan bertuliskan `"Terakhir"` dengan animasi denyut halus (*subtle pulse*).
+  - Badge ini bersifat *one-time discovery hint*: sekali pengguna menekan/memilih kategori atau akun tersebut, status langsung disimpan ke `localStorage` (`user_last_badge_dismissed`) dan badge hilang permanen pada penggunaan berikutnya.
+
+## 19. Multi-Language (i18n) & Strict 1-Word Form Label Invariants
+* **Strict 1-Word Form Labels**: Seluruh label input form transaksi wajib berupa **1 kata tunggal murni** di semua pilihan bahasa (misal: `Tanggal`, `Jumlah`, `Kategori`, `Akun`, `Catatan`, `Simpan`). Dilarang menggunakan simbol garis miring (`/`), kata "atau", atau frasa panjang.
+* **Basa Jawa "Gunggung" Nominal**: Label nominal uang pada Basa Jawa wajib menggunakan **`Gunggung`** (bukan `Gunggungipun Arta`) agar tidak menempel atau terlalu dekat ke awalan teks `Rp`.
+* **Mandarin Pinyin Format**: Opsi Bahasa Mandarin wajib disajikan dalam ejaan alfabet latin murni (**Hanyu Pinyin / ABC**) seperti `Shouye`, `Tongji`, `Riqi`, `Jine`, `Fenlei`, `Zhanghu`, `Beizhu`, `Baocun` tanpa aksara Hanzi agar mudah dibaca.
+* **Dynamic Full-App Synchronization**: Seluruh judul layar (`Pengaturan Profil`, `Pemasukan / Pengeluaran / Andai`), salam sapaan (`Good Day,` / `Halo,` / `Sugeng Rawuh,` / `Ni Hao,`), dan subteks ringkasan wajib terhubung secara dinamis ke engine `i18n.js`.
+
+## 20. Bottom Navigation & Seamless UI Invariants
+* **5-Tab Symmetrical Bottom Navigation**:
+  - Sisi Kiri (`.nav-group-left`): `Home` dan `Account` (`akun.svg`).
+  - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks, terkunci di tengah (`left: 50%; transform: translate(-50%, -24px)`) presisi pada lekukan notch bar.
+  - Sisi Kanan (`.nav-group-right`): `Budget` (`budget.svg`) dan `Stats` (`diagram.svg`).
+  - Label tab statistik menggunakan `Stats` di semua bahasa.
+* **Seamless & Borderless Content Lists**: Daftar akun (`.account-card-item`), daftar budget (`.budget-item-card`), menu profil (`.wa-menu-item`), dan grup opsi layar penuh (`.full-page-settings-group`) wajib menempel langsung pada latar belakang aplikasi tanpa kotak putih terpisah (`background: transparent; border: none; box-shadow: none; border-bottom: 1px solid rgba(0, 0, 0, 0.05);`). Item terakhir wajib `border-bottom: none`.
+
+## 21. Swipeable Account Screen & Indicator Dots Invariant
+* **Default Expense & Swipe Navigation**: Default tab Account selalu membuka `Expenses`. Transisi ke tampilan `Income` dilakukan via gestur usap horizontal (*touch swipe*).
+* **Pure Visual Indicator Dots**: Titik penanda halaman di bawah nominal hero (`.account-swipe-dots`) bersifat murni visual (*non-clickable*, `pointer-events: none`).
+
+## 22. Dynamic Smart Priority Ranking for Budget
+* **Top Priority for High-Frequency Unbudgeted Categories**: Kategori pengeluaran yang paling sering memiliki transaksi riil namun belum pernah disetel limit-nya (`monthlyLimit <= 0`) wajib otomatis diprioritaskan di urutan teratas.
+* **Centered Personalized Header**: Judul halaman budget wajib rata tengah (`text-align: center`) dengan format `Ayo atur budget [Nama User]`.
+
+## 23. Apple-Grade Smooth & Fluid Motion Invariants
+* **Physics & Spring Easing Curves**:
+  - Transisi pergantian layar utama, tab, dan modal wajib menggunakan kurva *Apple-grade natural decel/spring* (`cubic-bezier(0.16, 1, 0.3, 1)` atau `cubic-bezier(0.25, 1, 0.5, 1)`) dengan durasi `0.22s - 0.28s`.
+  - Animasi sentuhan tombol / item interaktif menggunakan kurva elastis (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
+* **Segmented Sliding Indicators**:
+  - Komponen beralih kategori/filter (seperti Pemasukan/Pengeluaran di Home) wajib menggunakan indikator pill melayang (`.home-tx-filter-indicator`) yang meluncur secara fisik horizontal (`transform: translateX(...)`), bukan sekadar pergantian warna statis.
+* **Micro Page & List Fade Transitions**:
+  - Pergantian konten tab bottom nav dan filter list transaksi wajib menyertakan micro *fade-in & slide-up* (`.tab-page-transition`, `.transactions-container-animated`) agar tidak terasa kaku atau patah-patah.
+* **Tactile Press Feedback**:
+  - Seluruh tombol interaktif (bottom nav icon, plus FAB, menu item profil, tombol back, toggle) wajib memiliki feedback mikro-tekan (`transform: scale(0.86 - 0.96)`) yang responsif terhadap sentuhan jari pengguna.
+
+## 24. PIN & Biometric Security Invariants
+
+* **PIN Hash Storage — Plain `localStorage` Only**:
+  - Hash PIN (SHA-256 salted, format: `cassiel_pin_salt_${pin}_2026`) wajib disimpan dan dibaca **langsung via `localStorage.setItem/getItem`**, bukan via `safeStorageSet/safeStorageGet`.
+  - Alasan: SHA-256 sudah kriptografis aman. Lapisan enkripsi XOR+salt tambahan dari `secureStorage.js` bergantung pada *device salt* yang bisa belum tersedia saat inisialisasi React di Capacitor Android, sehingga `hasUserPin()` bisa return `false` meski PIN sudah tersimpan (race condition).
+
+* **Lock Screen Flow — First-Time Setup**:
+  - Setelah PIN pertama kali berhasil diatur (bukan *ubah*), wajib segera memanggil `setIsAppLocked(true)` agar user diminta verifikasi PIN baru sebelum bisa mengakses home.
+  - Pattern wajib di `onSuccess` callback `PinSetupModal`:
+    ```js
+    onSuccess={() => {
+      const wasFirstTime = !userHasPin;
+      setUserHasPin(true);
+      showVoiceToast(t('pinSuccessSet'));
+      if (wasFirstTime) setIsAppLocked(true);
+    }}
+    ```
+
+* **Biometric Auth — Native Platform Guard**:
+  - Fungsi `authenticateWithBiometrics` wajib memeriksa `Capacitor.isNativePlatform()` **sebelum** memanggil `NativeBiometric`. Jika bukan native (web/dev server), langsung return `{ success: false, error: 'not_native' }`.
+  - Ini mencegah bypass autentikasi di lingkungan browser/dev dan memastikan hanya sidik jari HP asli yang bisa membuka lock screen.
+
+* **PIN Dot Filled Color**: Titik indikator PIN yang terisi wajib menggunakan warna **abu-abu** (`background: #64748B`), bukan biru atau warna mencolok lainnya.
+
+* **Backspace Key — Borderless Plain Icon**: Tombol hapus pada keypad PIN (di `PinSetupModal` dan `PinLockScreen`) wajib menggunakan ikon polos tanpa latar belakang bulat atau shadow (`background: transparent; box-shadow: none`).

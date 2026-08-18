@@ -70,7 +70,10 @@ export const checkForAppUpdates = async () => {
 };
 
 /**
- * Helper untuk memformat objek update dan mencocokkan target APK (Cassiel vs Udin)
+ * Helper untuk memformat objek update dan mencocokkan target APK secara dinamis:
+ * 1. Mode Udin (applicationId: com.redilah.udin) -> udin.apk
+ * 2. Mode Debug / Test Sideload (cassielll1) -> cassielll1.apk
+ * 3. Mode Release resmi (Cassiel) -> Cassiel.apk
  */
 const formatUpdateResult = async (data) => {
   const latestVersionCode = data.versionCode;
@@ -78,20 +81,42 @@ const formatUpdateResult = async (data) => {
 
   if (latestVersionCode > CURRENT_VERSION_CODE) {
     let isUdinApp = false;
+    let isDebugOrTestApp = false;
+
     try {
       const { App } = await import('@capacitor/app');
       const appInfo = await App.getInfo();
-      if (appInfo && appInfo.id === 'com.redilah.udin') {
-        isUdinApp = true;
+      if (appInfo) {
+        if (appInfo.id === 'com.redilah.udin') {
+          isUdinApp = true;
+        } else if (appInfo.id === 'com.redilah.financetracker.debug' || appInfo.name?.toLowerCase().includes('debug')) {
+          isDebugOrTestApp = true;
+        }
       }
     } catch {
       // Web fallback check
-      if (typeof window !== 'undefined' && window.location.hostname.includes('udin')) {
-        isUdinApp = true;
+      if (typeof window !== 'undefined') {
+        if (window.location.hostname.includes('udin')) {
+          isUdinApp = true;
+        }
       }
     }
 
-    const baseApkName = isUdinApp ? 'udin.apk' : 'Cassiel.apk';
+    // Deteksi jika user sedang berada di environment non-production / test sideload
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
+      isDebugOrTestApp = true;
+    }
+    if (typeof window !== 'undefined' && (window.__IS_DEBUG_BUILD__ || window.localStorage.getItem('cassiel_apk_track') === 'debug')) {
+      isDebugOrTestApp = true;
+    }
+
+    let baseApkName = 'Cassiel.apk';
+    if (isUdinApp) {
+      baseApkName = 'udin.apk';
+    } else if (isDebugOrTestApp) {
+      baseApkName = 'cassielll1.apk';
+    }
+
     const downloadUrl = `https://raw.githubusercontent.com/redilah/Finance-tracker/main/${baseApkName}?v=${latestVersionCode}&t=${Date.now()}`;
 
     return {
@@ -104,8 +129,11 @@ const formatUpdateResult = async (data) => {
       changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
       downloadUrl: downloadUrl,
       sha256: data.sha256 || null,
-      isUdinApp: isUdinApp
+      isUdinApp: isUdinApp,
+      isDebugApp: isDebugOrTestApp,
+      apkName: baseApkName
     };
   }
   return null;
 };
+

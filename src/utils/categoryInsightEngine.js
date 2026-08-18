@@ -44,12 +44,20 @@ export const generateCategoryInsight = ({
   year,
   monthIndex, // 0-indexed (0 = Jan, 7 = Agu, 11 = Des)
   allTransactions = [],
-  userName = 'Pengguna'
+  userName = 'Pengguna',
+  appLanguage = 'id',
+  fmtMoney,
+  getCategoryName
 }) => {
-  const cleanUserName = userName && userName.trim() ? userName.trim() : 'Kamu';
+  const cleanUserName = userName && userName.trim() ? userName.trim() : (
+    appLanguage === 'en' ? 'You' : appLanguage === 'jv' ? 'Panjenengan' : appLanguage === 'zh' ? 'Nin' : appLanguage === 'ko' ? 'Dangsin' : 'Kamu'
+  );
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
+
+  const localizedCatName = getCategoryName ? getCategoryName(categoryName, appLanguage) : categoryName;
+  const formatAmt = (amt) => (fmtMoney ? fmtMoney(amt) : formatRupiah(amt));
 
   // 1. Filter transaksi bulan terpilih
   let currentMonthTxs = allTransactions.filter(t => {
@@ -91,11 +99,11 @@ export const generateCategoryInsight = ({
     if (!t.date) return false;
     const [y, m] = t.date.split('-');
     const matchesMonth = Number(y) === prevYear && Number(m) === (prevMonthIndex + 1);
-    const matchesCat = t.type === 'expense' && (
+    const matchesCategory = (
       (t.category && t.category.toLowerCase() === categoryName.toLowerCase()) ||
       (t.categoryId && t.categoryId.toLowerCase() === categoryName.toLowerCase())
     );
-    return matchesMonth && matchesCat;
+    return t.type === 'expense' && matchesMonth && matchesCategory;
   });
 
   if (prevMonthCatTxs.length === 0 && (year > currentYear || (year === currentYear && monthIndex > currentMonth))) {
@@ -112,9 +120,10 @@ export const generateCategoryInsight = ({
     });
   }
 
+  // Metrik Utama
   const currentTotalAmount = catTxs.reduce((sum, t) => sum + t.amount, 0);
-  const prevTotalAmount = prevMonthCatTxs.reduce((sum, t) => sum + t.amount, 0);
   const currentCount = catTxs.length;
+  const prevTotalAmount = prevMonthCatTxs.reduce((sum, t) => sum + t.amount, 0);
   const prevCount = prevMonthCatTxs.length;
 
   // Persentase dari total pengeluaran
@@ -125,77 +134,72 @@ export const generateCategoryInsight = ({
   // Rata-rata per transaksi
   const averagePerTx = currentCount > 0 ? Math.round(currentTotalAmount / currentCount) : 0;
 
-  // 3. Analisis item / catatan yang paling sering dibeli (membaca t.title & t.note riil)
+  // 3. Catatan/item yang paling sering dibeli
   const noteFrequency = {};
-  const noteAmounts = {};
-
   catTxs.forEach(t => {
     const rawNote = (t.title || t.note || '').trim();
     if (rawNote) {
-      noteFrequency[rawNote] = (noteFrequency[rawNote] || 0) + 1;
-      noteAmounts[rawNote] = (noteAmounts[rawNote] || 0) + t.amount;
+      noteFrequency[rawNote] = (noteFrequency[rawNote] || { count: 0, totalAmount: 0 });
+      noteFrequency[rawNote].count += 1;
+      noteFrequency[rawNote].totalAmount += t.amount;
     }
   });
 
-  let topNote = null;
   const sortedNotes = Object.keys(noteFrequency)
     .map(key => ({
       note: key,
-      count: noteFrequency[key],
-      totalAmount: noteAmounts[key]
+      count: noteFrequency[key].count,
+      totalAmount: noteFrequency[key].totalAmount,
+      isGeneric: key.toLowerCase() === categoryName.toLowerCase()
     }))
     .sort((a, b) => b.count - a.count || b.totalAmount - a.totalAmount);
 
-  if (sortedNotes.length > 0) {
-    topNote = sortedNotes[0];
-  } else if (currentCount > 0) {
-    topNote = {
-      note: `Belanja ${categoryName}`,
-      count: currentCount,
-      totalAmount: currentTotalAmount,
-      isGeneric: true
-    };
-  }
+  const topNote = sortedNotes.length > 0 ? sortedNotes[0] : null;
 
-  // 4. Analisis hari/tanggal tersibuk & paling boros
+  // 4. Hari tersibuk & Pengeluaran terbesar per hari
   const dayFrequency = {};
-  const dayAmounts = {};
   catTxs.forEach(t => {
-    const dateStr = t.date; // 'YYYY-MM-DD'
-    dayFrequency[dateStr] = (dayFrequency[dateStr] || 0) + 1;
-    dayAmounts[dateStr] = (dayAmounts[dateStr] || 0) + t.amount;
+    if (t.date) {
+      const dayNum = parseInt(t.date.split('-')[2], 10);
+      if (!isNaN(dayNum)) {
+        if (!dayFrequency[dayNum]) {
+          dayFrequency[dayNum] = { count: 0, amount: 0, txs: [] };
+        }
+        dayFrequency[dayNum].count += 1;
+        dayFrequency[dayNum].amount += t.amount;
+        dayFrequency[dayNum].txs.push(t);
+      }
+    }
   });
 
   let busiestDay = null;
   let highestSpendDay = null;
+  const daysList = Object.keys(dayFrequency).map(d => ({
+    dayNum: parseInt(d, 10),
+    count: dayFrequency[d].count,
+    amount: dayFrequency[d].amount,
+    txs: dayFrequency[d].txs
+  }));
 
-  Object.keys(dayFrequency).forEach(dateStr => {
-    const count = dayFrequency[dateStr];
-    const amount = dayAmounts[dateStr];
-    const dayNum = Number(dateStr.split('-')[2]);
+  if (daysList.length > 0) {
+    busiestDay = [...daysList].sort((a, b) => b.count - a.count || b.amount - a.amount)[0];
+    highestSpendDay = [...daysList].sort((a, b) => b.amount - a.amount || b.count - a.count)[0];
+  }
 
-    if (!busiestDay || count > busiestDay.count) {
-      busiestDay = { dateStr, dayNum, count, amount };
-    }
-    if (!highestSpendDay || amount > highestSpendDay.amount) {
-      highestSpendDay = { dateStr, dayNum, count, amount };
-    }
-  });
-
-  // 5. Transaksi terbesar
+  // 5. Transaksi tunggal terbesar
   let largestTx = null;
   let largestTxLabel = '';
   if (catTxs.length > 0) {
     largestTx = [...catTxs].sort((a, b) => b.amount - a.amount)[0];
     if (largestTx) {
-      const rawNote = (largestTx.title || largestTx.note || '').trim();
-      const dayNum = largestTx.date ? Number(largestTx.date.split('-')[2]) : null;
-      if (rawNote) {
-        largestTxLabel = rawNote;
+      const rawTitle = (largestTx.title || largestTx.note || '').trim();
+      const dayNum = largestTx.date ? parseInt(largestTx.date.split('-')[2], 10) : null;
+      if (rawTitle && rawTitle.toLowerCase() !== categoryName.toLowerCase()) {
+        largestTxLabel = rawTitle;
       } else if (dayNum) {
-        largestTxLabel = `Tgl ${dayNum} (${largestTx.account || 'Bank'})`;
+        largestTxLabel = `${dayNum} (${largestTx.account || 'Bank'})`;
       } else {
-        largestTxLabel = `Transaksi utama ${categoryName}`;
+        largestTxLabel = localizedCatName;
       }
     }
   }
@@ -222,63 +226,174 @@ export const generateCategoryInsight = ({
     else diffStatus = 'same';
   }
 
-  // 8. Membuat paragraf cerita personal yang hangat & natural
-  const MONTH_NAMES = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  const monthName = MONTH_NAMES[monthIndex];
+  // 8. Nama Bulan Sesuai Bahasa
+  const MONTH_NAMES_MAP = {
+    id: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+    id_id: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+    en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    jv: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+    zh: ['1 Yue', '2 Yue', '3 Yue', '4 Yue', '5 Yue', '6 Yue', '7 Yue', '8 Yue', '9 Yue', '10 Yue', '11 Yue', '12 Yue'],
+    ko: ['1-wol', '2-wol', '3-wol', '4-wol', '5-wol', '6-wol', '7-wol', '8-wol', '9-wol', '10-wol', '11-wol', '12-wol']
+  };
+  const currentMonthNames = MONTH_NAMES_MAP[appLanguage] || MONTH_NAMES_MAP.id;
+  const monthName = currentMonthNames[monthIndex] || 'Bulan Ini';
 
+  // 9. Narasi Finansial Dinamis Sesuai Bahasa Aktif
   let narrativeStory = '';
-  if (currentCount === 0) {
-    narrativeStory = `Di bulan ${monthName} ${year}, ${cleanUserName} belum mencatat pengeluaran apa pun untuk kategori ${categoryName}. Pengeluaranmu di sektor ini sangat hemat dan terkendali dengan baik!`;
+
+  if (appLanguage === 'en') {
+    if (currentCount === 0) {
+      narrativeStory = `In ${monthName} ${year}, ${cleanUserName} has not recorded any expenses for ${localizedCatName}. Spending in this category is completely under control!`;
+    } else {
+      const sentences = [];
+      sentences.push(
+        `In ${monthName} ${year}, ${cleanUserName} made ${currentCount} transactions in ${localizedCatName} with a total spending of ${formatAmt(currentTotalAmount)}.`
+      );
+      if (percentageOfTotal > 0) {
+        sentences.push(`This category accounts for about ${percentageOfTotal}% of your total budget spent this month.`);
+      }
+      if (topNote && !topNote.isGeneric) {
+        sentences.push(`Your most frequent purchase was "${topNote.note}" (${topNote.count} times, totaling ${formatAmt(topNote.totalAmount)}).`);
+      }
+      if (busiestDay && busiestDay.count >= 2) {
+        sentences.push(`${monthName} ${busiestDay.dayNum} was your busiest day with ${busiestDay.count} transactions totaling ${formatAmt(busiestDay.amount)}.`);
+      } else if (highestSpendDay && largestTx) {
+        const txTitle = (largestTx.title || largestTx.note || '').trim();
+        const itemNote = txTitle ? ` for "${txTitle}"` : '';
+        sentences.push(`Your largest spending occurred on ${monthName} ${highestSpendDay.dayNum} totaling ${formatAmt(largestTx.amount)}${itemNote}.`);
+      }
+      if (diffStatus === 'up') {
+        sentences.push(`Your spending in this category increased by ${diffPercentage}% compared to last month (${formatAmt(prevTotalAmount)}).`);
+      } else if (diffStatus === 'down') {
+        sentences.push(`Great news! Your spending decreased by ${diffPercentage}%, saving more than last month (${formatAmt(prevTotalAmount)}).`);
+      }
+      narrativeStory = sentences.join(' ');
+    }
+  } else if (appLanguage === 'jv') {
+    if (currentCount === 0) {
+      narrativeStory = `Ing wulan ${monthName} ${year}, ${cleanUserName} dereng wonten cathetan pangetrapan kangge ${localizedCatName}. Pangetrapan panjenengan saestu hemat lan kajagi kanthi prayogi!`;
+    } else {
+      const sentences = [];
+      sentences.push(
+        `Ing wulan ${monthName} ${year}, ${cleanUserName} kecathet ${currentCount} kaping blanja ing kategori ${localizedCatName} kanthi gunggung ${formatAmt(currentTotalAmount)}.`
+      );
+      if (percentageOfTotal > 0) {
+        sentences.push(`Kategori punika nyumbang watawis ${percentageOfTotal}% saking sedaya anggaran ingkang medal wulan punika.`);
+      }
+      if (topNote && !topNote.isGeneric) {
+        sentences.push(`Cathetan blanja ingkang paling asring inggih punika "${topNote.note}" kaping ${topNote.count} (${formatAmt(topNote.totalAmount)}).`);
+      }
+      if (busiestDay && busiestDay.count >= 2) {
+        sentences.push(`Titimangsa ${busiestDay.dayNum} ${monthName} dados dinten paling kathah kanthi ${busiestDay.count} transaksi (${formatAmt(busiestDay.amount)}).`);
+      } else if (highestSpendDay && largestTx) {
+        const txTitle = (largestTx.title || largestTx.note || '').trim();
+        const itemNote = txTitle ? ` kangge "${txTitle}"` : '';
+        sentences.push(`Blanja paling ageng kalampahan ing tanggal ${highestSpendDay.dayNum} ${monthName} kanthi ${formatAmt(largestTx.amount)}${itemNote}.`);
+      }
+      if (diffStatus === 'up') {
+        sentences.push(`Pangetrapan panjenengan mundhak ${diffPercentage}% tinimbang wulan kapengker (${formatAmt(prevTotalAmount)}).`);
+      } else if (diffStatus === 'down') {
+        sentences.push(`Kabar sae! Pangetrapan mudhun ${diffPercentage}% langkung hemat tinimbang wulan sadèrèngipun (${formatAmt(prevTotalAmount)}).`);
+      }
+      narrativeStory = sentences.join(' ');
+    }
+  } else if (appLanguage === 'zh') {
+    if (currentCount === 0) {
+      narrativeStory = `Zai ${year} nian ${monthName}, ${cleanUserName} zai ${localizedCatName} fenlei shang shangwu renhe zhichu. Nin de yuesuan kongzhi de feichang hao!`;
+    } else {
+      const sentences = [];
+      sentences.push(
+        `Zai ${year} nian ${monthName}, ${cleanUserName} zai ${localizedCatName} jinxing le ${currentCount} ci jiaoyi, zong zhichu wei ${formatAmt(currentTotalAmount)}.`
+      );
+      if (percentageOfTotal > 0) {
+        sentences.push(`Gai fenlei zhan benyue zong zhichu de ${percentageOfTotal}%.`);
+      }
+      if (topNote && !topNote.isGeneric) {
+        sentences.push(`Zui chang goumai de xiangmu shi "${topNote.note}" (${topNote.count} ci, gongji ${formatAmt(topNote.totalAmount)}).`);
+      }
+      if (busiestDay && busiestDay.count >= 2) {
+        sentences.push(`${monthName} ${busiestDay.dayNum} ri shi zui fanmang de yitian, gong ${busiestDay.count} bi jiaoyi, jine wei ${formatAmt(busiestDay.amount)}.`);
+      } else if (highestSpendDay && largestTx) {
+        const txTitle = (largestTx.title || largestTx.note || '').trim();
+        const itemNote = txTitle ? ` ("${txTitle}")` : '';
+        sentences.push(`Zui da danbi zhichu fasheng zai ${monthName} ${highestSpendDay.dayNum} ri, jine wei ${formatAmt(largestTx.amount)}${itemNote}.`);
+      }
+      if (diffStatus === 'up') {
+        sentences.push(`Yu shangyue (${formatAmt(prevTotalAmount)}) xiangbi, nin zai ci fenlei de zhichu zengjia le ${diffPercentage}%.`);
+      } else if (diffStatus === 'down') {
+        sentences.push(`Tai bang le! Yu shangyue (${formatAmt(prevTotalAmount)}) xiangbi, nin de zhichu jianshao le ${diffPercentage}%.`);
+      }
+      narrativeStory = sentences.join(' ');
+    }
+  } else if (appLanguage === 'ko') {
+    if (currentCount === 0) {
+      narrativeStory = `${year}nyeon ${monthName}e ${cleanUserName}nim-eun ${localizedCatName} hangmog-eseo jichul-i eobs-seubnida. Yesan gwanliga maeu jal doego iss-seubnida!`;
+    } else {
+      const sentences = [];
+      sentences.push(
+        `${year}nyeon ${monthName}e ${cleanUserName}nim-eun ${localizedCatName} hangmog-eseo chong ${currentCount}hwe jichul-eul haess-eumyeo, chong-aeg-eun ${formatAmt(currentTotalAmount)} ibnida.`
+      );
+      if (percentageOfTotal > 0) {
+        sentences.push(`I hangmog-eun ibeondal jeonche jichul-ui yag ${percentageOfTotal}%leul chaji-habnida.`);
+      }
+      if (topNote && !topNote.isGeneric) {
+        sentences.push(`Gajang jaju gumaeban hangmog-eun "${topNote.note}" (${topNote.count}hwe, chong ${formatAmt(topNote.totalAmount)}) ibnida.`);
+      }
+      if (busiestDay && busiestDay.count >= 2) {
+        sentences.push(`${monthName} ${busiestDay.dayNum}il-i gajang bappeun nal-ieoss-eumyeo, ${busiestDay.count}geon-ui jichul (${formatAmt(busiestDay.amount)})i iss-eoss-seubnida.`);
+      } else if (highestSpendDay && largestTx) {
+        const txTitle = (largestTx.title || largestTx.note || '').trim();
+        const itemNote = txTitle ? ` ("${txTitle}")` : '';
+        sentences.push(`Gajang keun jichul-eun ${monthName} ${highestSpendDay.dayNum}il-e ${formatAmt(largestTx.amount)}${itemNote}euro balsaenghaess-seubnida.`);
+      }
+      if (diffStatus === 'up') {
+        sentences.push(`Jinandall (${formatAmt(prevTotalAmount)})boda jichul-i ${diffPercentage}% jeung-gahaess-seubnida.`);
+      } else if (diffStatus === 'down') {
+        sentences.push(`Jinandall (${formatAmt(prevTotalAmount)})boda jichul-i ${diffPercentage}% jul-eo deol sseoss-seubnida!`);
+      }
+      narrativeStory = sentences.join(' ');
+    }
   } else {
-    const sentences = [];
-
-    // Kalimat 1: Ringkasan belanja
-    sentences.push(
-      `Di bulan ${monthName} ${year}, ${cleanUserName} tercatat melakukan ${currentCount} kali transaksi pada kategori ${categoryName} dengan total pengeluaran sebesar ${formatRupiah(currentTotalAmount)}.`
-    );
-
-    // Kalimat 2: Porsi persentase
-    if (percentageOfTotal > 0) {
+    // Default: Bahasa Indonesia
+    if (currentCount === 0) {
+      narrativeStory = `Di bulan ${monthName} ${year}, ${cleanUserName} belum mencatat pengeluaran apa pun untuk kategori ${localizedCatName}. Pengeluaranmu di sektor ini sangat hemat dan terkendali dengan baik!`;
+    } else {
+      const sentences = [];
       sentences.push(
-        `Kategori ini menyumbang sekitar ${percentageOfTotal}% dari seluruh anggaran belanja yang kamu keluarkan sepanjang bulan ini.`
+        `Di bulan ${monthName} ${year}, ${cleanUserName} tercatat melakukan ${currentCount} kali transaksi pada kategori ${localizedCatName} dengan total pengeluaran sebesar ${formatAmt(currentTotalAmount)}.`
       );
+      if (percentageOfTotal > 0) {
+        sentences.push(
+          `Kategori ini menyumbang sekitar ${percentageOfTotal}% dari seluruh anggaran belanja yang kamu keluarkan sepanjang bulan ini.`
+        );
+      }
+      if (topNote && !topNote.isGeneric) {
+        sentences.push(
+          `Catatan belanja yang paling sering kamu lakukan adalah "${topNote.note}" sebanyak ${topNote.count} kali (${formatAmt(topNote.totalAmount)}).`
+        );
+      }
+      if (busiestDay && busiestDay.count >= 2) {
+        sentences.push(
+          `Tanggal ${busiestDay.dayNum} ${monthName} menjadi hari tersibukmu dengan ${busiestDay.count} transaksi sekaligus dalam satu hari senilai ${formatAmt(busiestDay.amount)}.`
+        );
+      } else if (highestSpendDay && largestTx) {
+        const txTitle = (largestTx.title || largestTx.note || '').trim();
+        const itemNote = txTitle ? ` untuk "${txTitle}"` : '';
+        sentences.push(
+          `Pengeluaran terbesarmu terjadi pada tanggal ${highestSpendDay.dayNum} ${monthName} sebesar ${formatAmt(largestTx.amount)}${itemNote}.`
+        );
+      }
+      if (diffStatus === 'up') {
+        sentences.push(
+          `Pengeluaranmu di kategori ini meningkat ${diffPercentage}% dibandingkan bulan lalu (${formatAmt(prevTotalAmount)}).`
+        );
+      } else if (diffStatus === 'down') {
+        sentences.push(
+          `Kabar baik! Pengeluaranmu turun ${diffPercentage}% lebih hemat dibandingkan bulan sebelumnya (${formatAmt(prevTotalAmount)}).`
+        );
+      }
+      narrativeStory = sentences.join(' ');
     }
-
-    // Kalimat 3: Catatan/item paling sering (hanya jika ada catatan riil)
-    if (topNote && !topNote.isGeneric) {
-      sentences.push(
-        `Catatan belanja yang paling sering kamu lakukan adalah "${topNote.note}" sebanyak ${topNote.count} kali (${formatRupiah(topNote.totalAmount)}).`
-      );
-    }
-
-    // Kalimat 4: Hari tersibuk/paling boros
-    if (busiestDay && busiestDay.count >= 2) {
-      sentences.push(
-        `Tanggal ${busiestDay.dayNum} ${monthName} menjadi hari tersibukmu dengan ${busiestDay.count} transaksi sekaligus dalam satu hari senilai ${formatRupiah(busiestDay.amount)}.`
-      );
-    } else if (highestSpendDay && largestTx) {
-      const txTitle = (largestTx.title || largestTx.note || '').trim();
-      const itemNote = txTitle ? ` untuk "${txTitle}"` : '';
-      sentences.push(
-        `Pengeluaran terbesarmu terjadi pada tanggal ${highestSpendDay.dayNum} ${monthName} sebesar ${formatRupiah(largestTx.amount)}${itemNote}.`
-      );
-    }
-
-    // Kalimat 5: Perbandingan bulan lalu
-    if (diffStatus === 'up') {
-      sentences.push(
-        `Pengeluaranmu di kategori ini meningkat ${diffPercentage}% dibandingkan bulan lalu (${formatRupiah(prevTotalAmount)}).`
-      );
-    } else if (diffStatus === 'down') {
-      sentences.push(
-        `Kabar baik! Pengeluaranmu turun ${diffPercentage}% lebih hemat dibandingkan bulan sebelumnya (${formatRupiah(prevTotalAmount)}).`
-      );
-    }
-
-    narrativeStory = sentences.join(' ');
   }
 
   return {

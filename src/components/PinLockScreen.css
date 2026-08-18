@@ -1,0 +1,161 @@
+/* ==========================================================================
+   PIN LOCK SCREEN (CASSIEL THEME #F8EFE6 & SOFT SHADOW KEYPAD)
+   ========================================================================== */
+
+.pin-lock-screen-container {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: var(--bg-app, #F8EFE6) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  overflow: hidden;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* App Version at Top Right */
+.pin-lock-version-tag {
+  position: absolute;
+  top: env(safe-area-inset-top, 20px);
+  right: 20px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #6B7280);
+  letter-spacing: 0.2px;
+}
+
+.pin-lock-inner {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pin-lock-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main, #1F2937);
+  margin-bottom: 24px;
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+/* Dots on lock screen */
+.pin-dots-container.lock-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 36px;
+  height: 24px;
+}
+
+.pin-dot.lock-dot {
+  width: 11px;
+  height: 11px;
+  background: #E2E8F0;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pin-dot.lock-dot.filled {
+  background: #64748B;
+  transform: scale(1.15);
+  box-shadow: 0 1px 4px rgba(100, 116, 139, 0.3);
+}
+
+/* Keypad Grid in Lock Screen (Matching Clean Round Buttons with Soft Shadow) */
+.pin-keypad-grid.lock-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  gap: 22px 28px;
+  justify-content: center;
+  align-content: center;
+}
+
+.pin-key-btn.lock-key-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: none !important;
+  outline: none;
+  background: #F1F3F5;
+  color: var(--text-main, #1F2937);
+  font-size: 26px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.06);
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.pin-key-btn.lock-key-btn:active {
+  transform: scale(0.92);
+  background: #E5E7EB;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.pin-bio-plain-btn {
+  width: 72px;
+  height: 72px;
+  border: none !important;
+  outline: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-main, #1F2937);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.pin-bio-plain-btn:active {
+  transform: scale(0.88);
+  opacity: 0.7;
+}
+
+.pin-lock-backspace-plain-btn {
+  width: 72px;
+  height: 72px;
+  border: none;
+  outline: none;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-main, #1F2937);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pin-lock-backspace-plain-btn:active {
+  transform: scale(0.88);
+  opacity: 0.7;
+}
+
+.pin-lock-error-text {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}

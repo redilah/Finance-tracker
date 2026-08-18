@@ -1,0 +1,101 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Build Web Assets (Vite)
+        run: |
+          npm run build
+
+      - name: Setup & Sync Capacitor iOS
+        run: |
+          if [ ! -d "ios" ]; then
+            echo "Menambahkan platform iOS ke Capacitor..."
+            npx cap add ios
+          fi
+          echo "Menyinkronkan web assets & plugin ke platform iOS..."
+          npx cap sync ios
+          
+          if [ -f "scripts/patch-speech-spm.js" ]; then
+            node scripts/patch-speech-spm.js
+          fi
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Build iOS App (.app) Unsigned
+        run: |
+          cd ios/App
+          rm -rf build
+          
+          if [ -d "App.xcworkspace" ]; then
+            BUILD_TARGET="-workspace App.xcworkspace"
+          else
+            BUILD_TARGET="-project App.xcodeproj"
+          fi
+          
+          echo "Mengkompilasi aplikasi iOS dengan xcodebuild..."
+          xcodebuild clean build \
+            $BUILD_TARGET \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Package .app into .ipa (Payload folder)
+        run: |
+          cd ios/App
+          
+          APP_PATH=$(find build/DerivedData -name "*.app" -type d | head -n 1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: File .app tidak ditemukan di build output!"
+            exit 1
+          fi
+          
+          echo "Ditemukan .app di: $APP_PATH"
+          
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          
+          zip -r -y "app-release.ipa" Payload
+          cp "app-release.ipa" "Cassiel.ipa"
+          
+          mv app-release.ipa ../../
+          mv Cassiel.ipa ../../
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cassiel-iOS-IPA
+          path: |
+            app-release.ipa
+            Cassiel.ipa
+          retention-days: 14

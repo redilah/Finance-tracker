@@ -4,6 +4,8 @@
   "version": "1.0.19",
   "changelog": "New in this update:\n- [New] Grid Kategori 3 Kolom & Optimasi Tampilan Basa Jawa\n- [New] Desain Borderless Changelog & Peningkatan Kestabilan",
   "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.19",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.19",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.19",
   "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.19",
   "sha256": "ecbc90f0e9d4263687888ee9fe649f891233a7bfcce4e6cc5f18d812c646deac",
   "minSdkVersion": 22

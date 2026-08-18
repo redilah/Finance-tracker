@@ -1,4 +1,5 @@
 import { CURRENT_VERSION_NAME } from './version.js';
+import { normalizeAccountName } from './accountLogos.jsx';
 const CURRENT_VERSION = CURRENT_VERSION_NAME;
 import { db } from './firebase.js';
 import { safeStorageGet } from './secureStorage.js';
@@ -147,6 +148,38 @@ export const getInstallDate = () => {
   return installDate;
 };
 
+const ACTIVE_TIME_KEY = 'app_total_active_seconds';
+const SESSION_COUNT_KEY = 'app_total_session_count';
+
+// Track active screen time in app
+let isTrackingActive = false;
+export const startActiveUsageTracking = () => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined' || isTrackingActive) return;
+  isTrackingActive = true;
+
+  // Increment session count on launch
+  try {
+    const currentSessions = parseInt(localStorage.getItem(SESSION_COUNT_KEY) || '0', 10);
+    localStorage.setItem(SESSION_COUNT_KEY, (currentSessions + 1).toString());
+  } catch {}
+
+  // Interval timer tracking active seconds while tab/app is visible
+  let lastActiveTick = Date.now();
+  setInterval(() => {
+    try {
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const diffSec = Math.round((now - lastActiveTick) / 1000);
+        if (diffSec > 0 && diffSec < 15) { // Protect against large jumps from background sleep
+          const currentTotal = parseInt(localStorage.getItem(ACTIVE_TIME_KEY) || '0', 10);
+          localStorage.setItem(ACTIVE_TIME_KEY, (currentTotal + diffSec).toString());
+        }
+      }
+      lastActiveTick = Date.now();
+    } catch {}
+  }, 3000);
+};
+
 // Update current device telemetry to Firebase Firestore (with timeout fallback)
 export const updateCurrentDeviceTelemetry = async () => {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
@@ -160,14 +193,43 @@ export const updateCurrentDeviceTelemetry = async () => {
   let totalTransactions = 0;
   let voiceTxCount = 0;
   let manualTxCount = 0;
+  const expenseCategoryStats = {};
+  const incomeCategoryStats = {};
+  const accountStats = {};
+
   try {
     const tx = safeStorageGet('user_transactions', []);
     if (Array.isArray(tx)) {
       totalTransactions = tx.length;
       voiceTxCount = tx.filter(t => t.inputMethod === 'voice' || t.source === 'voice' || t.isVoice).length;
       manualTxCount = totalTransactions - voiceTxCount;
+
+      tx.forEach(item => {
+        const cat = item.category || 'Umum';
+        const acc = normalizeAccountName(item.account || 'Cash');
+        const type = (item.type || 'expense').toLowerCase();
+
+        if (type === 'income' || type === 'pemasukan') {
+          incomeCategoryStats[cat] = (incomeCategoryStats[cat] || 0) + 1;
+        } else {
+          expenseCategoryStats[cat] = (expenseCategoryStats[cat] || 0) + 1;
+        }
+
+        accountStats[acc] = (accountStats[acc] || 0) + 1;
+      });
     }
   } catch {}
+
+  // Total active seconds in app (strictly real tracked time)
+  let totalActiveSeconds = 0;
+  let sessionCount = 1;
+  try {
+    totalActiveSeconds = parseInt(localStorage.getItem(ACTIVE_TIME_KEY) || '0', 10);
+    sessionCount = parseInt(localStorage.getItem(SESSION_COUNT_KEY) || '1', 10);
+  } catch {
+    totalActiveSeconds = 0;
+    sessionCount = 1;
+  }
 
   const nowIso = new Date().toISOString();
 
@@ -181,6 +243,11 @@ export const updateCurrentDeviceTelemetry = async () => {
     totalTransactions: totalTransactions,
     voiceTxCount: voiceTxCount,
     manualTxCount: manualTxCount,
+    totalActiveSeconds: totalActiveSeconds,
+    sessionCount: sessionCount,
+    expenseCategoryStats: expenseCategoryStats,
+    incomeCategoryStats: incomeCategoryStats,
+    accountStats: accountStats,
     appVersion: CURRENT_VERSION,
     updatedAt: Date.now()
   };

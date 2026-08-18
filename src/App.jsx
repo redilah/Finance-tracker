@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import './App.css';
 import fastFoodSvg from './assets/fast-food.svg';
 import gameSvg from './assets/3d-movie.svg';
@@ -6,6 +6,8 @@ import carSvg from './assets/car.svg';
 import houseSvg from './assets/house_colored.svg';
 import addSvg from './assets/add.svg';
 import diagramSvg from './assets/diagram.svg';
+import akunSvg from './assets/akun.svg';
+import budgetSvg from './assets/budget.svg';
 import barberSvg from './assets/barber.svg';
 import bookSvg from './assets/book.svg';
 import cosmeticsSvg from './assets/cosmetics.svg';
@@ -35,6 +37,7 @@ import jajanAdekSvg from './assets/Jajan adek.svg';
 import partySvg from './assets/Party.svg';
 import buahSvg from './assets/Buah.svg';
 import minumanSvg from './assets/Minuman.svg';
+import fingerprintSvg from './assets/fingerprint.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
 import { checkForAppUpdates } from './utils/version';
@@ -44,11 +47,17 @@ import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 import { getTranslation, getCategoryName, LANGUAGES, FONTS } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
+import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
+import { WORLD_CURRENCIES, getCurrency, formatMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
+import { createBackupData, exportBackup, importBackup, restoreBackupData } from './utils/backup';
+import { hasUserPin, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
+import PinSetupModal from './components/PinSetupModal';
+import PinLockScreen from './components/PinLockScreen';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
 import { checkProhibitedContent } from './utils/safetyGuard';
-import { updateCurrentDeviceTelemetry } from './utils/telemetry';
+import { updateCurrentDeviceTelemetry, startActiveUsageTracking } from './utils/telemetry';
 import { 
   isNotificationEnabled,
   toggleNotificationState,
@@ -59,6 +68,7 @@ import {
   scheduleFeatureIntroNotification,
   scheduleNewCategoryNotification,
   scheduleV18FeatureIntroNotification,
+  buildBudgetNotifText,
   playSound,
   playPopSound 
 } from './utils/notifications';
@@ -203,7 +213,7 @@ const INVESTMENT_INSTRUMENTS = [
   { id: 'obligasi', name: 'Obligasi', rate: 0.065, label: '6.5%' },
 ];
 
-function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (k) => k }) {
+function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (k) => k, appCurrency = 'IDR', liveExchangeRates = null }) {
   const [investmentYear, setInvestmentYear] = useState(5); // 1, 3, 5, 10
   const [selectedInstrument, setSelectedInstrument] = useState(INVESTMENT_INSTRUMENTS[0]); // Big Bank (8%)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -227,7 +237,7 @@ function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (
       {/* Stat Card Ringkas */}
       <div className="andai-hero-card">
         <span className="andai-hero-label">{t('andaiHeroLabel')}</span>
-        <h2 className="andai-hero-amount">Rp {totalConsumptiveAmount.toLocaleString('id-ID')}</h2>
+        <h2 className="andai-hero-amount">{formatMoney(totalConsumptiveAmount, appCurrency, liveExchangeRates)}</h2>
         <span className="andai-hero-sub">{consumptiveTransactions.length} {t('andaiTxDetected')}</span>
       </div>
 
@@ -286,14 +296,14 @@ function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (
       <div className="andai-comparison-card">
         <div className="andai-compare-item current">
           <span className="compare-lbl">{t('andaiIfBought')}</span>
-          <span className="compare-val zero">Rp 0</span>
+          <span className="compare-val zero">{getCurrency(appCurrency).symbol} 0</span>
           <span className="compare-desc">{t('andaiBurnt')}</span>
         </div>
 
         <div className="andai-compare-item future">
           <span className="compare-lbl">{t('andaiIfInvested')} ({investmentYear} {yearUnit})</span>
-          <span className="compare-val grow">Rp {futureValue.toLocaleString('id-ID')}</span>
-          <span className="compare-gain">+Rp {gain.toLocaleString('id-ID')} (+{Math.round((gain / (totalConsumptiveAmount || 1)) * 100)}%)</span>
+          <span className="compare-val grow">{formatMoney(futureValue, appCurrency, liveExchangeRates)}</span>
+          <span className="compare-gain">+{formatMoney(gain, appCurrency, liveExchangeRates)} (+{Math.round((gain / (totalConsumptiveAmount || 1)) * 100)}%)</span>
         </div>
       </div>
 
@@ -303,31 +313,58 @@ function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (
         {consumptiveTransactions.length === 0 ? (
           <div className="empty-clean-text">{t('andaiEmptyClean')}</div>
         ) : (
-          consumptiveTransactions.map(item => (
-            <div className="item-clean-row" key={item.id}>
-              <div className="item-clean-left">
-                <div className="item-clean-icon">
-                  {resolveIcon(item) ? (
-                    <img src={resolveIcon(item)} alt={item.category} />
-                  ) : (
-                    <span>🛍️</span>
-                  )}
+          consumptiveTransactions.map(item => {
+            const catDisplay = getCategoryName(item.category || item.categoryId || item.title, appLanguage);
+            let dynamicSub = item.subtext;
+            const isFood = item.categoryId === 'food' || (item.category || '').toLowerCase() === 'food' || (item.category || '').toLowerCase() === 'makanan';
+            if (isFood) {
+              if (appLanguage === 'jv') {
+                dynamicSub = `Kelangkungan ${formatMoney(item.amount, appCurrency, liveExchangeRates)} saking wates ${getCurrency(appCurrency).symbol} 75.000/dinten`;
+              } else if (appLanguage === 'en') {
+                dynamicSub = `Exceeded ${formatMoney(item.amount, appCurrency, liveExchangeRates)} from limit ${getCurrency(appCurrency).symbol} 75,000/day`;
+              } else if (appLanguage === 'ko') {
+                dynamicSub = `Hando ${getCurrency(appCurrency).symbol} 75.000/il eseo ${formatMoney(item.amount, appCurrency, liveExchangeRates)} chogwahwa`;
+              } else {
+                dynamicSub = `Kelebihan ${formatMoney(item.amount, appCurrency, liveExchangeRates)} dari limit ${getCurrency(appCurrency).symbol} 75.000/hari`;
+              }
+            } else {
+              if (appLanguage === 'jv') {
+                dynamicSub = `Gunggung pangetrapan ${catDisplay.toLowerCase()} konsumtif wulan punika`;
+              } else if (appLanguage === 'en') {
+                dynamicSub = `Total consumptive ${catDisplay.toLowerCase()} expenses this month`;
+              } else if (appLanguage === 'ko') {
+                dynamicSub = `Ibeondal ${catDisplay.toLowerCase()} sobiseong jichul chong-aek`;
+              } else {
+                dynamicSub = `Total pengeluaran ${catDisplay.toLowerCase()} konsumtif bulan ini`;
+              }
+            }
+
+            return (
+              <div className="item-clean-row" key={item.id}>
+                <div className="item-clean-left">
+                  <div className="item-clean-icon">
+                    {resolveIcon(item) ? (
+                      <img src={resolveIcon(item)} alt={catDisplay} />
+                    ) : (
+                      <span>🛍️</span>
+                    )}
+                  </div>
+                  <div className="item-clean-meta">
+                    <span className="item-clean-title">{catDisplay}</span>
+                    <span className="item-clean-sub">{dynamicSub}</span>
+                  </div>
                 </div>
-                <div className="item-clean-meta">
-                  <span className="item-clean-title">{item.title}</span>
-                  <span className="item-clean-sub">{item.subtext || getCategoryName(item.category, appLanguage)}</span>
-                </div>
+                <span className="item-clean-amount">-{formatMoney(item.amount, appCurrency, liveExchangeRates)}</span>
               </div>
-              <span className="item-clean-amount">-Rp {Number(item.amount).toLocaleString('id-ID')}</span>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
+function LossAversionBadge({ transactions, handleOpenAndaiModal, fmtMoney, t }) {
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -341,6 +378,13 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
   const investmentYear = 5;
   const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
   const gain = futureValue - totalConsumptiveAmount;
+
+  const warningLabel = t ? t('lossAversionWarning') : '⚠️ Peringatan Konsumtif';
+  const detailLabel = t ? t('lossAversionDetail') : 'Detail ›';
+  const prefix = t ? t('lossAversionPrefix') : 'Bulan ini Anda';
+  const lostLabel = t ? t('lossAversionLost') : 'kehilangan potensi dana';
+  const suffix = t ? t('lossAversionSuffix') : 'dalam 5 tahun akibat pengeluaran konsumtif.';
+  const formattedGain = fmtMoney ? fmtMoney(gain) : `Rp ${gain.toLocaleString('id-ID')}`;
 
   return (
     <div 
@@ -361,12 +405,12 @@ function LossAversionBadge({ transactions, handleOpenAndaiModal }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: '13px', fontWeight: '600', color: '#cf1322' }}>
-          ⚠️ Peringatan Konsumtif
+          ⚠️ {warningLabel.replace(/^⚠️\s*/, '')}
         </span>
-        <span style={{ fontSize: '12px', color: '#ff4d4f' }}>Detail ›</span>
+        <span style={{ fontSize: '12px', color: '#ff4d4f' }}>{detailLabel}</span>
       </div>
       <span style={{ fontSize: '12px', color: '#5c0011', lineHeight: '1.4' }}>
-        Bulan ini Anda <strong>kehilangan potensi dana Rp {gain.toLocaleString('id-ID')}</strong> dalam 5 tahun akibat pengeluaran konsumtif.
+        {prefix} <strong>{lostLabel} {formattedGain}</strong> {suffix}
       </span>
     </div>
   );
@@ -550,17 +594,177 @@ function App() {
     }
   });
 
+  const [isAccountDeleteMode, setIsAccountDeleteMode] = useState(false);
+  const [deletedAccountsHistory, setDeletedAccountsHistory] = useState([]);
+  const [deletedAccountsList, setDeletedAccountsList] = useState(() => {
+    try {
+      const saved = safeStorageGet('user_deleted_accounts');
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [accountsList, setAccountsList] = useState(() => {
+    const defaultList = DEFAULT_ACCOUNTS.map(a => a.name);
     try {
       const saved = safeStorageGet('user_accounts_list');
-      return saved ? saved : ['Bank', 'Cash', 'E-Wallet'];
+      const deleted = safeStorageGet('user_deleted_accounts') || [];
+      const deletedNorm = Array.isArray(deleted) ? deleted.map(d => (d || '').toLowerCase().trim()) : [];
+      const deprecated = ['bank', 'e-wallet', 'mandiri', 'bni', 'pos indonesia', 'pos', 'pegadaian'];
+
+      if (Array.isArray(saved) && saved.length > 0) {
+        const filtered = saved
+          .filter(acc => {
+            const n = (acc || '').toLowerCase().trim();
+            return !deprecated.includes(n) && !deletedNorm.includes(n);
+          })
+          .map(acc => (acc && acc.toLowerCase().trim() === 'bri') ? 'BRImo' : acc);
+        
+        // Hanya gabungkan akun default baru yang belum ada dan belum pernah dihapus pengguna
+        defaultList.forEach(item => {
+          const itemNorm = item.toLowerCase().trim();
+          if (!filtered.some(a => a.toLowerCase() === item.toLowerCase()) && !deletedNorm.includes(itemNorm) && !deprecated.includes(itemNorm)) {
+            filtered.push(item);
+          }
+        });
+        return filtered.length > 0 ? filtered : ['Cash', 'BRImo'];
+      }
+      return defaultList.filter(item => !deletedNorm.includes(item.toLowerCase().trim()));
     } catch {
-      return ['Bank', 'Cash', 'E-Wallet'];
+      return defaultList;
     }
   });
 
   const [isCustomAccount, setIsCustomAccount] = useState(false);
   const [customAccountInput, setCustomAccountInput] = useState('');
+
+  // Status One-time Discovery Hint "Terakhir" untuk urutan No. 1
+  const [dismissedLastBadge, setDismissedLastBadge] = useState(() => {
+    return safeStorageGet('user_last_badge_dismissed') === 'true' || safeStorageGet('user_last_badge_dismissed') === true;
+  });
+
+  const handleDismissLastBadge = () => {
+    if (!dismissedLastBadge) {
+      setDismissedLastBadge(true);
+      try {
+        safeStorageSet('user_last_badge_dismissed', 'true');
+      } catch {}
+    }
+  };
+
+  // Smart Frequency & Recency Ranking untuk Kategori
+  const sortedExpenseCategories = useMemo(() => {
+    if (!transactions || transactions.length === 0) return expenseCategories;
+    
+    // Hitung frekuensi dan index transaksi terakhir untuk pengeluaran
+    const catFreq = {};
+    const catLastIdx = {};
+    transactions.forEach((tx, idx) => {
+      if (tx.type === 'Expense' || !tx.type) {
+        const catKey = (tx.categoryId || tx.category || '').toLowerCase().trim();
+        if (catKey) {
+          catFreq[catKey] = (catFreq[catKey] || 0) + 1;
+          if (catLastIdx[catKey] === undefined) {
+            catLastIdx[catKey] = idx; // Semakin kecil index, semakin baru transaksinya
+          }
+        }
+      }
+    });
+
+    const getScore = (cat) => {
+      const idKey = (cat.id || '').toLowerCase().trim();
+      const nameKey = (cat.name || '').toLowerCase().trim();
+      const freq = catFreq[idKey] || catFreq[nameKey] || 0;
+      const lastIdx = catLastIdx[idKey] !== undefined ? catLastIdx[idKey] : (catLastIdx[nameKey] !== undefined ? catLastIdx[nameKey] : 999999);
+      return { freq, lastIdx };
+    };
+
+    return [...expenseCategories].sort((a, b) => {
+      const scoreA = getScore(a);
+      const scoreB = getScore(b);
+      // 1. Prioritaskan frekuensi pemakaian terbanyak
+      if (scoreB.freq !== scoreA.freq) {
+        return scoreB.freq - scoreA.freq;
+      }
+      // 2. Jika frekuensi sama dan > 0, prioritaskan yang terakhir dipakai
+      if (scoreA.freq > 0 && scoreA.lastIdx !== scoreB.lastIdx) {
+        return scoreA.lastIdx - scoreB.lastIdx;
+      }
+      return 0;
+    });
+  }, [expenseCategories, transactions]);
+
+  const sortedIncomeCategories = useMemo(() => {
+    if (!transactions || transactions.length === 0) return incomeCategories;
+
+    const catFreq = {};
+    const catLastIdx = {};
+    transactions.forEach((tx, idx) => {
+      if (tx.type === 'Income') {
+        const catKey = (tx.categoryId || tx.category || '').toLowerCase().trim();
+        if (catKey) {
+          catFreq[catKey] = (catFreq[catKey] || 0) + 1;
+          if (catLastIdx[catKey] === undefined) {
+            catLastIdx[catKey] = idx;
+          }
+        }
+      }
+    });
+
+    const getScore = (cat) => {
+      const idKey = (cat.id || '').toLowerCase().trim();
+      const nameKey = (cat.name || '').toLowerCase().trim();
+      const freq = catFreq[idKey] || catFreq[nameKey] || 0;
+      const lastIdx = catLastIdx[idKey] !== undefined ? catLastIdx[idKey] : (catLastIdx[nameKey] !== undefined ? catLastIdx[nameKey] : 999999);
+      return { freq, lastIdx };
+    };
+
+    return [...incomeCategories].sort((a, b) => {
+      const scoreA = getScore(a);
+      const scoreB = getScore(b);
+      if (scoreB.freq !== scoreA.freq) {
+        return scoreB.freq - scoreA.freq;
+      }
+      if (scoreA.freq > 0 && scoreA.lastIdx !== scoreB.lastIdx) {
+        return scoreA.lastIdx - scoreB.lastIdx;
+      }
+      return 0;
+    });
+  }, [incomeCategories, transactions]);
+
+  // Smart Frequency & Recency Ranking untuk Akun
+  const sortedAccountsList = useMemo(() => {
+    if (!transactions || transactions.length === 0) return accountsList;
+
+    const accFreq = {};
+    const accLastIdx = {};
+    transactions.forEach((tx, idx) => {
+      const accKey = (tx.account || '').toLowerCase().trim();
+      if (accKey) {
+        accFreq[accKey] = (accFreq[accKey] || 0) + 1;
+        if (accLastIdx[accKey] === undefined) {
+          accLastIdx[accKey] = idx;
+        }
+      }
+    });
+
+    return [...accountsList].sort((a, b) => {
+      const keyA = (a || '').toLowerCase().trim();
+      const keyB = (b || '').toLowerCase().trim();
+      const freqA = accFreq[keyA] || 0;
+      const freqB = accFreq[keyB] || 0;
+      if (freqB !== freqA) {
+        return freqB - freqA;
+      }
+      if (freqA > 0) {
+        const lastA = accLastIdx[keyA] !== undefined ? accLastIdx[keyA] : 999999;
+        const lastB = accLastIdx[keyB] !== undefined ? accLastIdx[keyB] : 999999;
+        if (lastA !== lastB) return lastA - lastB;
+      }
+      return 0;
+    });
+  }, [accountsList, transactions]);
 
   // Profile State & Persistence
   const isFirstTimeUser = !safeStorageGet('user_profile_setup_done');
@@ -582,6 +786,38 @@ function App() {
   const [activeBudgetCategory, setActiveBudgetCategory] = useState(null);
   const [budgetModalInputValue, setBudgetModalInputValue] = useState('');
   const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
+
+  const [accountsSubTab, setAccountsSubTab] = useState('expense'); // 'expense' | 'income'
+  const accountTouchStartXRef = useRef(null);
+  const accountTouchStartYRef = useRef(null);
+
+  const handleAccountTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      accountTouchStartXRef.current = e.touches[0].clientX;
+      accountTouchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleAccountTouchEnd = (e) => {
+    if (accountTouchStartXRef.current === null) return;
+    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+    const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    const diffX = accountTouchStartXRef.current - endX;
+    const diffY = accountTouchStartYRef.current - endY;
+
+    // Geser horizontal (minimal 45px, dan lebih dominan dibanding geser vertikal)
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY)) {
+      if (diffX > 0 && accountsSubTab === 'expense') {
+        // Geser ke kiri -> ke Income
+        setAccountsSubTab('income');
+      } else if (diffX < 0 && accountsSubTab === 'income') {
+        // Geser ke kanan -> ke Expense
+        setAccountsSubTab('expense');
+      }
+    }
+    accountTouchStartXRef.current = null;
+    accountTouchStartYRef.current = null;
+  };
 
   const handleOpenBudgetCap = () => {
     if (!hasVisitedBudgetCap) {
@@ -609,14 +845,65 @@ function App() {
     return savedLang || 'id';
   });
   const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'jv');
+  const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
   const [isFontModalOpen, setIsFontModalOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  
+  // Currency State
+  const [appCurrency, setAppCurrency] = useState(() => safeStorageGet('user_app_currency') || 'IDR');
+  const [tempCurrency, setTempCurrency] = useState(() => safeStorageGet('user_app_currency') || 'IDR');
+  const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState('');
+  const [liveExchangeRates, setLiveExchangeRates] = useState(null);
+
+  useEffect(() => {
+    fetchExchangeRates().then(rates => {
+      if (rates) setLiveExchangeRates(rates);
+    });
+  }, []);
+
+  const handleOpenCurrencyModal = () => {
+    setTempCurrency(appCurrency);
+    setCurrencySearch('');
+    setIsCurrencyModalOpen(true);
+  };
+
+  const handleSelectCurrency = (curCode) => {
+    setAppCurrency(curCode);
+    safeStorageSet('user_app_currency', curCode);
+  };
+
+  const filteredCurrencies = useMemo(() => {
+    if (!currencySearch.trim()) return WORLD_CURRENCIES;
+    const q = currencySearch.toLowerCase().trim();
+    return WORLD_CURRENCIES.filter(c => 
+      c.code.toLowerCase().includes(q) ||
+      (c.displayName && c.displayName.toLowerCase().includes(q)) ||
+      (c.country && c.country.toLowerCase().includes(q)) ||
+      (c.symbol && c.symbol.toLowerCase().includes(q))
+    );
+  }, [currencySearch]);
+
+  const fmtMoney = useCallback((amount, includeSymbol = true) => {
+    return formatMoney(amount, appCurrency, liveExchangeRates, includeSymbol);
+  }, [appCurrency, liveExchangeRates]);
 
   // Feedback for Developer State
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Saran Fitur');
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  // Backup & Restore State
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isBackupProcessing, setIsBackupProcessing] = useState(false);
+  const [backupRestoreConfirm, setBackupRestoreConfirm] = useState(null); // holds pending restore data
+
+  // Security / PIN / Biometric State
+  const [userHasPin, setUserHasPin] = useState(() => hasUserPin());
+  const [isBiometricActive, setIsBiometricActive] = useState(() => isBiometricEnabled());
+  const [isPinSetupModalOpen, setIsPinSetupModalOpen] = useState(false);
+  const [isAppLocked, setIsAppLocked] = useState(() => hasUserPin());
 
   // Translation helper
   const t = useCallback((key) => getTranslation(appLanguage, key), [appLanguage]);
@@ -648,6 +935,99 @@ function App() {
   const handleSelectLanguage = (langCode) => {
     setAppLanguage(langCode);
     safeStorageSet('user_app_lang', langCode);
+  };
+
+  // === Backup & Restore Handlers ===
+  const handleExportBackup = async () => {
+    if (isBackupProcessing) return;
+    setIsBackupProcessing(true);
+    try {
+      const backupObj = createBackupData({
+        transactions,
+        expenseCategories,
+        incomeCategories,
+        accountsList,
+        deletedAccountsList,
+        profileName,
+        profileImage,
+        appFont,
+        appLanguage,
+        appCurrency,
+      });
+      const result = await exportBackup(backupObj, profileName);
+      if (result.success) {
+        safeStorageSet('user_last_backup_time', new Date().toISOString());
+        showVoiceToast(t('backupSuccess'));
+      } else if (result.cancelled) {
+        showVoiceToast(t('backupCancelled'));
+      } else {
+        showVoiceToast(t('backupFailed'));
+      }
+    } catch (err) {
+      console.error('[Backup] Export error:', err);
+      showVoiceToast(t('backupFailed'));
+    } finally {
+      setIsBackupProcessing(false);
+    }
+  };
+
+  const handleImportBackup = async () => {
+    if (isBackupProcessing) return;
+    setIsBackupProcessing(true);
+    try {
+      const result = await importBackup();
+      if (!result) {
+        // User cancelled file picker
+        setIsBackupProcessing(false);
+        return;
+      }
+      if (result.error) {
+        const msgMap = {
+          invalid_format: t('restoreInvalidFile'),
+          parse_error: t('restoreParseError'),
+          read_error: t('restoreReadError'),
+        };
+        showVoiceToast(msgMap[result.error] || t('restoreFailed'));
+        setIsBackupProcessing(false);
+        return;
+      }
+      if (result.success && result.backup) {
+        // Show confirmation before restoring
+        setBackupRestoreConfirm(result.backup);
+      }
+    } catch (err) {
+      console.error('[Backup] Import error:', err);
+      showVoiceToast(t('restoreFailed'));
+    } finally {
+      setIsBackupProcessing(false);
+    }
+  };
+
+  const handleConfirmRestore = () => {
+    if (!backupRestoreConfirm) return;
+    const backupData = backupRestoreConfirm.data;
+    const result = restoreBackupData(backupData, {
+      setTransactions,
+      setExpenseCategories,
+      setIncomeCategories,
+      setAccountsList,
+      setDeletedAccountsList,
+      setProfileName,
+      setProfileImage,
+      setAppFont,
+      setAppLanguage,
+      setAppCurrency,
+    });
+    setBackupRestoreConfirm(null);
+    if (result.success) {
+      showVoiceToast(t('restoreSuccess'));
+      // Reload app after short delay to apply all restored state cleanly
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      showVoiceToast(t('restoreFailed'));
+    }
   };
 
   // Voice-Command Deletion & Feedback Toast State
@@ -726,13 +1106,20 @@ function App() {
   // Hide HTML splash screen immediately on app load once React is ready
   React.useEffect(() => {
     const splash = document.getElementById('app-splash-screen');
-    if (splash && splash.parentNode) {
-      splash.parentNode.removeChild(splash);
+    if (splash) {
+      splash.classList.add('splash-exit');
+      const timer = setTimeout(() => {
+        if (splash && splash.parentNode) {
+          splash.parentNode.removeChild(splash);
+        }
+      }, 400);
+      return () => clearTimeout(timer);
     }
   }, []);
 
   // Track & update device telemetry on launch / profile change
   React.useEffect(() => {
+    startActiveUsageTracking();
     updateCurrentDeviceTelemetry();
   }, [profileName, transactions]);
 
@@ -767,17 +1154,17 @@ function App() {
 
   // Schedule 1-day feature intro notification on Android native (08:00 & 18:00)
   React.useEffect(() => {
-    scheduleFeatureIntroNotification(profileName);
-    scheduleNewCategoryNotification(profileName);
-    scheduleV18FeatureIntroNotification(profileName);
-  }, [profileName]);
+    scheduleFeatureIntroNotification(profileName, appLanguage);
+    scheduleNewCategoryNotification(profileName, appLanguage);
+    scheduleV18FeatureIntroNotification(profileName, appLanguage);
+  }, [profileName, appLanguage]);
 
-  // Schedule / sync notifications when profile name, transactions, or expenseCategories update
+  // Schedule / sync notifications when profile name, transactions, expenseCategories, or language update
   React.useEffect(() => {
     if (isNotifActive) {
-      schedulePersonalizedNotifications(profileName, transactions, expenseCategories);
+      schedulePersonalizedNotifications(profileName, transactions, expenseCategories, appLanguage);
     }
-  }, [isNotifActive, profileName, transactions, expenseCategories]);
+  }, [isNotifActive, profileName, transactions, expenseCategories, appLanguage]);
 
   React.useEffect(() => {
     let active = true;
@@ -797,7 +1184,7 @@ function App() {
             console.log('[App] Update terdeteksi:', info);
             setUpdateInfo(info);
             // Picu notifikasi tray sistem Android / Web
-            sendUpdateReminderNotification(info);
+            sendUpdateReminderNotification(info, appLanguage);
           }
         })
         .catch(err => {
@@ -989,6 +1376,13 @@ function App() {
     } else {
       localStorage.removeItem('user_profile_image');
     }
+
+    // Save selected language on onboarding
+    if (tempLanguage) {
+      setAppLanguage(tempLanguage);
+      safeStorageSet('user_app_lang', tempLanguage);
+    }
+
     safeStorageSet('user_profile_setup_done', 'true');
 
     // Auto activate notifications on profile save ONLY for initial onboarding setup
@@ -997,10 +1391,10 @@ function App() {
         const nextState = await toggleNotificationState(false);
         setIsNotifActive(nextState);
         if (nextState) {
-          sendInstantNotification(finalName, transactions);
+          sendInstantNotification(finalName, transactions, tempLanguage || appLanguage);
         }
       } else {
-        sendInstantNotification(finalName, transactions);
+        sendInstantNotification(finalName, transactions, tempLanguage || appLanguage);
       }
     }
 
@@ -1043,7 +1437,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]);
   const [isCustomCat, setIsCustomCat] = useState(false);
   const [customCatInput, setCustomCatInput] = useState('');
-  const [account, setAccount] = useState('Bank'); // 'Bank' | 'Cash' | 'QRIS'
+  const [account, setAccount] = useState('BRImo'); // 'BRImo' | 'BCA' | 'Cash' | etc.
   const [note, setNote] = useState('');
   const [activePanel, setActivePanel] = useState('amount'); // 'amount' | 'category' | 'account' | 'note'
   
@@ -1085,7 +1479,7 @@ function App() {
     setSelectedCategory(expenseCategories[0]);
     setIsCustomCat(false);
     setCustomCatInput('');
-    setAccount('Bank');
+    setAccount('BRImo');
     setNote('');
     setActivePanel('amount');
     setIsAddModalOpen(true);
@@ -1129,8 +1523,16 @@ function App() {
     setIsFontModalOpen,
     isLangModalOpen,
     setIsLangModalOpen,
+    isCurrencyModalOpen,
+    setIsCurrencyModalOpen,
     isFeedbackModalOpen,
     setIsFeedbackModalOpen,
+    isBackupModalOpen,
+    setIsBackupModalOpen,
+    backupRestoreConfirm,
+    setBackupRestoreConfirm,
+    isPinSetupModalOpen,
+    setIsPinSetupModalOpen,
     isAddModalOpen,
     setIsAddModalOpen,
     isProfileModalOpen,
@@ -1156,8 +1558,16 @@ function App() {
     }
 
     // 0.1 Sub-Modals di Profile
+    if (s.isPinSetupModalOpen) {
+      s.setIsPinSetupModalOpen(false);
+      return;
+    }
     if (s.isFeedbackModalOpen) {
       s.setIsFeedbackModalOpen(false);
+      return;
+    }
+    if (s.isCurrencyModalOpen) {
+      s.setIsCurrencyModalOpen(false);
       return;
     }
     if (s.isFontModalOpen) {
@@ -1166,6 +1576,14 @@ function App() {
     }
     if (s.isLangModalOpen) {
       s.setIsLangModalOpen(false);
+      return;
+    }
+    if (s.backupRestoreConfirm) {
+      s.setBackupRestoreConfirm(null);
+      return;
+    }
+    if (s.isBackupModalOpen) {
+      s.setIsBackupModalOpen(false);
       return;
     }
 
@@ -1308,8 +1726,51 @@ function App() {
     setIsCustomAccount(false);
   };
 
+  // Handle Delete Account (Removes from list & stores in persistent blacklist)
+  const handleDeleteAccount = (accToDelete, e) => {
+    if (e) e.stopPropagation();
+    playPopSound('bubble_pop_2.wav');
+
+    setAccountsList(prev => prev.filter(a => a !== accToDelete));
+    setDeletedAccountsList(prev => {
+      const updated = [...prev.filter(a => a !== accToDelete), accToDelete];
+      try {
+        safeStorageSet('user_deleted_accounts', updated);
+      } catch {}
+      return updated;
+    });
+    setDeletedAccountsHistory(prev => [...prev, accToDelete]);
+
+    if (account === accToDelete) {
+      const remaining = accountsList.filter(a => a !== accToDelete);
+      setAccount(remaining.length > 0 ? remaining[0] : 'Cash');
+    }
+  };
+
+  // Handle Undo Delete Account (Restores last deleted account)
+  const handleUndoDeleteAccount = () => {
+    if (deletedAccountsHistory.length === 0) return;
+
+    const restoredAcc = deletedAccountsHistory[deletedAccountsHistory.length - 1];
+    setDeletedAccountsHistory(prev => prev.slice(0, prev.length - 1));
+    setDeletedAccountsList(prev => {
+      const updated = prev.filter(a => a !== restoredAcc);
+      try {
+        safeStorageSet('user_deleted_accounts', updated);
+      } catch {}
+      return updated;
+    });
+    setAccountsList(prev => {
+      if (!prev.includes(restoredAcc)) {
+        return [...prev, restoredAcc];
+      }
+      return prev;
+    });
+  };
+
   // Handle Category Select (Auto advance to Account)
   const handleSelectCategory = (cat) => {
+    handleDismissLastBadge();
     setIsCustomCat(false);
     setSelectedCategory(cat);
     setActivePanel('account');
@@ -1317,6 +1778,7 @@ function App() {
 
   // Handle Account Select (Auto advance to Note & focus text keyboard)
   const handleSelectAccount = (acc) => {
+    handleDismissLastBadge();
     setAccount(acc);
     setActivePanel('note');
     setTimeout(() => {
@@ -1356,14 +1818,22 @@ function App() {
       minuman: ['minuman', 'es buah', 'es campur', 'es teler', 'coca cola', 'sprite', 'fanta', 'jus', 'susu', 'teh', 'boba', 'cendol', 'dawet', 'minuman segar', 'minuman dingin']
     };
 
-    let list = expenseCategories;
-    const q = budgetSearchQuery.toLowerCase().trim();
+    const q = (budgetSearchQuery || '').toLowerCase().trim();
+    let list = [...(expenseCategories || [])];
+
+    // Hitung frekuensi penggunaan kategori pengeluaran dalam transaksi user
+    const catFreqMap = {};
+    (transactions || []).forEach(t => {
+      if (t.type === 'expense' && t.category) {
+        catFreqMap[t.category] = (catFreqMap[t.category] || 0) + 1;
+      }
+    });
 
     if (q) {
-      list = expenseCategories
+      list = list
         .map(cat => {
-          const nameLower = cat.name.toLowerCase();
-          const idLower = cat.id.toLowerCase();
+          const nameLower = (cat.name || '').toLowerCase();
+          const idLower = (cat.id || '').toLowerCase();
           const keywords = (searchKeywords[cat.id] || []).map(k => k.toLowerCase());
 
           let score = 0;
@@ -1380,6 +1850,44 @@ function App() {
         .filter(item => item.score > 0)
         .sort((a, b) => b.score - a.score)
         .map(item => item.cat);
+    } else {
+      // Dynamic Smart Ranking:
+      // 1. Kategori yang sering dipakai transaksi TAPI belum diatur budget-nya (paling atas, urut freq)
+      // 2. Kategori yang sudah ada transaksi dan sudah diatur budget-nya (urut freq)
+      // 3. Kategori yang belum pernah dipakai transaksi
+      list.sort((a, b) => {
+        const countA = catFreqMap[a.name] || 0;
+        const countB = catFreqMap[b.name] || 0;
+        const isUnsetA = !a.monthlyLimit || a.monthlyLimit <= 0;
+        const isUnsetB = !b.monthlyLimit || b.monthlyLimit <= 0;
+
+        // Grup 1: Belum diatur & pernah ada transaksi
+        const isGroup1A = isUnsetA && countA > 0;
+        const isGroup1B = isUnsetB && countB > 0;
+
+        if (isGroup1A && !isGroup1B) return -1;
+        if (!isGroup1A && isGroup1B) return 1;
+        if (isGroup1A && isGroup1B) {
+          if (countB !== countA) return countB - countA;
+          return (a.name || '').localeCompare(b.name || '');
+        }
+
+        // Grup 2: Sudah diatur & pernah ada transaksi
+        const isGroup2A = !isUnsetA && countA > 0;
+        const isGroup2B = !isUnsetB && countB > 0;
+
+        if (isGroup2A && !isGroup2B) return -1;
+        if (!isGroup2A && isGroup2B) return 1;
+        if (isGroup2A && isGroup2B) {
+          if (countB !== countA) return countB - countA;
+          return (a.name || '').localeCompare(b.name || '');
+        }
+
+        // Grup 3: Kategori yang belum pernah ada transaksi sama sekali
+        if (isUnsetA && !isUnsetB) return -1;
+        if (!isUnsetA && isUnsetB) return 1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
     }
 
     if (budgetFilterTab === 'active') {
@@ -1460,15 +1968,7 @@ function App() {
       safeStorageSet(storageKey, notifState);
       
       const highestNewTh = Math.max(...newThresholds);
-      const formatIdr = (num) => new Intl.NumberFormat('id-ID').format(num);
-      
-      let title = `⚠️ Peringatan Budget: ${cat.name}`;
-      let body = `Pengeluaran ${cat.name} kamu sudah mencapai ${highestNewTh}% dari limit Rp ${formatIdr(limit)}!`;
-      
-      if (highestNewTh >= 100) {
-        title = `🚨 Budget Habis: ${cat.name}`;
-        body = `Pengeluaran ${cat.name} kamu sudah mencapai 100% dari limit Rp ${formatIdr(limit)}!`;
-      }
+      const { title, body } = buildBudgetNotifText(cat.name, highestNewTh, limit, appLanguage);
       
       sendInstantBudgetNotification(title, body);
     }
@@ -1874,8 +2374,8 @@ function App() {
   return (
     <div className="app-container">
       {/* Active Tab View Rendering */}
-      {activeTab === 'home' ? (
-        <>
+      {activeTab === 'home' && (
+        <div className="tab-page-transition">
           {/* Top Bar (Home) */}
           <header className="top-bar">
             <div className="month-navigator">
@@ -1909,7 +2409,7 @@ function App() {
             >
               <div className="greeting">
                 <span className="greeting-text">
-                  Good Day,
+                  {t('greeting')}
                 </span>
                 <span className="profile-name">{profileName || 'No Name'}</span>
               </div>
@@ -1928,21 +2428,21 @@ function App() {
             <div className="balance-card expenses-card">
               <span className="card-label">{t('expenses')}</span>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? `Rp ${totalExpenses.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="amount">{isCurrentMonth ? fmtMoney(totalExpenses) : fmtMoney(0)}</span>
                 <span className="icon-down">▼</span>
               </div>
             </div>
             <div className="balance-card income-card">
               <span className="card-label">{t('income')}</span>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? `Rp ${totalIncome.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="amount">{isCurrentMonth ? fmtMoney(totalIncome) : fmtMoney(0)}</span>
                 <span className="icon-up">▲</span>
               </div>
             </div>
             <div className="balance-card total-card">
               <span className="card-label">{t('total')}</span>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? `Rp ${totalBalance.toLocaleString('id-ID')}` : 'Rp 0'}</span>
+                <span className="amount">{isCurrentMonth ? fmtMoney(totalBalance) : fmtMoney(0)}</span>
                 <span className="icon-total font-bold">💰</span>
               </div>
             </div>
@@ -1952,12 +2452,15 @@ function App() {
             <LossAversionBadge 
               transactions={transactions} 
               handleOpenAndaiModal={handleOpenAndaiModal} 
+              fmtMoney={fmtMoney}
+              t={t}
             />
           )}
 
           {/* Home Transaction Filter Tabs (Income / Expense) */}
           {isCurrentMonth && transactions.length > 0 && (
             <div className="home-tx-filter-bar">
+              <div className={`home-tx-filter-indicator ${homeTxFilter === 'expense' ? 'to-expense' : 'to-income'}`} />
               <button
                 type="button"
                 className={`home-tx-filter-btn ${homeTxFilter === 'income' ? 'active income-active' : ''}`}
@@ -1976,7 +2479,7 @@ function App() {
           )}
 
           {/* Transactions List Grouped by Date */}
-          <section className="transactions-container">
+          <section className="transactions-container transactions-container-animated" key={homeTxFilter}>
             {isCurrentMonth ? (
               (() => {
                 const displayedHomeTransactions = transactions.filter(tx => {
@@ -2001,7 +2504,7 @@ function App() {
                   );
                 }
 
-                // Group transactions by YYYY-MM-DD
+                // Group transactions by date
                 const groupedMap = {};
                 displayedHomeTransactions.forEach(tx => {
                   const txDate = tx.date || '2026-08-09';
@@ -2039,8 +2542,8 @@ function App() {
                           <span className="date-month-year">{monthStr}.{yearStr}</span>
                         </div>
                         <div className="date-group-right">
-                          <span className="day-income-amount">Rp {dayIncome.toLocaleString('id-ID')}</span>
-                          <span className="day-expense-amount">Rp {dayExpense.toLocaleString('id-ID')}</span>
+                          <span className="day-income-amount">{fmtMoney(dayIncome)}</span>
+                          <span className="day-expense-amount">{fmtMoney(dayExpense)}</span>
                         </div>
                       </div>
 
@@ -2066,10 +2569,10 @@ function App() {
                               </div>
                               <div className="transaction-details">
                                 <span className="transaction-title">{item.title}</span>
-                                <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'Bank'}</span>
+                                <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'BRImo'}</span>
                               </div>
                               <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                {item.type === 'expense' ? '-' : '+'}Rp {item.amount.toLocaleString('id-ID')}
+                                {item.type === 'expense' ? '-' : '+'}{fmtMoney(item.amount)}
                               </div>
                             </div>
                           );
@@ -2087,10 +2590,163 @@ function App() {
               </div>
             )}
           </section>
-        </>
-      ) : (
-        /* Stats / Diagram View (Detailed Pie Chart matching reference) */
-        <div className="stats-page-container">
+        </div>
+      )}
+
+      {/* Account View (Swipeable Expense / Income Breakdown by Account) */}
+      {activeTab === 'accounts' && (
+        <div 
+          className="accounts-page-container tab-page-transition"
+          onTouchStart={handleAccountTouchStart}
+          onTouchEnd={handleAccountTouchEnd}
+        >
+          {/* Header Row: Date Navigator (left) & Period Dropdown (right) */}
+          <header className="stats-header-bar">
+            <div className="stats-date-nav">
+              <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Period">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <span className="month-text">
+                {periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : formatMonthYear(currentDate)}
+              </span>
+              <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Period">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="stats-dropdown-wrapper" ref={dropdownRef}>
+              <button
+                type="button"
+                className="stats-period-btn"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <span>{periodFilter === 'monthly' ? 'Monthly' : periodFilter === 'weekly' ? 'Weekly' : 'Yearly'}</span>
+                <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </span>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="custom-dropdown-menu">
+                  {[
+                    { id: 'monthly', label: 'Monthly' },
+                    { id: 'weekly', label: 'Weekly' },
+                    { id: 'yearly', label: 'Yearly' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`custom-dropdown-item ${periodFilter === opt.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setPeriodFilter(opt.id);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                      {periodFilter === opt.id && <span className="check-mark">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </header>
+
+          {/* Accounts Summary Hero Card with Dots Indicator */}
+          {(() => {
+            const currentTypeTxs = filteredTransactions.filter(t => t.type === accountsSubTab);
+            const totalSum = currentTypeTxs.reduce((sum, t) => sum + t.amount, 0);
+            const isExpense = accountsSubTab === 'expense';
+
+            return (
+              <div className="accounts-summary-hero">
+                <span className="accounts-hero-sub">
+                  {isExpense ? t('expenses') : t('income')}
+                </span>
+                <h1 className={`accounts-hero-total ${isExpense ? 'expense-color' : 'income-color'}`}>
+                  {isExpense ? '' : '+'}{fmtMoney(totalSum)}
+                </h1>
+
+                {/* Pagination indicator dots (Non-clickable visual marker) */}
+                <div className="account-swipe-dots" aria-hidden="true">
+                  <span className={`account-dot ${isExpense ? 'active' : ''}`} />
+                  <span className={`account-dot ${!isExpense ? 'active' : ''}`} />
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Accounts Breakdown List */}
+          <div className="accounts-breakdown-list">
+            {(() => {
+              const currentTypeTxs = filteredTransactions.filter(t => t.type === accountsSubTab);
+              const isExpense = accountsSubTab === 'expense';
+              const accMap = {};
+
+              currentTypeTxs.forEach(t => {
+                const accName = t.account || 'Cash';
+                if (!accMap[accName]) {
+                  accMap[accName] = {
+                    name: accName,
+                    amount: 0,
+                    count: 0,
+                    transactions: []
+                  };
+                }
+                accMap[accName].amount += t.amount;
+                accMap[accName].count += 1;
+                accMap[accName].transactions.push(t);
+              });
+
+              const activeAccounts = Object.values(accMap).sort((a, b) => b.amount - a.amount);
+              const totalAmount = currentTypeTxs.reduce((sum, t) => sum + t.amount, 0);
+
+              if (activeAccounts.length === 0) {
+                return (
+                  <div className="empty-transactions" style={{ marginTop: '20px' }}>
+                    <span className="empty-icon">💳</span>
+                    <span className="empty-title">{t('noTransactions')}</span>
+                    <span className="empty-subtitle">
+                      {isExpense ? t('noExpenseDesc') : t('noIncomeDesc')}
+                    </span>
+                  </div>
+                );
+              }
+
+              return activeAccounts.map((item, idx) => {
+                const percentage = totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0;
+                return (
+                  <div key={idx} className="account-card-item">
+                    <div className="account-card-left">
+                      <div className="account-card-badge-wrap">
+                        <AccountIconBadge accountName={item.name} size={32} />
+                      </div>
+                      <div className="account-card-info">
+                        <span className="account-card-name">{item.name}</span>
+                        <span className="account-card-count">{item.count} transaksi • {percentage}%</span>
+                      </div>
+                    </div>
+                    <div className="account-card-right">
+                      <span className={`account-card-amount ${isExpense ? 'expense-color' : 'income-color'}`}>
+                        {isExpense ? '-' : '+'}{fmtMoney(item.amount)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Stats / Diagram View */}
+      {activeTab === 'stats' && (
+        <div className="stats-page-container tab-page-transition">
           {/* Header Row: Date Navigator (left) & Period Dropdown (right) */}
           <header className="stats-header-bar">
             <div className="stats-date-nav">
@@ -2155,9 +2811,9 @@ function App() {
               className={`stats-type-tab income ${statsType === 'income' ? 'active' : ''}`}
               onClick={() => setStatsType('income')}
             >
-              <span>Income</span>
+              <span>{t('income')}</span>
               <span className="stats-total-amount">
-                Rp {filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+                {fmtMoney(filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0))}
               </span>
             </button>
             <button
@@ -2165,9 +2821,9 @@ function App() {
               className={`stats-type-tab expense ${statsType === 'expense' ? 'active' : ''}`}
               onClick={() => setStatsType('expense')}
             >
-              <span>Expenses</span>
+              <span>{t('expenses')}</span>
               <span className="stats-total-amount">
-                Rp {filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0).toLocaleString('id-ID')}
+                {fmtMoney(filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0))}
               </span>
             </button>
           </div>
@@ -2273,11 +2929,137 @@ function App() {
                     </div>
                   </div>
                   <div className="stats-item-right">
-                    <span className="stats-cat-amount">Rp {cat.amount.toLocaleString('id-ID')}</span>
+                    <span className="stats-cat-amount">{fmtMoney(cat.amount)}</span>
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Budget Cap View (Bottom Nav Tab) */}
+      {activeTab === 'budget' && (
+        <div className="budget-page-container tab-page-transition">
+          {/* Header Row */}
+          <header className="stats-header-bar budget-header-bar" style={{ padding: '4px 0 8px 0', display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', textAlign: 'center', width: '100%' }}>
+              Ayo atur budget {profileName || 'No Name'}
+            </h2>
+          </header>
+
+          {/* Search Bar */}
+          <div className="budget-search-section">
+            <div className="budget-search-wrapper">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input 
+                type="text" 
+                className="budget-search-input"
+                placeholder="Cari kategori (kopi, bensin, belanja)..."
+                value={budgetSearchQuery}
+                onChange={(e) => setBudgetSearchQuery(e.target.value)}
+              />
+              {budgetSearchQuery && (
+                <button 
+                  type="button" 
+                  className="budget-search-clear"
+                  onClick={() => setBudgetSearchQuery('')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          {(() => {
+            const countAll = expenseCategories.length;
+            const countActive = expenseCategories.filter(c => typeof c.monthlyLimit === 'number' && c.monthlyLimit > 0).length;
+            const countUnset = countAll - countActive;
+
+            return (
+              <div className="budget-filter-tabs">
+                <button 
+                  type="button" 
+                  className={`budget-tab-btn ${budgetFilterTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setBudgetFilterTab('all')}
+                >
+                  Semua ({countAll})
+                </button>
+                <button 
+                  type="button" 
+                  className={`budget-tab-btn ${budgetFilterTab === 'active' ? 'active' : ''}`}
+                  onClick={() => setBudgetFilterTab('active')}
+                >
+                  Aktif ({countActive})
+                </button>
+                <button 
+                  type="button" 
+                  className={`budget-tab-btn ${budgetFilterTab === 'unset' ? 'active' : ''}`}
+                  onClick={() => setBudgetFilterTab('unset')}
+                >
+                  Belum Diatur ({countUnset})
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* Category List */}
+          <div className="budget-list-container">
+            {(() => {
+              const filtered = getFilteredBudgetCategories();
+              if (filtered.length === 0) {
+                return (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 500 }}>
+                      {budgetSearchQuery ? `Kategori "${budgetSearchQuery}" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}
+                    </p>
+                  </div>
+                );
+              }
+
+              return filtered.map(cat => {
+                const iconPath = resolveIcon(cat);
+                const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
+
+                return (
+                  <div 
+                    key={cat.id} 
+                    className="budget-item-card"
+                    onClick={() => handleOpenCategoryBudgetModal(cat)}
+                  >
+                    <div className={`budget-item-icon-box ${cat.iconClass}`}>
+                      <img src={iconPath} alt={cat.name} />
+                    </div>
+
+                    <div className="budget-item-info">
+                      <span className="budget-item-name">{getCategoryName(cat.name, appLanguage)}</span>
+                      <span className="budget-item-sub">
+                        {hasLimit ? 'Batas aktif' : 'Tanpa batas'}
+                      </span>
+                    </div>
+
+                    <div className="budget-item-status-wrapper">
+                      {hasLimit ? (
+                        <span className="budget-status-badge active">
+                          {fmtMoney(cat.monthlyLimit)}
+                        </span>
+                      ) : (
+                        <span className="budget-status-badge unset">
+                          Belum diatur
+                        </span>
+                      )}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-item-chevron">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       )}
@@ -2313,16 +3095,29 @@ function App() {
         </svg>
 
         <div className="nav-items-container">
-          <button
-            type="button"
-            className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
-            onClick={() => setActiveTab('home')}
-            aria-label="Home"
-          >
-            <img src={houseSvg} alt="Home" className="nav-icon" />
-          </button>
+          <div className="nav-group-left">
+            <button
+              type="button"
+              className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
+              onClick={() => setActiveTab('home')}
+              aria-label={t('home')}
+            >
+              <img src={houseSvg} alt="Home" className="nav-icon" />
+              <span className="nav-label">{t('home')}</span>
+            </button>
 
-          <div className="nav-item center-add-wrapper">
+            <button
+              type="button"
+              className={`nav-item ${activeTab === 'accounts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('accounts')}
+              aria-label={t('accounts')}
+            >
+              <img src={akunSvg} alt="Account" className="nav-icon" />
+              <span className="nav-label">{t('accounts')}</span>
+            </button>
+          </div>
+
+          <div className="center-add-wrapper">
             <button
               type="button"
               className="center-add-btn"
@@ -2336,14 +3131,27 @@ function App() {
             </button>
           </div>
 
-          <button
-            type="button"
-            className={`nav-item ${activeTab === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stats')}
-            aria-label="Stats"
-          >
-            <img src={diagramSvg} alt="Stats" className="nav-icon" />
-          </button>
+          <div className="nav-group-right">
+            <button
+              type="button"
+              className={`nav-item ${activeTab === 'budget' ? 'active' : ''}`}
+              onClick={() => setActiveTab('budget')}
+              aria-label={t('budget')}
+            >
+              <img src={budgetSvg} alt="Budget" className="nav-icon" />
+              <span className="nav-label">{t('budget')}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`nav-item ${activeTab === 'stats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('stats')}
+              aria-label={t('stats')}
+            >
+              <img src={diagramSvg} alt="Stats" className="nav-icon" />
+              <span className="nav-label">{t('stats')}</span>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -2364,7 +3172,11 @@ function App() {
               </svg>
             </button>
             <span className="full-page-title">
-              {transType === 'Expense' ? (appLanguage === 'jv' ? 'Pangetrapan' : 'Expense') : transType === 'Income' ? (appLanguage === 'jv' ? 'Pamasukan' : 'Income') : (appLanguage === 'jv' ? 'Menawi' : 'Andai')}
+              {transType === 'Expense' 
+                ? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : 'Expense') 
+                : transType === 'Income' 
+                  ? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : 'Income') 
+                  : (appLanguage === 'jv' ? 'Menawi' : appLanguage === 'zh' ? 'Ruguo' : appLanguage === 'en' ? 'Simulate' : 'Andai')}
             </span>
           </div>
 
@@ -2388,7 +3200,11 @@ function App() {
                     }
                   }}
                 >
-                  {type === 'Expense' ? (appLanguage === 'jv' ? 'Pangetrapan' : 'Expense') : type === 'Income' ? (appLanguage === 'jv' ? 'Pamasukan' : 'Income') : (appLanguage === 'jv' ? 'Menawi' : 'Andai')}
+                  {type === 'Expense' 
+                    ? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : appLanguage === 'ko' ? 'Jichul' : 'Expense') 
+                    : type === 'Income' 
+                      ? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : appLanguage === 'ko' ? 'Su-ip' : 'Income') 
+                      : (appLanguage === 'jv' ? 'Menawi' : appLanguage === 'zh' ? 'Ruguo' : appLanguage === 'ko' ? 'Gajeong' : appLanguage === 'en' ? 'Simulate' : 'Andai')}
                 </button>
               ))}
             </div>
@@ -2401,6 +3217,8 @@ function App() {
               resolveIcon={resolveIcon}
               appLanguage={appLanguage}
               t={t}
+              appCurrency={appCurrency}
+              liveExchangeRates={liveExchangeRates}
             />
           ) : (
             /* Form Fields List for Expense & Income */
@@ -2480,7 +3298,7 @@ function App() {
               >
                 <label htmlFor="transaction-amount-input" className="field-label">{t('formAmount')}</label>
                 <div className="amount-input-wrapper">
-                  <span className="currency-prefix">Rp</span>
+                  <span className="currency-prefix">{getCurrency(appCurrency).symbol}</span>
                   <input
                     id="transaction-amount-input"
                     ref={amountInputRef}
@@ -2532,6 +3350,7 @@ function App() {
                 <span className="field-label">{t('formAccount')}</span>
                 <div className="field-value-category">
                   <div className="cat-chip">
+                    <AccountIconBadge accountName={account} size={18} />
                     <span>{account}</span>
                   </div>
                 </div>
@@ -2702,15 +3521,21 @@ function App() {
               )}
 
               <div className="category-grid">
-                {(transType === 'Expense' ? expenseCategories : incomeCategories).map(cat => {
+                {(transType === 'Expense' ? sortedExpenseCategories : sortedIncomeCategories).map((cat, idx) => {
                   const catIcon = resolveIcon(cat);
+                  const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
                   return (
                     <button
                       key={cat.id}
                       type="button"
-                      className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''}`}
+                      className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''} ${showLastBadge ? 'has-last-badge' : ''}`}
                       onClick={() => handleSelectCategory(cat)}
                     >
+                      {showLastBadge && (
+                        <span className="last-used-badge" title="Kategori paling sering / terakhir digunakan">
+                          Terakhir
+                        </span>
+                      )}
                       {catIcon ? (
                         <div className={`cat-grid-icon ${cat.iconClass}`}>
                           <img src={catIcon} alt={cat.name} />
@@ -2732,8 +3557,38 @@ function App() {
                 <div className="panel-header-actions">
                   <button
                     type="button"
+                    className={`header-action-btn undo-btn ${deletedAccountsHistory.length > 0 ? 'enabled' : 'disabled'}`}
+                    onClick={handleUndoDeleteAccount}
+                    disabled={deletedAccountsHistory.length === 0}
+                    title="Batalkan Hapus Akun"
+                    aria-label="Undo delete account"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`header-action-btn minus-btn ${isAccountDeleteMode ? 'active' : ''}`}
+                    onClick={() => {
+                      setIsAccountDeleteMode(!isAccountDeleteMode);
+                      if (isCustomAccount) setIsCustomAccount(false);
+                    }}
+                    title={isAccountDeleteMode ? "Selesai Hapus" : "Mode Hapus Akun"}
+                    aria-label="Toggle delete mode"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
                     className={`header-action-btn ${isCustomAccount ? 'active' : ''}`}
-                    onClick={() => setIsCustomAccount(!isCustomAccount)}
+                    onClick={() => {
+                      setIsCustomAccount(!isCustomAccount);
+                      if (isAccountDeleteMode) setIsAccountDeleteMode(false);
+                    }}
                     title="Tulis Akun Sendiri"
                     aria-label="Edit custom account"
                   >
@@ -2742,7 +3597,10 @@ function App() {
                   <button
                     type="button"
                     className="header-action-btn close-btn"
-                    onClick={() => setActivePanel('note')}
+                    onClick={() => {
+                      setIsAccountDeleteMode(false);
+                      setActivePanel('note');
+                    }}
                     title={t('close')}
                     aria-label="Close account panel"
                   >
@@ -2774,33 +3632,66 @@ function App() {
               )}
 
               <div className="category-grid">
-                {accountsList.map(acc => (
-                  <button
-                    key={acc}
-                    type="button"
-                    className={`cat-grid-item text-only ${account === acc ? 'active' : ''}`}
-                    onClick={() => handleSelectAccount(acc)}
-                  >
-                    <span className="cat-grid-label" style={{ fontSize: '14px' }}>{acc}</span>
-                  </button>
-                ))}
+                {sortedAccountsList.map((acc, idx) => {
+                  const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
+                  const isCash = acc.toLowerCase() === 'cash';
+                  return (
+                    <button
+                      key={acc}
+                      type="button"
+                      className={`cat-grid-item account-grid-item ${account === acc ? 'active' : ''} ${showLastBadge ? 'has-last-badge' : ''} ${isAccountDeleteMode && !isCash ? 'in-delete-mode' : ''}`}
+                      onClick={() => {
+                        if (isAccountDeleteMode && !isCash) {
+                          handleDeleteAccount(acc);
+                        } else {
+                          handleSelectAccount(acc);
+                        }
+                      }}
+                    >
+                      {isAccountDeleteMode && !isCash && (
+                        <span 
+                          className="account-delete-pill"
+                          onClick={(e) => handleDeleteAccount(acc, e)}
+                          title={`Hapus ${acc}`}
+                          aria-label={`Hapus ${acc}`}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
+                            <line x1="4" y1="12" x2="20" y2="12" />
+                          </svg>
+                        </span>
+                      )}
+                      {!isAccountDeleteMode && showLastBadge && (
+                        <span className="last-used-badge" title="Akun paling sering / terakhir digunakan">
+                          Terakhir
+                        </span>
+                      )}
+                      <div className="cat-grid-icon account-badge-icon">
+                        <AccountIconBadge accountName={acc} size={36} />
+                      </div>
+                      <span className="cat-grid-label">{acc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Onboarding Welcome Setup Modal (Hanya untuk pengguna baru saat pertama kali buka aplikasi) */}
+      {/* Onboarding Welcome Setup Modal (Full-Page Screen untuk Pengguna Baru) */}
       {isProfileModalOpen && !safeStorageGet('user_profile_setup_done') && (
-        <div className="modal-overlay profile-setup-overlay">
-          <div className="profile-modal-card">
-            <div className="profile-modal-header">
-              <h3 className="profile-modal-title">Selamat Datang! Atur Profil Anda</h3>
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <div style={{ width: '24px' }}></div>
+              <h3 className="profile-modal-title">Selamat Datang di Cassiel</h3>
+              <div style={{ width: '24px' }}></div>
             </div>
 
-            <div className="profile-modal-body">
+            <div className="wa-profile-scroll-body" style={{ gap: '22px' }}>
               {/* Avatar Picker Circle */}
-              <div className="profile-avatar-picker-wrapper">
+              <div className="profile-avatar-picker-wrapper" style={{ marginTop: '8px' }}>
                 <div
                   className="profile-avatar-picker-circle"
                   onClick={() => profileFileInputRef.current && profileFileInputRef.current.click()}
@@ -2830,13 +3721,13 @@ function App() {
                 />
               </div>
 
-              {/* Name Input Field (TANPA autoFocus) */}
+              {/* Name Input Field */}
               <div className="profile-field-group">
                 <label className="profile-field-label">Nama Lengkap / Panggilan</label>
                 <input
                   type="text"
                   className="profile-name-input"
-                  placeholder="Ketik nama Anda..."
+                  placeholder="Ketik nama panggilan Anda..."
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   onKeyDown={(e) => {
@@ -2844,16 +3735,58 @@ function App() {
                   }}
                 />
               </div>
-            </div>
 
-            <div className="profile-modal-footer" style={{ flexDirection: 'column', gap: '8px' }}>
-              <button
-                type="button"
-                className="profile-save-btn"
-                onClick={handleSaveProfile}
-              >
-                Simpan Profil
-              </button>
+              {/* Language Selection Dropdown for Beginners */}
+              <div className="profile-field-group">
+                <label className="profile-field-label">Pilih Bahasa Aplikasi</label>
+                <div className="onboarding-lang-dropdown">
+                  <div
+                    className={`onboarding-lang-trigger ${isOnboardingLangOpen ? 'open' : ''}`}
+                    onClick={() => setIsOnboardingLangOpen(!isOnboardingLangOpen)}
+                  >
+                    <span className="onboarding-lang-current-name">
+                      {LANGUAGES.find(l => l.code === tempLanguage)?.nativeName || 'Bahasa Indonesia'}
+                    </span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`onboarding-lang-chevron ${isOnboardingLangOpen ? 'open' : ''}`}>
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </div>
+
+                  {/* Dropdown Menu Options */}
+                  {isOnboardingLangOpen && (
+                    <div className="onboarding-lang-menu">
+                      {LANGUAGES.map(l => (
+                        <div
+                          key={l.code}
+                          className={`onboarding-lang-option ${tempLanguage === l.code ? 'active' : ''}`}
+                          onClick={() => {
+                            setTempLanguage(l.code);
+                            setIsOnboardingLangOpen(false);
+                          }}
+                        >
+                          <span className="onboarding-lang-opt-name">{l.nativeName}</span>
+                          {tempLanguage === l.code && (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D5284" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="onboarding-lang-check">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div style={{ marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="profile-save-btn"
+                  onClick={handleSaveProfile}
+                >
+                  Mulai Gunakan Aplikasi 🚀
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2878,7 +3811,7 @@ function App() {
                   <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
               </button>
-              <h3 className="profile-modal-title">Pengaturan Profil</h3>
+              <h3 className="profile-modal-title">{t('profileSettings')}</h3>
               <div style={{ width: '32px' }}></div>
             </div>
 
@@ -2952,29 +3885,47 @@ function App() {
                 </div>
               </div>
 
-              {/* WA-Style Settings Menu List */}
+              {/* WA-Style Settings Menu List with Section Categories */}
               <div className="wa-settings-menu-group">
-                {/* 1. Budget Kategori */}
-                <div className="wa-menu-item" onClick={handleOpenBudgetCap}>
-                  <div className="wa-menu-icon-box budget-icon">
+
+                {/* ========================================================
+                    1. NOTIFIKASI
+                   ======================================================== */}
+                <h4 className="wa-profile-section-title">{t('sectionNotif')}</h4>
+
+                <div 
+                  className="wa-menu-item"
+                  onClick={async () => {
+                    const nextState = await toggleNotificationState(isNotifActive);
+                    setIsNotifActive(nextState);
+                    if (nextState) {
+                      sendInstantNotification(profileName, transactions, appLanguage);
+                    }
+                  }}
+                >
+                  <div className="wa-menu-icon-box notif-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
-                      <polyline points="17 2 12 7 7 2"/>
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('budgetCapTitle')}</span>
-                      {!hasVisitedBudgetCap && <span className="wa-unread-dot" />}
+                      <span className="wa-menu-title">{t('notifSettingTitle')}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('budgetCapSubtitle')}</span>
+                    <span className="wa-menu-subtitle">{t('notifSettingSubtitle')}</span>
                   </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
+                  <div className={`wa-custom-toggle-track ${isNotifActive ? 'active' : ''}`}>
+                    <div className="wa-custom-toggle-thumb" />
+                  </div>
                 </div>
 
-                {/* 2. Custom Fonts */}
+                {/* ========================================================
+                    2. TAMPILAN & PREFERENSI
+                   ======================================================== */}
+                <h4 className="wa-profile-section-title">{t('sectionPrefs')}</h4>
+
+                {/* Gaya Tulisan */}
                 <div className="wa-menu-item" onClick={handleOpenFontModal}>
                   <div className="wa-menu-icon-box font-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -2996,7 +3947,7 @@ function App() {
                   </svg>
                 </div>
 
-                {/* 3. Multi Language */}
+                {/* Bahasa */}
                 <div className="wa-menu-item" onClick={handleOpenLangModal}>
                   <div className="wa-menu-icon-box lang-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3018,7 +3969,92 @@ function App() {
                   </svg>
                 </div>
 
-                {/* 4. Saran & Keluh Kesah for Developer */}
+                {/* Mata Uang Utama */}
+                <div className="wa-menu-item" onClick={handleOpenCurrencyModal}>
+                  <div className="wa-menu-icon-box currency-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+                      <path d="M12 6v2"/>
+                      <path d="M12 16v2"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('currencySettingTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {(() => {
+                        const cur = getCurrency(appCurrency);
+                        return `${cur.code} (${cur.symbol}) • ${cur.displayName}`;
+                      })()}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* ========================================================
+                    3. KEAMANAN
+                   ======================================================== */}
+                <h4 className="wa-profile-section-title">{t('sectionSecurity')}</h4>
+
+                {/* Atur PIN / Ubah PIN */}
+                <div className="wa-menu-item" onClick={() => setIsPinSetupModalOpen(true)}>
+                  <div className="wa-menu-icon-box pin-menu-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">
+                        {userHasPin ? t('changePinTitle') : t('setPinTitle')}
+                      </span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('pinSettingSubtitle')}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Sidik Jari Untuk Login (Toggle Switch) */}
+                <div
+                  className="wa-menu-item wa-menu-item-toggle"
+                  onClick={async () => {
+                    if (!userHasPin) {
+                      showVoiceToast(t('setPinFirstPrompt'));
+                      setIsPinSetupModalOpen(true);
+                      return;
+                    }
+                    const nextVal = !isBiometricActive;
+                    setBiometricEnabled(nextVal);
+                    setIsBiometricActive(nextVal);
+                  }}
+                >
+                  <div className="wa-menu-icon-box fingerprint-menu-icon">
+                    <img src={fingerprintSvg} alt="Fingerprint" width="22" height="22" style={{ objectFit: 'contain' }} />
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('fingerprintLoginTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('fingerprintLoginSubtitle')}</span>
+                  </div>
+                  <div className={`wa-custom-toggle-track ${isBiometricActive ? 'active' : ''}`}>
+                    <div className="wa-custom-toggle-thumb" />
+                  </div>
+                </div>
+
+                {/* ========================================================
+                    4. DATA & DUKUNGAN
+                   ======================================================== */}
+                <h4 className="wa-profile-section-title">{t('sectionDataSupport')}</h4>
+
+                {/* Saran & Masukan */}
                 <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
                   <div className="wa-menu-icon-box feedback-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3030,6 +4066,26 @@ function App() {
                       <span className="wa-menu-title">{t('feedbackTitle')}</span>
                     </div>
                     <span className="wa-menu-subtitle">{t('feedbackSubtitle')}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Backup & Restore Data */}
+                <div className="wa-menu-item" onClick={() => setIsBackupModalOpen(true)}>
+                  <div className="wa-menu-icon-box backup-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                      <polyline points="12 13 12 7"/>
+                      <polyline points="9 10 12 7 15 10"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('backupSettingTitle')}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('backupSettingSubtitle')}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -3160,6 +4216,120 @@ function App() {
         </div>
       )}
 
+      {/* Full-Page Screen: Pilihan Mata Uang Utama (Real-time Kurs 1 Dunia) */}
+      {isCurrencyModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsCurrencyModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('selectCurrencyTitle')}</h3>
+              <button
+                type="button"
+                className="header-confirm-btn"
+                onClick={() => {
+                  handleSelectCurrency(tempCurrency);
+                  setIsCurrencyModalOpen(false);
+                }}
+                title="Konfirmasi Pilihan Mata Uang"
+                aria-label="Konfirmasi"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Fixed Search Bar Header (Outside Scroll Body) */}
+            <div className="currency-fixed-search-header">
+              <div className="currency-search-container">
+                <svg className="currency-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  className="currency-search-input"
+                  placeholder={t('searchCurrencyPlaceholder')}
+                  value={currencySearch}
+                  onChange={(e) => setCurrencySearch(e.target.value)}
+                />
+                {currencySearch && (
+                  <button
+                    type="button"
+                    className="currency-search-clear-btn"
+                    onClick={() => setCurrencySearch('')}
+                    aria-label="Clear Search"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable Currency List */}
+            <div className="full-page-sub-body currency-scroll-body">
+              <div className="full-page-settings-group">
+                {filteredCurrencies.map((cur) => {
+                  const isSelected = tempCurrency === cur.code;
+                  const rateInfo = getExchangeRateText(cur.code, liveExchangeRates);
+                  return (
+                    <div
+                      key={cur.code}
+                      className={`full-page-option-row currency-option-row ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setTempCurrency(cur.code)}
+                    >
+                      <div className="currency-option-left">
+                        <img
+                          src={getFlagUrl(cur.countryCode)}
+                          alt={cur.displayName}
+                          className="currency-flag-img"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="currency-info-box">
+                          <div className="currency-code-symbol">
+                            <span>{cur.code}</span>
+                            <span className="currency-symbol-tag">{cur.symbol}</span>
+                          </div>
+                          <span className="currency-country-name">
+                            {cur.displayName}
+                          </span>
+                          {rateInfo && (
+                            <span className="currency-rate-badge">{rateInfo}</span>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div className="full-page-option-check">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Full-Page Screen: Saran & Keluh Kesah untuk Developer */}
       {isFeedbackModalOpen && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
@@ -3225,6 +4395,145 @@ function App() {
                   {isSubmittingFeedback ? t('feedbackSending') : t('feedbackSubmitBtn')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Backup & Restore */}
+      {isBackupModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsBackupModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('backupModalTitle')}</h3>
+              <div style={{ width: 40 }} />
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="backup-container">
+                {/* Last Backup Info */}
+                <div className="backup-info-row">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span className="backup-info-text">
+                    {t('backupInfoLabel')}: {(() => {
+                      const lastBackup = safeStorageGet('user_last_backup_time');
+                      if (!lastBackup) return t('backupNever');
+                      try {
+                        const d = new Date(lastBackup);
+                        return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                      } catch { return t('backupNever'); }
+                    })()}
+                  </span>
+                </div>
+
+                {/* Export Backup Card */}
+                <button
+                  type="button"
+                  className="backup-action-card"
+                  onClick={handleExportBackup}
+                  disabled={isBackupProcessing}
+                >
+                  <div className="backup-action-icon export-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                      <polyline points="12 13 12 7"/>
+                      <polyline points="9 10 12 7 15 10"/>
+                    </svg>
+                  </div>
+                  <div className="backup-action-content">
+                    <span className="backup-action-title">{t('backupExportBtn')}</span>
+                    <span className="backup-action-desc">{t('backupExportDesc')}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
+
+                {/* Import / Restore Card */}
+                <button
+                  type="button"
+                  className="backup-action-card"
+                  onClick={handleImportBackup}
+                  disabled={isBackupProcessing}
+                >
+                  <div className="backup-action-icon import-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                      <polyline points="12 7 12 13"/>
+                      <polyline points="9 10 12 13 15 10"/>
+                    </svg>
+                  </div>
+                  <div className="backup-action-content">
+                    <span className="backup-action-title">{t('backupImportBtn')}</span>
+                    <span className="backup-action-desc">{t('backupImportDesc')}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
+
+                {/* Processing Indicator */}
+                {isBackupProcessing && (
+                  <div className="backup-processing-row">
+                    <div className="backup-spinner" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Confirmation Dialog */}
+      {backupRestoreConfirm && (
+        <div className="modal-overlay backup-confirm-overlay" onClick={() => setBackupRestoreConfirm(null)}>
+          <div className="backup-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <div className="backup-confirm-icon-wrapper">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
+                <polyline points="12 7 12 13"/>
+                <polyline points="9 10 12 13 15 10"/>
+              </svg>
+            </div>
+            <h3 className="backup-confirm-title">{t('restoreConfirmTitle')}</h3>
+            <p className="backup-confirm-meta">
+              {backupRestoreConfirm._profileName && (
+                <span>{backupRestoreConfirm._profileName}</span>
+              )}
+              {backupRestoreConfirm._exportedAt && (
+                <span> • {(() => {
+                  try {
+                    const d = new Date(backupRestoreConfirm._exportedAt);
+                    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+                  } catch { return ''; }
+                })()}</span>
+              )}
+              {backupRestoreConfirm.data?.transactions && (
+                <span> • {backupRestoreConfirm.data.transactions.length} transaksi</span>
+              )}
+            </p>
+            <p className="backup-confirm-text">{t('restoreConfirm')}</p>
+            <div className="backup-confirm-actions">
+              <button type="button" className="backup-cancel-btn" onClick={() => setBackupRestoreConfirm(null)}>
+                {t('close') || 'Batal'}
+              </button>
+              <button type="button" className="backup-restore-btn" onClick={handleConfirmRestore}>
+                {t('backupImportBtn')}
+              </button>
             </div>
           </div>
         </div>
@@ -3339,142 +4648,6 @@ function App() {
         </div>
       )}
 
-      {/* Budget Cap Full Page UI */}
-      {isBudgetCapModalOpen && (
-        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
-          <div className="budget-cap-screen-wrapper">
-            <div className="profile-modal-header budget-screen-header">
-              <button
-                type="button"
-                className="back-btn"
-                onClick={() => setIsBudgetCapModalOpen(false)}
-                aria-label="Kembali"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-              </button>
-              <h3 className="profile-modal-title">Budget Kategori Per Bulan</h3>
-              <div style={{ width: '32px' }}></div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="budget-search-section">
-              <div className="budget-search-wrapper">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input 
-                  type="text" 
-                  className="budget-search-input"
-                  placeholder="Cari kategori (kopi, bensin, belanja)..."
-                  value={budgetSearchQuery}
-                  onChange={(e) => setBudgetSearchQuery(e.target.value)}
-                />
-                {budgetSearchQuery && (
-                  <button 
-                    type="button" 
-                    className="budget-search-clear"
-                    onClick={() => setBudgetSearchQuery('')}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Filter Tabs (Solusi C) */}
-            {(() => {
-              const countAll = expenseCategories.length;
-              const countActive = expenseCategories.filter(c => typeof c.monthlyLimit === 'number' && c.monthlyLimit > 0).length;
-              const countUnset = countAll - countActive;
-
-              return (
-                <div className="budget-filter-tabs">
-                  <button 
-                    type="button" 
-                    className={`budget-tab-btn ${budgetFilterTab === 'all' ? 'active' : ''}`}
-                    onClick={() => setBudgetFilterTab('all')}
-                  >
-                    Semua ({countAll})
-                  </button>
-                  <button 
-                    type="button" 
-                    className={`budget-tab-btn ${budgetFilterTab === 'active' ? 'active' : ''}`}
-                    onClick={() => setBudgetFilterTab('active')}
-                  >
-                    Aktif ({countActive})
-                  </button>
-                  <button 
-                    type="button" 
-                    className={`budget-tab-btn ${budgetFilterTab === 'unset' ? 'active' : ''}`}
-                    onClick={() => setBudgetFilterTab('unset')}
-                  >
-                    Belum Diatur ({countUnset})
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* Clean Category List (Solusi A) */}
-            <div className="budget-list-container">
-              {(() => {
-                const filtered = getFilteredBudgetCategories();
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
-                      <p style={{ fontSize: '14px', fontWeight: 500 }}>
-                        {budgetSearchQuery ? `Kategori "${budgetSearchQuery}" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}
-                      </p>
-                    </div>
-                  );
-                }
-
-                return filtered.map(cat => {
-                  const iconPath = resolveIcon(cat);
-                  const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
-
-                  return (
-                    <div 
-                      key={cat.id} 
-                      className="budget-item-card"
-                      onClick={() => handleOpenCategoryBudgetModal(cat)}
-                    >
-                      <div className={`budget-item-icon-box ${cat.iconClass}`}>
-                        <img src={iconPath} alt={cat.name} />
-                      </div>
-
-                      <div className="budget-item-info">
-                        <span className="budget-item-name">{cat.name}</span>
-                        <span className="budget-item-sub">
-                          {hasLimit ? 'Batas aktif' : 'Tanpa batas'}
-                        </span>
-                      </div>
-
-                      <div className="budget-item-status-wrapper">
-                        {hasLimit ? (
-                          <span className="budget-status-badge active">
-                            Rp {new Intl.NumberFormat('id-ID').format(cat.monthlyLimit)}
-                          </span>
-                        ) : (
-                          <span className="budget-status-badge unset">
-                            Belum diatur
-                          </span>
-                        )}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-item-chevron">
-                          <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Tap-to-Edit Category Budget Modal with Quick Chips (Solusi A) */}
       {activeBudgetCategory && (
         <div className="modal-overlay" style={{ zIndex: 1000000 }} onClick={() => setActiveBudgetCategory(null)}>
@@ -3526,7 +4699,7 @@ function App() {
               {/* Input box */}
               <label className="budget-sheet-label" style={{ marginTop: '14px' }}>Nominal Limit</label>
               <div className="budget-modal-input-wrapper">
-                <span className="budget-modal-input-prefix">Rp</span>
+                <span className="budget-modal-input-prefix">{getCurrency(appCurrency).symbol}</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -3694,7 +4867,38 @@ function App() {
           allTransactions={transactions}
           userName={profileName || 'No Name'}
           resolveIcon={resolveIcon}
+          appLanguage={appLanguage}
+          fmtMoney={fmtMoney}
+          t={t}
+          getCategoryName={getCategoryName}
           onClose={() => setSelectedInsightCategory(null)}
+        />
+      )}
+
+      {/* Full-Page Screen: Atur / Ubah PIN Keamanan */}
+      <PinSetupModal
+        isOpen={isPinSetupModalOpen}
+        isChangeMode={userHasPin}
+        t={t}
+        onClose={() => setIsPinSetupModalOpen(false)}
+        onSuccess={() => {
+          const wasFirstTime = !userHasPin;
+          setUserHasPin(true);
+          showVoiceToast(t('pinSuccessSet') || 'PIN keamanan berhasil diatur!');
+          // Jika ini pertama kali setup PIN, langsung lock app supaya user verifikasi PIN baru
+          if (wasFirstTime) {
+            setIsAppLocked(true);
+          }
+        }}
+      />
+
+      {/* Layar Kunci PIN Setelah Splash Screen */}
+      {isAppLocked && userHasPin && (
+        <PinLockScreen
+          t={t}
+          onUnlockSuccess={() => {
+            setIsAppLocked(false);
+          }}
         />
       )}
     </div>

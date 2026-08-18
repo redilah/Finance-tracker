@@ -6,6 +6,8 @@ import {
   formatRupiah 
 } from '../utils/categoryInsightEngine.js';
 import { getInstallDate } from '../utils/telemetry.js';
+import { MONTH_NAMES_I18N, MONTH_SHORT_I18N, getTranslation } from '../utils/i18n.js';
+import { AccountIconBadge } from '../utils/accountLogos.jsx';
 
 // Helper hitung sisa waktu hingga akhir bulan
 const calculateTimeLeft = (target) => {
@@ -20,30 +22,37 @@ const calculateTimeLeft = (target) => {
   return { days, hours, minutes, seconds, isExpired: false };
 };
 
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const MONTH_FULL = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-];
-
 export default function CategoryInsightScreen({
   category, // { name, color, categoryId, id, ... }
   initialDate = new Date(),
   allTransactions = [],
   userName = 'Pengguna',
   resolveIcon,
+  appLanguage = 'id',
+  fmtMoney,
+  t,
+  getCategoryName,
   onClose
 }) {
   const [currentDate, setCurrentDate] = useState(() => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
   const [isTxListExpanded, setIsTxListExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
+  // Helper translation fallback
+  const tr = (key) => (t ? t(key) : getTranslation(appLanguage, key));
+
   const year = currentDate.getFullYear();
   const monthIndex = currentDate.getMonth(); // 0-indexed
 
-  // Format header bulan & tahun (< Agu 2026 >)
-  const monthYearLabel = `${MONTH_SHORT[monthIndex]} ${year}`;
-  const fullMonthYearLabel = `${MONTH_FULL[monthIndex]} ${year}`;
+  // Format header bulan & tahun dinamis sesuai bahasa aktif
+  const monthShortList = MONTH_SHORT_I18N[appLanguage] || MONTH_SHORT_I18N.id;
+  const monthFullList = MONTH_NAMES_I18N[appLanguage] || MONTH_NAMES_I18N.id;
+  const monthYearLabel = `${monthShortList[monthIndex]} ${year}`;
+  const fullMonthYearLabel = `${monthFullList[monthIndex]} ${year}`;
+
+  const localizedCatName = getCategoryName 
+    ? getCategoryName(category, appLanguage) 
+    : (category.name || category.category || 'Category');
 
   // Dapatkan bulan & tahun instalasi pengguna
   const installInfo = useMemo(() => {
@@ -54,7 +63,7 @@ export default function CategoryInsightScreen({
         return {
           year: d.getFullYear(),
           monthIndex: d.getMonth(),
-          monthName: MONTH_FULL[d.getMonth()]
+          monthName: monthFullList[d.getMonth()]
         };
       }
     } catch {}
@@ -62,9 +71,9 @@ export default function CategoryInsightScreen({
     return {
       year: now.getFullYear(),
       monthIndex: now.getMonth(),
-      monthName: MONTH_FULL[now.getMonth()]
+      monthName: monthFullList[now.getMonth()]
     };
-  }, []);
+  }, [monthFullList]);
 
   // Periksa apakah pengguna bisa mundur ke bulan sebelumnya
   const canGoPrev = useMemo(() => {
@@ -84,7 +93,7 @@ export default function CategoryInsightScreen({
     if (canGoPrev) {
       setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     } else {
-      showToast(`Pertama diinstal ${installInfo.monthName} ${installInfo.year}. Tidak ada data sebelumnya.`);
+      showToast(`${tr('categoryInsightInstallNote')} ${installInfo.monthName} ${installInfo.year}. ${tr('categoryInsightNoPrevData')}`);
     }
   };
 
@@ -122,18 +131,25 @@ export default function CategoryInsightScreen({
       year,
       monthIndex,
       allTransactions,
-      userName
+      userName,
+      appLanguage,
+      fmtMoney,
+      getCategoryName
     });
-  }, [category, year, monthIndex, allTransactions, userName]);
+  }, [category, year, monthIndex, allTransactions, userName, appLanguage, fmtMoney, getCategoryName]);
 
   const catIcon = resolveIcon ? resolveIcon(category) : null;
   const catColor = category.color || '#4EBE96';
+
+  const formatAmount = (amt) => {
+    return fmtMoney ? fmtMoney(amt) : formatRupiah(amt);
+  };
 
   return (
     <div className="modal-overlay profile-setup-overlay full-page-profile-screen category-insight-screen">
       <div className="wa-profile-screen-container category-insight-container">
         
-        {/* Toast Notifikasi Feedback (Identik dengan format & animasi notifikasi Voice Mic, ~70% lebar layar) */}
+        {/* Toast Notifikasi Feedback */}
         {toastMessage && (
           <div className="voice-toast-notification category-insight-toast-pill" style={{ top: 24, zIndex: 100002 }}>
             <span>ℹ️</span>
@@ -147,15 +163,15 @@ export default function CategoryInsightScreen({
             type="button"
             className="back-btn"
             onClick={onClose}
-            aria-label="Kembali ke Stats"
+            aria-label="Kembali"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
           </button>
           <div className="category-insight-header-title">
-            <h2>Insight Kategori</h2>
-            <span className="category-insight-subtitle">{category.name}</span>
+            <h2>{tr('categoryInsightTitle')}</h2>
+            <span className="category-insight-subtitle">{localizedCatName}</span>
           </div>
           <div style={{ width: 36 }}></div>
         </div>
@@ -163,13 +179,13 @@ export default function CategoryInsightScreen({
         {/* Scrollable Content Body */}
         <div className="category-insight-body">
           
-          {/* Month / Year Navigator (< Agu 2026 >) */}
+          {/* Month / Year Navigator */}
           <div className="category-insight-date-nav">
             <button
               type="button"
               className="month-btn"
               onClick={handlePrevMonth}
-              aria-label="Bulan Sebelumnya"
+              aria-label="Previous Month"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6"/>
@@ -182,7 +198,7 @@ export default function CategoryInsightScreen({
               type="button"
               className="month-btn"
               onClick={handleNextMonth}
-              aria-label="Bulan Berikutnya"
+              aria-label="Next Month"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18l6-6-6-6"/>
@@ -194,39 +210,39 @@ export default function CategoryInsightScreen({
           {!isUnlocked ? (
             <div className="category-insight-future-card">
               <div className="category-insight-calendar-badge" aria-label={`Kalender ${fullMonthYearLabel}`}>
-                <div className="calendar-badge-header">{MONTH_SHORT[monthIndex].toUpperCase()}</div>
+                <div className="calendar-badge-header">{monthShortList[monthIndex].toUpperCase()}</div>
                 <div className="calendar-badge-day">{lastDay}</div>
               </div>
-              <h4>Belum ada insight untuk bulan {fullMonthYearLabel}</h4>
-              <p>Periode ini baru bisa dilihat jika sudah tanggal {lastDay} {fullMonthYearLabel}.</p>
+              <h4>{tr('categoryInsightNoData')} {fullMonthYearLabel}</h4>
+              <p>{tr('categoryInsightLockedDesc')} {lastDay} {fullMonthYearLabel}.</p>
               
               {/* Countdown Timer Hitung Mundur */}
               <div className="category-insight-countdown-wrap">
                 <div className="category-insight-countdown-grid">
                   <div className="category-insight-countdown-box">
                     <span className="countdown-val">{String(timeLeft.days).padStart(2, '0')}</span>
-                    <span className="countdown-lbl">Hari</span>
+                    <span className="countdown-lbl">{tr('timeDays')}</span>
                   </div>
                   <span className="countdown-colon">:</span>
                   <div className="category-insight-countdown-box">
                     <span className="countdown-val">{String(timeLeft.hours).padStart(2, '0')}</span>
-                    <span className="countdown-lbl">Jam</span>
+                    <span className="countdown-lbl">{tr('timeHours')}</span>
                   </div>
                   <span className="countdown-colon">:</span>
                   <div className="category-insight-countdown-box">
                     <span className="countdown-val">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                    <span className="countdown-lbl">Menit</span>
+                    <span className="countdown-lbl">{tr('timeMinutes')}</span>
                   </div>
                   <span className="countdown-colon">:</span>
                   <div className="category-insight-countdown-box">
                     <span className="countdown-val">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                    <span className="countdown-lbl">Detik</span>
+                    <span className="countdown-lbl">{tr('timeSeconds')}</span>
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            /* Skenario: Insight Terbuka (Bulan Lampau / Akhir Bulan yang sudah tiba) */
+            /* Skenario: Insight Terbuka */
             <>
               {/* Category Hero Summary Card */}
               <div className="category-insight-hero-card">
@@ -236,24 +252,24 @@ export default function CategoryInsightScreen({
                     style={{ backgroundColor: `${catColor}20` }}
                   >
                     {catIcon ? (
-                      <img src={catIcon} alt={category.name} />
+                      <img src={catIcon} alt={localizedCatName} />
                     ) : (
                       <span style={{ fontSize: 24 }}>🏷️</span>
                     )}
                   </div>
                   <div className="category-insight-hero-info">
-                    <h3 className="category-insight-hero-name">{category.name}</h3>
+                    <h3 className="category-insight-hero-name">{localizedCatName}</h3>
                     <span className="category-insight-hero-count">
-                      {insight.currentCount} transaksi ({insight.percentageOfTotal}% anggaran)
+                      {insight.currentCount} {tr('categoryInsightTxCount')} ({insight.percentageOfTotal}% {tr('categoryInsightBudgetShare')})
                     </span>
                   </div>
                 </div>
                 <div className="category-insight-hero-right">
                   <span className="category-insight-hero-amount">
-                    {formatRupiah(insight.currentTotalAmount)}
+                    {formatAmount(insight.currentTotalAmount)}
                   </span>
                   <span className="category-insight-hero-avg">
-                    Rata-rata {formatRupiah(insight.averagePerTx)}/tx
+                    {tr('categoryInsightAverage')} {formatAmount(insight.averagePerTx)}/tx
                   </span>
                 </div>
               </div>
@@ -262,7 +278,7 @@ export default function CategoryInsightScreen({
               <div className="category-insight-story-card">
                 <div className="category-insight-story-header">
                   <div className="category-insight-story-badge">
-                    <span>✨ Kisah Pengeluaranmu</span>
+                    <span>{tr('categoryInsightStory')}</span>
                   </div>
                   <span className="category-insight-story-user">{userName}</span>
                 </div>
@@ -278,34 +294,34 @@ export default function CategoryInsightScreen({
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">
                     <span className="highlight-icon">🍜</span>
-                    <span className="highlight-title">Favorit Dibeli</span>
+                    <span className="highlight-title">{tr('categoryInsightTopBought')}</span>
                   </div>
                   <div className="highlight-item-content">
                     {insight.topNote ? (
                       <>
                         <span className="highlight-main-val">{insight.topNote.note}</span>
                         <span className="highlight-sub-val">
-                          {insight.topNote.count}x dibeli • {formatRupiah(insight.topNote.totalAmount)}
+                          {insight.topNote.count}x • {formatAmount(insight.topNote.totalAmount)}
                         </span>
                       </>
                     ) : (
-                      <span className="highlight-empty-val">Belum ada item</span>
+                      <span className="highlight-empty-val">{tr('categoryInsightNoItems')}</span>
                     )}
                   </div>
                 </div>
 
-                {/* 2. Hari Tersibuk / Terboros */}
+                {/* 2. Hari Tersibuk */}
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">
                     <span className="highlight-icon">📅</span>
-                    <span className="highlight-title">Hari Paling Aktif</span>
+                    <span className="highlight-title">{tr('categoryInsightBusiestDay')}</span>
                   </div>
                   <div className="highlight-item-content">
                     {insight.busiestDay ? (
                       <>
-                        <span className="highlight-main-val">Tgl {insight.busiestDay.dayNum} {insight.monthName}</span>
+                        <span className="highlight-main-val">{monthShortList[monthIndex]} {insight.busiestDay.dayNum}</span>
                         <span className="highlight-sub-val">
-                          {insight.busiestDay.count} transaksi • {formatRupiah(insight.busiestDay.amount)}
+                          {insight.busiestDay.count} {tr('categoryInsightTxCount')} • {formatAmount(insight.busiestDay.amount)}
                         </span>
                       </>
                     ) : (
@@ -318,14 +334,14 @@ export default function CategoryInsightScreen({
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">
                     <span className="highlight-icon">💎</span>
-                    <span className="highlight-title">Transaksi Terbesar</span>
+                    <span className="highlight-title">{tr('categoryInsightLargestTx')}</span>
                   </div>
                   <div className="highlight-item-content">
                     {insight.largestTx ? (
                       <>
-                        <span className="highlight-main-val">{formatRupiah(insight.largestTx.amount)}</span>
+                        <span className="highlight-main-val">{formatAmount(insight.largestTx.amount)}</span>
                         <span className="highlight-sub-val">
-                          {insight.largestTxLabel || `Kategori ${category.name}`}
+                          {insight.largestTxLabel || localizedCatName}
                         </span>
                       </>
                     ) : (
@@ -337,14 +353,20 @@ export default function CategoryInsightScreen({
                 {/* 4. Metode Pembayaran */}
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">
-                    <span className="highlight-icon">💳</span>
-                    <span className="highlight-title">Metode Utama</span>
+                    <span className="highlight-icon">
+                      {insight.currentCount > 0 && insight.dominantAccount ? (
+                        <AccountIconBadge accountName={insight.dominantAccount} size={22} />
+                      ) : (
+                        '💳'
+                      )}
+                    </span>
+                    <span className="highlight-title">{tr('categoryInsightPrimaryMethod')}</span>
                   </div>
                   <div className="highlight-item-content">
                     {insight.currentCount > 0 ? (
                       <>
                         <span className="highlight-main-val">{insight.dominantAccount}</span>
-                        <span className="highlight-sub-val">Sering digunakan</span>
+                        <span className="highlight-sub-val">{tr('categoryInsightFrequent')}</span>
                       </>
                     ) : (
                       <span className="highlight-empty-val">-</span>
@@ -362,13 +384,13 @@ export default function CategoryInsightScreen({
                   <div className="trend-card-text">
                     <strong>
                       {insight.diffStatus === 'up' 
-                        ? `Naik ${insight.diffPercentage}% dibanding bulan lalu`
+                        ? `${tr('categoryInsightUp')} ${insight.diffPercentage}% ${tr('categoryInsightVsPrev')}`
                         : insight.diffStatus === 'down'
-                        ? `Turun ${insight.diffPercentage}% lebih hemat dibanding bulan lalu`
-                        : 'Sama persis dengan bulan lalu'}
+                        ? `${tr('categoryInsightDown')} ${insight.diffPercentage}% ${tr('categoryInsightVsPrev')}`
+                        : tr('categoryInsightSame')}
                     </strong>
                     <span>
-                      Bulan lalu: {formatRupiah(insight.prevTotalAmount)} ({insight.prevCount}x tx)
+                      {tr('categoryInsightPrevMonth')} {formatAmount(insight.prevTotalAmount)} ({insight.prevCount}x tx)
                     </span>
                   </div>
                 </div>
@@ -385,7 +407,7 @@ export default function CategoryInsightScreen({
                   <div className="capsule-header-left">
                     <span className="capsule-icon">📋</span>
                     <span className="capsule-title">
-                      Daftar Transaksi ({insight.transactions.length})
+                      {tr('categoryInsightTxList')} ({insight.transactions.length})
                     </span>
                   </div>
                   <div className="capsule-header-right">
@@ -416,20 +438,20 @@ export default function CategoryInsightScreen({
                               {tx.date ? tx.date.split('-').reverse().join('/') : '-'}
                             </span>
                             <span className="tx-row-note">
-                              {(tx.title && tx.title.trim()) || (tx.note && tx.note.trim()) || category.name}
+                              {(tx.title && tx.title.trim()) || (tx.note && tx.note.trim()) || localizedCatName}
                             </span>
-                            <span className="tx-row-account">{tx.account || 'Bank'}</span>
+                            <span className="tx-row-account">{tx.account || 'BRImo'}</span>
                           </div>
                           <div className="tx-row-right">
                             <span className="tx-row-amount">
-                              -Rp {tx.amount.toLocaleString('id-ID')}
+                              -{formatAmount(tx.amount)}
                             </span>
                           </div>
                         </div>
                       ))
                     ) : (
                       <div className="category-insight-txs-empty">
-                        <p>Tidak ada transaksi di bulan ini.</p>
+                        <p>{tr('categoryInsightNoTx')}</p>
                       </div>
                     )}
                   </div>

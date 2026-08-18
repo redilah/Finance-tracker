@@ -18,6 +18,7 @@ import {
   updateFeedbackItemStatus 
 } from '../../utils/feedback';
 import { syncDecrypt } from '../../utils/secureStorage';
+import { AccountIconBadge, normalizeAccountName } from '../../utils/accountLogos';
 import { 
   Users, 
   Smartphone, 
@@ -44,10 +45,70 @@ import {
   Check,
   ExternalLink,
   MessageSquare,
-  Heart
+  Heart,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  CreditCard,
+  Trophy,
+  Award,
+  BarChart3,
+  Layers
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
+
+/**
+ * Resolver icon/emoji untuk kategori pengeluaran dan pemasukan pada analitik global
+ */
+export const getCategoryIconDisplay = (catName, isIncome = false) => {
+  const norm = (catName || '').toLowerCase().trim();
+  if (isIncome) {
+    if (/gaji|salary|upah/i.test(norm)) return '💼';
+    if (/bonus|thr|insentif/i.test(norm)) return '🎁';
+    if (/bisnis|usaha|toko|omset/i.test(norm)) return '🏢';
+    if (/investasi|reksadana|saham|crypto/i.test(norm)) return '📈';
+    if (/affiliate|komisi|tiktok|shopee/i.test(norm)) return '🔗';
+    if (/kip|beasiswa|kuliah/i.test(norm)) return '🎓';
+    if (/hadiah|giveaway/i.test(norm)) return '🎉';
+    return '💰';
+  }
+
+  // Expense
+  if (/makan|food|nasi|ayam|mie|bakso|soto|sate|rawon|resto|warung/i.test(norm)) return '🍔';
+  if (/minum|kopi|coffee|boba|jus|teh/i.test(norm)) return '☕';
+  if (/supermarket|minimarket|indomaret|alfamart|sembako|belanja/i.test(norm)) return '🛒';
+  if (/transport|bensin|bbm|pertalite|ojol|grab|gojek|taksi|kereta|bus/i.test(norm)) return '🚗';
+  if (/fashion|baju|celana|sepatu|tas|kaos|kemeja/i.test(norm)) return '👕';
+  if (/skincare|kosmetik|makeup|perawatan|parfum/i.test(norm)) return '🧴';
+  if (/kost|sewa|kontrakan|rumah/i.test(norm)) return '🏠';
+  if (/pulsa|kuota|paket data|internet|wifi/i.test(norm)) return '📱';
+  if (/bioskop|nonton|film|cinema|game|topup/i.test(norm)) return '🎬';
+  if (/edukasi|buku|kursus|les|sekolah/i.test(norm)) return '📚';
+  if (/barber|potong rambut|salon/i.test(norm)) return '✂️';
+  if (/obat|dokter|rumah sakit|klinik|apotek/i.test(norm)) return '💊';
+  return '🛍️';
+};
+/**
+ * Cek apakah perangkat merupakan HP / Smartphone (Android / iPhone / iPad), bukan Laptop / PC
+ */
+export const isMobileDevice = (item) => {
+  if (!item) return false;
+  const name = (typeof item === 'string' ? item : item.deviceName || '').toLowerCase();
+  
+  // Eksklusikan PC / Laptop / Windows / Mac / Linux
+  if (/windows\s*pc|windows|laptop|macbook|macintosh|linux\s*pc/i.test(name)) {
+    return false;
+  }
+
+  // Deteksi HP (Android, berbagai brand, iPhone, iPad, Capacitor)
+  if (/android|samsung|xiaomi|redmi|poco|oppo|vivo|realme|infinix|pixel|iphone|ipad|mobile|cph|sm-|rmx|v2\d/i.test(name)) {
+    return true;
+  }
+
+  return !/windows|mac|linux|desktop/i.test(name);
+};
+
 const FIREBASE_CONSOLE_URL = 'https://console.firebase.google.com/u/0/project/regalia-senpai-app/firestore/databases/-default-/data/~2Fcassiel_telemetry~2Fdev_3a8q6za_mst1qfoh';
 
 /**
@@ -556,6 +617,132 @@ export default function AdminDashboard({ onNavigateToApp }) {
     return `User: ${insightUserFilter}`;
   }, [insightUserFilter, anonymousUserCodes]);
 
+  // TAB 1: Global Aggregated Analytics (Khusus PENGGUNA HP - Real Data Only)
+  const globalAnalytics = useMemo(() => {
+    let totalActiveSec = 0;
+    let devicesWithTimeCount = 0;
+    const mobileList = telemetryList.filter(isMobileDevice);
+    const totalDevicesCount = mobileList.length || 0;
+    let totalMobileTransactions = 0;
+    const accountFreq = {};
+    const expenseCatFreq = {};
+    const incomeCatFreq = {};
+
+    mobileList.forEach((item) => {
+      totalMobileTransactions += (item.totalTransactions || 0);
+
+      // 1. Durasi aktif waktu di aplikasi (Real data HP only)
+      const itemSec = Number(item.totalActiveSeconds || 0);
+      if (itemSec > 0) {
+        totalActiveSec += itemSec;
+        devicesWithTimeCount += 1;
+      }
+
+      // 2. Akun Bank & E-Wallet (Real data only with canonical normalization)
+      if (item.accountStats && typeof item.accountStats === 'object') {
+        Object.entries(item.accountStats).forEach(([acc, count]) => {
+          const c = Number(count);
+          if (acc && !isNaN(c) && c > 0) {
+            const canonicalAcc = normalizeAccountName(acc);
+            accountFreq[canonicalAcc] = (accountFreq[canonicalAcc] || 0) + c;
+          }
+        });
+      }
+
+      // 3. Kategori Pengeluaran (Real data only with canonical normalization)
+      if (item.expenseCategoryStats && typeof item.expenseCategoryStats === 'object') {
+        Object.entries(item.expenseCategoryStats).forEach(([cat, count]) => {
+          const c = Number(count);
+          if (cat && !isNaN(c) && c > 0) {
+            let normCat = cat.trim();
+            if (/^(food|makan|makanan)$/i.test(normCat)) normCat = 'Makanan';
+            else if (/^(coffee|kopi)$/i.test(normCat)) normCat = 'Kopi';
+            else if (/^(transport|transportasi)$/i.test(normCat)) normCat = 'Transportasi';
+            else if (/^(supermarket|minimarket)$/i.test(normCat)) normCat = 'Supermarket';
+            else if (/^(sub|subscription)$/i.test(normCat)) normCat = 'Subscription';
+            else if (/^(barber|barbershop)$/i.test(normCat)) normCat = 'Barbershop';
+            expenseCatFreq[normCat] = (expenseCatFreq[normCat] || 0) + c;
+          }
+        });
+      }
+
+      // 4. Kategori Pemasukan (Real data only with canonical normalization)
+      if (item.incomeCategoryStats && typeof item.incomeCategoryStats === 'object') {
+        Object.entries(item.incomeCategoryStats).forEach(([cat, count]) => {
+          const c = Number(count);
+          if (cat && !isNaN(c) && c > 0) {
+            let normCat = cat.trim();
+            if (/^(gaji|salary)$/i.test(normCat)) normCat = 'Gaji';
+            else if (/^(bonus|thr)$/i.test(normCat)) normCat = 'Bonus';
+            else if (/^(bisnis|business)$/i.test(normCat)) normCat = 'Bisnis';
+            else if (/^(investasi|investment)$/i.test(normCat)) normCat = 'Investasi';
+            incomeCatFreq[normCat] = (incomeCatFreq[normCat] || 0) + c;
+          }
+        });
+      }
+    });
+
+    // Rata-rata durasi (Real data HP)
+    const divisor = devicesWithTimeCount > 0 ? devicesWithTimeCount : (totalDevicesCount > 0 ? totalDevicesCount : 1);
+    const avgSec = totalActiveSec > 0 ? Math.round(totalActiveSec / divisor) : 0;
+    const avgMins = Math.floor(avgSec / 60);
+    const remSecs = avgSec % 60;
+    const formattedAvgTime = avgSec > 0
+      ? (avgMins > 0 
+          ? (remSecs > 0 ? `${avgMins} mnt ${remSecs} dtk` : `${avgMins} menit`)
+          : `${avgSec} detik`)
+      : '0 detik';
+
+    // Process Top 5 Akun (Real data HP)
+    const totalAccUsage = Object.values(accountFreq).reduce((a, b) => a + b, 0);
+    const topAccounts = totalAccUsage > 0 
+      ? Object.entries(accountFreq)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percent: Math.round((count / totalAccUsage) * 100)
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+      : [];
+
+    // Process Top 5 Expense Categories (Real data HP)
+    const totalExpenseUsage = Object.values(expenseCatFreq).reduce((a, b) => a + b, 0);
+    const topExpenseCategories = totalExpenseUsage > 0
+      ? Object.entries(expenseCatFreq)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percent: Math.round((count / totalExpenseUsage) * 100)
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+      : [];
+
+    // Process Top 5 Income Categories (Real data HP)
+    const totalIncomeUsage = Object.values(incomeCatFreq).reduce((a, b) => a + b, 0);
+    const topIncomeCategories = totalIncomeUsage > 0
+      ? Object.entries(incomeCatFreq)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percent: Math.round((count / totalIncomeUsage) * 100)
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+      : [];
+
+    return {
+      avgSeconds: avgSec,
+      formattedAvgTime,
+      totalDevicesCount,
+      totalMobileTransactions,
+      topAccounts,
+      topExpenseCategories,
+      topIncomeCategories
+    };
+  }, [telemetryList]);
+
   useEffect(() => {
     document.title = 'Cassiel Command - Admin Web Monitor';
   }, []);
@@ -940,6 +1127,230 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 <div className="refresh-timer-badge">
                   <Clock size={13} />
                   <span>Refresh berikutnya: {formatTimer(secondsRemaining)}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* SECTION BARU: STATISTIK RATA-RATA PENGGUNAAN APLIKASI (KHUSUS HP / MOBILE ONLY) */}
+            <section className="admin-card global-usage-section">
+              <div className="table-header-row">
+                <div className="section-title-group">
+                  <h2 className="admin-section-title">
+                    <Smartphone size={20} color="#3B82F6" />
+                    Statistik Rata-Rata Penggunaan HP (Mobile Only)
+                  </h2>
+                </div>
+                <div className="global-stats-user-chip">
+                  <Smartphone size={14} />
+                  <span>Sampel: <b>{globalAnalytics.totalDevicesCount}</b> HP</span>
+                </div>
+              </div>
+
+              {/* Banner Highlight Rata-Rata Waktu Pengguna HP di Aplikasi */}
+              <div className="usage-highlight-banner">
+                <div className="highlight-banner-left">
+                  <div className="highlight-icon-glow">
+                    <Clock size={28} color="#3B82F6" />
+                  </div>
+                  <div className="highlight-text-content">
+                    <div className="highlight-label-row">
+                      <span className="highlight-label">Rata-Rata Menit Pengguna HP di Dalam Aplikasi</span>
+                      <span className="highlight-tag">📱 Khusus Pengguna HP</span>
+                    </div>
+                    <div className="highlight-number-row">
+                      <span className="highlight-value-primary">{globalAnalytics.formattedAvgTime}</span>
+                      <span className="highlight-value-sub">/ pengguna HP</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="highlight-banner-right">
+                  <div className="highlight-mini-stat">
+                    <span className="mini-stat-label">Total HP Terpantau</span>
+                    <span className="mini-stat-value">{globalAnalytics.totalDevicesCount} Perangkat</span>
+                  </div>
+                  <div className="highlight-mini-stat">
+                    <span className="mini-stat-label">Total Transaksi HP</span>
+                    <span className="mini-stat-value">{globalAnalytics.totalMobileTransactions} Catatan</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid 3 Kartu Tingkatan Peringkat (Top 1 s/d 5) */}
+              <div className="analytics-rankings-grid">
+                {/* 1. TOP 5 AKUN / BANK & E-WALLET */}
+                <div className="analytics-rank-card">
+                  <div className="rank-card-header">
+                    <div className="rank-card-title-wrap">
+                      <div className="rank-card-icon-circle account-circle">
+                        <Wallet size={16} color="#6366F1" />
+                      </div>
+                      <div>
+                        <h3 className="rank-card-title">Top 5 Akun & E-Wallet</h3>
+                        <span className="rank-card-subtitle">Paling Sering Digunakan</span>
+                      </div>
+                    </div>
+                    <span className="rank-category-pill acc-pill">Bank & E-Wallet</span>
+                  </div>
+
+                  <div className="rank-items-list">
+                    {globalAnalytics.topAccounts.length === 0 ? (
+                      <div className="empty-rank-state">
+                        <Wallet size={24} color="#9CA3AF" />
+                        <span>Belum ada data akun yang tercatat</span>
+                      </div>
+                    ) : (
+                      globalAnalytics.topAccounts.map((item, idx) => {
+                        const rankNum = idx + 1;
+                        const isTop1 = rankNum === 1;
+                        const isTop2 = rankNum === 2;
+                        const isTop3 = rankNum === 3;
+
+                        return (
+                          <div key={item.name} className={`rank-item-row ${isTop1 ? 'rank-1-row' : ''}`}>
+                            <div className="rank-item-left">
+                              <span className={`rank-badge ${isTop1 ? 'rank-gold' : isTop2 ? 'rank-silver' : isTop3 ? 'rank-bronze' : 'rank-normal'}`}>
+                                {isTop1 ? '🥇 1' : isTop2 ? '🥈 2' : isTop3 ? '🥉 3' : `#${rankNum}`}
+                              </span>
+                              <div className="rank-item-logo-name">
+                                <AccountIconBadge accountName={item.name} size={24} />
+                                <span className="rank-item-name">{item.name}</span>
+                              </div>
+                            </div>
+
+                            <div className="rank-item-right">
+                              <div className="rank-progress-wrap">
+                                <div 
+                                  className="rank-progress-bar account-bar" 
+                                  style={{ width: `${Math.max(8, item.percent)}%` }}
+                                />
+                              </div>
+                              <span className="rank-freq-badge">
+                                <b>{item.percent}%</b> <small>({item.count}x)</small>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. TOP 5 KATEGORI PENGELUARAN */}
+                <div className="analytics-rank-card">
+                  <div className="rank-card-header">
+                    <div className="rank-card-title-wrap">
+                      <div className="rank-card-icon-circle expense-circle">
+                        <TrendingDown size={16} color="#EF4444" />
+                      </div>
+                      <div>
+                        <h3 className="rank-card-title">Top 5 Kategori Belanja</h3>
+                        <span className="rank-card-subtitle">Pengeluaran Terbanyak</span>
+                      </div>
+                    </div>
+                    <span className="rank-category-pill expense-pill">Pengeluaran</span>
+                  </div>
+
+                  <div className="rank-items-list">
+                    {globalAnalytics.topExpenseCategories.length === 0 ? (
+                      <div className="empty-rank-state">
+                        <TrendingDown size={24} color="#9CA3AF" />
+                        <span>Belum ada transaksi pengeluaran</span>
+                      </div>
+                    ) : (
+                      globalAnalytics.topExpenseCategories.map((item, idx) => {
+                        const rankNum = idx + 1;
+                        const isTop1 = rankNum === 1;
+                        const isTop2 = rankNum === 2;
+                        const isTop3 = rankNum === 3;
+                        const iconEmoji = getCategoryIconDisplay(item.name, false);
+
+                        return (
+                          <div key={item.name} className={`rank-item-row ${isTop1 ? 'rank-1-row' : ''}`}>
+                            <div className="rank-item-left">
+                              <span className={`rank-badge ${isTop1 ? 'rank-gold' : isTop2 ? 'rank-silver' : isTop3 ? 'rank-bronze' : 'rank-normal'}`}>
+                                {isTop1 ? '🥇 1' : isTop2 ? '🥈 2' : isTop3 ? '🥉 3' : `#${rankNum}`}
+                              </span>
+                              <div className="rank-item-logo-name">
+                                <span className="category-emoji-badge">{iconEmoji}</span>
+                                <span className="rank-item-name">{item.name}</span>
+                              </div>
+                            </div>
+
+                            <div className="rank-item-right">
+                              <div className="rank-progress-wrap">
+                                <div 
+                                  className="rank-progress-bar expense-bar" 
+                                  style={{ width: `${Math.max(8, item.percent)}%` }}
+                                />
+                              </div>
+                              <span className="rank-freq-badge expense-freq">
+                                <b>{item.percent}%</b> <small>({item.count}x)</small>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. TOP 5 KATEGORI PEMASUKAN */}
+                <div className="analytics-rank-card">
+                  <div className="rank-card-header">
+                    <div className="rank-card-title-wrap">
+                      <div className="rank-card-icon-circle income-circle">
+                        <TrendingUp size={16} color="#10B981" />
+                      </div>
+                      <div>
+                        <h3 className="rank-card-title">Top 5 Kategori Income</h3>
+                        <span className="rank-card-subtitle">Pemasukan Terbesar</span>
+                      </div>
+                    </div>
+                    <span className="rank-category-pill income-pill">Pemasukan</span>
+                  </div>
+
+                  <div className="rank-items-list">
+                    {globalAnalytics.topIncomeCategories.length === 0 ? (
+                      <div className="empty-rank-state">
+                        <TrendingUp size={24} color="#9CA3AF" />
+                        <span>Belum ada transaksi pemasukan</span>
+                      </div>
+                    ) : (
+                      globalAnalytics.topIncomeCategories.map((item, idx) => {
+                        const rankNum = idx + 1;
+                        const isTop1 = rankNum === 1;
+                        const isTop2 = rankNum === 2;
+                        const isTop3 = rankNum === 3;
+                        const iconEmoji = getCategoryIconDisplay(item.name, true);
+
+                        return (
+                          <div key={item.name} className={`rank-item-row ${isTop1 ? 'rank-1-row' : ''}`}>
+                            <div className="rank-item-left">
+                              <span className={`rank-badge ${isTop1 ? 'rank-gold' : isTop2 ? 'rank-silver' : isTop3 ? 'rank-bronze' : 'rank-normal'}`}>
+                                {isTop1 ? '🥇 1' : isTop2 ? '🥈 2' : isTop3 ? '🥉 3' : `#${rankNum}`}
+                              </span>
+                              <div className="rank-item-logo-name">
+                                <span className="category-emoji-badge">{iconEmoji}</span>
+                                <span className="rank-item-name">{item.name}</span>
+                              </div>
+                            </div>
+
+                            <div className="rank-item-right">
+                              <div className="rank-progress-wrap">
+                                <div 
+                                  className="rank-progress-bar income-bar" 
+                                  style={{ width: `${Math.max(8, item.percent)}%` }}
+                                />
+                              </div>
+                              <span className="rank-freq-badge income-freq">
+                                <b>{item.percent}%</b> <small>({item.count}x)</small>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </section>

@@ -40,6 +40,20 @@
       <img src="/splash cassiel.jpg" alt="Cassiel Splash" />
     </div>
     <div id="root"></div>
+    <script>
+      // Fallback Safety Timer: Jamin splash screen hilang dalam 1.8 detik jika React mengalami delay
+      setTimeout(function() {
+        var splash = document.getElementById('app-splash-screen');
+        if (splash) {
+          splash.classList.add('splash-exit');
+          setTimeout(function() {
+            if (splash && splash.parentNode) {
+              splash.parentNode.removeChild(splash);
+            }
+          }, 500);
+        }
+      }, 1800);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

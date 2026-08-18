@@ -1,6 +1,6 @@
 # 💰 Cassiel — Personal Finance Tracker
 
-> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Animasi 3D Typewriter Transaksi**, **Live Category Insight Engine**, **Simulator Opportunity Cost "Andai"**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran masyarakat Indonesia.
+> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Sistem Mata Uang 1 Dunia & Kurs Real-Time**, **Multi-Bahasa (Termasuk Bahasa Korea Latin & Basa Jawa)**, **Live Category Insight Engine**, **Animasi 3D Typewriter Transaksi**, **Simulator Opportunity Cost "Andai"**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran sehari-hari.
 
 ---
 
@@ -8,6 +8,8 @@
 
 - [Tentang Cassiel](#tentang-cassiel)
 - [Fitur Utama](#fitur-utama)
+- [🌍 Sistem Mata Uang Dunia & Kurs Real-Time](#-sistem-mata-uang-dunia--kurs-real-time)
+- [🌐 Multi-Bahasa (i18n)](#-multi-bahasa-i18n)
 - [🎙️ Input Transaksi Suara (Voice AI Engine)](#️-input-transaksi-suara-voice-ai-engine)
 - [⏱️ Category Insight & Live Countdown Engine](#️-category-insight--live-countdown-engine)
 - [✨ 3D Pop-in & Typewriter Animation](#-3d-pop-in--typewriter-animation)
@@ -44,34 +46,91 @@ Cassiel tersedia dalam dua platform:
 
 ## Fitur Utama
 
+### 🌍 Multi-Currency & Live Exchange Rates (1 Dunia)
+- **Database Mata Uang Global**: Mendukung seluruh mata uang dunia utama (IDR, USD, EUR, JPY, GBP, KRW, SGD, MYR, AUD, SAR, AED, CNY, dll.) dengan bendera resmi berkualitas tinggi (*FlagCDN*).
+- **Live Exchange Rate Engine**: Integrasi kurs *real-time* otomatis dengan sistem *smart caching* hemat kuota serta fallback luring aman.
+- **Rupiah Prioritas No. 1**: IDR berada di posisi teratas sebagai mata uang utama bawaan aplikasi.
+
+### 🌐 Multi-Language Engine (i18n)
+- **5 Pilihan Bahasa**:
+  1. **Bahasa Indonesia (Default)**
+  2. **English**
+  3. **Basa Jawa** (Krama Alus Mataraman)
+  4. **Mandarin** (Pinyin Latin ABC)
+  5. **Bahasa Korea** (Romaja Latin Alphabet ABC)
+- **Kaidah 1 Kata**: Label form transaksi menggunakan 1 kata murni yang padat, presisi, dan proporsional di semua bahasa.
+
 ### 🎙️ Voice AI Transaction Engine (Canggih & Majemuk)
 - **Compound Commands**: Mendukung perintah majemuk dalam satu ucapan (misal: *"hapus bakwan lalu beli kopi 20rb dan bensin 30rb"*).
-- **Scored Relevance Token Matcher**: Penghapusan transaksi via suara cukup dengan menyebutkan kata kunci parsial (misal: *"hapus bakwan pink"* mencocokkan *"Apa maksudku bakwan pink"*).
+- **Scored Relevance Token Matcher**: Penghapusan transaksi via suara cukup dengan menyebutkan kata kunci parsial.
 - **Self-Repair & Ralat**: Deteksi otomatis koreksi ucapan pengguna (*"beli mie ayam ralat bakso 15 ribu"*).
 - **Seamless Native Mic**: Tombol mic berdenyut halus (*pulsing wave*) langsung di dalam aplikasi tanpa popup dialog Google.
 
 ### ✨ 3D Depth Pop-in & Left-to-Right Typewriter Animation
 - Setiap transaksi yang dibuat via suara tampil dengan efek visual kartu 3D pop-in yang elegan.
-- Animasi pengetikan dinamis (*typewriter*) mengalir mulus dari kiri ke kanan untuk teks deskripsi dan nominal digit angka (`-Rp xx.xxx`).
-- Dilengkapi sinkronisasi penguncian (*speech processing lock*) untuk mencegah eksekusi ganda.
+- Animasi pengetikan dinamis (*typewriter*) mengalir mulus dari kiri ke kanan untuk teks deskripsi dan nominal digit angka.
 
 ### ⏱️ Category Insight & Live Countdown Engine
 - Pemantauan ritme dan intensitas belanja per kategori secara cerdas.
-- Layar **Category Insight** dengan **Live Countdown Timer** yang menghitung mundur interval jeda belanja sehat berikutnya.
+- Layar **Category Insight** dengan **Live Countdown Timer** yang menghitung mundur interval jeda belanja sehat berikutnya, diselaraskan penuh dengan bahasa dan mata uang aktif.
 
 ### 🔮 Fitur "Andai" & Loss Aversion
 - **What-If Simulator**: Menghitung potensi pertumbuhan uang jika pengeluaran konsumtif diinvestasikan ke instrumen finansial (Big Bank 10%, Emas 7%, Obligasi 6.5%).
-- **Loss Aversion Badge**: Kartu psikologis di halaman utama yang menghitung akumulasi potensi kerugian masa depan dari gaya hidup konsumtif.
-
-### 📊 Statistik & Laporan Mendalam
-- Ringkasan **Total Pemasukan**, **Total Pengeluaran**, dan **Arus Kas Bersih**.
-- Filter periode fleksibel: **Bulanan**, **Mingguan**, dan **Tahunan**.
-- Visualisasi grafik interaktif dan breakdown persentase kategori.
+- **Loss Aversion Badge**: Kartu psikologis di halaman utama yang menghitung akumulasi potensi kerugian masa depan dari gaya hidup konsumtif dalam mata uang dan bahasa aktif pengguna.
 
 ### 👤 Personalisasi & Profil Full-Page
 - Kustomisasi nama profil dan foto pengguna dengan fitur **crop & zoom** interaktif.
-- Upload **wallpaper / background** personal dengan kompresi cerdas.
-- Tampilan profil layar penuh (*full-page*) yang bersih, borderless, dan elegan.
+- Pilihan **Gaya Tulisan (Font)** dan upload **Wallpaper / Background** personal.
+- Menu pengaturan profil bergaya modern, *borderless*, dan *backgroundless*.
+- Fitur **Saran & Masukan Developer** untuk mengirim ide fitur atau keluhan langsung dari aplikasi.
+
+---
+
+## 🌍 Sistem Mata Uang Dunia & Kurs Real-Time
+
+Cassiel menghadirkan mesin konversi dan pemformatan mata uang global yang fleksibel:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Open Exchange Rates API                    │
+│        https://open.er-api.com/v6/latest/IDR            │
+└────────────────────────────┬────────────────────────────┘
+                             │ (Background Fetch & Cache 30 Min)
+┌────────────────────────────▼────────────────────────────┐
+│               Cassiel Currency Engine                   │
+│   - Multi-Currency Database + FlagCDN Assets           │
+│   - Offline Fallback Baseline Rates                    │
+│   - Dynamic Amount Formatter (fmtMoney)                 │
+└────────────────────────────┬────────────────────────────┘
+                             │
+     ┌───────────────────────┼───────────────────────┐
+     ▼                       ▼                       ▼
+┌──────────────┐     ┌──────────────┐     ┌────────────────┐
+│  Dashboard   │     │ Transactions │     │ Andai & Insight│
+│ Balance Card │     │  Daily Rows  │     │   Simulators   │
+└──────────────┘     └──────────────┘     └────────────────┘
+```
+
+- **Pencarian Cepat**: Filter mata uang berdasarkan nama negara, kode ISO (USD, EUR, KRW), atau simbol (`$`, `₩`, `€`, `Rp`).
+- **Scrollbar Elegan**: Navigasi daftar mata uang dilengkapi scrollbar hitam minimalis dengan *fixed search header* yang rapi.
+
+---
+
+## 🌐 Multi-Bahasa (i18n)
+
+Aplikasi terhubung secara dinamis ke kamus multi-bahasa `src/utils/i18n.js`:
+
+| Fitur / Layar | Bahasa Indonesia | English | Basa Jawa | Mandarin (ABC) | Korea (Romaja) |
+|---------------|------------------|---------|-----------|----------------|----------------|
+| **Home** | Beranda | Home | Kaca Utama | Shouye | Hom |
+| **Stats** | Statistik | Statistics | Statistik | Tongji | Tonggye |
+| **Add Button** | *Ikon Melayang (+)* | *(Icon Only)* | *(Icon Only)* | *(Icon Only)* | *(Icon Only)* |
+| **Tanggal** | Tanggal | Date | Titimangsa | Riqi | Naljja |
+| **Jumlah** | Jumlah | Amount | Gunggung | Jine | Geumaek |
+| **Kategori** | Kategori | Category | Kategori | Fenlei | Bungnyu |
+| **Akun** | Akun | Account | Wadhah | Zhanghu | Gyejwa |
+| **Catatan** | Catatan | Note | Cathetan | Beizhu | Memo |
+| **Simpan** | Simpan | Save | Simpen | Baocun | Jeojang |
 
 ---
 
@@ -103,7 +162,7 @@ Mesin pemroses suara cerdas Cassiel mengekstrak seluruh parameter transaksi dari
                                    │
                ┌───────────────────▼───────────────────┐
                │      Dynamic Category Classifier      │
-               │  - Pre-defined Indonesian Dictionary  │
+               │  - Pre-defined Multi-Language Dict    │
                │  - Learned User Aliases (Local AI)    │
                │  - Levenshtein & Jaro-Winkler Fuzzy   │
                └───────────────────┬───────────────────┘
@@ -112,13 +171,6 @@ Mesin pemroses suara cerdas Cassiel mengekstrak seluruh parameter transaksi dari
         { type: "expense", amount: 25000, categoryId: "bensin", account: "QRIS", note: "bensin" }
 ```
 
-### Kemampuan Pemahaman Suara:
-1. **Perintah Majemuk (Compound Multi-Action)**: Mengeksekusi multi-pengeluaran, multi-pemasukan, atau kombinasi hapus + tambah dalam 1 sesi bicara.
-2. **Scored Token Relevance Matcher**: Menghapus transaksi berdasarkan skor relevansi token kata kunci.
-3. **Ekstraksi Nominal Fleksibel**: Memahami angka + singkatan (`15rb`, `25k`, `5jt`), ejaan huruf (`dua puluh lima ribu`), maupun kombinasi campuran.
-4. **Deteksi Tipe & Akun Otomatis**: Klasifikasi otomatis Pemasukan/Pengeluaran dan ekstraksi dompet/sumber dana (`QRIS`, `Bank`, `Cash`).
-5. **Self-Learning (Local AI Learner)**: Menghafal alias kata khusus pengguna di penyimpanan lokal secara mandiri.
-
 ---
 
 ## ⏱️ Category Insight & Live Countdown Engine
@@ -126,15 +178,7 @@ Mesin pemroses suara cerdas Cassiel mengekstrak seluruh parameter transaksi dari
 Sistem analitik berbasis perilaku belanja lokal yang memberikan wawasan disiplin finansial:
 - Menganalisis frekuensi dan interval belanja setiap kategori.
 - Menyajikan **Live Countdown Timer** yang menghitung sisa waktu menuju target jeda belanja yang disarankan.
-- Membantu menahan impuls belanja berulang dalam rentang waktu singkat.
-
----
-
-## ✨ 3D Pop-in & Typewriter Animation
-
-- **Visual Feedback**: Transaksi yang berhasil dicatat via suara langsung muncul di daftar transaksi teratas dengan transisi 3D Pop-in halus.
-- **Unified Timer Loop**: Menggunakan satu interval progress terpadu (`charProgress`) untuk mencegah benturan timer dan double execution.
-- **Left-to-Right Pacing**: Karakter teks dan nominal angka bergerak stabil dari kiri ke kanan dengan kecepatan yang nyaman dibaca.
+- Narasi kisah pengeluaran (*Spending Story*), transaksi terbesar, metode pembayaran utama, dan perbandingan tren bulanan.
 
 ---
 
@@ -145,7 +189,7 @@ Fitur **Andai** membantu pengguna menyadari **biaya peluang (opportunity cost)**
 ### Cara Kerja:
 1. Sistem mengidentifikasi seluruh transaksi konsumtif bulan berjalan via **Hybrid AI Classifier**.
 2. Pengguna memilih **instrumen investasi** dan **jangka waktu** (1, 3, 5, atau 10 tahun).
-3. Sistem menghitung proyeksi nilai masa depan menggunakan rumus *Compound Interest*:
+3. Proyeksi nilai masa depan dihitung menggunakan rumus *Compound Interest*:
 
 $$\text{FV} = P \times (1 + r)^n$$
 
@@ -156,9 +200,6 @@ $$\text{FV} = P \times (1 + r)^n$$
 | **Emas Mulia** | 7% / tahun | Instrumen lindung nilai (hedging) |
 | **Obligasi** | 6.5% / tahun | Surat Berharga Negara / Fixed Income |
 
-### Prinsip Anti-Excuse (Kedap Cheating):
-Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasarkan algoritma sistem — tidak ada tombol bypass manual demi menjaga integritas kejujuran finansial.
-
 ---
 
 ## ⚡ Loss Aversion Badge
@@ -166,7 +207,7 @@ Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasar
 **Loss Aversion Badge** adalah kartu interaktif di dashboard utama yang mengingatkan potensi nominal yang hilang akibat belanja impulsif/konsumtif bulan ini.
 
 - **Kondisi Muncul**: Hanya tampil saat bulan aktif jika terdapat transaksi konsumtif (`totalConsumptiveAmount > 0`).
-- **Framing Psikologis**: Menggunakan perspektif kerugian (*"Kamu berpotensi kehilangan Rp X di masa depan..."*) yang terbukti 2x lebih efektif mengubah perilaku belanja dibanding framing tabungan biasa.
+- **Multi-Bahasa & Multi-Mata Uang**: Pesan peringatan dan nominal uang otomatis menyesuaikan pengaturan bahasa dan mata uang aktif.
 - **Aksi Cepat**: Mengetuk badge langsung membuka simulator Andai untuk rincian lebih detail.
 
 ---
@@ -174,10 +215,8 @@ Klasifikasi konsumtif pada fitur Andai bersifat **mutlak dan otomatis** berdasar
 ## 🔔 Audio Feedback — Positive Chime
 
 Untuk membentuk kebiasaan finansial yang sehat, aplikasi memberikan *dopamine reward* positif saat pengguna mencatat pengeluaran non-konsumtif (kebutuhan primer/esensial):
-
 - **Melodi**: Arpeggio nada naik C5 → E5 → G5 → **C6**.
-- **Sintesis Audio**: 100% menggunakan Web Audio API tanpa load file MP3/WAV eksternal (sangat ringan dan bebas latency).
-- **Aturan**: Hanya berbunyi untuk pengeluaran esensial (seperti beras, bensin, obat, edukasi, listrik).
+- **Sintesis Audio**: 100% menggunakan Web Audio API tanpa file audio eksternal (ringan dan bebas latensi).
 
 ---
 
@@ -188,7 +227,7 @@ Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan beb
 ### Pipeline Klasifikasi:
 1. **Text Normalizer & Noise Stripper**: Pembersihan karakter khusus, konversi huruf kecil, dan perataan slang kata.
 2. **Threshold Rule Engine**: Evaluasi khusus untuk kategori yang bergantung pada batas nominal.
-3. **Exact & Context Match**: Pencocokan kata kunci esensial dan konsumtif khas bahasa Indonesia.
+3. **Exact & Context Match**: Pencocokan kata kunci esensial dan konsumtif khas multi-bahasa.
 4. **Fuzzy Match Engine**: Kombinasi algoritma Levenshtein & Jaro-Winkler untuk menangani salah ketik/typo.
 5. **Naive Bayes Weighted Voting**: Menggabungkan seluruh bukti untuk menghasilkan status akhir (*Konsumtif* vs *Non-Konsumtif*).
 
@@ -212,13 +251,11 @@ Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan beb
 ### 6 Kategori Pemasukan (Income):
 `gaji`, `bonus`, `kip`, `investasi`, `bisnis`, `affiliate`.
 
-> **Prinsip Runtime Icon Lookup**: Objek transaksi hanya menyimpan string `categoryId`. Seluruh render ikon SVG dilakukan secara runtime melalui `ICON_MAP` untuk menghemat ruang memori `localStorage`.
-
 ---
 
 ## 🛡️ Keamanan & Integritas Data
 
-1. **Local-First Isolation**: Seluruh riwayat transaksi keuangan Anda tersimpan privat di perangkat lokal.
+1. **Local-First Isolation**: Seluruh riwayat transaksi keuangan tersimpan privat di perangkat lokal.
 2. **Secure Storage Wrappers**: Serialisasi data aman dengan validasi schema sebelum disimpan ke storage.
 3. **In-App Update Signature Integrity**: Pengecekan checksum SHA-256 dan validasi URL download terpercaya sebelum mengizinkan pembaruan aplikasi.
 4. **Firestore Rules Hardening**: Aturan Firestore terkunci rapat — hanya mengizinkan pengiriman metrik telemetri agregat perangkat tanpa akses membaca data pribadi pengguna lain.
@@ -240,7 +277,6 @@ Sistem navigasi tombol kembali fisik dan usap tepi layar (*edge-swipe gesture*) 
 Panel admin (`/?admin`) memisahkan ranah teknis dan privasi secara ketat:
 - **Tab 1 (Telemetry)**: Menampilkan metrik teknis perangkat, versi aktif, dan nama profil asli untuk keperluan pemecahan masalah teknis.
 - **Tab 2 (AI Learning)**: Menyamarkan identitas pengguna dengan kode enkripsi privasi (`enc:v1:...`) dan hanya memfilter pengguna dengan data insight aktif.
-- *Catatan: Tidak ada data nominal transaksi finansial yang dikirim ke telemetri cloud.*
 
 ---
 
@@ -251,6 +287,7 @@ Panel admin (`/?admin`) memisahkan ranah teknis dan privasi secara ketat:
 | **Core Framework** | React 19, Vite 8 |
 | **Mobile Runtime** | Capacitor 8 (Android Platform) |
 | **Speech Engine** | `@capacitor-community/speech-recognition`, Web Speech API |
+| **Currency & Flags** | Open Exchange Rates API, FlagCDN |
 | **Icons & UI** | Custom Hand-crafted SVGs, Lucide React |
 | **Styling** | Vanilla CSS Modern (Fluid Design, Glassmorphism, Theme Engine) |
 | **Audio Synthesis** | Web Audio API (Synthesized Oscillators) |
@@ -276,6 +313,9 @@ finance-tracker/
 │   │       ├── AdminDashboard.jsx    # Dashboard telemetri & AI learning admin
 │   │       └── AdminDashboard.css
 │   └── utils/
+│       ├── currency.js          # Mesin mata uang 1 dunia & live exchange rates
+│       ├── i18n.js              # Engine multi-bahasa (ID, EN, JV, ZH, KO)
+│       ├── feedback.js          # Pengiriman saran pengguna ke developer
 │       ├── voiceParser.js       # Natural Language Parser suara majemuk Indonesia
 │       ├── voiceLearner.js      # Mesin pembelajaran kebiasaan kata lokal
 │       ├── noiseFilter.js       # Pembersih noise transkrip suara & tanda baca
@@ -336,21 +376,10 @@ npm run build
 ```
 Hasil build siap saji akan berada di folder `dist/`.
 
-### Linting Kode:
-```bash
-npm run lint
-```
-
 ---
 
 ## 🤖 Build APK Android
 
-### Prasyarat:
-- Java JDK 17+
-- Android SDK & Build Tools
-- Capacitor CLI
-
-### Langkah Build Release:
 ```bash
 # 1. Kompilasi web bundle
 npm run build
@@ -373,6 +402,9 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 | Key LocalStorage | Tipe Data | Deskripsi |
 |------------------|-----------|-----------|
 | `user_transactions` | `Array<Object>` | Seluruh catatan transaksi pengguna |
+| `user_app_currency` | `String` | Kode mata uang aktif (e.g. `IDR`, `USD`, `KRW`) |
+| `user_app_language` | `String` | Kode bahasa aktif (`id`, `id_id`, `en`, `jv`, `zh`, `ko`) |
+| `user_app_font` | `String` | ID font aktif yang dipilih |
 | `user_learned_voice_aliases` | `Object` | Kamus asosiasi kata suara hasil pembelajaran lokal |
 | `user_expense_categories` | `Array<Object>` | Daftar kategori pengeluaran kustom |
 | `user_income_categories` | `Array<Object>` | Daftar kategori pemasukan kustom |
@@ -389,20 +421,12 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |-------|--------------|---------------|--------------------------|
-| **1.0.16** | **17** | **Agustus 2026** | **Live Countdown Timer Category Insight**, Compound Voice Actions, 3D Typewriter Animation |
+| **1.0.19** | **20** | **Agustus 2026** | **Mata Uang 1 Dunia (Live Exchange Rates)**, **Bahasa Korea (Latin Romaja)**, Full i18n Sync |
+| 1.0.18 | 19 | Agustus 2026 | Fitur Saran & Keluh Kesah Developer, Pilihan Font & Multi-Bahasa |
+| 1.0.17 | 18 | Agustus 2026 | Sinkronisasi Notifikasi Update, Borderless Profile Menu |
+| 1.0.16 | 17 | Agustus 2026 | Live Countdown Timer Category Insight, Compound Voice Actions |
 | 1.0.15 | 16 | Agustus 2026 | Scored Relevance Token Matcher, Voice Deletion Enhancements |
 | 1.0.14 | 15 | Agustus 2026 | Privacy Anonymization in Admin Dashboard Tab 2 |
-| 1.0.13 | 14 | Agustus 2026 | Seamless In-App Pulsing Mic (Tanpa Pop-up Google), Edge-Swipe Back Gesture |
-| 1.0.12 | 13 | Agustus 2026 | Dukungan Android Edge-Swipe Gesture, Perbaikan Crash Native Speech & ProGuard |
-| 1.0.11 | 12 | Agustus 2026 | Voice AI Transaction Input, Dynamic Voice Learner, Hardening Storage & Rules |
-
-### Rilis Terkini — v1.0.16 (Version Code 17)
-
-- ⏱️ **[New] Live Countdown Timer Category Insight**: Layar Category Insight baru dengan timer hitung mundur interaktif untuk menjaga kedisiplinan jeda waktu antar pembelian.
-- 🎙️ **[New] Compound & Multi-Action Voice Commands**: Eksekusi perintah multi-pengeluaran, multi-pemasukan, dan kombinasi hapus + tambah dalam satu kalimat ucapan.
-- 🎯 **[New] Scored Token Relevance Voice Deletion**: Penghapusan transaksi suara cerdas berdasarkan pencocokan kata kunci parsial berbobot skor.
-- ✨ **[New] 3D Depth Pop-in & Left-to-Right Typewriter Animation**: Transisi visual kartu transaksi 3D dan animasi ketik nominal mengalir mulus dari kiri ke kanan.
-- 🔒 **[New] Privacy Anonymization Admin Dashboard**: Penyamaran identitas pengguna di Tab 2 (AI Learning) menggunakan kode privasi terenkripsi.
 
 ---
 
