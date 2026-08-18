@@ -1,13 +1,13 @@
 {
-  "versionCode": 21,
-  "versionName": "1.0.20",
-  "version": "1.0.20",
-  "changelog": "New in this update:\n- [New] Fitur Keamanan PIN & Biometrik\n- [New] Multi-Bahasa & Peningkatan Performa",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.20",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.20",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.20",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.20",
-  "sha256": "7931aab320d10d9ea24cd88923b4be2903559a09a4ec308916dc9c6e39a30ed4",
+  "versionCode": 22,
+  "versionName": "1.0.21",
+  "version": "1.0.21",
+  "changelog": "New in this update:\n- [New] Penyesuaian Akun Bank & E-Wallet\n- [New] Ikon Aplikasi pada Notifikasi",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.21",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.21",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.21",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.21",
+  "sha256": "b69e7470596ff579ef031ff794963c3a3318e40967efc8f2fab15c65338bf504",
   "minSdkVersion": 22
 }
 
