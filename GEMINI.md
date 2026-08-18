@@ -178,3 +178,14 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **PIN Dot Filled Color**: Titik indikator PIN yang terisi wajib menggunakan warna **abu-abu** (`background: #64748B`), bukan biru atau warna mencolok lainnya.
 
 * **Backspace Key — Borderless Plain Icon**: Tombol hapus pada keypad PIN (di `PinSetupModal` dan `PinLockScreen`) wajib menggunakan ikon polos tanpa latar belakang bulat atau shadow (`background: transparent; box-shadow: none`).
+
+## 25. iOS Cloud Build & IPA Packaging Invariants
+* **Node.js Runtime Requirement (>= 22.0.0)**: Seluruh workflow CI/CD untuk iOS (seperti `.github/workflows/build_ios.yml`) wajib menggunakan `node-version: 22` (atau lebih baru) karena Capacitor CLI v8 tidak mendukung Node.js 20.
+* **macOS Cloud Runner & Xcode Version**: Gunakan `runs-on: macos-latest` dengan `xcode-select -switch /Applications/Xcode.app` untuk kompilasi iOS SDK standar.
+* **Unsigned Build Flags**: Kompilasi iOS non-keystore wajib menyertakan flag:
+  `CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_ENTITLEMENTS="" ONLY_ACTIVE_ARCH=NO`.
+* **Payload Packaging Standard**:
+  1. Cari lokasi direktori `.app` hasil build derived data.
+  2. Buat direktori `Payload/` dan salin file `App.app` ke dalamnya.
+  3. Kompres direktori `Payload` menggunakan command `zip -r -y "app-release.ipa" Payload` dan salin sebagai `Cassiel.ipa`.
+* **Retention Policy**: Artifact upload diatur dengan retensi 14 hari (`retention-days: 14`) untuk efisiensi penyimpanan storage repositori.
