@@ -50,9 +50,10 @@ import { submitUserFeedback } from './utils/feedback';
 import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
 import { WORLD_CURRENCIES, getCurrency, formatMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
 import { createBackupData, exportBackup, importBackup, restoreBackupData } from './utils/backup';
-import { hasUserPin, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
+import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
 import PinSetupModal from './components/PinSetupModal';
 import PinLockScreen from './components/PinLockScreen';
+import GuidedTourModal from './components/GuidedTourModal';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
@@ -67,7 +68,7 @@ import {
   schedulePersonalizedNotifications,
   scheduleFeatureIntroNotification,
   scheduleNewCategoryNotification,
-  scheduleV18FeatureIntroNotification,
+  scheduleV20FeatureIntroNotification,
   buildBudgetNotifText,
   playSound,
   playPopSound 
@@ -901,9 +902,38 @@ function App() {
 
   // Security / PIN / Biometric State
   const [userHasPin, setUserHasPin] = useState(() => hasUserPin());
+  const [isLockEnabled, setIsLockEnabled] = useState(() => isAppLockEnabled());
   const [isBiometricActive, setIsBiometricActive] = useState(() => isBiometricEnabled());
   const [isPinSetupModalOpen, setIsPinSetupModalOpen] = useState(false);
-  const [isAppLocked, setIsAppLocked] = useState(() => hasUserPin());
+  const [isAppLocked, setIsAppLocked] = useState(() => hasUserPin() && isAppLockEnabled());
+
+  // Interactive Guided Tour State
+  // Rule: 
+  // 1. User Baru (setelah onboarding profile selesai): Wajib panduan aplikasi penuh (mode: 'full_guide')
+  // 2. User Lama (yang update ke versi ini): Wajib 4-fitur utama tour (mode: 'new_user_v20')
+  const [isTourOpen, setIsTourOpen] = useState(() => {
+    const isSetupDone = safeStorageGet('user_profile_setup_done');
+    if (!isSetupDone) {
+      // User baru belum selesai setup profil, jangan buka tour dulu sampai profil disimpan
+      return false;
+    }
+    const updateTourCompleted = safeStorageGet('cassiel_guided_tour_v20_completed');
+    return updateTourCompleted !== 'true' && updateTourCompleted !== true;
+  });
+  const [tourMode, setTourMode] = useState('new_user_v20'); // 'new_user_v20' (4 steps) | 'full_guide' (8 steps)
+
+  const handleCompleteTour = () => {
+    try {
+      safeStorageSet('cassiel_guided_tour_v20_completed', 'true');
+      safeStorageSet('cassiel_guided_tour_full_completed', 'true');
+    } catch {}
+    setIsTourOpen(false);
+  };
+
+  const handleOpenFullGuide = () => {
+    setTourMode('full_guide');
+    setIsTourOpen(true);
+  };
 
   // Translation helper
   const t = useCallback((key) => getTranslation(appLanguage, key), [appLanguage]);
@@ -1156,7 +1186,7 @@ function App() {
   React.useEffect(() => {
     scheduleFeatureIntroNotification(profileName, appLanguage);
     scheduleNewCategoryNotification(profileName, appLanguage);
-    scheduleV18FeatureIntroNotification(profileName, appLanguage);
+    scheduleV20FeatureIntroNotification(profileName, appLanguage);
   }, [profileName, appLanguage]);
 
   // Schedule / sync notifications when profile name, transactions, expenseCategories, or language update
@@ -1396,6 +1426,12 @@ function App() {
       } else {
         sendInstantNotification(finalName, transactions, tempLanguage || appLanguage);
       }
+
+      // Wajibkan Panduan Aplikasi (Full Guide - 8 Langkah) otomatis bagi User Baru setelah setup profil
+      setTimeout(() => {
+        setTourMode('full_guide');
+        setIsTourOpen(true);
+      }, 350);
     }
 
     setIsProfileModalOpen(false);
@@ -3065,17 +3101,19 @@ function App() {
       )}
 
       {activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen && (
-        <VoiceMicButton
-          expenseCategories={expenseCategories}
-          incomeCategories={incomeCategories}
-          accountsList={accountsList}
-          setTransType={setTransType}
-          setAmountVal={setAmountVal}
-          setSelectedCategory={setSelectedCategory}
-          setAccount={setAccount}
-          setNote={setNote}
-          handleSaveVoiceTransaction={handleSaveVoiceTransaction}
-        />
+        <div className="tour-target-voice" style={{ display: 'contents' }}>
+          <VoiceMicButton
+            expenseCategories={expenseCategories}
+            incomeCategories={incomeCategories}
+            accountsList={accountsList}
+            setTransType={setTransType}
+            setAmountVal={setAmountVal}
+            setSelectedCategory={setSelectedCategory}
+            setAccount={setAccount}
+            setNote={setNote}
+            handleSaveVoiceTransaction={handleSaveVoiceTransaction}
+          />
+        </div>
       )}
 
       {/* Voice Feedback Toast Notification */}
@@ -3098,7 +3136,7 @@ function App() {
           <div className="nav-group-left">
             <button
               type="button"
-              className={`nav-item ${activeTab === 'home' ? 'active' : ''}`}
+              className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
               onClick={() => setActiveTab('home')}
               aria-label={t('home')}
             >
@@ -3108,7 +3146,7 @@ function App() {
 
             <button
               type="button"
-              className={`nav-item ${activeTab === 'accounts' ? 'active' : ''}`}
+              className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
               onClick={() => setActiveTab('accounts')}
               aria-label={t('accounts')}
             >
@@ -3117,7 +3155,7 @@ function App() {
             </button>
           </div>
 
-          <div className="center-add-wrapper">
+          <div className="center-add-wrapper tour-target-add">
             <button
               type="button"
               className="center-add-btn"
@@ -3134,7 +3172,7 @@ function App() {
           <div className="nav-group-right">
             <button
               type="button"
-              className={`nav-item ${activeTab === 'budget' ? 'active' : ''}`}
+              className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
               onClick={() => setActiveTab('budget')}
               aria-label={t('budget')}
             >
@@ -3144,7 +3182,7 @@ function App() {
 
             <button
               type="button"
-              className={`nav-item ${activeTab === 'stats' ? 'active' : ''}`}
+              className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
               onClick={() => setActiveTab('stats')}
               aria-label={t('stats')}
             >
@@ -3682,11 +3720,25 @@ function App() {
       {isProfileModalOpen && !safeStorageGet('user_profile_setup_done') && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
           <div className="wa-profile-screen-container">
-            {/* Top Bar Header */}
-            <div className="wa-profile-top-header">
-              <div style={{ width: '24px' }}></div>
-              <h3 className="profile-modal-title">Selamat Datang di Cassiel</h3>
-              <div style={{ width: '24px' }}></div>
+            {/* Top Bar Header (Strictly 1 Single Line) */}
+            <div className="wa-profile-top-header" style={{ padding: '20px 14px 12px 14px', justifyContent: 'center' }}>
+              <h3 className="onboarding-single-line-title">
+                {tempName.trim() ? (
+                  <>
+                    <span className="onboarding-amoresa-username">
+                      {tempName.trim()}
+                    </span>
+                    <span className="onboarding-comma-space">, </span>
+                    <span className="onboarding-welcome-suffix-text">
+                      {t('onboardingWelcomeSuffix')}
+                    </span>
+                  </>
+                ) : (
+                  <span className="onboarding-welcome-suffix-text">
+                    {t('onboardingWelcome')}
+                  </span>
+                )}
+              </h3>
             </div>
 
             <div className="wa-profile-scroll-body" style={{ gap: '22px' }}>
@@ -3731,7 +3783,7 @@ function App() {
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveProfile();
+                    if (e.key === 'Enter' && tempName.trim()) handleSaveProfile();
                   }}
                 />
               </div>
@@ -3777,14 +3829,17 @@ function App() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button (Locked if Name is Empty) */}
               <div style={{ marginTop: '10px' }}>
                 <button
                   type="button"
-                  className="profile-save-btn"
-                  onClick={handleSaveProfile}
+                  className={`profile-save-btn ${!tempName.trim() ? 'disabled-btn' : ''}`}
+                  onClick={() => {
+                    if (tempName.trim()) handleSaveProfile();
+                  }}
+                  disabled={!tempName.trim()}
                 >
-                  Mulai Gunakan Aplikasi 🚀
+                  {t('onboardingStartBtn') || 'Mari Mulai Bersama ✨'}
                 </button>
               </div>
             </div>
@@ -3948,7 +4003,7 @@ function App() {
                 </div>
 
                 {/* Bahasa */}
-                <div className="wa-menu-item" onClick={handleOpenLangModal}>
+                <div className="wa-menu-item tour-target-language" onClick={handleOpenLangModal}>
                   <div className="wa-menu-icon-box lang-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
@@ -4021,7 +4076,7 @@ function App() {
                   </svg>
                 </div>
 
-                {/* Sidik Jari Untuk Login (Toggle Switch) */}
+                {/* Sidik Jari & PIN Untuk Login (Toggle Switch) */}
                 <div
                   className="wa-menu-item wa-menu-item-toggle"
                   onClick={async () => {
@@ -4030,7 +4085,10 @@ function App() {
                       setIsPinSetupModalOpen(true);
                       return;
                     }
-                    const nextVal = !isBiometricActive;
+                    const nextVal = !isLockEnabled;
+                    setAppLockEnabled(nextVal);
+                    setIsLockEnabled(nextVal);
+                    // Sinkronkan juga biometric state
                     setBiometricEnabled(nextVal);
                     setIsBiometricActive(nextVal);
                   }}
@@ -4044,7 +4102,7 @@ function App() {
                     </div>
                     <span className="wa-menu-subtitle">{t('fingerprintLoginSubtitle')}</span>
                   </div>
-                  <div className={`wa-custom-toggle-track ${isBiometricActive ? 'active' : ''}`}>
+                  <div className={`wa-custom-toggle-track ${isLockEnabled ? 'active' : ''}`}>
                     <div className="wa-custom-toggle-thumb" />
                   </div>
                 </div>
@@ -4053,6 +4111,26 @@ function App() {
                     4. DATA & DUKUNGAN
                    ======================================================== */}
                 <h4 className="wa-profile-section-title">{t('sectionDataSupport')}</h4>
+
+                {/* Panduan Aplikasi (Full Interactive Guided Tour) */}
+                <div className="wa-menu-item" onClick={handleOpenFullGuide}>
+                  <div className="wa-menu-icon-box" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('tourAppGuideTitle') || 'Panduan Aplikasi'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('tourAppGuideSubtitle') || 'Pelajari alur dan fitur-fitur utama Cassiel'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
 
                 {/* Saran & Masukan */}
                 <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
@@ -4073,7 +4151,7 @@ function App() {
                 </div>
 
                 {/* Backup & Restore Data */}
-                <div className="wa-menu-item" onClick={() => setIsBackupModalOpen(true)}>
+                <div className="wa-menu-item tour-target-backup" onClick={() => setIsBackupModalOpen(true)}>
                   <div className="wa-menu-icon-box backup-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
@@ -4884,6 +4962,10 @@ function App() {
         onSuccess={() => {
           const wasFirstTime = !userHasPin;
           setUserHasPin(true);
+          setAppLockEnabled(true);
+          setIsLockEnabled(true);
+          setBiometricEnabled(true);
+          setIsBiometricActive(true);
           showVoiceToast(t('pinSuccessSet') || 'PIN keamanan berhasil diatur!');
           // Jika ini pertama kali setup PIN, langsung lock app supaya user verifikasi PIN baru
           if (wasFirstTime) {
@@ -4893,7 +4975,7 @@ function App() {
       />
 
       {/* Layar Kunci PIN Setelah Splash Screen */}
-      {isAppLocked && userHasPin && (
+      {isAppLocked && userHasPin && isLockEnabled && (
         <PinLockScreen
           t={t}
           onUnlockSuccess={() => {
@@ -4901,6 +4983,17 @@ function App() {
           }}
         />
       )}
+
+      {/* Interactive Guided Tour (Walkthrough) */}
+      <GuidedTourModal
+        isOpen={isTourOpen && !isAppLocked}
+        mode={tourMode}
+        t={t}
+        setActiveTab={setActiveTab}
+        setIsProfileModalOpen={setIsProfileModalOpen}
+        onComplete={handleCompleteTour}
+        onClose={() => setIsTourOpen(false)}
+      />
     </div>
   );
 }

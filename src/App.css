@@ -2181,6 +2181,80 @@ img[src*="Kost"] {
   flex: 1;
 }
 
+/* Single Line Onboarding Title (Fits on 1 Line even on iPhone SE) */
+.onboarding-single-line-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Eksklusif Curly Flourished Calligraphy Font (Parfumerie Script Style) dengan Animated Moving Gradient Underline */
+.onboarding-amoresa-username {
+  font-family: 'Monsieur La Doulaise', 'Herr Von Muellerhoff', 'Great Vibes', cursive !important;
+  font-size: clamp(20px, 5.5vw, 28px);
+  font-weight: 400 !important;
+  color: #2D5284;
+  display: inline-block;
+  position: relative;
+  line-height: 1;
+  padding: 0 4px 2px 4px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.onboarding-amoresa-username::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #F59E0B, #EC4899, #8B5CF6, #3B82F6, #10B981, #F59E0B);
+  background-size: 300% 100%;
+  animation: movingGradientFlow 2.8s linear infinite;
+  box-shadow: 0 1px 5px rgba(236, 72, 153, 0.4);
+}
+
+.onboarding-comma-space {
+  font-size: clamp(12px, 3.4vw, 15px);
+  font-weight: 800;
+  color: var(--text-main, #2D2520);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.onboarding-welcome-suffix-text {
+  font-size: clamp(12px, 3.4vw, 15px);
+  font-weight: 800;
+  color: var(--text-main, #2D2520);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+@keyframes movingGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .full-page-profile-screen .profile-modal-body {
   padding: 24px 20px 30px 20px;
   max-width: 480px;
@@ -2747,6 +2821,14 @@ img[src*="Kost"] {
 
 .profile-save-btn:active {
   transform: scale(0.97);
+}
+
+.profile-save-btn.disabled-btn {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  background-color: #94A3B8;
+  transform: none !important;
 }
 
 /* Onboarding Language Dropdown */

@@ -705,17 +705,19 @@ export const scheduleNewCategoryNotification = async (userName = 'Teman', lang) 
   }
 };
 
-// Schedule 1-Time 5-Second Post-Update Notification for v1.0.18 Features (Multi-Language & Developer Feedback)
-export const scheduleV18FeatureIntroNotification = async (userName = 'Teman', lang) => {
+// Schedule 1-Time 5-Second Post-Update Notification for v1.0.20 Features (Accounts/Banks & Data Backup/Restore)
+export const scheduleV20FeatureIntroNotification = async (userName = 'Teman', lang) => {
   if (typeof localStorage === 'undefined') return;
-  const NOTIF_KEY = 'v1_0_18_feature_intro_notif';
+  const NOTIF_KEY = 'v1_0_20_feature_intro_notif';
   if (localStorage.getItem(NOTIF_KEY) === 'true') {
     return;
   }
 
   const l = lang || getLang();
-  const title = tr(l, 'notifNewFeatureTitle');
-  const body = tr(l, 'notifNewFeatureBody');
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
+  const title = tr(l, 'notifV20FeatureIntroTitle', { name });
+  const body = tr(l, 'notifV20FeatureIntroBody', { name });
 
   if (Capacitor.isNativePlatform()) {
     try {
@@ -732,7 +734,7 @@ export const scheduleV18FeatureIntroNotification = async (userName = 'Teman', la
       await LocalNotifications.schedule({
         notifications: [
           {
-            id: 401,
+            id: 501,
             title: title,
             body: body,
             schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
@@ -745,7 +747,7 @@ export const scheduleV18FeatureIntroNotification = async (userName = 'Teman', la
       });
       localStorage.setItem(NOTIF_KEY, 'true');
     } catch (e) {
-      console.warn('Failed to schedule v1.0.18 feature intro notification:', e);
+      console.warn('Failed to schedule v1.0.20 feature intro notification:', e);
     }
   } else if ('Notification' in window && Notification.permission === 'granted') {
     setTimeout(() => {
@@ -765,3 +767,4 @@ export const scheduleV18FeatureIntroNotification = async (userName = 'Teman', la
     localStorage.setItem(NOTIF_KEY, 'true');
   }
 };
+

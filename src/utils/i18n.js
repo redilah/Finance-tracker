@@ -367,6 +367,9 @@ export const DICTIONARY = {
     profileSettings: 'Pengaturan Profil',
     profileNamePlaceholder: 'Masukkan Nama',
     changePhoto: 'Ganti Foto Profil',
+    onboardingWelcome: 'Selamat Datang di Cassiel',
+    onboardingWelcomeSuffix: 'Selamat Datang di Cassiel',
+    onboardingStartBtn: 'Mari Mulai Bersama ✨',
     budgetCapTitle: 'Budget Kategori Per Bulan',
     budgetCapSubtitle: 'Atur batas maksimal pengeluaran kategori',
     // Profile Section Headers
@@ -379,8 +382,8 @@ export const DICTIONARY = {
     setPinTitle: 'Atur PIN',
     changePinTitle: 'Ubah PIN',
     pinSettingSubtitle: 'Kunci aplikasi dengan 6 digit kode PIN',
-    fingerprintLoginTitle: 'Sidik Jari Untuk Login',
-    fingerprintLoginSubtitle: 'Gunakan sidik jari bawaan HP untuk masuk',
+    fingerprintLoginTitle: 'Sidik Jari & PIN Untuk Login',
+    fingerprintLoginSubtitle: 'Gunakan sidik jari bawaan HP atau PIN untuk masuk',
     enterInitialPin: 'Masukkan PIN',
     enterNewPin: 'Masukkan PIN Baru',
     confirmPinTitle: 'Konfirmasi PIN',
@@ -391,7 +394,7 @@ export const DICTIONARY = {
     enterYourPin: 'Masukkan PIN kamu',
     pinWrong: 'PIN yang Anda masukkan salah',
     biometricPromptReason: 'Verifikasi sidik jari untuk masuk ke Cassiel',
-    setPinFirstPrompt: 'Silakan atur PIN terlebih dahulu sebelum mengaktifkan sidik jari',
+    setPinFirstPrompt: 'Silakan atur PIN terlebih dahulu sebelum mengaktifkan kunci login',
 
     // Notification Setting
     notifSettingTitle: 'Notifikasi Harian & Finansial',
@@ -449,6 +452,30 @@ export const DICTIONARY = {
     searchCurrencyPlaceholder: 'Search currency or country...',
     liveExchangeRate: 'Live Rate',
 
+    // Guided Tour (Panduan Interaktif)
+    tourAccountTitle: '💳 Pantau Bank & E-Wallet',
+    tourAccountDesc: 'Pantau riwayat pengeluaran dan pemasukan berdasarkan bank atau e-wallet yang kamu gunakan.',
+    tourBudgetTitle: '🎯 Batas Pengeluaran',
+    tourBudgetDesc: 'Atur limit belanja per kategori agar keuangan tetap terkontrol.',
+    tourLangTitle: '🌐 Pilihan Bahasa',
+    tourLangDesc: 'Ganti bahasa aplikasi ke Indonesia, English, Basa Jawa, Pinyin, atau Korea.',
+    tourBackupTitle: '☁️ Cadangkan Data',
+    tourBackupDesc: 'Simpan cadangan catatan keuanganmu agar aman saat ganti perangkat.',
+    tourAppGuideTitle: 'Panduan Aplikasi',
+    tourAppGuideSubtitle: 'Pelajari alur dan fitur-fitur utama Cassiel',
+    tourFullHomeTitle: '🏠 Beranda Utama',
+    tourFullHomeDesc: 'Lihat ringkasan total saldo, riwayat transaksi harian, dan grafik pengeluaranmu.',
+    tourFullVoiceTitle: '🎙️ Catat Lewat Suara',
+    tourFullVoiceDesc: 'Cukup tekan tombol mic dan sebutkan transaksimu untuk mencatat instan tanpa mengetik.',
+    tourFullAddTitle: '➕ Tambah Transaksi',
+    tourFullAddDesc: 'Tekan tombol plus untuk mencatat pemasukan atau pengeluaran secara manual.',
+    tourFullStatsTitle: '📊 Statistik & Laporan',
+    tourFullStatsDesc: 'Lihat analisis pengeluaran per kategori, tren keuangan, dan insight bulanan.',
+    tourBtnSkip: 'Lewati',
+    tourBtnBack: 'Kembali',
+    tourBtnNext: 'Lanjut →',
+    tourBtnFinish: 'Selesai 🎉',
+
     // Loss Aversion Badge
     lossAversionWarning: 'Peringatan Konsumtif',
     lossAversionDetail: 'Detail ›',
@@ -517,6 +544,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨',
     notifNewCatTitle: '🍎 Kategori Baru: Buah & Minuman',
     notifNewCatBody: 'Halo {name}! Telah hadir 2 kategori baru di Cassiel, yaitu Buah dan Minuman lengkap dengan ikon terbarunya.',
+    notifV20FeatureIntroTitle: '✨ Fitur Baru: Akun & Cadangkan Data!',
+    notifV20FeatureIntroBody: 'Halo, {name}! Kini kamu bisa pantau riwayat per Bank/E-Wallet dan mencadangkan data catatan keuanganmu agar tetap aman saat penyimpanan penuh atau berganti perangkat 🚀',
   },
   id_id: {
     // Nav & Common (Full Bahasa Indonesia)
@@ -571,6 +600,9 @@ export const DICTIONARY = {
     profileSettings: 'Pengaturan Profil',
     profileNamePlaceholder: 'Masukkan Nama',
     changePhoto: 'Ganti Foto Profil',
+    onboardingWelcome: 'Selamat Datang di Cassiel',
+    onboardingWelcomeSuffix: 'Selamat Datang di Cassiel',
+    onboardingStartBtn: 'Mari Mulai Bersama ✨',
     budgetCapTitle: 'Budget Kategori Bulanan',
     budgetCapSubtitle: 'Atur batas maksimal pengeluaran kategori',
     // Profile Section Headers
@@ -583,8 +615,8 @@ export const DICTIONARY = {
     setPinTitle: 'Atur PIN',
     changePinTitle: 'Ubah PIN',
     pinSettingSubtitle: 'Kunci aplikasi dengan 6 digit kode PIN',
-    fingerprintLoginTitle: 'Sidik Jari Untuk Login',
-    fingerprintLoginSubtitle: 'Gunakan sidik jari bawaan HP untuk masuk',
+    fingerprintLoginTitle: 'Sidik Jari & PIN Untuk Login',
+    fingerprintLoginSubtitle: 'Gunakan sidik jari bawaan HP atau PIN untuk masuk',
     enterInitialPin: 'Masukkan PIN',
     enterNewPin: 'Masukkan PIN Baru',
     confirmPinTitle: 'Konfirmasi PIN',
@@ -595,7 +627,7 @@ export const DICTIONARY = {
     enterYourPin: 'Masukkan PIN kamu',
     pinWrong: 'PIN yang Anda masukkan salah',
     biometricPromptReason: 'Verifikasi sidik jari untuk masuk ke Cassiel',
-    setPinFirstPrompt: 'Silakan atur PIN terlebih dahulu sebelum mengaktifkan sidik jari',
+    setPinFirstPrompt: 'Silakan atur PIN terlebih dahulu sebelum mengaktifkan kunci login',
 
     // Notification Setting
     notifSettingTitle: 'Notifikasi Harian & Finansial',
@@ -653,6 +685,30 @@ export const DICTIONARY = {
     searchCurrencyPlaceholder: 'Cari negara, kode, atau mata uang...',
     liveExchangeRate: 'Kurs Real-Time',
 
+    // Guided Tour (Panduan Interaktif)
+    tourAccountTitle: '💳 Pantau Bank & E-Wallet',
+    tourAccountDesc: 'Pantau riwayat pengeluaran dan pemasukan berdasarkan bank atau e-wallet yang kamu gunakan.',
+    tourBudgetTitle: '🎯 Batas Pengeluaran',
+    tourBudgetDesc: 'Atur limit belanja per kategori agar keuangan tetap terkontrol.',
+    tourLangTitle: '🌐 Pilihan Bahasa',
+    tourLangDesc: 'Ganti bahasa aplikasi ke Indonesia, English, Basa Jawa, Pinyin, atau Korea.',
+    tourBackupTitle: '☁️ Cadangkan Data',
+    tourBackupDesc: 'Simpan cadangan catatan keuanganmu agar aman saat ganti perangkat.',
+    tourAppGuideTitle: 'Panduan Aplikasi',
+    tourAppGuideSubtitle: 'Pelajari alur dan fitur-fitur utama Cassiel',
+    tourFullHomeTitle: '🏠 Beranda Utama',
+    tourFullHomeDesc: 'Lihat ringkasan total saldo, riwayat transaksi harian, dan grafik pengeluaranmu.',
+    tourFullVoiceTitle: '🎙️ Catat Lewat Suara',
+    tourFullVoiceDesc: 'Cukup tekan tombol mic dan sebutkan transaksimu untuk mencatat instan tanpa mengetik.',
+    tourFullAddTitle: '➕ Tambah Transaksi',
+    tourFullAddDesc: 'Tekan tombol plus untuk mencatat pemasukan atau pengeluaran secara manual.',
+    tourFullStatsTitle: '📊 Statistik & Laporan',
+    tourFullStatsDesc: 'Lihat analisis pengeluaran per kategori, tren keuangan, dan insight bulanan.',
+    tourBtnSkip: 'Lewati',
+    tourBtnBack: 'Kembali',
+    tourBtnNext: 'Lanjut →',
+    tourBtnFinish: 'Selesai 🎉',
+
     // Loss Aversion Badge
     lossAversionWarning: 'Peringatan Konsumtif',
     lossAversionDetail: 'Detail ›',
@@ -721,6 +777,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Setiap transaksi yang kamu catat akan otomatis dirangkum oleh Cassiel menjadi wawasan kebiasaan belanja saat akhir bulan tiba ✨',
     notifNewCatTitle: '🍎 Kategori Baru: Buah & Minuman',
     notifNewCatBody: 'Halo {name}! Telah hadir 2 kategori baru di Cassiel, yaitu Buah dan Minuman lengkap dengan ikon terbarunya.',
+    notifV20FeatureIntroTitle: '✨ Fitur Baru: Akun & Cadangkan Data!',
+    notifV20FeatureIntroBody: 'Halo, {name}! Kini kamu bisa pantau riwayat per Bank/E-Wallet dan mencadangkan data catatan keuanganmu agar tetap aman saat penyimpanan penuh atau berganti perangkat 🚀',
   },
   en: {
     // Nav & Common
@@ -775,6 +833,9 @@ export const DICTIONARY = {
     profileSettings: 'Profile Settings',
     profileNamePlaceholder: 'Enter Name',
     changePhoto: 'Change Profile Photo',
+    onboardingWelcome: 'Welcome to Cassiel',
+    onboardingWelcomeSuffix: 'Welcome to Cassiel',
+    onboardingStartBtn: "Let's Get Started ✨",
     budgetCapTitle: 'Category Budget Cap',
     budgetCapSubtitle: 'Set monthly expense cap per category',
     // Profile Section Headers
@@ -787,8 +848,8 @@ export const DICTIONARY = {
     setPinTitle: 'Set PIN',
     changePinTitle: 'Change PIN',
     pinSettingSubtitle: 'Lock application with 6-digit PIN code',
-    fingerprintLoginTitle: 'Fingerprint for Login',
-    fingerprintLoginSubtitle: 'Use device biometric fingerprint to log in',
+    fingerprintLoginTitle: 'Fingerprint & PIN for Login',
+    fingerprintLoginSubtitle: 'Use device fingerprint or PIN to unlock',
     enterInitialPin: 'Enter PIN',
     confirmPinTitle: 'Confirm PIN',
     confirmPinAction: 'Confirm PIN',
@@ -799,7 +860,7 @@ export const DICTIONARY = {
     enterYourPin: 'Enter your PIN',
     pinWrong: 'Incorrect PIN entered',
     biometricPromptReason: 'Verify fingerprint to unlock Cassiel',
-    setPinFirstPrompt: 'Please set up a PIN before enabling biometric login',
+    setPinFirstPrompt: 'Please set up a PIN before enabling login lock',
 
     // Notification Setting
     notifSettingTitle: 'Daily & Financial Notifications',
@@ -856,6 +917,30 @@ export const DICTIONARY = {
     selectCurrencyTitle: 'Select Currency',
     searchCurrencyPlaceholder: 'Search currency or country...',
     liveExchangeRate: 'Live Rate',
+
+    // Guided Tour
+    tourAccountTitle: '💳 Track Banks & E-Wallets',
+    tourAccountDesc: 'Track expense and income history based on the bank or e-wallet you use.',
+    tourBudgetTitle: '🎯 Expense Budget Cap',
+    tourBudgetDesc: 'Set spending limits per category to keep your finances under control.',
+    tourLangTitle: '🌐 Language Selection',
+    tourLangDesc: 'Switch app language to Indonesian, English, Javanese, Pinyin, or Korean.',
+    tourBackupTitle: '☁️ Data Backup',
+    tourBackupDesc: 'Save a backup of your financial records to keep them safe across devices.',
+    tourAppGuideTitle: 'App Guide',
+    tourAppGuideSubtitle: 'Learn the workflow and core features of Cassiel',
+    tourFullHomeTitle: '🏠 Main Dashboard',
+    tourFullHomeDesc: 'View total balance, daily transaction logs, and monthly spending charts.',
+    tourFullVoiceTitle: '🎙️ Voice AI Logging',
+    tourFullVoiceDesc: 'Simply tap the mic button and speak to record transactions instantly.',
+    tourFullAddTitle: '➕ Add Transaction',
+    tourFullAddDesc: 'Tap the plus button to record income or expenses manually.',
+    tourFullStatsTitle: '📊 Stats & Insights',
+    tourFullStatsDesc: 'Explore spending habits per category, trends, and monthly wrapped insights.',
+    tourBtnSkip: 'Skip',
+    tourBtnBack: 'Back',
+    tourBtnNext: 'Next →',
+    tourBtnFinish: 'Finish 🎉',
 
     // Loss Aversion Badge
     lossAversionWarning: 'Consumptive Alert',
@@ -925,6 +1010,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Every transaction you log will be automatically summarized by Cassiel into spending habit insights at the end of the month ✨',
     notifNewCatTitle: '🍎 New Categories: Fruits & Drinks',
     notifNewCatBody: 'Hey {name}! Two new categories have been added to Cassiel — Fruits and Drinks, with brand new icons!',
+    notifV20FeatureIntroTitle: '✨ New: Account & Data Backup Features!',
+    notifV20FeatureIntroBody: 'Hello, {name}! Now you can track spending by Bank/E-Wallet and backup your financial records so your data stays safe even when storage is full or switching devices 🚀',
   },
   jv: {
     // Nav & Common (Krama Alus Mataraman)
@@ -979,6 +1066,9 @@ export const DICTIONARY = {
     profileSettings: 'Setelan Profil',
     profileNamePlaceholder: 'Serat Asma Panjenengan',
     changePhoto: 'Gantos Foto Profil',
+    onboardingWelcome: 'Sugeng Rawuh ing Cassiel',
+    onboardingWelcomeSuffix: 'Sugeng Rawuh ing Cassiel',
+    onboardingStartBtn: 'Mangga Miwiti Sesarengan ✨',
     budgetCapTitle: 'Watesan Kategori Saben Wulan',
     budgetCapSubtitle: 'Watesi gunggung pangetrapan saben kategori',
     // Profile Section Headers
@@ -991,8 +1081,8 @@ export const DICTIONARY = {
     setPinTitle: 'Atur PIN',
     changePinTitle: 'Gantos PIN',
     pinSettingSubtitle: 'Kunci aplikasi kanthi 6 digit sandi PIN',
-    fingerprintLoginTitle: 'Tapak Asta Kangge Mlebet',
-    fingerprintLoginSubtitle: 'Ngginakaken sidik driji HP kangge mlebet',
+    fingerprintLoginTitle: 'Sidik Driji & PIN Kangge Mlebet',
+    fingerprintLoginSubtitle: 'Ngginakaken sidik driji HP utawi PIN kangge mlebet',
     enterInitialPin: 'Lebetaken PIN sapunika',
     confirmPinTitle: 'Konfirmasi PIN',
     confirmPinAction: 'Konfirmasi PIN',
@@ -1003,7 +1093,7 @@ export const DICTIONARY = {
     enterYourPin: 'Lebetaken PIN panjenengan',
     pinWrong: 'PIN ingkang panjenengan lebetaken klentu',
     biometricPromptReason: 'Verifikasi tapak asta kangge mbikak Cassiel',
-    setPinFirstPrompt: 'Mangga atur PIN rumiyin sakderengipun ngaktifaken sidik driji',
+    setPinFirstPrompt: 'Mangga atur PIN rumiyin sakderengipun ngaktifaken kunci login',
 
     // Notification Setting
     notifSettingTitle: 'Pepèling Saben Dinten',
@@ -1060,6 +1150,30 @@ export const DICTIONARY = {
     selectCurrencyTitle: 'Pilih Jinis Arta',
     searchCurrencyPlaceholder: 'Padosi negari, sandi, utawi arta...',
     liveExchangeRate: 'Kurs Saben Wekdal',
+
+    // Guided Tour (Basa Jawa)
+    tourAccountTitle: '💳 Mirsani Bank & E-Wallet',
+    tourAccountDesc: 'Pirsani riwayat pamasukan lan pangetrapan manut bank utawi e-wallet ingkang panjenengan agem.',
+    tourBudgetTitle: '🎯 Watesan Pangetrapan',
+    tourBudgetDesc: 'Setel wates blanja saben kategori supados arta tetep kajagi.',
+    tourLangTitle: '🌐 Pilihan Basa',
+    tourLangDesc: 'Gantos basa aplikasi dhateng Indonesia, English, Basa Jawa, Pinyin, utawi Korea.',
+    tourBackupTitle: '☁️ Serep Data',
+    tourBackupDesc: 'Simpen serep cathetan arta panjenengan supados aman menawi gantos piranti.',
+    tourAppGuideTitle: 'Pituduh Aplikasi',
+    tourAppGuideSubtitle: 'Sinau caranipun ngginakaken lan fitur-fitur baku Cassiel',
+    tourFullHomeTitle: '🏠 Griya Utama',
+    tourFullHomeDesc: 'Pirsani ringkesan gunggung saldo, cathetan saben dinten, lan grafik blanja.',
+    tourFullVoiceTitle: '🎙️ Cathet Lumantar Swanten',
+    tourFullVoiceDesc: 'Cekap pencet tombol mic lan ngendika kangge nyathet instan tanpa ngetik.',
+    tourFullAddTitle: '➕ Wewah Transaksi',
+    tourFullAddDesc: 'Pencet tombol tambah kangge nyathet arta mlebet utawi medal kanthi manual.',
+    tourFullStatsTitle: '📊 Katrangan & Lapuran',
+    tourFullStatsDesc: 'Pirsani kawruh blanja saben kategori lan wawasan akhir wulan.',
+    tourBtnSkip: 'Langkahi',
+    tourBtnBack: 'Wangsul',
+    tourBtnNext: 'Lajeng →',
+    tourBtnFinish: 'Rampung 🎉',
 
     // Loss Aversion Badge
     lossAversionWarning: 'Pepeling Boros',
@@ -1129,6 +1243,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Saben transaksi ingkang kacathet badhe otomatis dirangkum dening Cassiel dados kawruh kebiasaan belanja nalika akhir wulan ✨',
     notifNewCatTitle: '🍎 Kategori Enggal: Woh-wohan & Minuman',
     notifNewCatBody: 'Sugeng {name}! Sampun wonten 2 kategori enggal ing Cassiel, inggih punika Woh-wohan lan Minuman kanthi ikon terbarunya.',
+    notifV20FeatureIntroTitle: '✨ Fitur Enggal: Wadhah & Serep Data!',
+    notifV20FeatureIntroBody: 'Sugeng, {name}! Panjenengan sapunika saged mirsani cathetan manut Bank/E-Wallet lan nyimpen serep data keuangan supados aman menawi memori kebak utawi gantos HP 🚀',
   },
   zh: {
     // Nav & Common (Pinyin Latin ABC)
@@ -1183,6 +1299,9 @@ export const DICTIONARY = {
     profileSettings: 'Geren Shezhi',
     profileNamePlaceholder: 'Shuru Xingming',
     changePhoto: 'Genghuan Touxiang',
+    onboardingWelcome: 'Huanying laidao Cassiel',
+    onboardingWelcomeSuffix: 'Huanying laidao Cassiel',
+    onboardingStartBtn: 'Rang women yiqi kaishi ✨',
     budgetCapTitle: 'Yuesuan Shezhi',
     budgetCapSubtitle: 'Shezhi meiyue fenlei xiane',
     // Profile Section Headers
@@ -1195,8 +1314,8 @@ export const DICTIONARY = {
     setPinTitle: 'Shezhi PIN',
     changePinTitle: 'Xiugai PIN',
     pinSettingSubtitle: 'Yong 6 wei PIN ma suoding yingyong',
-    fingerprintLoginTitle: 'Zhiwen Denglu',
-    fingerprintLoginSubtitle: 'Shiyong shouji zhiwen denglu yingyong',
+    fingerprintLoginTitle: 'Zhiwen he PIN Denglu',
+    fingerprintLoginSubtitle: 'Shiyong shouji zhiwen huo PIN denglu yingyong',
     enterInitialPin: 'Shuru Dangqian PIN',
     confirmPinTitle: 'Queren PIN',
     confirmPinAction: 'Queren PIN',
@@ -1207,7 +1326,7 @@ export const DICTIONARY = {
     enterYourPin: 'Shuru nin de PIN',
     pinWrong: 'PIN shuru cuowu',
     biometricPromptReason: 'Yanzheng zhiwen yi jiesuo Cassiel',
-    setPinFirstPrompt: 'Qing xian shezhi PIN zai qiyong zhiwen denglu',
+    setPinFirstPrompt: 'Qing xian shezhi PIN zai qiyong denglu suo',
 
     // Notification Setting
     notifSettingTitle: 'Meiri yu Caiwu Tongzhi',
@@ -1264,6 +1383,30 @@ export const DICTIONARY = {
     selectCurrencyTitle: 'Xuanze Huobi',
     searchCurrencyPlaceholder: 'Sousuo guojia, daima huo huobi...',
     liveExchangeRate: 'Sishi Huilu',
+
+    // Guided Tour (Mandarin Pinyin)
+    tourAccountTitle: '💳 Guanli Zhanghu & Qianbao',
+    tourAccountDesc: 'Anzhao shiyong de yinhang huo dianzi qianbao chakan shouru he zhichu jilu.',
+    tourBudgetTitle: '🎯 Zhichu Xiane',
+    tourBudgetDesc: 'Shezhi meiyue fenlei xiane yi kongzhi caiwu.',
+    tourLangTitle: '🌐 Yuyan Xuanze',
+    tourLangDesc: 'Qiehuan yingyong yuyan wei Indonesia, English, Basa Jawa, Pinyin huo Korea.',
+    tourBackupTitle: '☁️ Shuju Beifen',
+    tourBackupDesc: 'Beifen caiwu jilu yi fang genggai shebei shi diushi.',
+    tourAppGuideTitle: 'Yingyong Zhinan',
+    tourAppGuideSubtitle: 'Liaojie Cassiel de hexin gongneng he liucheng',
+    tourFullHomeTitle: '🏠 Zhuye',
+    tourFullHomeDesc: 'Chakan zongji yue, meiri jiaoyi jilu he zhichu tubiao.',
+    tourFullVoiceTitle: '🎙️ Yuyin Jilu',
+    tourFullVoiceDesc: 'Anxia maikefeng anniu shuo chu jiaoyi jike jilu, wuxu shuru.',
+    tourFullAddTitle: '➕ Tianjia Jiaoyi',
+    tourFullAddDesc: 'Anxia jiahao anniu shoudong jilu shouru huo zhichu.',
+    tourFullStatsTitle: '📊 Tongji yu Baogao',
+    tourFullStatsDesc: 'Chakan fenlei zhichu fenxi, caiwu qushi he yuedu baogao.',
+    tourBtnSkip: 'Tiaoguo',
+    tourBtnBack: 'Fanhui',
+    tourBtnNext: 'Xiayibu →',
+    tourBtnFinish: 'Wancheng 🎉',
 
     // Loss Aversion Badge
     lossAversionWarning: 'Xiaofei Jinggao',
@@ -1333,6 +1476,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Meige jilu de jiaoyii dou jiang bei Cassiel zidong zongjie cheng geshui xiguan doncha dang yuemo laidi ✨',
     notifNewCatTitle: '🍎 Xin Fenlei: Shuiguo & Yinliao',
     notifNewCatBody: 'Nin Hao {name}! Cassiel xinzeng 2 ge fenlei, ji Shuiguo he Yinliao, pei you quanxin de tubi.',
+    notifV20FeatureIntroTitle: '✨ Xin Gongneng: Zhanghu yu Shuju Beifen!',
+    notifV20FeatureIntroBody: 'Ni hao, {name}! Xianzai nin keyi anzhao Yinhang/Qianbao chakan jiaoyi, bing beifen caiwu shuju yi fang cunchu man huo genghuan shebei 🚀',
   },
   ko: {
     // Nav & Common (Korean Latin Romaja ABC)
@@ -1387,6 +1532,9 @@ export const DICTIONARY = {
     profileSettings: 'Peuropil Seoljeong',
     profileNamePlaceholder: 'Ireum-eul Ibryeokhaseyo',
     changePhoto: 'Sajin Byeongyeong',
+    onboardingWelcome: 'Cassiel-e osin geoseul hwan-yeonghamnida',
+    onboardingWelcomeSuffix: 'Cassiel-e osin geoseul hwan-yeonghamnida',
+    onboardingStartBtn: 'Hamkke sijakhalkkayo ✨',
     budgetCapTitle: 'Wolgan Bungnyu Yesan',
     budgetCapSubtitle: 'Bungnyubyeol choedae jichul hando seoljeong',
     // Profile Section Headers
@@ -1399,8 +1547,8 @@ export const DICTIONARY = {
     setPinTitle: 'PIN Seoljeong',
     changePinTitle: 'PIN Byeongyeong',
     pinSettingSubtitle: '6jari PIN kodorro aep jamgeum',
-    fingerprintLoginTitle: 'Jimum Rogeuin',
-    fingerprintLoginSubtitle: 'Gigi jimum insig-eul sayonghayeo rogeuin',
+    fingerprintLoginTitle: 'Jimum mit PIN Rogeuin',
+    fingerprintLoginSubtitle: 'Gigi jimum ttoneun PIN-eul sayonghayeo rogeuin',
     enterInitialPin: 'Hyeonjae PIN Ibryeok',
     confirmPinTitle: 'PIN Hwag-in',
     confirmPinAction: 'PIN Hwag-in',
@@ -1411,7 +1559,7 @@ export const DICTIONARY = {
     enterYourPin: 'PIN-eul ibryeokhaseyo',
     pinWrong: 'Jalmoshdoen PIN-i ibryeokdoe-eossseumnida',
     biometricPromptReason: 'Cassiel-e rogeuinhagi wihae jimum-eul insighaseyo',
-    setPinFirstPrompt: 'Jimum rogeuin-eul hwal-seonghwahagi jeon-e meonjeo PIN-eul seoljeonghaseyo',
+    setPinFirstPrompt: 'PIN-eul meonjeo seoljeonghan hu jamgeum-eul hwal-seonghwahaseyo',
 
     // Notification Setting
     notifSettingTitle: 'Maeil mit Jaemu Alim',
@@ -1468,6 +1616,30 @@ export const DICTIONARY = {
     selectCurrencyTitle: 'Tonghwa Seontaek',
     searchCurrencyPlaceholder: 'Gukga, kodeu tto-neun tonghwa geomsaek...',
     liveExchangeRate: 'Silsigan Hwan-yul',
+
+    // Guided Tour (Korean Romaja)
+    tourAccountTitle: '💳 Eunhaeng & E-Wallet Gwanri',
+    tourAccountDesc: 'Eunhaeng tto-neun e-wallet byeol jichul mich suip naeyeok-eul hwag-inhaseyo.',
+    tourBudgetTitle: '🎯 Jichul Hando',
+    tourBudgetDesc: 'Bungnyubyeol jichul hando-reul seoljeonghayeo jaemu-reul gwanrihaseyo.',
+    tourLangTitle: '🌐 Eoneo Seontaek',
+    tourLangDesc: 'Aep eoneo-reul Indonesia, English, Basa Jawa, Pinyin, Hanguk-eo-ro byeongyeonghaseyo.',
+    tourBackupTitle: '☁️ Deiteo Baeg-eop',
+    tourBackupDesc: 'Gigireul bakkul ddaereul daebihae jaemu girogeul anjeonhage baeg-eophaseyo.',
+    tourAppGuideTitle: 'Aep Ga-ideu',
+    tourAppGuideSubtitle: 'Cassiel-ui juyo gineung gwa heureum-eul arabo-seyo',
+    tourFullHomeTitle: '🏠 Mein Deeswibodeu',
+    tourFullHomeDesc: 'Chong jann-aeg, me-il georae girok, mich jichul geuraepeureul hwag-inhaseyo.',
+    tourFullVoiceTitle: '🎙️ Eumseong Girok',
+    tourFullVoiceDesc: 'Maikpeu beoteuneul nureugo malhagi-man hamyeon taiping eopsi baro girokdoemnida.',
+    tourFullAddTitle: '➕ Georae Chuga',
+    tourFullAddDesc: 'Pulleoseu beoteuneul nulleo su-ip tto-neun jichuleul sudong-euro girok.',
+    tourFullStatsTitle: '📊 Tong-gye & Bogoseo',
+    tourFullStatsDesc: 'Bungnyubyeol jichul bunseok, chuse, wolgan insaiteureul hwag-inhaseyo.',
+    tourBtnSkip: 'Geonneottigi',
+    tourBtnBack: 'Dwieuro',
+    tourBtnNext: 'Daeum →',
+    tourBtnFinish: 'Wanryo 🎉',
 
     // Loss Aversion Badge
     lossAversionWarning: 'Sobiseong Gyeonggo',
@@ -1537,6 +1709,8 @@ export const DICTIONARY = {
     notifInsightEveBody: 'Girokhan modeu georaega wolmal-e Cassiel-e uihae jashwi sobi insaiteuro jadongyosadongh yojakdoemnida ✨',
     notifNewCatTitle: '🍎 Sae Bungnyu: Gwail & Umnyo',
     notifNewCatBody: 'Annyeong {name}! Cassiel-e 2gaji sae bungnyu ga chugadoeeosseoyo — Gwail gwa Umnyo, saeroun aisik-gwa hamkke!',
+    notifV20FeatureIntroTitle: '✨ Sae Gineung: Gyejwa & Deiteo Baeg-eop!',
+    notifV20FeatureIntroBody: 'Annyeonghaseyo, {name}! Ije Eunhaeng/E-Wallet byeol georaereul hwag-inhago, gigireul bakkugeona 저장 yongyang-i bujokhal ttae jaemu deiteoreul anjeonhage baeg-eophaseyo 🚀',
   }
 };
 

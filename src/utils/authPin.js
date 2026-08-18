@@ -68,12 +68,33 @@ export async function verifyUserPin(enteredPin) {
   }
 }
 
+const LOCK_ENABLED_KEY = 'cassiel_app_lock_enabled';
+
 /**
- * Remove stored PIN and disable biometric
+ * Check if PIN/Biometric lock is enabled (Toggle switch)
+ * Defaults to true if user already has a PIN.
+ */
+export function isAppLockEnabled() {
+  if (!hasUserPin()) return false;
+  const val = localStorage.getItem(LOCK_ENABLED_KEY);
+  if (val === null) return true; // Default ON when PIN exists
+  return val === 'true';
+}
+
+/**
+ * Set PIN/Biometric lock toggle state
+ */
+export function setAppLockEnabled(enabled) {
+  localStorage.setItem(LOCK_ENABLED_KEY, enabled ? 'true' : 'false');
+}
+
+/**
+ * Remove stored PIN and disable lock
  */
 export function removeUserPin() {
   localStorage.removeItem(PIN_STORAGE_KEY);
   localStorage.removeItem(BIOMETRIC_ENABLED_KEY);
+  localStorage.removeItem(LOCK_ENABLED_KEY);
 }
 
 /**

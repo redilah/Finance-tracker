@@ -378,8 +378,10 @@ const ACCOUNT_SYNONYMS = {
   'uang tunai': 'Cash',
   'bca': 'BCA',
   'bank bca': 'BCA',
-  'mandiri': 'Mandiri',
-  'bank mandiri': 'Mandiri',
+  'bca mobile': 'BCA',
+  'klikbca': 'BCA',
+  'mandiri': 'Livin',
+  'bank mandiri': 'Livin',
   'livin': 'Livin',
   'livin mandiri': 'Livin',
   'livin by mandiri': 'Livin',
@@ -396,8 +398,8 @@ const ACCOUNT_SYNONYMS = {
   'btn': 'bale by btn',
   'bank btn': 'bale by btn',
   'bale btn': 'bale by btn',
-  'bni': 'BNI',
-  'bank bni': 'BNI',
+  'bni': 'Wondr',
+  'bank bni': 'Wondr',
   'wondr': 'Wondr',
   'wondr bni': 'Wondr',
   'wondr by bni': 'Wondr',
@@ -415,6 +417,8 @@ const ACCOUNT_SYNONYMS = {
   'cimb niaga': 'CIMB Niaga',
   'permata': 'Permata',
   'bank permata': 'Permata',
+  'maybank': 'Maybank',
+  'bank maybank': 'Maybank',
   'gopay': 'GoPay',
   'go-pay': 'GoPay',
   'ovo': 'OVO',
@@ -424,7 +428,35 @@ const ACCOUNT_SYNONYMS = {
   'shopee pay': 'ShopeePay',
   'linkaja': 'LinkAja',
   'link aja': 'LinkAja',
-  'qris': 'QRIS'
+  'qris': 'QRIS',
+  'paypal': 'PayPal',
+  'visa': 'Visa',
+  'mastercard': 'Mastercard',
+  'alfamart': 'Alfamart',
+  'alfa': 'Alfamart',
+  'indomaret': 'Indomaret',
+  'indomart': 'Indomaret'
+};
+
+// Aliases mapping old/alternative bank names to current active app names and vice versa
+const ACCOUNT_INTERCHANGEABLE_ALIASES = {
+  'bni': ['wondr', 'bni', 'bank bni', 'wondr by bni', 'wondr bni'],
+  'wondr': ['wondr', 'bni', 'bank bni', 'wondr by bni', 'wondr bni'],
+  'mandiri': ['livin', 'mandiri', 'bank mandiri', 'livin by mandiri', 'livin mandiri'],
+  'livin': ['livin', 'mandiri', 'bank mandiri', 'livin by mandiri', 'livin mandiri'],
+  'bri': ['brimo', 'bri', 'bank bri'],
+  'brimo': ['brimo', 'bri', 'bank bri'],
+  'btn': ['bale by btn', 'btn', 'bank btn', 'bale btn', 'bale'],
+  'bale by btn': ['bale by btn', 'btn', 'bank btn', 'bale btn', 'bale'],
+  'bpd diy': ['bpd diy', 'bpddiy', 'bpd', 'bank bpd diy'],
+  'bpddiy': ['bpd diy', 'bpddiy', 'bpd', 'bank bpd diy'],
+  'jago': ['bank jago', 'jago'],
+  'bank jago': ['bank jago', 'jago'],
+  'cimb': ['cimb niaga', 'cimb'],
+  'cimb niaga': ['cimb niaga', 'cimb'],
+  'shopeepay': ['shopeepay', 'spay', 'shopee pay', 'shopee'],
+  'gopay': ['gopay', 'go-pay'],
+  'linkaja': ['linkaja', 'link aja']
 };
 
 // 5. Penanda Catatan (Note Boundaries & Typo Suara)
@@ -650,36 +682,75 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     'beasiswa', 'kip', 'lpdp', 'affiliate', 'afiliasi', 'endorse', 'hasil jualan', 'omset', 'omzet'
   ];
 
-  // E. Deteksi Akun / Metode Pembayaran
+  // E. Deteksi Akun / Metode Pembayaran (Multi-Tier Scoring System)
   let account = 'Cash';
+  let bestAccountScore = -1;
   let latestAccountIndex = -1;
   let accountMatchedWord = '';
 
-  if (accountsList && Array.isArray(accountsList)) {
-    for (const customAcc of accountsList) {
-      const kw = customAcc.toLowerCase();
-      const testWords = [kw];
-      for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
-        if (mappedAcc.toLowerCase() === kw) {
-          testWords.push(syn);
-        }
-      }
+  const activeAccounts = (accountsList && Array.isArray(accountsList) && accountsList.length > 0)
+    ? accountsList
+    : ['Cash', 'BRImo', 'BCA', 'Wondr', 'Livin', 'BSI', 'Bank Jago', 'QRIS', 'GoPay', 'DANA', 'OVO', 'ShopeePay'];
 
-      for (const tw of testWords) {
-        const regex = new RegExp(`\\b${tw}\\b`, 'i');
-        const match = text.match(regex);
-        if (match) {
-          const idx = text.lastIndexOf(match[0]);
-          if (idx !== -1 && idx >= latestAccountIndex) {
-            latestAccountIndex = idx;
-            account = customAcc;
-            accountMatchedWord = match[0];
-          }
+  // Tier 1 & 2: Match against active accounts and their aliases
+  for (const customAcc of activeAccounts) {
+    const customNorm = (customAcc || '').toLowerCase().trim();
+    const testWordsSet = new Set([customNorm]);
+
+    // Add direct synonyms
+    for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+      if (mappedAcc.toLowerCase() === customNorm || syn === customNorm) {
+        testWordsSet.add(syn);
+      }
+    }
+
+    // Add interchangeable aliases (e.g. bni <-> wondr, mandiri <-> livin)
+    for (const [aliasKey, aliasList] of Object.entries(ACCOUNT_INTERCHANGEABLE_ALIASES)) {
+      if (aliasKey === customNorm || aliasList.includes(customNorm)) {
+        aliasList.forEach(a => testWordsSet.add(a));
+      }
+    }
+
+    // Sort by longest string first so multi-word keywords take precedence
+    const sortedTestWords = Array.from(testWordsSet).sort((a, b) => b.length - a.length);
+
+    for (const tw of sortedTestWords) {
+      const regex = new RegExp(`\\b${tw}\\b`, 'i');
+      const match = text.match(regex);
+      if (match) {
+        const idx = text.lastIndexOf(match[0]);
+        // Score based on word length and position
+        const score = (tw.length * 10) + idx;
+        if (score > bestAccountScore) {
+          bestAccountScore = score;
+          latestAccountIndex = idx;
+          account = customAcc;
+          accountMatchedWord = match[0];
         }
       }
     }
   }
 
+  // Tier 3: If no active account directly matched, check global synonyms to pick best active match
+  if (latestAccountIndex === -1) {
+    for (const [syn, targetAccName] of Object.entries(ACCOUNT_SYNONYMS)) {
+      const regex = new RegExp(`\\b${syn}\\b`, 'i');
+      const match = text.match(regex);
+      if (match) {
+        const idx = text.lastIndexOf(match[0]);
+        const matchedTarget = activeAccounts.find(a => a.toLowerCase() === targetAccName.toLowerCase()) || targetAccName;
+        const score = (syn.length * 10) + idx;
+        if (score > bestAccountScore) {
+          bestAccountScore = score;
+          latestAccountIndex = idx;
+          account = matchedTarget;
+          accountMatchedWord = match[0];
+        }
+      }
+    }
+  }
+
+  // Tier 4: Fallback to generic categories (Cash, Bank, QRIS) if still no match
   if (latestAccountIndex === -1) {
     for (const accType of Object.keys(ACCOUNT_KEYWORDS)) {
       const keywords = ACCOUNT_KEYWORDS[accType];
