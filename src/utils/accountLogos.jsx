@@ -177,6 +177,34 @@ export const AccountIconBadge = ({ accountName, size = 30 }) => {
     }
   }
 
+  // 2.5 Generic Legacy Bank & E-Wallet (Kotak Merah / Oranye)
+  if (norm === 'bank') {
+    return (
+      <div className="account-logo-frame" style={{ width: size, height: size, background: '#E11D48', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 2 7 22 7 12 2"/>
+          <line x1="4" y1="21" x2="20" y2="21"/>
+          <line x1="6" y1="10" x2="6" y2="18"/>
+          <line x1="10" y1="10" x2="10" y2="18"/>
+          <line x1="14" y1="10" x2="14" y2="18"/>
+          <line x1="18" y1="10" x2="18" y2="18"/>
+        </svg>
+      </div>
+    );
+  }
+
+  if (norm === 'e-wallet' || norm === 'ewallet' || norm === 'dompet digital') {
+    return (
+      <div className="account-logo-frame" style={{ width: size, height: size, background: '#4F46E5', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 12V8H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12v4"/>
+          <path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/>
+          <path d="M18 12a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4v-8Z"/>
+        </svg>
+      </div>
+    );
+  }
+
   // 3. Fallback bank modern dengan teks ringkas & warna brand akurat
   if (norm.includes('jago')) {
     return (

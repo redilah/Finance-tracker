@@ -441,6 +441,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Terima kasih! Masukan Anda telah berhasil terkirim.',
     feedbackError: 'Gagal mengirim saran. Periksa koneksi internet Anda.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Sesuaikan Akun',
+    adjustAccountSubtitle: 'Ubah akun lama menjadi nama Bank atau E-Wallet resmi',
+    adjustAccountPrompt: 'Pilih Bank atau E-Wallet yang sesuai untuk menggantikan akun ini secara permanen:',
+    adjustAccountBtn: 'Sesuaikan Akun',
+    adjustAccountSuccess: 'Akun dan semua transaksi terkait berhasil disesuaikan ke {name}!',
+
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
     
@@ -674,6 +681,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Terima kasih! Masukan Anda telah berhasil terkirim.',
     feedbackError: 'Gagal mengirim masukan. Periksa koneksi internet Anda.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Sesuaikan Akun',
+    adjustAccountSubtitle: 'Ubah akun lama menjadi nama Bank atau E-Wallet resmi',
+    adjustAccountPrompt: 'Pilih Bank atau E-Wallet yang sesuai untuk menggantikan akun ini secara permanen:',
+    adjustAccountBtn: 'Sesuaikan Akun',
+    adjustAccountSuccess: 'Akun dan semua transaksi terkait berhasil disesuaikan ke {name}!',
+
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
     
@@ -907,6 +921,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Thank you! Your feedback has been successfully sent.',
     feedbackError: 'Failed to send feedback. Please check your internet connection.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Adjust Account',
+    adjustAccountSubtitle: 'Map legacy account to an official Bank or E-Wallet',
+    adjustAccountPrompt: 'Choose the matching Bank or E-Wallet to replace this legacy account permanently:',
+    adjustAccountBtn: 'Adjust Account',
+    adjustAccountSuccess: 'Account and all related transactions successfully updated to {name}!',
+
     // Font Modal
     selectFontTitle: 'Select Typography',
     
@@ -1140,6 +1161,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Matur nuwun sanget! Panyaruwe panjenengan sampun kasil kakintun.',
     feedbackError: 'Gagal ngintun. Mangga priksa sambungan internet.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Trepi Akun',
+    adjustAccountSubtitle: 'Gantos akun lami dados asma Bank utawi E-Wallet resmi',
+    adjustAccountPrompt: 'Pilih Bank utawi E-Wallet ingkang trep kangge nggantos akun punika kanthi permanen:',
+    adjustAccountBtn: 'Trepi Akun',
+    adjustAccountSuccess: 'Akun lan sedaya transaksi sampun kasil dipun-trepi dhateng {name}!',
+
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
     
@@ -1373,6 +1401,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Xiexie! Nin de fankui yijing fasong.',
     feedbackError: 'Fasong shibai. Qing jiancha wangluo.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Tiaozheng Zhanghu',
+    adjustAccountSubtitle: 'Jiang jiu zhanghu gengxin wei zhengshi Yinhang huo E-Wallet',
+    adjustAccountPrompt: 'Xuanze pipei de Yinhang huo E-Wallet yi yongjiu tipei ci zhanghu:',
+    adjustAccountBtn: 'Tiaozheng Zhanghu',
+    adjustAccountSuccess: 'Zhanghu ji suoyou xiangguan jiaoyi yi chenggong gengxin wei {name}!',
+
     // Font Modal
     selectFontTitle: 'Xuanze Ziti',
     
@@ -1606,6 +1641,13 @@ export const DICTIONARY = {
     feedbackSuccess: 'Gamsahamnida! Pideubaeg-i seonggongjeog-euro jeonsongdoe-eossseumnida.',
     feedbackError: 'Jeonsong silpae. Inteonet yeongyeol-eul hwag-inhaseyo.',
     
+    // Adjust Generic Account Modal
+    adjustAccountTitle: 'Gyejwa Jojeong',
+    adjustAccountSubtitle: 'Ijeon gyejwareul jeongsig Eunhaeng tto-neun E-Wallet-euro byeongyeong',
+    adjustAccountPrompt: 'I gyejwareul yeong-gujeog-euro daechehal Eunhaeng tto-neun E-Wallet-eul seontaekhaseyo:',
+    adjustAccountBtn: 'Gyejwa Jojeong',
+    adjustAccountSuccess: 'Gyejwa mich gwanryeon modeu georaega {name}(euro) seonggongjeog-euro byeongyeongdoeeossseumnida!',
+
     // Font Modal
     selectFontTitle: 'Geulkkol Seontaek',
     

@@ -1749,6 +1749,131 @@ img[src*="Kost"] {
   color: var(--text-muted);
 }
 
+.account-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-adjust-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(225, 29, 72, 0.1);
+  color: #E11D48;
+  border: 1px solid rgba(225, 29, 72, 0.25);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.account-adjust-tag-btn:hover {
+  background: rgba(225, 29, 72, 0.18);
+  transform: translateY(-1px);
+}
+
+.account-adjust-tag-btn:active {
+  transform: scale(0.94);
+}
+
+/* Adjust Legacy Account Modal & Grid */
+.adjust-account-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.adjust-account-banner {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.adjust-account-current-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.adjust-account-old-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.adjust-account-old-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+}
+
+.adjust-account-prompt-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.adjust-account-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.adjust-account-grid-item {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.adjust-account-grid-item:hover {
+  background: #FFFFFF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+.adjust-account-grid-item:active {
+  transform: scale(0.92);
+}
+
+.adjust-account-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.adjust-account-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .account-card-right {
   display: flex;
   align-items: center;

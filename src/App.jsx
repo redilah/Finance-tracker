@@ -639,6 +639,7 @@ function App() {
 
   const [isCustomAccount, setIsCustomAccount] = useState(false);
   const [customAccountInput, setCustomAccountInput] = useState('');
+  const [adjustingAccount, setAdjustingAccount] = useState(null); // Akun generik lama yang sedang disesuaikan (misal: 'Bank' / 'E-Wallet')
 
   // Status One-time Discovery Hint "Terakhir" untuk urutan No. 1
   const [dismissedLastBadge, setDismissedLastBadge] = useState(() => {
@@ -1567,6 +1568,8 @@ function App() {
     setIsBackupModalOpen,
     backupRestoreConfirm,
     setBackupRestoreConfirm,
+    adjustingAccount,
+    setAdjustingAccount,
     isPinSetupModalOpen,
     setIsPinSetupModalOpen,
     isAddModalOpen,
@@ -1593,7 +1596,11 @@ function App() {
       return;
     }
 
-    // 0.1 Sub-Modals di Profile
+    // 0.1 Sub-Modals di Profile / Account
+    if (s.adjustingAccount) {
+      s.setAdjustingAccount(null);
+      return;
+    }
     if (s.isPinSetupModalOpen) {
       s.setIsPinSetupModalOpen(false);
       return;
@@ -1802,6 +1809,64 @@ function App() {
       }
       return prev;
     });
+  };
+
+  // Handle Penyesuaian Akun Generik Lama (misal: 'Bank' / 'E-Wallet' -> Bank Pilihan User seperti 'BRImo', 'BCA', dll)
+  const handleMigrateLegacyAccount = (oldAccName, newAccName) => {
+    if (!oldAccName || !newAccName || oldAccName.toLowerCase().trim() === newAccName.toLowerCase().trim()) {
+      setAdjustingAccount(null);
+      return;
+    }
+
+    const oldNorm = oldAccName.toLowerCase().trim();
+
+    // 1. Update semua transaksi yang menggunakan akun lama
+    setTransactions(prevTxs => {
+      if (!Array.isArray(prevTxs)) return prevTxs;
+      const updated = prevTxs.map(tx => {
+        const txAcc = (tx.account || 'Cash').toLowerCase().trim();
+        if (txAcc === oldNorm) {
+          return { ...tx, account: newAccName };
+        }
+        return tx;
+      });
+      try {
+        safeStorageSet('user_transactions', updated);
+      } catch {}
+      return updated;
+    });
+
+    // 2. Perbarui accountsList: ganti oldAccName dengan newAccName atau gabungkan jika sudah ada
+    setAccountsList(prev => {
+      const filtered = prev.filter(a => (a || '').toLowerCase().trim() !== oldNorm);
+      if (!filtered.some(a => (a || '').toLowerCase().trim() === newAccName.toLowerCase().trim())) {
+        filtered.push(newAccName);
+      }
+      try {
+        safeStorageSet('user_accounts_list', filtered);
+      } catch {}
+      return filtered;
+    });
+
+    // 3. Masukkan oldAccName ke blacklist deleted agar tidak muncul kembali
+    setDeletedAccountsList(prev => {
+      const updated = [...prev.filter(a => (a || '').toLowerCase().trim() !== oldNorm), oldAccName];
+      try {
+        safeStorageSet('user_deleted_accounts', updated);
+      } catch {}
+      return updated;
+    });
+
+    // 4. Jika akun aktif saat ini di form adalah akun lama, ubah ke akun baru
+    if (account && account.toLowerCase().trim() === oldNorm) {
+      setAccount(newAccName);
+    }
+
+    // 5. Tutup modal & tampilkan toast sukses
+    setAdjustingAccount(null);
+    playPopSound('bubble_pop_2.wav');
+    const msg = (t('adjustAccountSuccess') || 'Akun berhasil disesuaikan ke {name}!').replace('{name}', newAccName);
+    showVoiceToast(msg);
   };
 
   // Handle Category Select (Auto advance to Account)
@@ -2756,6 +2821,9 @@ function App() {
 
               return activeAccounts.map((item, idx) => {
                 const percentage = totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0;
+                const normName = (item.name || '').toLowerCase().trim();
+                const isLegacyGeneric = normName === 'bank' || normName === 'e-wallet' || normName === 'ewallet' || normName === 'mandiri' || normName === 'bni' || normName === 'pos indonesia' || normName === 'pegadaian';
+
                 return (
                   <div key={idx} className="account-card-item">
                     <div className="account-card-left">
@@ -2763,7 +2831,26 @@ function App() {
                         <AccountIconBadge accountName={item.name} size={32} />
                       </div>
                       <div className="account-card-info">
-                        <span className="account-card-name">{item.name}</span>
+                        <div className="account-card-name-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="account-card-name">{item.name}</span>
+                          {isLegacyGeneric && (
+                            <button
+                              type="button"
+                              className="account-adjust-tag-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAdjustingAccount(item.name);
+                              }}
+                              title={t('adjustAccountTitle') || 'Sesuaikan Akun'}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                              </svg>
+                              <span>{t('adjustAccountBtn') || 'Sesuaikan'}</span>
+                            </button>
+                          )}
+                        </div>
                         <span className="account-card-count">{item.count} transaksi • {percentage}%</span>
                       </div>
                     </div>
@@ -4402,6 +4489,59 @@ function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen / Bottom Sheet: Sesuaikan Akun Generik Lama */}
+      {adjustingAccount && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen" style={{ zIndex: 1100000 }}>
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setAdjustingAccount(null)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('adjustAccountTitle') || 'Sesuaikan Akun'}</h3>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="adjust-account-container">
+                <div className="adjust-account-banner">
+                  <div className="adjust-account-current-badge">
+                    <AccountIconBadge accountName={adjustingAccount} size={38} />
+                    <div>
+                      <span className="adjust-account-old-name">{adjustingAccount}</span>
+                      <p className="adjust-account-old-desc">{t('adjustAccountSubtitle') || 'Ubah akun lama menjadi nama Bank atau E-Wallet resmi'}</p>
+                    </div>
+                  </div>
+                  <p className="adjust-account-prompt-text">{t('adjustAccountPrompt') || 'Pilih Bank atau E-Wallet yang sesuai untuk menggantikan akun ini secara permanen:'}</p>
+                </div>
+
+                <div className="adjust-account-grid">
+                  {DEFAULT_ACCOUNTS.filter(a => a.id !== 'cash').map((accItem) => (
+                    <button
+                      key={accItem.id}
+                      type="button"
+                      className="adjust-account-grid-item"
+                      onClick={() => handleMigrateLegacyAccount(adjustingAccount, accItem.name)}
+                    >
+                      <div className="adjust-account-icon-wrap">
+                        <AccountIconBadge accountName={accItem.name} size={36} />
+                      </div>
+                      <span className="adjust-account-name">{accItem.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

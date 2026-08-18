@@ -261,6 +261,7 @@ export const sendInstantNotification = (userName, transactions, lang) => {
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
+          largeIcon: 'ic_large_icon',
           iconColor: '#4f46e5'
         }
       ]
@@ -293,6 +294,7 @@ export const sendInstantBudgetNotification = (title, body) => {
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
+          largeIcon: 'ic_large_icon',
           iconColor: '#ef4444'
         }
       ]
@@ -366,6 +368,7 @@ export const sendUpdateReminderNotification = async (updateInfo, lang) => {
             channelId: 'update_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
             iconColor: '#10B981'
           }
         ]
@@ -438,6 +441,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
         iconColor: '#4f46e5'
       });
 
@@ -461,6 +465,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
+          largeIcon: 'ic_large_icon',
           iconColor: '#2D5284'
         });
       }
@@ -486,6 +491,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
+          largeIcon: 'ic_large_icon',
           iconColor: '#059669'
         });
       }
@@ -563,6 +569,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
         iconColor: '#2D5284'
       },
       {
@@ -573,6 +580,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
         iconColor: '#2D5284'
       }
     );
@@ -585,6 +593,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
       channelId: 'financial_notifications',
       sound: 'notification',
       smallIcon: 'ic_stat_icon',
+      largeIcon: 'ic_large_icon',
       iconColor: '#2D5284'
     });
   } else {
@@ -603,6 +612,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
         iconColor: '#2D5284'
       },
       {
@@ -613,6 +623,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
         iconColor: '#2D5284'
       }
     );
@@ -678,6 +689,7 @@ export const scheduleNewCategoryNotification = async (userName = 'Teman', lang) 
             channelId: 'financial_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
             iconColor: '#2D5284'
           }
         ]
@@ -741,6 +753,7 @@ export const scheduleV20FeatureIntroNotification = async (userName = 'Teman', la
             channelId: 'financial_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
             iconColor: '#2D5284'
           }
         ]
