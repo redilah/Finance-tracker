@@ -1,13 +1,13 @@
 {
-  "versionCode": 22,
-  "versionName": "1.0.21",
-  "version": "1.0.21",
-  "changelog": "New in this update:\n- [New] Penyesuaian Akun Bank & E-Wallet\n- [New] Ikon Aplikasi pada Notifikasi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.21",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.21",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.21",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.21",
-  "sha256": "b69e7470596ff579ef031ff794963c3a3318e40967efc8f2fab15c65338bf504",
+  "versionCode": 23,
+  "versionName": "1.0.22",
+  "version": "1.0.22",
+  "changelog": "New in this update:\n- [New] Pembaruan Keamanan & Stabilitas Aplikasi\n- [New] Penyempurnaan Ikon Notifikasi",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.22",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.22",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.22",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.22",
+  "sha256": "088d33c0917ae052ffaf3b4c77dc4bf1475bc34e66276ccd7b34aa2024f52243",
   "minSdkVersion": 22
 }
 
