@@ -41,8 +41,17 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 5. UI Invariants & Design Standards
 * **Warna & Theme**: Hindari penggunaan container/box hitam gelap kaku jika tidak menyatu dengan tema netral/krim (`#F8EFE6`).
 * **Security Screen Theme**: Semua layar keamanan (PIN setup, PIN lock screen, biometric prompt container) wajib menggunakan `background: var(--bg-app, #F8EFE6)`. Dilarang menggunakan gradien warna kustom (seperti amber/oranye) yang tidak konsisten dengan tema aplikasi.
-* **Halaman Profil**: Tampilan profil untuk pengguna terdaftar wajib berbentuk **Full Page Screen** (bukan modal pop-up).
-* **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku. Kotak menu/card pengaturan profil wajib menggunakan desain borderless (`border: none`) dengan bayangan halus.
+* **Halaman Profil — Seamless & Direct Background (No White Card Boxes)**: 
+  - Seluruh menu profil menempel langsung di atas latar belakang aplikasi (`var(--bg-app, #F8EFE6)`), dilarang menggunakan container card / kotak putih melayang terpisah (`background: transparent; border: none; box-shadow: none;`).
+  - **Format Seluruh Menu**: Seluruh menu profil disusun **berbaris memanjang ke bawah (Row List)** tanpa icon grid berjejer.
+  - **Hierarki Urutan Kategori Menu Profil**:
+    1. **Urutan 1 (Paling Atas)**: `NOTIFIKASI` (Notifikasi Harian dengan Switch Toggle aktif/nonaktif).
+    2. **Urutan 2**: `TAMPILAN & PREFERENSI` (Bahasa dengan ikon translasi karakter `文A`, Gaya Tulisan, Mata Uang / Currency).
+    3. **Urutan 3**: `KEAMANAN` (Atur PIN / Ubah PIN dan Sidik Jari / Biometrik dengan Switch Toggle).
+    4. **Urutan 4**: `DATA & DUKUNGAN` (Panduan Aplikasi, Data & Cadangan).
+    5. **Urutan 5 (Paling Bawah)**: `LAINNYA` (Saran & Masukan, FAQ, Tentang Cassiel).
+    6. **Footer**: Ikon sosial media Instagram polos tanpa bulatan latar putih (`https://www.instagram.com/redii_rm/`) berwarna abu-abu netral dan teks versi aplikasi (`Cassiel App ver x.y.z`) sebagai batas akhir bawah tanpa ruang kosong berlebih.
+* **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
 * **Action Button Persistence**: Tombol aksi utama (seperti tombol *Save* transaksi) harus selalu tampil dan aktif di form tanpa dikunci oleh kondisi panel/input focus (`activePanel === 'note'`).
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
@@ -189,3 +198,16 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   2. Buat direktori `Payload/` dan salin file `App.app` ke dalamnya.
   3. Kompres direktori `Payload` menggunakan command `zip -r -y "app-release.ipa" Payload` dan salin sebagai `Cassiel.ipa`.
 * **Retention Policy**: Artifact upload diatur dengan retensi 14 hari (`retention-days: 14`) untuk efisiensi penyimpanan storage repositori.
+
+## 26. Android Notification Icon Assets Invariant
+* **Small Icon (`ic_stat_icon.png`)**: Wajib monokrom putih (`#FFFFFF`) di atas background 100% transparan (*alpha channel mask*). Dilarang menyertakan background kotak solid gelap. Tersedia di seluruh folder `res/drawable-*`.
+* **Large Icon (`ic_large_icon.png`)**: Wajib berupa full-color RGBA bitmap 32-bit dari logo aplikasi asli (`public/app-icon.png`) pada seluruh folder `res/drawable-*`.
+* **Manifest Fallback**: Wajib mendaftarkan meta-data default notification icon & color di `AndroidManifest.xml`.
+
+## 27. Native Biometric Prompt & Loop-Prevention Invariant
+* **One-Time Init Prompt Guard**: Auto-prompt sidik jari saat lock screen mount wajib dikunci dengan `hasAutoPromptedRef` dan `isCallingBioRef` agar penekanan tombol "Batal / Gunakan PIN" tidak memicu loop re-trigger siklis.
+* **Clean Dialog Typography**: Dialog `verifyIdentity` hanya menampilkan `title: 'Sidik Jari'` dan `negativeButtonText: 'Gunakan PIN'` tanpa subtitle/description bertumpuk yang berulang.
+
+## 28. Interactive Guided Tour & Dynamic Spotlight Invariants
+* **Direct Physical Target**: Target class `.tour-target-*` wajib dipasang langsung pada elemen DOM yang memiliki layout nyata (dilarang pada `display: contents`).
+* **Dynamic Floating Card Placement**: Posisi kartu panduan wajib dinamis berdasarkan koordinat bounding box elemen target (melayang di atas jika target berada di area bawah layar, dan melayang di bawah jika target di area atas) dengan panah penunjuk (*arrow*) yang presisi menunjuk ke titik tengah (*center X*) target.

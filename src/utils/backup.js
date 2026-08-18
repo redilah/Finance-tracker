@@ -49,10 +49,15 @@ export function createBackupData({
   };
 }
 
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+
 /**
- * Export backup as a downloadable JSON file.
- * On mobile (Capacitor), uses native share sheet for Google Drive / iCloud.
- * On web, triggers a file download.
+ * Export backup as a downloadable/shareable JSON file.
+ * On native mobile (Capacitor), saves JSON to cache and invokes native Android Share Sheet
+ * allowing the user to select "Save to Google Drive", File Manager, WhatsApp, etc.
+ * On web browser, triggers a direct browser file download.
  * @param {Object} backupObj - The backup object from createBackupData
  * @param {string} userName - User's display name for the filename
  */
@@ -61,26 +66,53 @@ export async function exportBackup(backupObj, userName = 'User') {
   const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const fileName = `Cassiel_Backup_${safeName}_${dateStr}.json`;
   const jsonStr = JSON.stringify(backupObj, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
 
-  // Try native Web Share API (works on Android WebView & Safari iOS)
-  if (navigator.share && navigator.canShare) {
+  // 1. Native Mobile Mode (Capacitor Android / iOS)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Write file into temporary Cache directory
+      const fileResult = await Filesystem.writeFile({
+        path: fileName,
+        data: jsonStr,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+
+      // Open Native Share Sheet (Offers Google Drive, Local Storage, WhatsApp, etc.)
+      await Share.share({
+        title: 'Cadangkan Data Cassiel',
+        text: `File cadangan data keuangan Cassiel (${safeName})`,
+        url: fileResult.uri,
+        dialogTitle: 'Simpan Cadangan Data ke Google Drive / Perangkat',
+      });
+
+      return { success: true, method: 'native_share' };
+    } catch (err) {
+      if (err.message && (err.message.includes('cancel') || err.message.includes('dismiss'))) {
+        return { success: false, cancelled: true };
+      }
+      console.warn('[Backup] Native share failed, attempting fallback:', err);
+    }
+  }
+
+  // 2. Web Share API (Safari iOS / supported mobile web browsers)
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
     try {
       const file = new File([blob], fileName, { type: 'application/json' });
       const shareData = { files: [file], title: 'Cassiel Backup', text: `Data cadangan ${safeName}` };
       if (navigator.canShare(shareData)) {
         await navigator.share(shareData);
-        return { success: true, method: 'share' };
+        return { success: true, method: 'web_share' };
       }
     } catch (err) {
-      // User cancelled share or share not supported for files — fall through to download
       if (err.name === 'AbortError') {
         return { success: false, cancelled: true };
       }
     }
   }
 
-  // Fallback: direct download (works on web & some Android WebViews)
+  // 3. Browser Direct Download Fallback
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

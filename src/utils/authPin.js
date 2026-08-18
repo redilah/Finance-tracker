@@ -151,9 +151,7 @@ export async function authenticateWithBiometrics(reason = 'Verifikasi sidik jari
 
     await NativeBiometric.verifyIdentity({
       reason: reason,
-      title: 'Autentikasi Sidik Jari',
-      subtitle: 'Gunakan sensor sidik jari HP Anda untuk membuka aplikasi',
-      description: 'Sentuh sensor sidik jari untuk melanjutkan',
+      title: 'Sidik Jari',
       negativeButtonText: 'Gunakan PIN',
       maxAttempts: 5,
     });

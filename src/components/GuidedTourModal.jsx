@@ -85,6 +85,49 @@ export const FULL_GUIDE_STEPS = [
     isCircle: true
   },
   {
+    id: 'form_category',
+    targetSelector: '.tour-target-form-category',
+    tab: 'home',
+    screen: 'add_modal',
+    transType: 'Expense',
+    panel: 'category',
+    titleKey: 'tourFormCatTitle',
+    descKey: 'tourFormCatDesc',
+    isCircle: false
+  },
+  {
+    id: 'form_account',
+    targetSelector: '.tour-target-form-account',
+    tab: 'home',
+    screen: 'add_modal',
+    transType: 'Expense',
+    panel: 'account',
+    titleKey: 'tourFormAccTitle',
+    descKey: 'tourFormAccDesc',
+    isCircle: false
+  },
+  {
+    id: 'form_minus',
+    targetSelector: '.tour-target-form-minus',
+    tab: 'home',
+    screen: 'add_modal',
+    transType: 'Expense',
+    panel: 'account',
+    titleKey: 'tourFormMinusTitle',
+    descKey: 'tourFormMinusDesc',
+    isCircle: true
+  },
+  {
+    id: 'form_andai',
+    targetSelector: '.tour-target-tab-andai',
+    tab: 'home',
+    screen: 'add_modal',
+    transType: 'Andai',
+    titleKey: 'tourAndaiTitle',
+    descKey: 'tourAndaiDesc',
+    isCircle: false
+  },
+  {
     id: 'budget',
     targetSelector: '.tour-target-budget',
     tab: 'budget',
@@ -129,7 +172,10 @@ export default function GuidedTourModal({
   onComplete,
   t,
   setActiveTab,
-  setIsProfileModalOpen
+  setIsProfileModalOpen,
+  setIsAddModalOpen,
+  setActivePanel,
+  setTransType
 }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
@@ -166,9 +212,20 @@ export default function GuidedTourModal({
     setCardContentVisible(false);
 
     if (currentStep.screen === 'profile') {
+      if (setIsAddModalOpen) setIsAddModalOpen(false);
       setIsProfileModalOpen(true);
+    } else if (currentStep.screen === 'add_modal') {
+      setIsProfileModalOpen(false);
+      if (setIsAddModalOpen) setIsAddModalOpen(true);
+      if (currentStep.transType && setTransType) {
+        setTransType(currentStep.transType);
+      }
+      if (currentStep.panel && setActivePanel) {
+        setActivePanel(currentStep.panel);
+      }
     } else {
       setIsProfileModalOpen(false);
+      if (setIsAddModalOpen) setIsAddModalOpen(false);
       if (currentStep.tab) {
         setActiveTab(currentStep.tab);
       }
@@ -204,7 +261,7 @@ export default function GuidedTourModal({
         }
       };
       animFrameRef.current = requestAnimationFrame(trackPosition);
-    }, 40);
+    }, 60);
 
     return () => {
       clearTimeout(prepareTimer);
@@ -250,6 +307,7 @@ export default function GuidedTourModal({
 
   const handleFinish = () => {
     setIsProfileModalOpen(false);
+    if (setIsAddModalOpen) setIsAddModalOpen(false);
     setActiveTab('home');
     setCurrentStepIndex(0);
     if (onComplete) onComplete();
@@ -258,13 +316,14 @@ export default function GuidedTourModal({
 
   const handleSkip = () => {
     setIsProfileModalOpen(false);
+    if (setIsAddModalOpen) setIsAddModalOpen(false);
     setActiveTab('home');
     setCurrentStepIndex(0);
     if (onClose) onClose();
   };
 
-  // SVG Cutout padding and dimensions - pixel-perfect fit
-  const isCircle = currentStep.isCircle || (targetRect && targetRect.width < 75);
+  // SVG Cutout padding and dimensions - pixel-perfect fit per target type
+  const isCircle = currentStep.isCircle === true;
 
   let spotX = 0;
   let spotY = 0;
@@ -280,10 +339,28 @@ export default function GuidedTourModal({
       spotW = targetRect.width + (pad * 2);
       spotH = targetRect.height + (pad * 2);
       spotRadius = Math.max(spotW, spotH) / 2;
+    } else if (currentStep.id === 'form_andai' || currentStep.targetSelector?.includes('tour-target-tab-')) {
+      // Type pill tab (Income / Expense / Andai)
+      const padX = 3;
+      const padY = 2;
+      spotX = targetRect.left - padX;
+      spotY = targetRect.top - padY;
+      spotW = targetRect.width + (padX * 2);
+      spotH = targetRect.height + (padY * 2);
+      spotRadius = 16;
+    } else if (currentStep.id === 'form_category' || currentStep.id === 'form_account') {
+      // Form panel category/account
+      const padX = 2;
+      const padY = 2;
+      spotX = targetRect.left - padX;
+      spotY = targetRect.top - padY;
+      spotW = targetRect.width + (padX * 2);
+      spotH = targetRect.height + (padY * 2);
+      spotRadius = 16;
     } else {
-      // Profile menu item (row)
-      const trimY = 6;
-      const padX = 8;
+      // Profile menu item (row list) or generic rectangular item
+      const trimY = 4;
+      const padX = 6;
       spotX = targetRect.left - padX;
       spotY = targetRect.top + trimY;
       spotW = targetRect.width + (padX * 2);
@@ -294,22 +371,23 @@ export default function GuidedTourModal({
 
   const spotCenterX = targetRect ? targetRect.left + (targetRect.width / 2) : 0;
   const spotCenterY = targetRect ? targetRect.top + (targetRect.height / 2) : 0;
-
-  // Determine card placement and comfortable gap from spotlight
+  // Determine card placement dynamically based on where target is on screen
   let cardTop = 0;
   let isArrowOnBottom = true;
-  const cardGap = 20;
+  const cardGap = 16;
+  const estimatedCardHeight = 180;
 
   if (targetRect) {
-    const isBottomNav = currentStep.screen === 'main';
-    const isNearBottom = targetRect.bottom > window.innerHeight - 150;
+    // If element is in lower half of screen (or space below is insufficient), place card ABOVE target
+    const spaceAbove = targetRect.top;
+    const spaceBelow = window.innerHeight - targetRect.bottom;
 
-    if (isBottomNav || isNearBottom) {
+    if (spaceAbove > estimatedCardHeight + cardGap && (spaceBelow < estimatedCardHeight + cardGap || targetRect.top > window.innerHeight * 0.45)) {
       isArrowOnBottom = true;
-      cardTop = Math.max(20, spotY - 175 - cardGap);
+      cardTop = Math.max(16, targetRect.top - estimatedCardHeight - cardGap);
     } else {
       isArrowOnBottom = false;
-      cardTop = Math.min(window.innerHeight - 190, (spotY + spotH) + cardGap);
+      cardTop = Math.min(window.innerHeight - estimatedCardHeight - 16, targetRect.bottom + cardGap);
     }
   } else {
     cardTop = window.innerHeight - 260;

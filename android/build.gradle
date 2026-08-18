@@ -43,6 +43,12 @@ subprojects {
                 }
             }
         }
+        project.tasks.withType(JavaCompile).configureEach {
+            options.compilerArgs += ['--release', '17']
+        }
+        if (project.extensions.findByName('java') != null) {
+            project.java.toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+        }
     }
 }
 

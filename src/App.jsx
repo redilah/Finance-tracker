@@ -40,7 +40,7 @@ import minumanSvg from './assets/Minuman.svg';
 import fingerprintSvg from './assets/fingerprint.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
-import { checkForAppUpdates } from './utils/version';
+import { checkForAppUpdates, CURRENT_VERSION_NAME } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
@@ -54,6 +54,7 @@ import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, se
 import PinSetupModal from './components/PinSetupModal';
 import PinLockScreen from './components/PinLockScreen';
 import GuidedTourModal from './components/GuidedTourModal';
+import { syncWidgetData } from './utils/widgetSync';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
@@ -769,7 +770,10 @@ function App() {
   }, [accountsList, transactions]);
 
   // Profile State & Persistence
-  const isFirstTimeUser = !safeStorageGet('user_profile_setup_done');
+  const [isProfileSetupDone, setIsProfileSetupDone] = useState(() => {
+    return Boolean(safeStorageGet('user_profile_setup_done'));
+  });
+  const isFirstTimeUser = !isProfileSetupDone;
 
   const [profileName, setProfileName] = useState(() => {
     return safeStorageGet('user_profile_name') || '';
@@ -1415,6 +1419,7 @@ function App() {
     }
 
     safeStorageSet('user_profile_setup_done', 'true');
+    setIsProfileSetupDone(true);
 
     // Auto activate notifications on profile save ONLY for initial onboarding setup
     if (isFirstTimeSetup) {
@@ -1721,6 +1726,48 @@ function App() {
       }
     };
   }, []);
+
+  // Listen for Home Screen Widget actions (Deep Link / Intent trigger)
+  React.useEffect(() => {
+    const handleWidgetAction = (event) => {
+      const action = event.detail?.action;
+      if (!action) return;
+
+      if (action === 'OPEN_BUDGET') {
+        setIsAddModalOpen(false);
+        setIsProfileModalOpen(false);
+        setActiveTab('budget');
+      } else if (action === 'OPEN_STATS') {
+        setIsAddModalOpen(false);
+        setIsProfileModalOpen(false);
+        setActiveTab('stats');
+      } else if (action === 'OPEN_ADD_MODAL') {
+        setIsProfileModalOpen(false);
+        setIsAddModalOpen(true);
+        setActivePanel('amount');
+      } else if (action === 'OPEN_VOICE') {
+        setIsAddModalOpen(false);
+        setIsProfileModalOpen(false);
+        setActiveTab('home');
+        setTimeout(() => {
+          const micBtn = document.querySelector('.tour-target-voice-btn, .voice-mic-fab');
+          if (micBtn) micBtn.click();
+        }, 300);
+      }
+    };
+
+    window.addEventListener('app_widget_action', handleWidgetAction);
+    return () => window.removeEventListener('app_widget_action', handleWidgetAction);
+  }, []);
+
+  // Auto-sync financial snapshot to Android Native AppWidget (2x2 & 4x2)
+  React.useEffect(() => {
+    syncWidgetData({
+      transactions,
+      categories: expenseCategories,
+      currency: appCurrency
+    });
+  }, [transactions, expenseCategories, appCurrency]);
 
   // Add Custom Category to Dropdown List
   const handleAddCustomCategory = () => {
@@ -3188,19 +3235,17 @@ function App() {
       )}
 
       {activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen && (
-        <div className="tour-target-voice" style={{ display: 'contents' }}>
-          <VoiceMicButton
-            expenseCategories={expenseCategories}
-            incomeCategories={incomeCategories}
-            accountsList={accountsList}
-            setTransType={setTransType}
-            setAmountVal={setAmountVal}
-            setSelectedCategory={setSelectedCategory}
-            setAccount={setAccount}
-            setNote={setNote}
-            handleSaveVoiceTransaction={handleSaveVoiceTransaction}
-          />
-        </div>
+        <VoiceMicButton
+          expenseCategories={expenseCategories}
+          incomeCategories={incomeCategories}
+          accountsList={accountsList}
+          setTransType={setTransType}
+          setAmountVal={setAmountVal}
+          setSelectedCategory={setSelectedCategory}
+          setAccount={setAccount}
+          setNote={setNote}
+          handleSaveVoiceTransaction={handleSaveVoiceTransaction}
+        />
       )}
 
       {/* Voice Feedback Toast Notification */}
@@ -3312,7 +3357,7 @@ function App() {
                 <button
                   key={type}
                   type="button"
-                  className={`type-tab ${transType === type ? `active ${type.toLowerCase()}-tab` : ''}`}
+                  className={`type-tab ${transType === type ? `active ${type.toLowerCase()}-tab` : ''} tour-target-tab-${type.toLowerCase()}`}
                   onClick={() => {
                     setTransType(type);
                     setActivePanel('amount');
@@ -3596,117 +3641,117 @@ function App() {
             </div>
           )}
 
-          {/* Category Selector Sheet when Category is active */}
-          {activePanel === 'category' && (
-            <div className="panel-category-full">
-              <div className="panel-sub-header">
-                <span className="panel-title">{t('formCategory')}</span>
-                <div className="panel-header-actions">
-                  <button
-                    type="button"
-                    className={`header-action-btn ${isCustomCat ? 'active' : ''}`}
-                    onClick={() => setIsCustomCat(!isCustomCat)}
-                    title="Tulis Kategori Sendiri"
-                    aria-label="Edit custom category"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    type="button"
-                    className="header-action-btn close-btn"
-                    onClick={() => setActivePanel('account')}
-                    title={t('close')}
-                    aria-label="Close category panel"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
+              {/* Category Selector Sheet when Category is active */}
+              {activePanel === 'category' && (
+                <div className="panel-category-full tour-target-form-category">
+                  <div className="panel-sub-header">
+                    <span className="panel-title">{t('formCategory')}</span>
+                    <div className="panel-header-actions">
+                      <button
+                        type="button"
+                        className={`header-action-btn ${isCustomCat ? 'active' : ''}`}
+                        onClick={() => setIsCustomCat(!isCustomCat)}
+                        title="Tulis Kategori Sendiri"
+                        aria-label="Edit custom category"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        className="header-action-btn close-btn"
+                        onClick={() => setActivePanel('account')}
+                        title={t('close')}
+                        aria-label="Close category panel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
 
-              {isCustomCat && (
-                <div className="custom-cat-wrapper">
-                  <input
-                    type="text"
-                    className="custom-cat-input"
-                    placeholder={t('formCustomCat')}
-                    value={customCatInput}
-                    onChange={(e) => setCustomCatInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomCategory();
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
-                    + {t('add')}
-                  </button>
+                  {isCustomCat && (
+                    <div className="custom-cat-wrapper">
+                      <input
+                        type="text"
+                        className="custom-cat-input"
+                        placeholder={t('formCustomCat')}
+                        value={customCatInput}
+                        onChange={(e) => setCustomCatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddCustomCategory();
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
+                        + {t('add')}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="category-grid">
+                    {(transType === 'Expense' ? sortedExpenseCategories : sortedIncomeCategories).map((cat, idx) => {
+                      const catIcon = resolveIcon(cat);
+                      const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''} ${showLastBadge ? 'has-last-badge' : ''}`}
+                          onClick={() => handleSelectCategory(cat)}
+                        >
+                          {showLastBadge && (
+                            <span className="last-used-badge" title="Kategori paling sering / terakhir digunakan">
+                              Terakhir
+                            </span>
+                          )}
+                          {catIcon ? (
+                            <div className={`cat-grid-icon ${cat.iconClass}`}>
+                              <img src={catIcon} alt={cat.name} />
+                            </div>
+                          ) : null}
+                          <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              <div className="category-grid">
-                {(transType === 'Expense' ? sortedExpenseCategories : sortedIncomeCategories).map((cat, idx) => {
-                  const catIcon = resolveIcon(cat);
-                  const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''} ${showLastBadge ? 'has-last-badge' : ''}`}
-                      onClick={() => handleSelectCategory(cat)}
-                    >
-                      {showLastBadge && (
-                        <span className="last-used-badge" title="Kategori paling sering / terakhir digunakan">
-                          Terakhir
-                        </span>
-                      )}
-                      {catIcon ? (
-                        <div className={`cat-grid-icon ${cat.iconClass}`}>
-                          <img src={catIcon} alt={cat.name} />
-                        </div>
-                      ) : null}
-                      <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Account Selector Sheet when Account is active */}
-          {activePanel === 'account' && (
-            <div className="panel-category-full">
-              <div className="panel-sub-header">
-                <span className="panel-title">{t('formAccount')}</span>
-                <div className="panel-header-actions">
-                  <button
-                    type="button"
-                    className={`header-action-btn undo-btn ${deletedAccountsHistory.length > 0 ? 'enabled' : 'disabled'}`}
-                    onClick={handleUndoDeleteAccount}
-                    disabled={deletedAccountsHistory.length === 0}
-                    title="Batalkan Hapus Akun"
-                    aria-label="Undo delete account"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                      <path d="M3 3v5h5" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`header-action-btn minus-btn ${isAccountDeleteMode ? 'active' : ''}`}
-                    onClick={() => {
-                      setIsAccountDeleteMode(!isAccountDeleteMode);
-                      if (isCustomAccount) setIsCustomAccount(false);
-                    }}
-                    title={isAccountDeleteMode ? "Selesai Hapus" : "Mode Hapus Akun"}
-                    aria-label="Toggle delete mode"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </button>
+              {/* Account Selector Sheet when Account is active */}
+              {activePanel === 'account' && (
+                <div className="panel-category-full tour-target-form-account">
+                  <div className="panel-sub-header">
+                    <span className="panel-title">{t('formAccount')}</span>
+                    <div className="panel-header-actions">
+                      <button
+                        type="button"
+                        className={`header-action-btn undo-btn ${deletedAccountsHistory.length > 0 ? 'enabled' : 'disabled'}`}
+                        onClick={handleUndoDeleteAccount}
+                        disabled={deletedAccountsHistory.length === 0}
+                        title="Batalkan Hapus Akun"
+                        aria-label="Undo delete account"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={`header-action-btn minus-btn tour-target-form-minus ${isAccountDeleteMode ? 'active' : ''}`}
+                        onClick={() => {
+                          setIsAccountDeleteMode(!isAccountDeleteMode);
+                          if (isCustomAccount) setIsCustomAccount(false);
+                        }}
+                        title={isAccountDeleteMode ? "Selesai Hapus" : "Mode Hapus Akun"}
+                        aria-label="Toggle delete mode"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                      </button>
                   <button
                     type="button"
                     className={`header-action-btn ${isCustomAccount ? 'active' : ''}`}
@@ -3804,7 +3849,7 @@ function App() {
       )}
 
       {/* Onboarding Welcome Setup Modal (Full-Page Screen untuk Pengguna Baru) */}
-      {isProfileModalOpen && !safeStorageGet('user_profile_setup_done') && (
+      {isProfileModalOpen && !isProfileSetupDone && !profileName && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
           <div className="wa-profile-screen-container">
             {/* Top Bar Header (Strictly 1 Single Line) */}
@@ -3935,7 +3980,7 @@ function App() {
       )}
 
       {/* Full Page WhatsApp Style Profile Screen (Untuk user terdaftar) */}
-      {isProfileModalOpen && safeStorageGet('user_profile_setup_done') && (
+      {isProfileModalOpen && (isProfileSetupDone || Boolean(profileName)) && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
           <div className="wa-profile-screen-container">
             {/* Top Bar Header */}
@@ -4027,13 +4072,13 @@ function App() {
                 </div>
               </div>
 
-              {/* WA-Style Settings Menu List with Section Categories */}
+              {/* Direct Seamless Background Profile Menu Layout */}
               <div className="wa-settings-menu-group">
 
                 {/* ========================================================
-                    1. NOTIFIKASI
+                    1. NOTIFIKASI (Paling Atas dengan Toggle Switch)
                    ======================================================== */}
-                <h4 className="wa-profile-section-title">{t('sectionNotif')}</h4>
+                <h4 className="wa-profile-section-title">{t('sectionNotif') || 'NOTIFIKASI'}</h4>
 
                 <div 
                   className="wa-menu-item"
@@ -4046,16 +4091,16 @@ function App() {
                   }}
                 >
                   <div className="wa-menu-icon-box notif-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('notifSettingTitle')}</span>
+                      <span className="wa-menu-title">{t('notifSettingTitle') || 'Notifikasi Harian'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('notifSettingSubtitle')}</span>
+                    <span className="wa-menu-subtitle">{t('notifSettingSubtitle') || 'Pengingat pencatatan & analisis'}</span>
                   </div>
                   <div className={`wa-custom-toggle-track ${isNotifActive ? 'active' : ''}`}>
                     <div className="wa-custom-toggle-thumb" />
@@ -4063,44 +4108,25 @@ function App() {
                 </div>
 
                 {/* ========================================================
-                    2. TAMPILAN & PREFERENSI
+                    2. TAMPILAN & PREFERENSI (Posisi No. 2)
                    ======================================================== */}
-                <h4 className="wa-profile-section-title">{t('sectionPrefs')}</h4>
+                <h4 className="wa-profile-section-title">{t('sectionPrefs') || 'TAMPILAN & PREFERENSI'}</h4>
 
-                {/* Gaya Tulisan */}
-                <div className="wa-menu-item" onClick={handleOpenFontModal}>
-                  <div className="wa-menu-icon-box font-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="4 7 4 4 20 4 20 7"/>
-                      <line x1="9" y1="20" x2="15" y2="20"/>
-                      <line x1="12" y1="4" x2="12" y2="20"/>
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('fontSettingTitle')}</span>
-                    </div>
-                    <span className="wa-menu-subtitle">
-                      {FONTS.find(f => f.id === appFont)?.name || 'Lora'}
-                    </span>
-                  </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-
-                {/* Bahasa */}
+                {/* Bahasa dengan ikon karakter translate 文A */}
                 <div className="wa-menu-item tour-target-language" onClick={handleOpenLangModal}>
                   <div className="wa-menu-icon-box lang-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="2" y1="12" x2="22" y2="12"/>
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 8l6 0" />
+                      <path d="M4 14l6-6 2 2-3 4" />
+                      <path d="M2 5h12" />
+                      <path d="M7 2h1" />
+                      <path d="M22 22l-5-10-5 10" />
+                      <path d="M14 18h6" />
                     </svg>
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('langSettingTitle')}</span>
+                      <span className="wa-menu-title">{t('langSettingTitle') || 'Bahasa'}</span>
                     </div>
                     <span className="wa-menu-subtitle">
                       {LANGUAGES.find(l => l.code === appLanguage)?.name || 'Bahasa Indonesia'}
@@ -4111,10 +4137,32 @@ function App() {
                   </svg>
                 </div>
 
-                {/* Mata Uang Utama */}
+                {/* Gaya Tulisan */}
+                <div className="wa-menu-item" onClick={handleOpenFontModal}>
+                  <div className="wa-menu-icon-box font-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="4 7 4 4 20 4 20 7"/>
+                      <line x1="9" y1="20" x2="15" y2="20"/>
+                      <line x1="12" y1="4" x2="12" y2="20"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('fontSettingTitle') || 'Gaya Tulisan'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {FONTS.find(f => f.id === appFont)?.name || 'Lora'}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Currency / Mata Uang */}
                 <div className="wa-menu-item" onClick={handleOpenCurrencyModal}>
                   <div className="wa-menu-icon-box currency-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
                       <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
                       <path d="M12 6v2"/>
@@ -4123,7 +4171,7 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('currencySettingTitle')}</span>
+                      <span className="wa-menu-title">{t('currencySettingTitle') || 'Currency'}</span>
                     </div>
                     <span className="wa-menu-subtitle">
                       {(() => {
@@ -4138,14 +4186,14 @@ function App() {
                 </div>
 
                 {/* ========================================================
-                    3. KEAMANAN
+                    3. KEAMANAN (Posisi No. 3)
                    ======================================================== */}
-                <h4 className="wa-profile-section-title">{t('sectionSecurity')}</h4>
+                <h4 className="wa-profile-section-title">{t('sectionSecurity') || 'KEAMANAN'}</h4>
 
                 {/* Atur PIN / Ubah PIN */}
                 <div className="wa-menu-item" onClick={() => setIsPinSetupModalOpen(true)}>
                   <div className="wa-menu-icon-box pin-menu-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
@@ -4175,7 +4223,6 @@ function App() {
                     const nextVal = !isLockEnabled;
                     setAppLockEnabled(nextVal);
                     setIsLockEnabled(nextVal);
-                    // Sinkronkan juga biometric state
                     setBiometricEnabled(nextVal);
                     setIsBiometricActive(nextVal);
                   }}
@@ -4197,12 +4244,12 @@ function App() {
                 {/* ========================================================
                     4. DATA & DUKUNGAN
                    ======================================================== */}
-                <h4 className="wa-profile-section-title">{t('sectionDataSupport')}</h4>
+                <h4 className="wa-profile-section-title">{t('sectionDataSupport') || 'DATA & DUKUNGAN'}</h4>
 
-                {/* Panduan Aplikasi (Full Interactive Guided Tour) */}
+                {/* Panduan Aplikasi */}
                 <div className="wa-menu-item" onClick={handleOpenFullGuide}>
                   <div className="wa-menu-icon-box" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
                       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                       <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -4219,28 +4266,10 @@ function App() {
                   </svg>
                 </div>
 
-                {/* Saran & Masukan */}
-                <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
-                  <div className="wa-menu-icon-box feedback-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('feedbackTitle')}</span>
-                    </div>
-                    <span className="wa-menu-subtitle">{t('feedbackSubtitle')}</span>
-                  </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-
-                {/* Backup & Restore Data */}
+                {/* Data & Cadangan */}
                 <div className="wa-menu-item tour-target-backup" onClick={() => setIsBackupModalOpen(true)}>
                   <div className="wa-menu-icon-box backup-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
                       <polyline points="12 13 12 7"/>
                       <polyline points="9 10 12 7 15 10"/>
@@ -4248,13 +4277,99 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('backupSettingTitle')}</span>
+                      <span className="wa-menu-title">{t('backupSettingTitle') || 'Data & Cadangan'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('backupSettingSubtitle')}</span>
+                    <span className="wa-menu-subtitle">{t('backupSettingSubtitle') || 'Simpan dan pulihkan catatan transaksi'}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
+                </div>
+
+                {/* ========================================================
+                    5. LAINNYA
+                   ======================================================== */}
+                <h4 className="wa-profile-section-title">LAINNYA</h4>
+
+                {/* Saran & Masukan */}
+                <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
+                  <div className="wa-menu-icon-box feedback-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('feedbackTitle') || 'Saran & Keluh Kesah'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('feedbackSubtitle') || 'Kirim masukan untuk pengembangan Cassiel'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* FAQ */}
+                <div className="wa-menu-item" onClick={() => showVoiceToast('Fitur FAQ akan segera hadir!')}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">FAQ</span>
+                    </div>
+                    <span className="wa-menu-subtitle">Pertanyaan umum seputar penggunaan aplikasi</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Tentang Cassiel */}
+                <div className="wa-menu-item" onClick={() => showVoiceToast(`Cassiel v${CURRENT_VERSION_NAME}`)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">Tentang</span>
+                    </div>
+                    <span className="wa-menu-subtitle">Cassiel Finance Tracker</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* ========================================================
+                    FOOTER: SOCIAL MEDIA INSTAGRAM & APP VERSION (Batas Akhir)
+                   ======================================================== */}
+                <div className="profile-footer-container">
+                  <div className="profile-social-row">
+                    <a 
+                      href="https://www.instagram.com/redii_rm/" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="profile-social-plain-btn"
+                      title="Instagram @redii_rm"
+                      aria-label="Instagram"
+                    >
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                      </svg>
+                    </a>
+                  </div>
+                  <div className="profile-app-version-text">
+                    Cassiel App ver {CURRENT_VERSION_NAME}
+                  </div>
                 </div>
 
               </div>
@@ -5131,6 +5246,9 @@ function App() {
         t={t}
         setActiveTab={setActiveTab}
         setIsProfileModalOpen={setIsProfileModalOpen}
+        setIsAddModalOpen={setIsAddModalOpen}
+        setActivePanel={setActivePanel}
+        setTransType={setTransType}
         onComplete={handleCompleteTour}
         onClose={() => setIsTourOpen(false)}
       />

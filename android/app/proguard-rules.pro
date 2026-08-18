@@ -19,3 +19,11 @@
 # Keep App Plugin
 -keep class com.capacitorjs.plugins.app.** { *; }
 -keepclassmembers class com.capacitorjs.plugins.app.** { *; }
+
+# Keep AppWidget Providers and Widget Bridge Plugin
+-keep class com.redilah.financetracker.widget.** { *; }
+-keepclassmembers class com.redilah.financetracker.widget.** { *; }
+
+# Don't warn on missing internal Kotlin coroutines helpers from external libs
+-dontwarn kotlin.coroutines.jvm.internal.**
+-dontwarn kotlinx.coroutines.**

@@ -9,6 +9,14 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Default Notification Icon & Brand Color for Android Notifications -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_icon" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -33,6 +41,32 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Cassiel AppWidget 2x2 (Small Habit Glance) -->
+        <receiver
+            android:name=".widget.CassielSmallWidgetProvider"
+            android:exported="true"
+            android:label="Cassiel • Jatah Harian (2x2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_cassiel_small_info" />
+        </receiver>
+
+        <!-- Cassiel AppWidget 4x2 (Medium Budget & Actions) -->
+        <receiver
+            android:name=".widget.CassielMediumWidgetProvider"
+            android:exported="true"
+            android:label="Cassiel • Budget &amp; Aksi Cepat (4x2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_cassiel_medium_info" />
+        </receiver>
     </application>
 
     <!-- Permissions -->

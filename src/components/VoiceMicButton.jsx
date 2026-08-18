@@ -312,11 +312,11 @@ export default function VoiceMicButton({
   };
 
   return (
-    <div className="voice-mic-container">
+    <div className="voice-mic-container tour-target-voice">
       <span className="voice-mic-beta-badge">BETA</span>
       <button 
         type="button"
-        className={`voice-mic-fab status-${status}`}
+        className={`voice-mic-fab status-${status} tour-target-voice-btn`}
         onClick={handleMicClick}
         disabled={status === 'success'}
         aria-label="Input Transaksi Suara"

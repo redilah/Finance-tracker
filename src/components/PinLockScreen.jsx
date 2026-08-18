@@ -11,6 +11,10 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
   const [isAuthenticatingBio, setIsAuthenticatingBio] = useState(false);
 
   const isBioActive = isBiometricEnabled();
+  // Ref untuk menandai bahwa auto-prompt saat inisialisasi sudah berjalan 1x
+  const hasAutoPromptedRef = React.useRef(false);
+  // Ref untuk mencegah concurrent/overlapping prompt invocation
+  const isCallingBioRef = React.useRef(false);
 
   const triggerErrorShake = (msg) => {
     setErrorMessage(msg);
@@ -25,7 +29,8 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
   };
 
   const handleBiometricAuth = useCallback(async () => {
-    if (!isBioActive || isAuthenticatingBio) return;
+    if (!isBioActive || isCallingBioRef.current) return;
+    isCallingBioRef.current = true;
     setIsAuthenticatingBio(true);
     try {
       const res = await authenticateWithBiometrics(
@@ -34,16 +39,19 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
       if (res && res.success === true) {
         if (onUnlockSuccess) onUnlockSuccess();
       }
+      // Jika user klik Batal / Gunakan PIN, fungsi selesai tanpa re-trigger
     } catch (e) {
       console.log('Biometric prompt dismissed or failed:', e);
     } finally {
+      isCallingBioRef.current = false;
       setIsAuthenticatingBio(false);
     }
-  }, [isBioActive, isAuthenticatingBio, onUnlockSuccess, t]);
+  }, [isBioActive, onUnlockSuccess, t]);
 
-  // Otomatis memicu dialog sidik jari HP saat lock screen pertama kali muncul jika sidik jari aktif
+  // Otomatis memicu dialog sidik jari HP HANYA 1x saat lock screen pertama kali dibuka (mount)
   useEffect(() => {
-    if (isBioActive) {
+    if (isBioActive && !hasAutoPromptedRef.current) {
+      hasAutoPromptedRef.current = true;
       const timer = setTimeout(() => {
         handleBiometricAuth();
       }, 350);
