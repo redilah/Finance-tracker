@@ -45,7 +45,7 @@ import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
-import { getTranslation, getCategoryName, LANGUAGES, FONTS } from './utils/i18n';
+import { getTranslation, getCategoryName, LANGUAGES, FONTS, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
 import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
 import { WORLD_CURRENCIES, getCurrency, formatMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
@@ -70,7 +70,9 @@ import {
   scheduleFeatureIntroNotification,
   scheduleNewCategoryNotification,
   scheduleV20FeatureIntroNotification,
+  scheduleV23FeatureIntroNotification,
   buildBudgetNotifText,
+  buildMainBudgetNotifText,
   playSound,
   playPopSound 
 } from './utils/notifications';
@@ -516,6 +518,7 @@ function App() {
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [statsType, setStatsType] = useState('expense'); // 'expense' | 'income'
+  const [statsSubTab, setStatsSubTab] = useState('pie'); // 'pie' | 'chart'
   const [selectedInsightCategory, setSelectedInsightCategory] = useState(null);
   
   // Track which category insights have been read per month
@@ -543,7 +546,12 @@ function App() {
     try {
       localStorage.setItem('user_category_insights_read', JSON.stringify(nextMap));
     } catch {}
-    setSelectedInsightCategory(cat);
+    
+    // Temukan metadata lengkap kategori (termasuk iconClass, id, dll.)
+    const fullCat = expenseCategories.find(c => c.name === cat.name || c.id === cat.categoryId || c.id === cat.id) ||
+                    incomeCategories.find(c => c.name === cat.name || c.id === cat.categoryId || c.id === cat.id) ||
+                    cat;
+    setSelectedInsightCategory({ ...cat, ...fullCat });
   };
   
   // LocalStorage Persistence for Transactions
@@ -785,10 +793,48 @@ function App() {
   // Auto-open modal on first time setup
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
   const [isBudgetCapModalOpen, setIsBudgetCapModalOpen] = useState(false);
+
+  // Monthly Budgets Map: { 'YYYY-MM': { main: number | null, categories: { [catId]: number } } }
+  const [monthlyBudgetsMap, setMonthlyBudgetsMap] = useState(() => {
+    try {
+      const saved = safeStorageGet('user_monthly_budgets_map');
+      if (saved) {
+        return typeof saved === 'string' ? JSON.parse(saved) : saved;
+      }
+    } catch {}
+    // Migration: jika ada data lama user_main_monthly_budget, masukkan ke bulan saat ini
+    const legacyMain = Number(safeStorageGet('user_main_monthly_budget'));
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const initialMap = {};
+    if (!isNaN(legacyMain) && legacyMain > 0) {
+      initialMap[currentMonthKey] = { main: legacyMain, categories: {} };
+    }
+    return initialMap;
+  });
+
+  const activeMonthKey = useMemo(() => {
+    return `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  }, [currentDate]);
+
+  const mainMonthlyBudget = useMemo(() => {
+    const monthData = monthlyBudgetsMap[activeMonthKey];
+    if (monthData && typeof monthData.main === 'number' && monthData.main > 0) {
+      return monthData.main;
+    }
+    return null;
+  }, [monthlyBudgetsMap, activeMonthKey]);
+
+  const [isEditingMainBudget, setIsEditingMainBudget] = useState(false);
+  const [mainBudgetInputValue, setMainBudgetInputValue] = useState('');
+  const mainBudgetInputRef = useRef(null);
+  const [isBudgetMonthPickerOpen, setIsBudgetMonthPickerOpen] = useState(false);
+  const [budgetPickerYear, setBudgetPickerYear] = useState(() => new Date().getFullYear());
   const [hasVisitedBudgetCap, setHasVisitedBudgetCap] = useState(() => {
     return safeStorageGet('user_has_visited_budget_cap') === 'true' || safeStorageGet('user_has_visited_budget_cap') === true;
   });
   const [budgetFilterTab, setBudgetFilterTab] = useState('all'); // 'all' | 'active' | 'unset'
+  const [isBudgetCategoriesExpanded, setIsBudgetCategoriesExpanded] = useState(false);
   const [activeBudgetCategory, setActiveBudgetCategory] = useState(null);
   const [budgetModalInputValue, setBudgetModalInputValue] = useState('');
   const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
@@ -1052,6 +1098,7 @@ function App() {
       setAppFont,
       setAppLanguage,
       setAppCurrency,
+      setMainMonthlyBudget,
     });
     setBackupRestoreConfirm(null);
     if (result.success) {
@@ -1192,14 +1239,15 @@ function App() {
     scheduleFeatureIntroNotification(profileName, appLanguage);
     scheduleNewCategoryNotification(profileName, appLanguage);
     scheduleV20FeatureIntroNotification(profileName, appLanguage);
+    scheduleV23FeatureIntroNotification(profileName, appLanguage);
   }, [profileName, appLanguage]);
 
-  // Schedule / sync notifications when profile name, transactions, expenseCategories, or language update
+  // Schedule / sync notifications when profile name, transactions, expenseCategories, language, or main budget update
   React.useEffect(() => {
     if (isNotifActive) {
-      schedulePersonalizedNotifications(profileName, transactions, expenseCategories, appLanguage);
+      schedulePersonalizedNotifications(profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget);
     }
-  }, [isNotifActive, profileName, transactions, expenseCategories, appLanguage]);
+  }, [isNotifActive, profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget]);
 
   React.useEffect(() => {
     let active = true;
@@ -1557,6 +1605,10 @@ function App() {
     setActiveBudgetCategory,
     isBudgetCapModalOpen,
     setIsBudgetCapModalOpen,
+    isBudgetMonthPickerOpen,
+    setIsBudgetMonthPickerOpen,
+    isEditingMainBudget,
+    setIsEditingMainBudget,
     safetyWarning,
     setSafetyWarning,
     updateInfo,
@@ -1644,6 +1696,18 @@ function App() {
     // 2. Modal Edit Budget Kategori Satuan
     if (s.activeBudgetCategory) {
       s.setActiveBudgetCategory(null);
+      return;
+    }
+
+    // 2b. Modal Month/Year Picker Budget
+    if (s.isBudgetMonthPickerOpen) {
+      s.setIsBudgetMonthPickerOpen(false);
+      return;
+    }
+
+    // 2c. Mode Edit Budget Utama
+    if (s.isEditingMainBudget) {
+      s.setIsEditingMainBudget(false);
       return;
     }
 
@@ -1967,7 +2031,15 @@ function App() {
     };
 
     const q = (budgetSearchQuery || '').toLowerCase().trim();
-    let list = [...(expenseCategories || [])];
+    const currentMonthData = monthlyBudgetsMap[activeMonthKey] || { main: null, categories: {} };
+    const monthCatLimits = currentMonthData.categories || {};
+
+    let list = (expenseCategories || []).map(cat => ({
+      ...cat,
+      monthlyLimit: typeof monthCatLimits[cat.id] === 'number' && monthCatLimits[cat.id] > 0 
+        ? monthCatLimits[cat.id] 
+        : undefined
+    }));
 
     // Hitung frekuensi penggunaan kategori pengeluaran dalam transaksi user
     const catFreqMap = {};
@@ -2049,7 +2121,10 @@ function App() {
 
   const handleOpenCategoryBudgetModal = (cat) => {
     setActiveBudgetCategory(cat);
-    const currentLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0 ? cat.monthlyLimit : 0;
+    const monthCatLimits = (monthlyBudgetsMap[activeMonthKey]?.categories) || {};
+    const currentLimit = typeof monthCatLimits[cat.id] === 'number' && monthCatLimits[cat.id] > 0 
+      ? monthCatLimits[cat.id] 
+      : (typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0 ? cat.monthlyLimit : 0);
     setBudgetModalInputValue(currentLimit > 0 ? new Intl.NumberFormat('id-ID').format(currentLimit) : '');
   };
 
@@ -2058,67 +2133,188 @@ function App() {
     const raw = budgetModalInputValue.replace(/\./g, '').replace(/[^0-9]/g, '');
     const numVal = parseInt(raw, 10) || 0;
 
-    const newCats = expenseCategories.map(c => 
-      c.id === activeBudgetCategory.id ? { ...c, monthlyLimit: numVal > 0 ? numVal : undefined } : c
-    );
-    setExpenseCategories(newCats);
-    localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
+    setMonthlyBudgetsMap(prev => {
+      const monthData = prev[activeMonthKey] || { main: null, categories: {} };
+      const newCatLimits = { ...(monthData.categories || {}) };
+      if (numVal > 0) {
+        newCatLimits[activeBudgetCategory.id] = numVal;
+      } else {
+        delete newCatLimits[activeBudgetCategory.id];
+      }
+      const updated = {
+        ...prev,
+        [activeMonthKey]: {
+          ...monthData,
+          categories: newCatLimits
+        }
+      };
+      safeStorageSet('user_monthly_budgets_map', JSON.stringify(updated));
+      return updated;
+    });
+
     setActiveBudgetCategory(null);
     setBudgetModalInputValue('');
   };
 
   const handleRemoveCategoryBudget = () => {
     if (!activeBudgetCategory) return;
-    const newCats = expenseCategories.map(c => 
-      c.id === activeBudgetCategory.id ? { ...c, monthlyLimit: undefined } : c
-    );
-    setExpenseCategories(newCats);
-    localStorage.setItem('user_expense_categories', JSON.stringify(newCats));
+    setMonthlyBudgetsMap(prev => {
+      const monthData = prev[activeMonthKey] || { main: null, categories: {} };
+      const newCatLimits = { ...(monthData.categories || {}) };
+      delete newCatLimits[activeBudgetCategory.id];
+      const updated = {
+        ...prev,
+        [activeMonthKey]: {
+          ...monthData,
+          categories: newCatLimits
+        }
+      };
+      safeStorageSet('user_monthly_budgets_map', JSON.stringify(updated));
+      return updated;
+    });
     setActiveBudgetCategory(null);
     setBudgetModalInputValue('');
   };
 
-  const checkAndTriggerBudgetNotifications = (newTx, allTx, categories) => {
-    if (newTx.type !== 'expense' || !newTx.categoryId) return;
-    
-    const cat = categories.find(c => c.id === newTx.categoryId);
-    if (!cat || !cat.monthlyLimit) return;
-    
-    const limit = parseFloat(cat.monthlyLimit);
-    if (limit <= 0) return;
+  const handleStartEditMainBudget = () => {
+    setMainBudgetInputValue(mainMonthlyBudget ? new Intl.NumberFormat('id-ID').format(mainMonthlyBudget) : '');
+    setIsEditingMainBudget(true);
+    setTimeout(() => {
+      if (mainBudgetInputRef.current) {
+        mainBudgetInputRef.current.focus();
+      }
+    }, 50);
+  };
 
-    const txDate = new Date(newTx.date);
-    const monthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    const allExpensesThisMonth = [newTx, ...allTx].filter(t => {
-      if (t.type !== 'expense' || t.categoryId !== newTx.categoryId) return false;
-      return t.date.startsWith(monthStr);
+  const handleSaveMainBudget = () => {
+    const raw = mainBudgetInputValue.replace(/\./g, '').replace(/[^0-9]/g, '');
+    const numVal = parseInt(raw, 10) || 0;
+
+    setMonthlyBudgetsMap(prev => {
+      const monthData = prev[activeMonthKey] || { main: null, categories: {} };
+      const updated = {
+        ...prev,
+        [activeMonthKey]: {
+          ...monthData,
+          main: numVal > 0 ? numVal : null
+        }
+      };
+      safeStorageSet('user_monthly_budgets_map', JSON.stringify(updated));
+      return updated;
     });
 
-    const totalSpent = allExpensesThisMonth.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-    const percentage = (totalSpent / limit) * 100;
+    if (numVal > 0) {
+      showVoiceToast(`${t('mainBudget')} ${fmtMoney(numVal)} berhasil disimpan`);
+    } else {
+      showVoiceToast('Budget utama dihapus');
+    }
+    setIsEditingMainBudget(false);
+    setMainBudgetInputValue('');
+  };
+
+  const handleRemoveMainBudget = () => {
+    setMonthlyBudgetsMap(prev => {
+      const monthData = prev[activeMonthKey] || { main: null, categories: {} };
+      const updated = {
+        ...prev,
+        [activeMonthKey]: {
+          ...monthData,
+          main: null
+        }
+      };
+      safeStorageSet('user_monthly_budgets_map', JSON.stringify(updated));
+      return updated;
+    });
+    setIsEditingMainBudget(false);
+    setMainBudgetInputValue('');
+    showVoiceToast('Budget utama berhasil dihapus');
+  };
+
+  const checkAndTriggerBudgetNotifications = (newTx, allTx, categories) => {
+    if (newTx.type !== 'expense') return;
     
-    const thresholds = [20, 40, 60, 80, 90, 92, 94, 96, 98, 100];
-    const passedThresholds = thresholds.filter(th => percentage >= th);
-    
-    if (passedThresholds.length === 0) return;
-    
+    const txDate = new Date(newTx.date || Date.now());
+    const monthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
     const storageKey = 'user_budget_notif_state';
     let notifState = safeStorageGet(storageKey, {});
-    
-    const monthKey = `${newTx.categoryId}_${monthStr}`;
-    const notifiedForMonth = notifState[monthKey] || [];
-    
-    const newThresholds = passedThresholds.filter(th => !notifiedForMonth.includes(th));
-    
-    if (newThresholds.length > 0) {
-      notifState[monthKey] = [...notifiedForMonth, ...newThresholds];
+    let hasStateChanged = false;
+    const thresholds = [40, 50, 60, 70, 80, 90, 100];
+
+    const currentMonthExpenses = [newTx, ...allTx].filter(t => {
+      if (t.type !== 'expense') return false;
+      return (t.date || '').startsWith(monthStr);
+    });
+
+    // 1. Check Notifikasi Budget Utama (Main Monthly Budget)
+    const monthData = monthlyBudgetsMap[monthStr] || { main: null, categories: {} };
+    const mainLimit = monthData.main && monthData.main > 0 ? monthData.main : null;
+
+    if (mainLimit && mainLimit > 0) {
+      const totalMonthSpent = currentMonthExpenses.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      const mainPercentage = (totalMonthSpent / mainLimit) * 100;
+      const passedMainThresholds = thresholds.filter(th => mainPercentage >= th);
+
+      if (passedMainThresholds.length > 0) {
+        const mainKey = `main_${monthStr}`;
+        const notifiedMain = notifState[mainKey] || [];
+        const newMainThresholds = passedMainThresholds.filter(th => !notifiedMain.includes(th));
+
+        if (newMainThresholds.length > 0) {
+          notifState[mainKey] = [...notifiedMain, ...newMainThresholds];
+          hasStateChanged = true;
+          const highestMainTh = Math.max(...newMainThresholds);
+          const { title, body } = buildMainBudgetNotifText(highestMainTh, mainLimit, totalMonthSpent, appLanguage);
+
+          setTimeout(() => {
+            sendInstantBudgetNotification(title, body);
+          }, 3000);
+        }
+      }
+    }
+
+    // 2. Check Notifikasi Budget Kategori (Category Budget)
+    if (newTx.categoryId) {
+      const monthCatLimits = monthData.categories || {};
+      let limit = monthCatLimits[newTx.categoryId];
+
+      if (!limit || limit <= 0) {
+        const cat = categories.find(c => c.id === newTx.categoryId);
+        if (cat && cat.monthlyLimit && cat.monthlyLimit > 0) {
+          limit = parseFloat(cat.monthlyLimit);
+        }
+      }
+
+      if (limit && limit > 0) {
+        const catExpenses = currentMonthExpenses.filter(t => 
+          t.categoryId === newTx.categoryId || t.category === newTx.category
+        );
+        const totalCatSpent = catExpenses.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const catPercentage = (totalCatSpent / limit) * 100;
+        const passedCatThresholds = thresholds.filter(th => catPercentage >= th);
+
+        if (passedCatThresholds.length > 0) {
+          const catKey = `${newTx.categoryId}_${monthStr}`;
+          const notifiedCat = notifState[catKey] || [];
+          const newCatThresholds = passedCatThresholds.filter(th => !notifiedCat.includes(th));
+
+          if (newCatThresholds.length > 0) {
+            notifState[catKey] = [...notifiedCat, ...newCatThresholds];
+            hasStateChanged = true;
+            const highestCatTh = Math.max(...newCatThresholds);
+            const catObj = categories.find(c => c.id === newTx.categoryId) || { name: newTx.category || 'Kategori' };
+            const { title, body } = buildBudgetNotifText(getCategoryName(catObj.name, appLanguage), highestCatTh, limit, appLanguage);
+
+            // Jeda 4.5 detik jika ada notifikasi main budget agar berurutan santun
+            setTimeout(() => {
+              sendInstantBudgetNotification(title, body);
+            }, 4500);
+          }
+        }
+      }
+    }
+
+    if (hasStateChanged) {
       safeStorageSet(storageKey, notifState);
-      
-      const highestNewTh = Math.max(...newThresholds);
-      const { title, body } = buildBudgetNotifText(cat.name, highestNewTh, limit, appLanguage);
-      
-      sendInstantBudgetNotification(title, body);
     }
   };
 
@@ -2361,6 +2557,19 @@ function App() {
 
   const totalBalance = totalIncome - totalExpenses;
 
+  // Monthly Expenses for current navigated month
+  const currentMonthExpenses = useMemo(() => {
+    const targetYear = currentDate.getFullYear();
+    const targetMonth = currentDate.getMonth();
+    return transactions
+      .filter(t => {
+        if (t.type !== 'expense' || !t.date) return false;
+        const [y, m] = t.date.split('-');
+        return Number(y) === targetYear && Number(m) - 1 === targetMonth;
+      })
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions, currentDate]);
+
   // Filter transactions according to period (monthly/weekly/yearly)
   const filteredTransactions = transactions.filter(t => {
     if (!t.date) return true;
@@ -2505,6 +2714,41 @@ function App() {
       pLabel
     };
   });
+  // Generate 12-month data for Stats Bar Chart (January - December)
+  const currentYear = currentDate.getFullYear();
+  const monthNamesShort = MONTH_SHORT_I18N[appLanguage] || MONTH_SHORT_I18N.id;
+  const monthNamesFull = MONTH_NAMES_I18N[appLanguage] || MONTH_NAMES_I18N.id;
+
+  const monthlyBarChartData = Array.from({ length: 12 }, (_, monthIdx) => {
+    let earned = 0;
+    let spend = 0;
+
+    transactions.forEach(t => {
+      if (!t.date) return;
+      const [y, m] = t.date.split('-');
+      if (Number(y) === currentYear && Number(m) - 1 === monthIdx) {
+        if (t.type === 'income') {
+          earned += t.amount;
+        } else if (t.type === 'expense') {
+          spend += t.amount;
+        }
+      }
+    });
+
+    return {
+      monthIdx,
+      shortName: monthNamesShort[monthIdx] || `${monthIdx + 1}`,
+      fullName: monthNamesFull[monthIdx] || `${monthIdx + 1}`,
+      earned,
+      spend,
+      isCurrentMonth: currentDate.getMonth() === monthIdx
+    };
+  });
+
+  const maxMonthlyAmount = Math.max(
+    ...monthlyBarChartData.map(d => Math.max(d.earned, d.spend)),
+    100000 // Minimum scale fallback
+  );
 
   if (isAdminView) {
     return (
@@ -3066,57 +3310,378 @@ function App() {
             )}
           </div>
 
-          {/* Category Breakdown List */}
-          <div className="stats-breakdown-list">
-            {statsCategories.map((cat, idx) => {
-              const isUnlockedMonth = isEndOfMonthOrTesting(currentDate.getFullYear(), currentDate.getMonth());
-              const isRead = isCategoryInsightRead(cat.name, currentDate.getFullYear(), currentDate.getMonth());
-              const showPulsingCta = statsType === 'expense' && isUnlockedMonth && !isRead;
+          {/* Segmented Capsule Toggle: Pie Chart (Left) vs Grafik (Right) */}
+          <div className="stats-view-switcher-bar">
+            <div className={`stats-view-switcher-indicator ${statsSubTab === 'chart' ? 'to-chart' : 'to-pie'}`} />
+            <button
+              type="button"
+              className={`stats-view-switcher-btn ${statsSubTab === 'pie' ? 'active' : ''}`}
+              onClick={() => setStatsSubTab('pie')}
+            >
+              {t('statsPieChart')}
+            </button>
+            <button
+              type="button"
+              className={`stats-view-switcher-btn ${statsSubTab === 'chart' ? 'active' : ''}`}
+              onClick={() => setStatsSubTab('chart')}
+            >
+              {t('statsBarChart')}
+            </button>
+          </div>
 
-              return (
-                <div 
-                  key={idx} 
-                  className="stats-breakdown-item interactive"
-                  onClick={() => handleOpenCategoryInsight(cat)}
-                  title="Klik untuk melihat insight lengkap"
-                >
-                  <div className="stats-item-left">
-                    <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
-                      {Math.round(cat.percentage)}%
-                    </div>
-                    <div className="stats-cat-info">
-                      {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                        <span className="stats-cat-name">
-                          {getCategoryName(cat.name, appLanguage)} <span className="stats-cat-count">({cat.count}x)</span>
-                        </span>
-                        {showPulsingCta && (
-                          <span className="stats-insight-cta">
-                            ✨ Klik lihat insight mu {profileName || 'No Name'}
+          {/* Conditional View: Pie Chart Breakdown vs Monthly Bar Chart */}
+          {statsSubTab === 'pie' ? (
+            /* Category Breakdown List */
+            <div className="stats-breakdown-list">
+              {statsCategories.map((cat, idx) => {
+                const isUnlockedMonth = isEndOfMonthOrTesting(currentDate.getFullYear(), currentDate.getMonth());
+                const isRead = isCategoryInsightRead(cat.name, currentDate.getFullYear(), currentDate.getMonth());
+                const showPulsingCta = statsType === 'expense' && isUnlockedMonth && !isRead;
+
+                return (
+                  <div 
+                    key={idx} 
+                    className="stats-breakdown-item interactive"
+                    onClick={() => handleOpenCategoryInsight(cat)}
+                    title="Klik untuk melihat insight lengkap"
+                  >
+                    <div className="stats-item-left">
+                      <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
+                        {Math.round(cat.percentage)}%
+                      </div>
+                      <div className="stats-cat-info">
+                        {resolveIcon(cat) && <img src={resolveIcon(cat)} alt={cat.name} className="stats-cat-icon" />}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                          <span className="stats-cat-name">
+                            {getCategoryName(cat.name, appLanguage)} <span className="stats-cat-count">({cat.count}x)</span>
                           </span>
-                        )}
+                          {showPulsingCta && (
+                            <span className="stats-insight-cta">
+                              ✨ Klik lihat insight mu {profileName || 'No Name'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="stats-item-right">
+                      <span className="stats-cat-amount">{fmtMoney(cat.amount)}</span>
+                    </div>
                   </div>
-                  <div className="stats-item-right">
-                    <span className="stats-cat-amount">{fmtMoney(cat.amount)}</span>
+                );
+              })}
+            </div>
+          ) : (
+            /* Monthly Income vs Expense Bar Chart */
+            <div className="stats-bar-chart-card">
+              <div 
+                className="stats-bar-chart-scroll-wrapper"
+                ref={(el) => {
+                  if (el && !el._hasAutoScrolled) {
+                    el._hasAutoScrolled = true;
+                    // Auto scroll to current month as leftmost view
+                    const currentMonthIdx = currentDate.getMonth();
+                    const itemWidth = el.scrollWidth / 12;
+                    el.scrollLeft = Math.max(0, currentMonthIdx * itemWidth);
+                  }
+                }}
+              >
+                <div className="stats-bar-chart-grid">
+                  {/* Background Reference Lines */}
+                  <div className="stats-bar-grid-lines">
+                    <div className="stats-grid-line" />
+                    <div className="stats-grid-line" />
+                    <div className="stats-grid-line" />
+                    <div className="stats-grid-line" />
+                  </div>
+
+                  {/* 12 Months Columns */}
+                  <div className="stats-bar-columns-row">
+                    {monthlyBarChartData.map((item) => {
+                      const earnedHeightPct = maxMonthlyAmount > 0 ? (item.earned / maxMonthlyAmount) * 100 : 0;
+                      const spendHeightPct = maxMonthlyAmount > 0 ? (item.spend / maxMonthlyAmount) * 100 : 0;
+
+                      return (
+                        <div 
+                          key={item.monthIdx} 
+                          className={`stats-month-col ${item.isCurrentMonth ? 'current-month-col' : ''}`}
+                          onClick={() => {
+                            // Quick change month when clicked
+                            const nextDate = new Date(currentDate);
+                            nextDate.setMonth(item.monthIdx);
+                            setCurrentDate(nextDate);
+                          }}
+                        >
+                          <div className="stats-bar-pair-container">
+                            {/* Earned / Income Bar */}
+                            <div className="stats-bar-track">
+                              {item.earned > 0 && (
+                                <div 
+                                  className="stats-bar-fill earned-bar"
+                                  style={{ height: `${earnedHeightPct}%` }}
+                                  title={`${item.fullName} Pemasukan: ${fmtMoney(item.earned)}`}
+                                />
+                              )}
+                            </div>
+
+                            {/* Spend / Expense Bar */}
+                            <div className="stats-bar-track">
+                              {item.spend > 0 && (
+                                <div 
+                                  className="stats-bar-fill spend-bar"
+                                  style={{ height: `${spendHeightPct}%` }}
+                                  title={`${item.fullName} Pengeluaran: ${fmtMoney(item.spend)}`}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Month Label */}
+                          <div className={`stats-bar-month-pill ${item.isCurrentMonth ? 'active-pill' : ''}`}>
+                            {item.shortName}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+
+              {/* Legend Indicator (Earned vs Spend) */}
+              <div className="stats-chart-legend-bar">
+                <div className="stats-legend-item">
+                  <span className="stats-legend-dot earned-dot" />
+                  <span className="stats-legend-label">{t('statsEarned')}</span>
+                </div>
+                <div className="stats-legend-divider" />
+                <div className="stats-legend-item">
+                  <span className="stats-legend-dot spend-dot" />
+                  <span className="stats-legend-label">{t('statsSpend')}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Budget Cap View (Bottom Nav Tab) */}
       {activeTab === 'budget' && (
         <div className="budget-page-container tab-page-transition">
-          {/* Header Row */}
-          <header className="stats-header-bar budget-header-bar" style={{ padding: '4px 0 8px 0', display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', textAlign: 'center', width: '100%' }}>
-              Ayo atur budget {profileName || 'No Name'}
-            </h2>
-          </header>
+          {/* Budget Hero Card (Top Main Budget Container) */}
+          {(() => {
+            const hasMain = typeof mainMonthlyBudget === 'number' && mainMonthlyBudget > 0;
+            const spent = currentMonthExpenses;
+            const remaining = hasMain ? mainMonthlyBudget - spent : 0;
+            const spentPercent = hasMain ? (spent / mainMonthlyBudget) * 100 : 0;
+            const isOver = hasMain && spent > mainMonthlyBudget;
+            const barStatus = isOver ? 'danger' : (spentPercent >= 80 ? 'warning' : 'safe');
+            const monthName = MONTH_NAMES_I18N[appLanguage] 
+              ? MONTH_NAMES_I18N[appLanguage][currentDate.getMonth()] 
+              : currentDate.toLocaleDateString('id-ID', { month: 'long' });
+
+            return (
+              <div className="budget-hero-card">
+                {/* Top Bar inside Card: Target Badge + Month Badge (No Profile Name) */}
+                <div className="budget-hero-top">
+                  <div className="budget-hero-header-badge">
+                    <span className="budget-hero-header-icon">🎯</span>
+                    <span className="budget-hero-header-title">{t('mainBudget')}</span>
+                  </div>
+
+                  <div className="budget-hero-month-nav">
+                    <button 
+                      type="button" 
+                      className="budget-hero-month-arrow month-btn" 
+                      onClick={handlePrevMonth}
+                      aria-label="Bulan Sebelumnya"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </button>
+
+                    <button 
+                      type="button" 
+                      className="budget-hero-badge-btn" 
+                      onClick={() => {
+                        setBudgetPickerYear(currentDate.getFullYear());
+                        setIsBudgetMonthPickerOpen(true);
+                      }}
+                      title="Pilih Bulan & Tahun"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span>{monthName} {currentDate.getFullYear()}</span>
+                    </button>
+
+                    <button 
+                      type="button" 
+                      className="budget-hero-month-arrow month-btn" 
+                      onClick={handleNextMonth}
+                      aria-label="Bulan Berikutnya"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hero Middle Content */}
+                <div className="budget-hero-content">
+                  <div className="budget-hero-label-row">
+                    <span className="budget-hero-label">
+                      {hasMain ? t('mainBudgetDesc') : 'Total batas pengeluaran seluruh kategori'}
+                    </span>
+                    {hasMain && (
+                      <span className={`budget-hero-pct-badge ${isOver ? 'danger' : (spentPercent >= 80 ? 'warning' : 'safe')}`}>
+                        {isOver ? '⚡ OVER LIMIT' : `Lv. ${Math.round(spentPercent)}%`}
+                      </span>
+                    )}
+                  </div>
+
+                  {isEditingMainBudget ? (
+                    <div className="budget-direct-amount-row">
+                      <span className="budget-direct-currency-prefix">{getCurrency(appCurrency).symbol}</span>
+                      <input 
+                        ref={mainBudgetInputRef}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        autoFocus
+                        className="budget-direct-amount-input"
+                        placeholder="0"
+                        value={mainBudgetInputValue}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                          const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
+                          setMainBudgetInputValue(formatted);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveMainBudget();
+                          if (e.key === 'Escape') setIsEditingMainBudget(false);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className="budget-hero-amount"
+                      onClick={handleStartEditMainBudget}
+                      style={{ cursor: 'pointer' }}
+                      title="Sentuh untuk mengubah budget"
+                    >
+                      {hasMain ? fmtMoney(mainMonthlyBudget) : fmtMoney(0)}
+                    </div>
+                  )}
+
+                  {/* Stats Breakdown */}
+                  <div className="budget-hero-stats">
+                    <div className="budget-stat-item">
+                      <span className="budget-stat-label">{t('usedThisMonth')}:</span>
+                      <strong className="budget-stat-val spent">{fmtMoney(spent)}</strong>
+                    </div>
+                    <div className={`budget-stat-item ${isOver ? 'over' : ''}`}>
+                      <span className="budget-stat-label">{t('remainingBudget')}:</span>
+                      <strong className="budget-stat-val remaining">
+                        {hasMain ? (remaining >= 0 ? fmtMoney(remaining) : `-${fmtMoney(Math.abs(remaining))}`) : '-'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Gaming Style HP / EXP Progress Track (Borderless) */}
+                  <div className="budget-game-bar-wrapper">
+                    <div className="budget-game-bar-frame borderless">
+                      <div 
+                        className={`budget-game-bar-fill ${barStatus}`}
+                        style={{ width: `${hasMain ? Math.min(Math.max(spentPercent, 4), 100) : 0}%` }}
+                      >
+                        <div className="budget-game-bar-shine" />
+                        <div className="budget-game-bar-stripes" />
+                      </div>
+                    </div>
+                    <div className="budget-game-bar-meta">
+                      <span className="budget-game-bar-status">
+                        {hasMain 
+                          ? (isOver ? '⚠️ Limit Terlampaui!' : (spentPercent >= 80 ? '⚡ Waspada Limit!' : '✨ Kondisi Aman')) 
+                          : 'Budget belum diatur'}
+                      </span>
+                      <span className="budget-game-bar-ratio">
+                        {hasMain ? `${fmtMoney(spent, false)} / ${fmtMoney(mainMonthlyBudget, false)}` : `${fmtMoney(spent, false)} / ${fmtMoney(0, false)}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons with Proper Interactive Logic */}
+                <div className="budget-hero-actions">
+                  {isEditingMainBudget ? (
+                    <>
+                      <button 
+                        type="button" 
+                        className="budget-hero-btn primary"
+                        onClick={handleSaveMainBudget}
+                      >
+                        <span>Simpan Budget</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="budget-hero-btn secondary"
+                        onClick={() => {
+                          setIsEditingMainBudget(false);
+                          setMainBudgetInputValue('');
+                        }}
+                        title="Batal Edit"
+                      >
+                        <span>Batal</span>
+                      </button>
+                    </>
+                  ) : hasMain ? (
+                    <>
+                      <button 
+                        type="button" 
+                        className="budget-hero-btn primary"
+                        onClick={handleStartEditMainBudget}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        <span>Ubah Budget</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        className="budget-hero-btn secondary"
+                        onClick={handleRemoveMainBudget}
+                        title="Hapus Budget Bulan Ini"
+                      >
+                        <span>Hapus</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      type="button" 
+                      className="budget-hero-btn primary"
+                      onClick={handleStartEditMainBudget}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      <span>Atur Budget</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Category Section Header */}
+          <div className="budget-section-header">
+            <h3 className="budget-section-title">{t('categoryBreakdown')}</h3>
+          </div>
 
           {/* Search Bar */}
           <div className="budget-search-section">
@@ -3177,8 +3742,8 @@ function App() {
             );
           })()}
 
-          {/* Category List */}
-          <div className="budget-list-container">
+          {/* Category Grid (2 Kolom Compact & Pop-up on Tap) */}
+          <div className="budget-grid-section">
             {(() => {
               const filtered = getFilteredBudgetCategories();
               if (filtered.length === 0) {
@@ -3191,44 +3756,80 @@ function App() {
                 );
               }
 
-              return filtered.map(cat => {
-                const iconPath = resolveIcon(cat);
-                const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
+              // Jika sedang searching atau list <= 6, tampilkan semua langsung. Jika tidak, batasi 6 (3 baris x 2 kolom) saat collapse
+              const isSearchActive = Boolean(budgetSearchQuery && budgetSearchQuery.trim());
+              const shouldShowAll = isSearchActive || isBudgetCategoriesExpanded || filtered.length <= 6;
+              const displayList = shouldShowAll ? filtered : filtered.slice(0, 6);
 
-                return (
-                  <div 
-                    key={cat.id} 
-                    className="budget-item-card"
-                    onClick={() => handleOpenCategoryBudgetModal(cat)}
-                  >
-                    <div className={`budget-item-icon-box ${cat.iconClass}`}>
-                      <img src={iconPath} alt={cat.name} />
-                    </div>
+              return (
+                <>
+                  <div className="budget-category-grid">
+                    {displayList.map(cat => {
+                      const iconPath = resolveIcon(cat);
+                      const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
 
-                    <div className="budget-item-info">
-                      <span className="budget-item-name">{getCategoryName(cat.name, appLanguage)}</span>
-                      <span className="budget-item-sub">
-                        {hasLimit ? 'Batas aktif' : 'Tanpa batas'}
-                      </span>
-                    </div>
+                      return (
+                        <div 
+                          key={cat.id} 
+                          className={`budget-grid-card ${hasLimit ? 'has-limit' : ''}`}
+                          onClick={() => handleOpenCategoryBudgetModal(cat)}
+                        >
+                          <div className="budget-grid-card-top">
+                            <div className={`budget-grid-icon-box ${cat.iconClass}`}>
+                              <img src={iconPath} alt={cat.name} />
+                            </div>
+                            {hasLimit ? (
+                              <span className="budget-grid-status-dot active" title="Batas Aktif" />
+                            ) : (
+                              <span className="budget-grid-status-dot unset" title="Belum Diatur" />
+                            )}
+                          </div>
 
-                    <div className="budget-item-status-wrapper">
-                      {hasLimit ? (
-                        <span className="budget-status-badge active">
-                          {fmtMoney(cat.monthlyLimit)}
-                        </span>
-                      ) : (
-                        <span className="budget-status-badge unset">
-                          Belum diatur
-                        </span>
-                      )}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-item-chevron">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
+                          <div className="budget-grid-card-info">
+                            <span className="budget-grid-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
+                            <span className="budget-grid-limit-text">
+                              {hasLimit ? fmtMoney(cat.monthlyLimit) : 'Belum diatur'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              });
+
+                  {/* Tombol Lebarkan / Tampilkan Lebih Banyak jika item lebih dari 6 */}
+                  {!isSearchActive && filtered.length > 6 && (
+                    <div className="budget-expand-btn-wrapper">
+                      <button
+                        type="button"
+                        className="budget-expand-toggle-btn"
+                        onClick={() => setIsBudgetCategoriesExpanded(prev => !prev)}
+                      >
+                        <span>
+                          {isBudgetCategoriesExpanded 
+                            ? 'Sembunyikan' 
+                            : `Tampilkan Semua (${filtered.length})`}
+                        </span>
+                        <svg 
+                          width="16" 
+                          height="16" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2.4" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                          style={{ 
+                            transform: isBudgetCategoriesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.25s ease'
+                          }}
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
             })()}
           </div>
         </div>
@@ -5088,6 +5689,99 @@ function App() {
                 onClick={handleSaveCategoryBudget}
               >
                 Simpan Limit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Month & Year Picker Sheet for Budget */}
+      {isBudgetMonthPickerOpen && (
+        <div className="budget-sheet-overlay" onClick={() => setIsBudgetMonthPickerOpen(false)}>
+          <div className="budget-sheet-card budget-month-picker-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="budget-sheet-header">
+              <div>
+                <h3 className="budget-sheet-title">Pilih Periode Budget</h3>
+                <p className="budget-sheet-subtitle">Cek riwayat realisasi & pengeluaran bulanan</p>
+              </div>
+              <button 
+                type="button" 
+                className="budget-sheet-close"
+                onClick={() => setIsBudgetMonthPickerOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Year Selector */}
+            <div className="budget-picker-year-row">
+              <button 
+                type="button" 
+                className="budget-picker-year-arrow"
+                onClick={() => setBudgetPickerYear(prev => prev - 1)}
+                aria-label="Tahun Sebelumnya"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <span className="budget-picker-year-val">{budgetPickerYear}</span>
+              <button 
+                type="button" 
+                className="budget-picker-year-arrow"
+                onClick={() => setBudgetPickerYear(prev => prev + 1)}
+                aria-label="Tahun Berikutnya"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* 12-Month Grid */}
+            <div className="budget-picker-month-grid">
+              {(MONTH_SHORT_I18N[appLanguage] || MONTH_SHORT_I18N.id).map((shortName, idx) => {
+                const isSelected = currentDate.getFullYear() === budgetPickerYear && currentDate.getMonth() === idx;
+                const now = new Date();
+                const isThisCurrentMonth = now.getFullYear() === budgetPickerYear && now.getMonth() === idx;
+
+                return (
+                  <button
+                    key={shortName}
+                    type="button"
+                    className={`budget-picker-month-btn ${isSelected ? 'selected' : ''} ${isThisCurrentMonth ? 'today' : ''}`}
+                    onClick={() => {
+                      setCurrentDate(new Date(budgetPickerYear, idx, 1));
+                      setIsBudgetMonthPickerOpen(false);
+                    }}
+                  >
+                    <span>{shortName}</span>
+                    {isThisCurrentMonth && <span className="budget-picker-today-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer Quick Action */}
+            <div className="budget-sheet-footer">
+              <button 
+                type="button"
+                className="budget-sheet-btn cancel-btn"
+                onClick={() => {
+                  const now = new Date();
+                  setCurrentDate(now);
+                  setBudgetPickerYear(now.getFullYear());
+                  setIsBudgetMonthPickerOpen(false);
+                }}
+              >
+                Bulan Ini
+              </button>
+              <button 
+                type="button"
+                className="budget-sheet-btn save-btn"
+                onClick={() => setIsBudgetMonthPickerOpen(false)}
+              >
+                Tutup
               </button>
             </div>
           </div>

@@ -45,6 +45,7 @@ export function createBackupData({
       budgetNotifState: safeStorageGet('user_budget_notif_state') || {},
       lastBadgeDismissed: safeStorageGet('user_last_badge_dismissed') || false,
       hasVisitedBudgetCap: safeStorageGet('user_has_visited_budget_cap') || false,
+      mainMonthlyBudget: safeStorageGet('user_main_monthly_budget') || null,
     },
   };
 }
@@ -70,25 +71,49 @@ export async function exportBackup(backupObj, userName = 'User') {
   // 1. Native Mobile Mode (Capacitor Android / iOS)
   if (Capacitor.isNativePlatform()) {
     try {
-      // Write file into temporary Cache directory
+      // Also write directly to Documents directory for safety
+      try {
+        await Filesystem.writeFile({
+          path: fileName,
+          data: jsonStr,
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+      } catch (docErr) {
+        console.warn('[Backup] Documents write fallback to Cache:', docErr);
+      }
+
+      // Write file into temporary Cache directory for sharing
       const fileResult = await Filesystem.writeFile({
         path: fileName,
         data: jsonStr,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
+        recursive: true,
       });
 
-      // Open Native Share Sheet (Offers Google Drive, Local Storage, WhatsApp, etc.)
-      await Share.share({
-        title: 'Cadangkan Data Cassiel',
-        text: `File cadangan data keuangan Cassiel (${safeName})`,
-        url: fileResult.uri,
-        dialogTitle: 'Simpan Cadangan Data ke Google Drive / Perangkat',
-      });
+      // Check if Native Share Sheet is available
+      let canShare = true;
+      try {
+        const check = await Share.canShare();
+        canShare = check?.value !== false;
+      } catch (e) {
+        canShare = true;
+      }
 
-      return { success: true, method: 'native_share' };
+      if (canShare) {
+        await Share.share({
+          title: 'Cadangkan Data Cassiel',
+          text: `File cadangan data keuangan Cassiel (${safeName})`,
+          url: fileResult.uri,
+          dialogTitle: 'Simpan Cadangan Data ke Google Drive / Perangkat',
+        });
+      }
+
+      return { success: true, method: 'native_share', fileName };
     } catch (err) {
-      if (err.message && (err.message.includes('cancel') || err.message.includes('dismiss'))) {
+      if (err.message && (err.message.includes('cancel') || err.message.includes('dismiss') || err.message.includes('Abort') || err.message.includes('canceled'))) {
         return { success: false, cancelled: true };
       }
       console.warn('[Backup] Native share failed, attempting fallback:', err);
@@ -106,7 +131,7 @@ export async function exportBackup(backupObj, userName = 'User') {
         return { success: true, method: 'web_share' };
       }
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err.name === 'AbortError' || err.message?.includes('Abort')) {
         return { success: false, cancelled: true };
       }
     }
@@ -122,9 +147,11 @@ export async function exportBackup(backupObj, userName = 'User') {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 200);
+      try {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {}
+    }, 300);
     return { success: true, method: 'download' };
   } catch (err) {
     console.error('[Backup] Export failed:', err);
@@ -196,6 +223,7 @@ export function restoreBackupData(backupData, {
   setAppFont,
   setAppLanguage,
   setAppCurrency,
+  setMainMonthlyBudget,
 }) {
   try {
     const d = backupData;
@@ -266,6 +294,14 @@ export function restoreBackupData(backupData, {
     }
     if (d.hasVisitedBudgetCap !== undefined) {
       safeStorageSet('user_has_visited_budget_cap', d.hasVisitedBudgetCap);
+    }
+    if (d.mainMonthlyBudget !== undefined) {
+      if (setMainMonthlyBudget) setMainMonthlyBudget(d.mainMonthlyBudget ? Number(d.mainMonthlyBudget) : null);
+      if (d.mainMonthlyBudget) {
+        safeStorageSet('user_main_monthly_budget', String(d.mainMonthlyBudget));
+      } else {
+        localStorage.removeItem('user_main_monthly_budget');
+      }
     }
 
     return { success: true };

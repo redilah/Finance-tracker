@@ -194,6 +194,7 @@ export const updateCurrentDeviceTelemetry = async () => {
   let voiceTxCount = 0;
   let manualTxCount = 0;
   const expenseCategoryStats = {};
+  const expenseCategoryAmounts = {}; // Total nominal rupiah per kategori (untuk community benchmark)
   const incomeCategoryStats = {};
   const accountStats = {};
 
@@ -204,6 +205,11 @@ export const updateCurrentDeviceTelemetry = async () => {
       voiceTxCount = tx.filter(t => t.inputMethod === 'voice' || t.source === 'voice' || t.isVoice).length;
       manualTxCount = totalTransactions - voiceTxCount;
 
+      // Filter transaksi bulan berjalan saja untuk amounts benchmark
+      const now = new Date();
+      const currentYearStr = String(now.getFullYear());
+      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
+
       tx.forEach(item => {
         const cat = item.category || 'Umum';
         const acc = normalizeAccountName(item.account || 'Cash');
@@ -213,6 +219,14 @@ export const updateCurrentDeviceTelemetry = async () => {
           incomeCategoryStats[cat] = (incomeCategoryStats[cat] || 0) + 1;
         } else {
           expenseCategoryStats[cat] = (expenseCategoryStats[cat] || 0) + 1;
+
+          // Hitung total nominal per kategori (bulan ini saja)
+          if (item.date) {
+            const [y, m] = item.date.split('-');
+            if (y === currentYearStr && m === currentMonthStr) {
+              expenseCategoryAmounts[cat] = (expenseCategoryAmounts[cat] || 0) + (item.amount || 0);
+            }
+          }
         }
 
         accountStats[acc] = (accountStats[acc] || 0) + 1;
@@ -246,6 +260,7 @@ export const updateCurrentDeviceTelemetry = async () => {
     totalActiveSeconds: totalActiveSeconds,
     sessionCount: sessionCount,
     expenseCategoryStats: expenseCategoryStats,
+    expenseCategoryAmounts: expenseCategoryAmounts,
     incomeCategoryStats: incomeCategoryStats,
     accountStats: accountStats,
     appVersion: CURRENT_VERSION,

@@ -1,13 +1,13 @@
 {
-  "versionCode": 23,
-  "versionName": "1.0.22",
-  "version": "1.0.22",
-  "changelog": "New in this update:\n- [New] Pembaruan Keamanan & Stabilitas Aplikasi\n- [New] Penyempurnaan Ikon Notifikasi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.22",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.22",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.22",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.22",
-  "sha256": "088d33c0917ae052ffaf3b4c77dc4bf1475bc34e66276ccd7b34aa2024f52243",
+  "versionCode": 24,
+  "versionName": "1.0.23",
+  "version": "1.0.23",
+  "changelog": "New in this update:\n- [New] Grafik Batang Pemasukan vs Pengeluaran Bulanan di Stats\n- [New] Switcher Kapsul Pie Chart & Grafik Stats",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.23",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.23",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.23",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.23",
+  "sha256": "d712665f8e79f61af726f672dff57864de6bb1eccba3d3f13218189aaf8be5ab",
   "minSdkVersion": 22
 }
 

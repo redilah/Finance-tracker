@@ -39,7 +39,15 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Threshold Barbershop**: Transaksi Barbershop < Rp 50.000 dianggap kebutuhan kebersihan pokok (non-konsumtif).
 
 ## 5. UI Invariants & Design Standards
-* **Warna & Theme**: Hindari penggunaan container/box hitam gelap kaku jika tidak menyatu dengan tema netral/krim (`#F8EFE6`).
+* **Warna & Theme (Strict Ban on Dark/Black Containers)**: 
+  - **DILARANG KERAS** menggunakan container, card, hero header, atau elemen utama dengan warna hitam, abu-abu gelap, cokelat tua pekat, atau gradien gelap kaku (`#000000`, `#27221F`, `#333333`, dll.). 
+  - Seluruh komponen wajib menggunakan palet cerah, hangat, bersih, dan mewah yang menyatu mulus dengan latar krim `#F8EFE6` (seperti *warm cream*, *soft peach/coral tint*, *clean white luxury*, atau pastel hangat).
+* **Budget Hero Card & Gaming Progress Bar**:
+  - Hero card budget wajib menggunakan latar terang/krim cerah elegan dengan border halus dan bayangan lembut.
+  - Jangan sertakan avatar atau nama profil di dalam kartu hero budget.
+  - Progress bar budget wajib mengusung gaya visual **Gaming / Arcade HP & EXP Bar** tanpa garis tepi/border kaku (`border: none !important; border-radius: 999px;` pill dengan warna gradien neon energetik seperti Cyber Neon Emerald, Amber Energy, Hyper Coral Red, efek kilau *gloss shine*, tekstur strip diagonal).
+  - **Direct In-Place Amount Input**: Nominal budget di hero card dapat langsung disentuh untuk memunculkan keyboard numerik/kalkulator HP seketika secara seamless tanpa kotak input kaku atau tombol centang/silang. Tombol aksi di bawahnya berupa tombol bersih "Simpan Budget".
+  - **Action Button Text Contrast**: Teks dan ikon di dalam tombol aksi berwarna (seperti tombol biru `#2D5284` Simpan Budget) wajib secara eksplisit menggunakan warna putih bersih (`color: #FFFFFF !important;`) pada tombol maupun child `span` / `svg` agar tidak tertimpa oleh style global `span { color: var(--text-main); }`.
 * **Security Screen Theme**: Semua layar keamanan (PIN setup, PIN lock screen, biometric prompt container) wajib menggunakan `background: var(--bg-app, #F8EFE6)`. Dilarang menggunakan gradien warna kustom (seperti amber/oranye) yang tidak konsisten dengan tema aplikasi.
 * **Halaman Profil — Seamless & Direct Background (No White Card Boxes)**: 
   - Seluruh menu profil menempel langsung di atas latar belakang aplikasi (`var(--bg-app, #F8EFE6)`), dilarang menggunakan container card / kotak putih melayang terpisah (`background: transparent; border: none; box-shadow: none;`).
@@ -54,6 +62,14 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
 * **Action Button Persistence**: Tombol aksi utama (seperti tombol *Save* transaksi) harus selalu tampil dan aktif di form tanpa dikunci oleh kondisi panel/input focus (`activePanel === 'note'`).
+* **Strict Ban on Rigid Borders & Outlines (Absolute Borderless UI)**:
+  - **DILARANG KERAS** menambahkan garis tepi/border kaku (`border: 1px solid ...`, `border-bottom`, `border-top`, `outline`) pada komponen UI seperti:
+    - Kartu Hero Budget (`.budget-hero-card`)
+    - Tombol Filter Tab & Kategori Chips (`.budget-tab-btn`, `.category-chip`, `.filter-pill`)
+    - Kolom Pencarian / Search Input Wrapper (`.budget-search-wrapper`, `.search-box`)
+    - Gaming EXP / Progress Bar Frame (`.budget-game-bar-frame`)
+    - Tombol Aksi, Navigasi Back, Modal Card, dan Dropdown Item.
+  - **Teknik Pemisah Elemen**: Batas visual dan kedalaman antar elemen wajib murni mengandalkan **kontras latar belakang cerah yang halus**, **gradien lembut**, **bayangan melayang alami (*soft warm drop shadow*)**, dan **border-radius melengkung**, bukan garis tepi kaku.
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
@@ -121,6 +137,7 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 17. Standalone & Emblem-Only Payment Badges Invariant
 * **Emblem/Symbol Only without Redundant Text**: Logo bank dan e-wallet (seperti DANA, SeaBank, Jenius, Bank Jago, BRI, OVO, ShopeePay) wajib menggunakan lambang/emblem inti murni tanpa teks/subteks panjang di dalam kotak badge.
 * **Standalone Badges (No Double White Box)**: Akun dengan aset berwarna mandiri (seperti `Livin`, `Wondr`, `ShopeePay`, `DANA`, `LinkAja`, `OVO`, `GoPay`) wajib didaftarkan di `STANDALONE_BADGES` (`background: transparent`, `padding: 0`) agar tidak terbungkus kotak putih ganda atau padding putih kaku.
+* **Cash / Tunai Standalone Badge (No White Container)**: Ikon Cash / Tunai hijau (`#10B981`) wajib disajikan secara murni dan mandiri (*standalone*) tanpa bingkai kotak putih, shadow, atau border (`background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important;`).
 * **Deprecated Account Auto-Migration**: Jika ada akun bawaan yang di-deprecate/dihapus (seperti `Pos Indonesia` dan `Pegadaian`), wajib sertakan filter sanitasi pada inisialisasi `accountsList` di `App.jsx` agar data lama di `localStorage` otomatis bersih tanpa meninggalkan kartu kosong.
 
 ## 18. Dynamic Smart Frequency Ranking & One-Time "Terakhir" Discovery Badge
@@ -141,6 +158,7 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks, terkunci di tengah (`left: 50%; transform: translate(-50%, -24px)`) presisi pada lekukan notch bar.
   - Sisi Kanan (`.nav-group-right`): `Budget` (`budget.svg`) dan `Stats` (`diagram.svg`).
   - Label tab statistik menggunakan `Stats` di semua bahasa.
+* **Borderless Period Filter**: Tombol filter periode pada menu Stats dan Account (`.stats-period-btn`) wajib tanpa garis tepi/border kaku (`border: none !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);`).
 * **Seamless & Borderless Content Lists**: Daftar akun (`.account-card-item`), daftar budget (`.budget-item-card`), menu profil (`.wa-menu-item`), dan grup opsi layar penuh (`.full-page-settings-group`) wajib menempel langsung pada latar belakang aplikasi tanpa kotak putih terpisah (`background: transparent; border: none; box-shadow: none; border-bottom: 1px solid rgba(0, 0, 0, 0.05);`). Item terakhir wajib `border-bottom: none`.
 
 ## 21. Swipeable Account Screen & Indicator Dots Invariant
@@ -211,3 +229,33 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 28. Interactive Guided Tour & Dynamic Spotlight Invariants
 * **Direct Physical Target**: Target class `.tour-target-*` wajib dipasang langsung pada elemen DOM yang memiliki layout nyata (dilarang pada `display: contents`).
 * **Dynamic Floating Card Placement**: Posisi kartu panduan wajib dinamis berdasarkan koordinat bounding box elemen target (melayang di atas jika target berada di area bawah layar, dan melayang di bawah jika target di area atas) dengan panah penunjuk (*arrow*) yang presisi menunjuk ke titik tengah (*center X*) target.
+
+## 29. Category Insight & Dynamic Influence Psychology Invariants
+* **100% Dynamic Real-Time Social Proof Benchmarks**: 
+  - Dilarang keras meng-hardcode angka jumlah pengguna (seperti angka 8, 9, atau konstanta statis lainnya) pada teks narasi insight atau perbandingan komunitas.
+  - Jumlah pengguna pembanding wajib dihitung secara dinamis dari data real-time Firestore (`cassiel_telemetry` / `allDevices.length - 1`).
+  - Format angka wajib menggunakan pemisah ribuan lokal (`.toLocaleString('id-ID')` / `.toLocaleString('en-US')`) agar otomatis mendukung skala puluhan ribu pengguna atau lebih.
+* **Italicized AI & Social Proof Takeaways**:
+  - Teks perbandingan komunitas (*Social Proof*) dan komitmen motivasi pada kotak *✨ Kisah Pengeluaranmu* wajib dipisah (`socialProofStory`) dan diberi styling *italic* (`font-style: italic; font-weight: 600;`) agar tampil jelas sebagai kesimpulan/takeaway khusus.
+* **No Redundant Daily Average in Hero Card**:
+  - Kartu hero atas pada layar insight kategori hanya menampilkan total pengeluaran dan rata-rata per transaksi (`{averagePerTx}/tx`).
+  - Nominal rata-rata harian dilarang diduplikasi di hero card atas karena sudah disajikan secara khusus pada kartu sorotan (*featured highlight card*) di bawahnya.
+* **Clean 1-Sentence Daily Average Sub-Label**:
+  - Label pendukung pada kartu rata-rata harian wajib berupa 1 kalimat tunggal yang bersih (contoh: `"Rata-rata pengeluaranmu per hari"`) tanpa teks template mentah (`{days}`).
+
+## 30. Android FileProvider & Crash-Proof Backup Architecture
+* **Complete FileProvider Storage Paths (`file_paths.xml`)**:
+  - `android/app/src/main/res/xml/file_paths.xml` **wajib** mendaftarkan seluruh root direktori penyimpanan Android (`<files-path>`, `<cache-path>`, `<external-files-path>`, `<external-cache-path>`, `<external-path>`).
+  - Alasan: Mencegah error fatal `IllegalArgumentException: Failed to find configured root` dan `FileUriExposedException` yang menyebabkan aplikasi *force-close* seketika di Android OEM (seperti HyperOS/MIUI, Samsung OneUI, ColorOS) saat memanggil native file sharing atau backup.
+* **Multi-Tier Safe Export & Backup Fallback**:
+  - Ekspor backup di `src/utils/backup.js` wajib menerapkan *multi-tier safe write*:
+    1. Simpan salinan permanen ke `Directory.Documents`.
+    2. Tulis file shareable ke `Directory.Cache`.
+    3. Periksa ketersediaan share sheet dengan `await Share.canShare()`.
+    4. Sediakan fallback otomatis ke Web Share API atau direct browser download tanpa pernah melempar unhandled exception ke main thread.
+
+## 31. Main Monthly Budget Automated Onboarding Notification
+* **Automated 10:00 AM Reminder**: Jika pengguna belum pernah mengatur Budget Utama (`mainMonthlyBudget === null` atau `<= 0`), scheduler notifikasi wajib menjadwalkan notifikasi ramah & personal pada jam **10:00 Pagi** (`notifSetMainBudget` / `notifSetMainBudgetBody`).
+* **Multi-Language Synchronization**: Teks notifikasi pengingat budget utama wajib disinkronkan secara konsisten di seluruh kamus bahasa (`id`, `id_id`, `en`, `jv`, `zh`, `ko`).
+
+

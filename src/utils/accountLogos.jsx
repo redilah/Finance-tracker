@@ -136,11 +136,21 @@ const STANDALONE_BADGES = [
 export const AccountIconBadge = ({ accountName, size = 30 }) => {
   const norm = (accountName || '').trim().toLowerCase();
 
-  // 1. Cash / Tunai
+  // 1. Cash / Tunai (Standalone without white box)
   if (norm === 'cash' || norm === 'tunai' || norm === 'uang tunai') {
     return (
-      <div className="account-logo-frame cash-frame" style={{ width: size, height: size }}>
-        <svg width={size * 0.75} height={size * 0.75} viewBox="0 0 24 24" fill="none">
+      <div 
+        className="account-logo-frame cash-frame standalone-frame" 
+        style={{ 
+          width: size, 
+          height: size,
+          background: 'transparent',
+          boxShadow: 'none',
+          padding: 0,
+          border: 'none'
+        }}
+      >
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
           <rect x="2" y="5" width="20" height="14" rx="3" stroke="#10B981" strokeWidth="2.2"/>
           <circle cx="12" cy="12" r="3" fill="#10B981"/>
           <path d="M5 8.5H5.01M19 15.5H19.01" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"/>

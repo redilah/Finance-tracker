@@ -6,6 +6,7 @@ import {
   formatRupiah 
 } from '../utils/categoryInsightEngine.js';
 import { getInstallDate } from '../utils/telemetry.js';
+import { fetchCommunityBenchmark, getCommunityAverage, getInitialCommunityBenchmark } from '../utils/communityBenchmark.js';
 import { MONTH_NAMES_I18N, MONTH_SHORT_I18N, getTranslation } from '../utils/i18n.js';
 import { AccountIconBadge } from '../utils/accountLogos.jsx';
 
@@ -37,6 +38,7 @@ export default function CategoryInsightScreen({
   const [currentDate, setCurrentDate] = useState(() => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
   const [isTxListExpanded, setIsTxListExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [benchmarkData, setBenchmarkData] = useState(() => getInitialCommunityBenchmark());
 
   // Helper translation fallback
   const tr = (key) => (t ? t(key) : getTranslation(appLanguage, key));
@@ -124,19 +126,35 @@ export default function CategoryInsightScreen({
 
   const isUnlocked = isEndOfMonthOrTesting(year, monthIndex) || timeLeft.isExpired;
 
+  // Fetch community benchmark data (async, non-blocking)
+  useEffect(() => {
+    let cancelled = false;
+    fetchCommunityBenchmark().then(data => {
+      if (!cancelled) setBenchmarkData(data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Resolve community average for current category
+  const catNameForBenchmark = category.name || category.category || 'Kategori';
+  const communityDataForCat = useMemo(() => {
+    return getCommunityAverage(catNameForBenchmark, benchmarkData);
+  }, [catNameForBenchmark, benchmarkData]);
+
   // Generate insight data
   const insight = useMemo(() => {
     return generateCategoryInsight({
-      categoryName: category.name || category.category || 'Kategori',
+      categoryName: catNameForBenchmark,
       year,
       monthIndex,
       allTransactions,
       userName,
       appLanguage,
       fmtMoney,
-      getCategoryName
+      getCategoryName,
+      communityData: communityDataForCat
     });
-  }, [category, year, monthIndex, allTransactions, userName, appLanguage, fmtMoney, getCategoryName]);
+  }, [category, year, monthIndex, allTransactions, userName, appLanguage, fmtMoney, getCategoryName, communityDataForCat]);
 
   const catIcon = resolveIcon ? resolveIcon(category) : null;
   const catColor = category.color || '#4EBE96';
@@ -248,8 +266,8 @@ export default function CategoryInsightScreen({
               <div className="category-insight-hero-card">
                 <div className="category-insight-hero-left">
                   <div 
-                    className="category-insight-hero-icon"
-                    style={{ backgroundColor: `${catColor}20` }}
+                    className={`category-insight-hero-icon ${category.iconClass || ''}`}
+                    style={category.iconClass ? {} : { backgroundColor: `${catColor}20` }}
                   >
                     {catIcon ? (
                       <img src={catIcon} alt={localizedCatName} />
@@ -269,7 +287,7 @@ export default function CategoryInsightScreen({
                     {formatAmount(insight.currentTotalAmount)}
                   </span>
                   <span className="category-insight-hero-avg">
-                    {tr('categoryInsightAverage')} {formatAmount(insight.averagePerTx)}/tx
+                    {formatAmount(insight.averagePerTx)}/tx
                   </span>
                 </div>
               </div>
@@ -283,13 +301,43 @@ export default function CategoryInsightScreen({
                   <span className="category-insight-story-user">{userName}</span>
                 </div>
                 <p className="category-insight-story-text">
-                  {insight.narrativeStory}
+                  {insight.narrativeMainStory || insight.narrativeStory}
+                  {insight.socialProofStory && (
+                    <>
+                      {' '}
+                      <span className="category-insight-social-proof-text">
+                        {insight.socialProofStory}
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
 
               {/* Key Highlights Grid */}
               <div className="category-insight-highlights-grid">
                 
+                {/* 0. Rata-rata Pengeluaran Per Hari (Featured) */}
+                <div className="category-insight-highlight-item featured">
+                  <div className="highlight-item-header">
+                    <span className="highlight-icon">📊</span>
+                    <span className="highlight-title">{tr('categoryInsightDailyAverage')}</span>
+                  </div>
+                  <div className="highlight-item-content">
+                    {insight.currentCount > 0 ? (
+                      <>
+                        <span className="highlight-main-val">
+                          {formatAmount(insight.averagePerDay)} <span className="highlight-unit-label">/ {tr('timeDays').toLowerCase()}</span>
+                        </span>
+                        <span className="highlight-sub-val">
+                          {tr('categoryInsightPerDayDesc')}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="highlight-empty-val">-</span>
+                    )}
+                  </div>
+                </div>
+
                 {/* 1. Item Paling Sering */}
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">

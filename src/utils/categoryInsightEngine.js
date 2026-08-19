@@ -12,23 +12,20 @@ export const formatRupiah = (num) => {
 export const isEndOfMonthOrTesting = (year, monthIndex) => {
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
 
-  // Jika bulan yang dipilih adalah bulan di masa lalu (sudah lewat), insight selalu tersedia
-  if (year < currentYear || (year === currentYear && monthIndex < currentMonth)) {
-    return true;
-  }
+  // 1. Bulan lampau selalu terbuka (unlocked)
+  if (year < currentYear) return true;
+  if (year === currentYear && monthIndex < currentMonth) return true;
 
-  // Jika bulan di masa depan, insight belum terbuka
-  if (year > currentYear || (year === currentYear && monthIndex > currentMonth)) {
-    return false;
-  }
+  // 2. Bulan masa depan selalu terkunci (locked)
+  if (year > currentYear) return false;
+  if (year === currentYear && monthIndex > currentMonth) return false;
 
-  // Jika bulan yang dipilih adalah bulan berjalan saat ini: hanya terbuka jika hari ini >= tanggal akhir bulan
-  const lastDayOfMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const todayDate = now.getDate();
-
-  return todayDate >= lastDayOfMonth;
+  // 3. Bulan berjalan: Hanya terbuka jika tanggal hari ini adalah hari terakhir dari bulan tersebut
+  const lastDayOfTargetMonth = getLastDayOfMonth(year, monthIndex);
+  return currentDate >= lastDayOfTargetMonth;
 };
 
 // Hitung hari terakhir dari suatu bulan
@@ -47,7 +44,8 @@ export const generateCategoryInsight = ({
   userName = 'Pengguna',
   appLanguage = 'id',
   fmtMoney,
-  getCategoryName
+  getCategoryName,
+  communityData = null // { avgAmount, userCount } dari communityBenchmark.js
 }) => {
   const cleanUserName = userName && userName.trim() ? userName.trim() : (
     appLanguage === 'en' ? 'You' : appLanguage === 'jv' ? 'Panjenengan' : appLanguage === 'zh' ? 'Nin' : appLanguage === 'ko' ? 'Dangsin' : 'Kamu'
@@ -134,7 +132,11 @@ export const generateCategoryInsight = ({
   // Rata-rata per transaksi
   const averagePerTx = currentCount > 0 ? Math.round(currentTotalAmount / currentCount) : 0;
 
-  // 3. Catatan/item yang paling sering dibeli
+  // 3. Rata-rata pengeluaran per hari dalam sebulan
+  const daysInMonth = getLastDayOfMonth(year, monthIndex);
+  const averagePerDay = daysInMonth > 0 ? Math.round(currentTotalAmount / daysInMonth) : 0;
+
+  // 4. Catatan/item yang paling sering dibeli
   const noteFrequency = {};
   catTxs.forEach(t => {
     const rawNote = (t.title || t.note || '').trim();
@@ -238,14 +240,41 @@ export const generateCategoryInsight = ({
   const currentMonthNames = MONTH_NAMES_MAP[appLanguage] || MONTH_NAMES_MAP.id;
   const monthName = currentMonthNames[monthIndex] || 'Bulan Ini';
 
-  // 9. Narasi Finansial Dinamis Sesuai Bahasa Aktif
+  // ──────────────────────────────────────────────────────
+  // 9. Persuasion Metrics (Cialdini: Commitment, Social Proof, Loss Framing)
+  // ──────────────────────────────────────────────────────
+
+  // Loss Framing (Scarcity): hitung kerugian riil & potensi penghematan
+  const lossAmount = diffStatus === 'up' ? (currentTotalAmount - prevTotalAmount) : 0;
+  const savingsIfCut10 = currentTotalAmount > 0 ? Math.round(currentTotalAmount * 0.1) : 0;
+
+  // Social Proof: data komunitas real yang dinamis dari database telemetry
+  const hasCommunityData = communityData && communityData.avgAmount > 0;
+  const communityAvg = hasCommunityData ? communityData.avgAmount : 0;
+  const communityUserCount = hasCommunityData ? (communityData.userCount || 1) : 0;
+  const userCountLabel = communityUserCount.toLocaleString(
+    appLanguage === 'en' ? 'en-US' : (appLanguage === 'zh' || appLanguage === 'ko' ? 'en-US' : 'id-ID')
+  );
+  let communityDiffPercent = 0;
+  let isAboveCommunityAvg = false;
+  if (hasCommunityData && currentTotalAmount > 0) {
+    communityDiffPercent = Math.round(Math.abs(currentTotalAmount - communityAvg) / communityAvg * 100);
+    isAboveCommunityAvg = currentTotalAmount > communityAvg;
+  }
+
+  // 10. Narasi Finansial Dinamis Sesuai Bahasa Aktif
   let narrativeStory = '';
+  let narrativeMainStory = '';
+  let socialProofStory = '';
 
   if (appLanguage === 'en') {
     if (currentCount === 0) {
-      narrativeStory = `In ${monthName} ${year}, ${cleanUserName} has not recorded any expenses for ${localizedCatName}. Spending in this category is completely under control!`;
+      narrativeMainStory = `In ${monthName} ${year}, ${cleanUserName} has not recorded any expenses for ${localizedCatName}.`;
+      socialProofStory = `Zero spending — your discipline is outstanding! Keep this record going 💪`;
+      narrativeStory = `${narrativeMainStory} ${socialProofStory}`.trim();
     } else {
       const sentences = [];
+      const socialSentences = [];
       sentences.push(
         `In ${monthName} ${year}, ${cleanUserName} made ${currentCount} transactions in ${localizedCatName} with a total spending of ${formatAmt(currentTotalAmount)}.`
       );
@@ -262,18 +291,43 @@ export const generateCategoryInsight = ({
         const itemNote = txTitle ? ` for "${txTitle}"` : '';
         sentences.push(`Your largest spending occurred on ${monthName} ${highestSpendDay.dayNum} totaling ${formatAmt(largestTx.amount)}${itemNote}.`);
       }
+      // 🔴 Loss Framing (Scarcity)
       if (diffStatus === 'up') {
-        sentences.push(`Your spending in this category increased by ${diffPercentage}% compared to last month (${formatAmt(prevTotalAmount)}).`);
+        sentences.push(`You lost ${formatAmt(lossAmount)} more this month compared to last month (${formatAmt(prevTotalAmount)}).`);
+        if (savingsIfCut10 > 0) {
+          sentences.push(`If spending dropped just 10%, you could save ${formatAmt(savingsIfCut10)}.`);
+        }
       } else if (diffStatus === 'down') {
         sentences.push(`Great news! Your spending decreased by ${diffPercentage}%, saving more than last month (${formatAmt(prevTotalAmount)}).`);
       }
-      narrativeStory = sentences.join(' ');
+      // 🟢 Social Proof — Real community data from dashboard users
+      if (hasCommunityData && currentCount > 0) {
+        if (isAboveCommunityAvg) {
+          socialSentences.push(`Compared to ${userCountLabel} other Cassiel users (avg ${formatAmt(communityAvg)}), your spending is ${communityDiffPercent}% above average.`);
+        } else {
+          socialSentences.push(`Awesome! Your spending is more efficient than ${userCountLabel} other Cassiel users (avg ${formatAmt(communityAvg)}).`);
+        }
+      }
+      // 🔵 Commitment & Consistency
+      if (diffStatus === 'up' || isAboveCommunityAvg) {
+        socialSentences.push(`Set a slightly tighter budget next month to keep spending well balanced! 🎯`);
+      } else if (diffStatus === 'down' || currentCount === 0) {
+        socialSentences.push(`Your consistency is amazing! Keep this saving streak going 💪`);
+      } else {
+        socialSentences.push(`Keep managing your budget wisely each month! 💪`);
+      }
+      narrativeMainStory = sentences.join(' ');
+      socialProofStory = socialSentences.join(' ');
+      narrativeStory = [narrativeMainStory, socialProofStory].filter(Boolean).join(' ');
     }
   } else if (appLanguage === 'jv') {
     if (currentCount === 0) {
-      narrativeStory = `Ing wulan ${monthName} ${year}, ${cleanUserName} dereng wonten cathetan pangetrapan kangge ${localizedCatName}. Pangetrapan panjenengan saestu hemat lan kajagi kanthi prayogi!`;
+      narrativeMainStory = `Ing wulan ${monthName} ${year}, ${cleanUserName} dereng wonten cathetan pangetrapan kangge ${localizedCatName}.`;
+      socialProofStory = `Nol pangetrapan — kedisiplinan panjenengan luar biasa! Lestantunaken rekor punika 💪`;
+      narrativeStory = `${narrativeMainStory} ${socialProofStory}`.trim();
     } else {
       const sentences = [];
+      const socialSentences = [];
       sentences.push(
         `Ing wulan ${monthName} ${year}, ${cleanUserName} kecathet ${currentCount} kaping blanja ing kategori ${localizedCatName} kanthi gunggung ${formatAmt(currentTotalAmount)}.`
       );
@@ -290,18 +344,43 @@ export const generateCategoryInsight = ({
         const itemNote = txTitle ? ` kangge "${txTitle}"` : '';
         sentences.push(`Blanja paling ageng kalampahan ing tanggal ${highestSpendDay.dayNum} ${monthName} kanthi ${formatAmt(largestTx.amount)}${itemNote}.`);
       }
+      // 🔴 Loss Framing
       if (diffStatus === 'up') {
-        sentences.push(`Pangetrapan panjenengan mundhak ${diffPercentage}% tinimbang wulan kapengker (${formatAmt(prevTotalAmount)}).`);
+        sentences.push(`Panjenengan kecalan ${formatAmt(lossAmount)} langkung kathah wulan punika tinimbang wulan kapengker (${formatAmt(prevTotalAmount)}).`);
+        if (savingsIfCut10 > 0) {
+          sentences.push(`Menawi saged nyuda 10%, panjenengan saged nyimpen ${formatAmt(savingsIfCut10)}.`);
+        }
       } else if (diffStatus === 'down') {
         sentences.push(`Kabar sae! Pangetrapan mudhun ${diffPercentage}% langkung hemat tinimbang wulan sadèrèngipun (${formatAmt(prevTotalAmount)}).`);
       }
-      narrativeStory = sentences.join(' ');
+      // 🟢 Social Proof
+      if (hasCommunityData && currentCount > 0) {
+        if (isAboveCommunityAvg) {
+          socialSentences.push(`Katandhingaken kaliyan ${userCountLabel} panggangge Cassiel sanesipun (rata-rata ${formatAmt(communityAvg)}), pangetrapan panjenengan ${communityDiffPercent}% ing nginggil rata-rata.`);
+        } else {
+          socialSentences.push(`Hebat! Pangetrapan panjenengan langkung hemat tinimbang ${userCountLabel} panggangge Cassiel sanesipun (rata-rata ${formatAmt(communityAvg)}).`);
+        }
+      }
+      // 🔵 Commitment & Consistency
+      if (diffStatus === 'up' || isAboveCommunityAvg) {
+        socialSentences.push(`Atur watesan anggaran langkung rapi wulan ngajeng supados langkung seimbang! 🎯`);
+      } else if (diffStatus === 'down' || currentCount === 0) {
+        socialSentences.push(`Konsistensi panjenengan luar biasa! Lestantunaken rekor hemat punika 💪`);
+      } else {
+        socialSentences.push(`Titi pangetrapan lan anggaran panjenengan kanthi wicaksana! 💪`);
+      }
+      narrativeMainStory = sentences.join(' ');
+      socialProofStory = socialSentences.join(' ');
+      narrativeStory = [narrativeMainStory, socialProofStory].filter(Boolean).join(' ');
     }
   } else if (appLanguage === 'zh') {
     if (currentCount === 0) {
-      narrativeStory = `Zai ${year} nian ${monthName}, ${cleanUserName} zai ${localizedCatName} fenlei shang shangwu renhe zhichu. Nin de yuesuan kongzhi de feichang hao!`;
+      narrativeMainStory = `Zai ${year} nian ${monthName}, ${cleanUserName} zai ${localizedCatName} fenlei shang shangwu renhe zhichu.`;
+      socialProofStory = `Ling zhichu — nin de jilü feichang chuzhong! Jixu baochi zheige jilu 💪`;
+      narrativeStory = `${narrativeMainStory} ${socialProofStory}`.trim();
     } else {
       const sentences = [];
+      const socialSentences = [];
       sentences.push(
         `Zai ${year} nian ${monthName}, ${cleanUserName} zai ${localizedCatName} jinxing le ${currentCount} ci jiaoyi, zong zhichu wei ${formatAmt(currentTotalAmount)}.`
       );
@@ -318,18 +397,43 @@ export const generateCategoryInsight = ({
         const itemNote = txTitle ? ` ("${txTitle}")` : '';
         sentences.push(`Zui da danbi zhichu fasheng zai ${monthName} ${highestSpendDay.dayNum} ri, jine wei ${formatAmt(largestTx.amount)}${itemNote}.`);
       }
+      // 🔴 Loss Framing
       if (diffStatus === 'up') {
-        sentences.push(`Yu shangyue (${formatAmt(prevTotalAmount)}) xiangbi, nin zai ci fenlei de zhichu zengjia le ${diffPercentage}%.`);
+        sentences.push(`Nin benyue duosunshi le ${formatAmt(lossAmount)}, yu shangyue (${formatAmt(prevTotalAmount)}) xiangbi.`);
+        if (savingsIfCut10 > 0) {
+          sentences.push(`Ruguo jianshao 10%, nin keyi jiesheng ${formatAmt(savingsIfCut10)}.`);
+        }
       } else if (diffStatus === 'down') {
         sentences.push(`Tai bang le! Yu shangyue (${formatAmt(prevTotalAmount)}) xiangbi, nin de zhichu jianshao le ${diffPercentage}%.`);
       }
-      narrativeStory = sentences.join(' ');
+      // 🟢 Social Proof
+      if (hasCommunityData && currentCount > 0) {
+        if (isAboveCommunityAvg) {
+          socialSentences.push(`Yu ${userCountLabel} wei qita Cassiel yonghu (pingjun ${formatAmt(communityAvg)}) xiangbi, nin de zhichu gao ${communityDiffPercent}%.`);
+        } else {
+          socialSentences.push(`Hen bang! Nin de zhichu bi ${userCountLabel} wei qita Cassiel yonghu (pingjun ${formatAmt(communityAvg)}) geng jieyue.`);
+        }
+      }
+      // 🔵 Commitment & Consistency
+      if (diffStatus === 'up' || isAboveCommunityAvg) {
+        socialSentences.push(`Xiayue shidang diaozheng yuesuan yi baochi lianghao de zhichu pingheng! 🎯`);
+      } else if (diffStatus === 'down' || currentCount === 0) {
+        socialSentences.push(`Nin de jianchi feichang bang! Jixu baochi jieyue jilu 💪`);
+      } else {
+        socialSentences.push(`Mingzhi guanli nin de yuesuan yu kaizhi! 💪`);
+      }
+      narrativeMainStory = sentences.join(' ');
+      socialProofStory = socialSentences.join(' ');
+      narrativeStory = [narrativeMainStory, socialProofStory].filter(Boolean).join(' ');
     }
   } else if (appLanguage === 'ko') {
     if (currentCount === 0) {
-      narrativeStory = `${year}nyeon ${monthName}e ${cleanUserName}nim-eun ${localizedCatName} hangmog-eseo jichul-i eobs-seubnida. Yesan gwanliga maeu jal doego iss-seubnida!`;
+      narrativeMainStory = `${year}nyeon ${monthName}e ${cleanUserName}nim-eun ${localizedCatName} hangmog-eseo jichul-i eobs-seubnida.`;
+      socialProofStory = `Yeong jichul — gyuyul-i ttwieona-seubnida! I gilog-eul yuji-haseyo 💪`;
+      narrativeStory = `${narrativeMainStory} ${socialProofStory}`.trim();
     } else {
       const sentences = [];
+      const socialSentences = [];
       sentences.push(
         `${year}nyeon ${monthName}e ${cleanUserName}nim-eun ${localizedCatName} hangmog-eseo chong ${currentCount}hwe jichul-eul haess-eumyeo, chong-aeg-eun ${formatAmt(currentTotalAmount)} ibnida.`
       );
@@ -346,19 +450,44 @@ export const generateCategoryInsight = ({
         const itemNote = txTitle ? ` ("${txTitle}")` : '';
         sentences.push(`Gajang keun jichul-eun ${monthName} ${highestSpendDay.dayNum}il-e ${formatAmt(largestTx.amount)}${itemNote}euro balsaenghaess-seubnida.`);
       }
+      // 🔴 Loss Framing
       if (diffStatus === 'up') {
-        sentences.push(`Jinandall (${formatAmt(prevTotalAmount)})boda jichul-i ${diffPercentage}% jeung-gahaess-seubnida.`);
+        sentences.push(`Ibeondal jinandal (${formatAmt(prevTotalAmount)})boda ${formatAmt(lossAmount)} deo sonhae-leul bo-ass-seubnida.`);
+        if (savingsIfCut10 > 0) {
+          sentences.push(`10%man jul-imyeon ${formatAmt(savingsIfCut10)}eul jeol-yag-hal su iss-seubnida.`);
+        }
       } else if (diffStatus === 'down') {
         sentences.push(`Jinandall (${formatAmt(prevTotalAmount)})boda jichul-i ${diffPercentage}% jul-eo deol sseoss-seubnida!`);
       }
-      narrativeStory = sentences.join(' ');
+      // 🟢 Social Proof
+      if (hasCommunityData && currentCount > 0) {
+        if (isAboveCommunityAvg) {
+          socialSentences.push(`${userCountLabel}myeong-ui daleun Cassiel sayongja (pyeong-gyun ${formatAmt(communityAvg)})wa bigyohae, jichul-i ${communityDiffPercent}% nops-seubnida.`);
+        } else {
+          socialSentences.push(`Meotjyeo! ${userCountLabel}myeong-ui daleun Cassiel sayongja (pyeong-gyun ${formatAmt(communityAvg)})boda deo jeol-yag-haess-seubnida.`);
+        }
+      }
+      // 🔵 Commitment & Consistency
+      if (diffStatus === 'up' || isAboveCommunityAvg) {
+        socialSentences.push(`Daeum dal-eun yesan-eul jogeum deo jo-yeo gyunhyeong-eul matchwo boseyo! 🎯`);
+      } else if (diffStatus === 'down' || currentCount === 0) {
+        socialSentences.push(`Ilgwan-seong-i hullyung-habnida! Jeol-yag gilog-eul yuji-haseyo 💪`);
+      } else {
+        socialSentences.push(`Yesan-gwa jichul-eul jihyerobge gwanli-haseyo! 💪`);
+      }
+      narrativeMainStory = sentences.join(' ');
+      socialProofStory = socialSentences.join(' ');
+      narrativeStory = [narrativeMainStory, socialProofStory].filter(Boolean).join(' ');
     }
   } else {
     // Default: Bahasa Indonesia
     if (currentCount === 0) {
-      narrativeStory = `Di bulan ${monthName} ${year}, ${cleanUserName} belum mencatat pengeluaran apa pun untuk kategori ${localizedCatName}. Pengeluaranmu di sektor ini sangat hemat dan terkendali dengan baik!`;
+      narrativeMainStory = `Di bulan ${monthName} ${year}, ${cleanUserName} belum mencatat pengeluaran apa pun untuk kategori ${localizedCatName}.`;
+      socialProofStory = `Nol pengeluaran — disiplinmu luar biasa! Pertahankan rekor ini 💪`;
+      narrativeStory = `${narrativeMainStory} ${socialProofStory}`.trim();
     } else {
       const sentences = [];
+      const socialSentences = [];
       sentences.push(
         `Di bulan ${monthName} ${year}, ${cleanUserName} tercatat melakukan ${currentCount} kali transaksi pada kategori ${localizedCatName} dengan total pengeluaran sebesar ${formatAmt(currentTotalAmount)}.`
       );
@@ -383,16 +512,50 @@ export const generateCategoryInsight = ({
           `Pengeluaran terbesarmu terjadi pada tanggal ${highestSpendDay.dayNum} ${monthName} sebesar ${formatAmt(largestTx.amount)}${itemNote}.`
         );
       }
+      // 🔴 Loss Framing (Scarcity)
       if (diffStatus === 'up') {
         sentences.push(
-          `Pengeluaranmu di kategori ini meningkat ${diffPercentage}% dibandingkan bulan lalu (${formatAmt(prevTotalAmount)}).`
+          `Kamu kehilangan ${formatAmt(lossAmount)} lebih banyak bulan ini dibanding bulan lalu (${formatAmt(prevTotalAmount)}).`
         );
+        if (savingsIfCut10 > 0) {
+          sentences.push(
+            `Andai turun 10% saja, kamu bisa menabung ${formatAmt(savingsIfCut10)}.`
+          );
+        }
       } else if (diffStatus === 'down') {
         sentences.push(
           `Kabar baik! Pengeluaranmu turun ${diffPercentage}% lebih hemat dibandingkan bulan sebelumnya (${formatAmt(prevTotalAmount)}).`
         );
       }
-      narrativeStory = sentences.join(' ');
+      // 🟢 Social Proof — data komunitas real
+      if (hasCommunityData && currentCount > 0) {
+        if (isAboveCommunityAvg) {
+          socialSentences.push(
+            `Dibandingkan ${userCountLabel} pengguna Cassiel lainnya (rata-rata ${formatAmt(communityAvg)}), pengeluaranmu ${communityDiffPercent}% di atas rata-rata.`
+          );
+        } else {
+          socialSentences.push(
+            `Keren! Pengeluaranmu lebih hemat dari ${userCountLabel} pengguna Cassiel lainnya (rata-rata ${formatAmt(communityAvg)}).`
+          );
+        }
+      }
+      // 🔵 Commitment & Consistency
+      if (diffStatus === 'up' || isAboveCommunityAvg) {
+        socialSentences.push(
+          `Yuk atur batas anggaran lebih ketat bulan depan agar pengeluaran kembali seimbang! 🎯`
+        );
+      } else if (diffStatus === 'down' || currentCount === 0) {
+        socialSentences.push(
+          `Konsistenmu luar biasa! Pertahankan rekor hematan ini 💪`
+        );
+      } else {
+        socialSentences.push(
+          `Kelola anggaranmu dengan bijak setiap bulannya! 💪`
+        );
+      }
+      narrativeMainStory = sentences.join(' ');
+      socialProofStory = socialSentences.join(' ');
+      narrativeStory = [narrativeMainStory, socialProofStory].filter(Boolean).join(' ');
     }
   }
 
@@ -405,6 +568,9 @@ export const generateCategoryInsight = ({
     currentCount,
     percentageOfTotal,
     averagePerTx,
+    averagePerDay,
+    daysInMonth,
+    activeDaysCount: daysList.length,
     topNote,
     sortedNotes,
     busiestDay,
@@ -417,6 +583,8 @@ export const generateCategoryInsight = ({
     diffPercentage,
     diffStatus,
     narrativeStory,
+    narrativeMainStory,
+    socialProofStory,
     transactions: catTxs.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
   };
 };
