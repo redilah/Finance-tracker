@@ -5842,8 +5842,10 @@ function App() {
                 type="button"
                 className="update-now-btn"
                 onClick={() => {
-                  const rawUrl = updateInfo?.downloadUrl || 'https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk';
+                  const targetApk = updateInfo?.apkName || (updateInfo?.isUdinApp ? 'udin.apk' : 'Cassiel.apk');
+                  const rawUrl = updateInfo?.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/${targetApk}`;
                   const cleanUrl = rawUrl.split('?')[0] + `?t=${Date.now()}`;
+                  console.log('[UpdateModal] Navigating to download URL:', cleanUrl);
                   const opened = window.open(cleanUrl, '_system');
                   if (!opened) {
                     window.location.href = cleanUrl;

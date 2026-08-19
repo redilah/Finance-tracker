@@ -87,27 +87,25 @@ const formatUpdateResult = async (data) => {
       const { App } = await import('@capacitor/app');
       const appInfo = await App.getInfo();
       if (appInfo) {
-        if (appInfo.id === 'com.redilah.udin') {
+        const id = (appInfo.id || '').toLowerCase();
+        const name = (appInfo.name || '').toLowerCase();
+        if (id.includes('udin') || name.includes('udin')) {
           isUdinApp = true;
-        } else if (appInfo.id === 'com.redilah.financetracker.debug' || appInfo.name?.toLowerCase().includes('debug')) {
+        } else if (id.includes('debug') || name.includes('debug')) {
           isDebugOrTestApp = true;
         }
       }
     } catch {
-      // Web fallback check
-      if (typeof window !== 'undefined') {
-        if (window.location.hostname.includes('udin')) {
-          isUdinApp = true;
-        }
-      }
+      // Ignore native import error on web
     }
 
-    // Deteksi jika user sedang berada di environment non-production / test sideload
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
-      isDebugOrTestApp = true;
-    }
-    if (typeof window !== 'undefined' && (window.__IS_DEBUG_BUILD__ || window.localStorage.getItem('cassiel_apk_track') === 'debug')) {
-      isDebugOrTestApp = true;
+    // Web / Storage fallback check
+    if (typeof window !== 'undefined') {
+      if (window.location.hostname.includes('udin') || window.localStorage.getItem('cassiel_apk_track') === 'udin') {
+        isUdinApp = true;
+      } else if (window.__IS_DEBUG_BUILD__ || window.localStorage.getItem('cassiel_apk_track') === 'debug') {
+        isDebugOrTestApp = true;
+      }
     }
 
     let baseApkName = 'Cassiel.apk';
