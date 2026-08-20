@@ -68,21 +68,10 @@
                 android:resource="@xml/widget_cassiel_medium_info" />
         </receiver>
 
-        <!-- Notification Listener Service for Automatic Tracker -->
-        <service
-            android:name=".AutoExpenseListenerService"
-            android:label="Cassiel Auto Tracker"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
     </application>
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
