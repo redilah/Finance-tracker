@@ -118,6 +118,10 @@ const formatUpdateResult = async (data) => {
     } else if (isDebugOrTestApp) {
       baseApkName = 'cassielll1.apk';
       downloadUrl = data.debugDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=${latestVersionCode}&t=${Date.now()}`;
+    } else {
+      // Pastikan Cassiel resmi selalu mengarah ke Cassiel.apk bertanda tangan Release Keystore
+      baseApkName = 'Cassiel.apk';
+      downloadUrl = data.downloadUrl || data.apkUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
     }
 
     return {
