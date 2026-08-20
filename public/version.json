@@ -1,12 +1,12 @@
 {
-  "versionCode": 24,
-  "versionName": "1.0.23",
-  "version": "1.0.23",
-  "changelog": "New in this update:\n- [New] Grafik Batang Pemasukan vs Pengeluaran Bulanan di Stats\n- [New] Switcher Kapsul Pie Chart & Grafik Stats",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.23",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.23",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.23",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.23",
+  "versionCode": 25,
+  "versionName": "1.0.24",
+  "version": "1.0.24",
+  "changelog": "New in this update:\n- [Fix] Perbaikan Cadangan Data Google Drive & Folder Penyimpanan\n- [Optimization] Peningkatan Stabilitas Pelacakan Transaksi",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.24",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.24",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.24",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.24",
   "sha256": "d712665f8e79f61af726f672dff57864de6bb1eccba3d3f13218189aaf8be5ab",
   "minSdkVersion": 22
 }
