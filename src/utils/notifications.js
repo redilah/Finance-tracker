@@ -908,4 +908,69 @@ export const scheduleV23FeatureIntroNotification = async (userName = 'Teman', la
   }
 };
 
+// Schedule 1-Time 5-Second Post-Update Notification for v1.0.24 Features (Auto Expense Tracker via Notification Listener)
+export const scheduleV24FeatureIntroNotification = async (userName = 'Teman', lang) => {
+  if (typeof localStorage === 'undefined') return;
+  const NOTIF_KEY = 'v1_0_24_feature_intro_notif';
+  if (localStorage.getItem(NOTIF_KEY) === 'true') {
+    return;
+  }
+
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
+  const title = tr(l, 'notifV24FeatureIntroTitle', { name });
+  const body = tr(l, 'notifV24FeatureIntroBody', { name });
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 602,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
+            channelId: 'financial_notifications',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
+            iconColor: '#2D5284'
+          }
+        ]
+      });
+      localStorage.setItem(NOTIF_KEY, 'true');
+    } catch (e) {
+      console.warn('Failed to schedule v1.0.24 feature intro notification:', e);
+    }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+        localStorage.setItem(NOTIF_KEY, 'true');
+      } catch (e) {
+        console.log('Web notification error:', e);
+      }
+    }, 5000);
+  } else {
+    localStorage.setItem(NOTIF_KEY, 'true');
+  }
+};
+
+
 

@@ -40,15 +40,17 @@ import minumanSvg from './assets/Minuman.svg';
 import fingerprintSvg from './assets/fingerprint.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
+import { NotificationTracker, initAutoExpenseTracker } from './utils/notificationTracker';
+import { scheduleV24FeatureIntroNotification } from './utils/notifications';
 import { checkForAppUpdates, CURRENT_VERSION_NAME } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
-import { getTranslation, getCategoryName, LANGUAGES, FONTS, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
+import { getTranslation, getCategoryName, LANGUAGES, FONTS, FONT_SIZES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
 import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
-import { WORLD_CURRENCIES, getCurrency, formatMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
+import { WORLD_CURRENCIES, getCurrency, formatMoney, formatCompactMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
 import { createBackupData, exportBackup, importBackup, restoreBackupData } from './utils/backup';
 import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
 import PinSetupModal from './components/PinSetupModal';
@@ -882,9 +884,11 @@ function App() {
   // Home Transaction Type Filter ('expense' | 'income')
   const [homeTxFilter, setHomeTxFilter] = useState('expense');
 
-  // Font and Language Settings
+  // Font, Font Size, and Language Settings
   const [appFont, setAppFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
   const [tempFont, setTempFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
+  const [appFontSize, setAppFontSize] = useState(() => safeStorageGet('user_app_font_size') || 'default');
+  const [tempFontSize, setTempFontSize] = useState(() => safeStorageGet('user_app_font_size') || 'default');
   const [appLanguage, setAppLanguage] = useState(() => {
     const savedLang = safeStorageGet('user_app_lang');
     const migratedVersion = safeStorageGet('user_lang_migrated_v19');
@@ -899,6 +903,7 @@ function App() {
   const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'jv');
   const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
   const [isFontModalOpen, setIsFontModalOpen] = useState(false);
+  const [isFontSizeModalOpen, setIsFontSizeModalOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   
   // Currency State
@@ -939,6 +944,9 @@ function App() {
   const fmtMoney = useCallback((amount, includeSymbol = true) => {
     return formatMoney(amount, appCurrency, liveExchangeRates, includeSymbol);
   }, [appCurrency, liveExchangeRates]);
+
+  // Balance Card Detail Popup (Pop to front on tap)
+  const [activeBalanceDetail, setActiveBalanceDetail] = useState(null);
 
   // Feedback for Developer State
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -998,9 +1006,36 @@ function App() {
     }
   }, [appFont]);
 
+  // Apply Font Size globally
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font-size', appFontSize);
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      rootEl.setAttribute('data-font-size', appFontSize);
+    }
+    
+    // Direct Global CSS Font Multiplier
+    const scaleMap = {
+      'default': '100%',
+      '13pt': '110%',
+      '14pt': '120%',
+      '18pt': '135%'
+    };
+    const targetScale = scaleMap[appFontSize] || '100%';
+    document.documentElement.style.fontSize = targetScale;
+    if (rootEl) {
+      rootEl.style.fontSize = targetScale;
+    }
+  }, [appFontSize]);
+
   const handleOpenFontModal = () => {
     setTempFont(appFont);
     setIsFontModalOpen(true);
+  };
+
+  const handleOpenFontSizeModal = () => {
+    setTempFontSize(appFontSize);
+    setIsFontSizeModalOpen(true);
   };
 
   const handleOpenLangModal = () => {
@@ -1011,6 +1046,11 @@ function App() {
   const handleSelectFont = (fontId) => {
     setAppFont(fontId);
     safeStorageSet('user_app_font', fontId);
+  };
+
+  const handleSelectFontSize = (sizeId) => {
+    setAppFontSize(sizeId);
+    safeStorageSet('user_app_font_size', sizeId);
   };
 
   const handleSelectLanguage = (langCode) => {
@@ -1032,6 +1072,7 @@ function App() {
         profileName,
         profileImage,
         appFont,
+        appFontSize,
         appLanguage,
         appCurrency,
       });
@@ -1096,6 +1137,7 @@ function App() {
       setProfileName,
       setProfileImage,
       setAppFont,
+      setAppFontSize,
       setAppLanguage,
       setAppCurrency,
       setMainMonthlyBudget,
@@ -1179,6 +1221,40 @@ function App() {
 
   // Notification Bell State (Persisted)
   const [isNotifActive, setIsNotifActive] = useState(() => isNotificationEnabled());
+
+  // Auto-Tracker Notification Listener Toggle State (Persisted in localStorage & SharedPreferences)
+  const [isAutoTrackerActive, setIsAutoTrackerActive] = useState(() => {
+    return safeStorageGet('user_auto_tracker_active') === true;
+  });
+
+  // Sync Auto-Tracker setting with native layer on startup
+  useEffect(() => {
+    if (isAutoTrackerActive) {
+      NotificationTracker.setAutoTrackerEnabled({ enabled: true }).catch(() => {});
+    } else {
+      NotificationTracker.setAutoTrackerEnabled({ enabled: false }).catch(() => {});
+    }
+  }, [isAutoTrackerActive]);
+
+  // Hook Auto-Tracker incoming transactions to App state
+  useEffect(() => {
+    if (!isAutoTrackerActive) return;
+    initAutoExpenseTracker((newTransactions) => {
+      if (Array.isArray(newTransactions) && newTransactions.length > 0) {
+        setTransactions(prev => {
+          const updated = [...newTransactions, ...prev];
+          safeStorageSet('user_transactions', updated);
+          return updated;
+        });
+        showVoiceToast(`✨ ${newTransactions.length} transaksi otomatis dicatat!`);
+      }
+    });
+  }, [isAutoTrackerActive, showVoiceToast]);
+
+  // Schedule 5-second post-update notification for v1.0.24 features
+  useEffect(() => {
+    scheduleV24FeatureIntroNotification(profileName, appLanguage);
+  }, [profileName, appLanguage]);
 
   // Web Admin Dashboard URL detection (?admin or /admin)
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -1597,6 +1673,8 @@ function App() {
   // Edge-Swipe Back Gesture & Android System Back Button Handler
   const backHandlerStateRef = useRef({});
   backHandlerStateRef.current = {
+    activeBalanceDetail,
+    setActiveBalanceDetail,
     selectedInsightCategory,
     setSelectedInsightCategory,
     isCropModalOpen,
@@ -1615,6 +1693,8 @@ function App() {
     setUpdateInfo,
     isFontModalOpen,
     setIsFontModalOpen,
+    isFontSizeModalOpen,
+    setIsFontSizeModalOpen,
     isLangModalOpen,
     setIsLangModalOpen,
     isCurrencyModalOpen,
@@ -1647,6 +1727,12 @@ function App() {
   const handleAppBack = () => {
     const s = backHandlerStateRef.current;
 
+    // -1. Pop-up Balance Card Detail
+    if (s.activeBalanceDetail) {
+      s.setActiveBalanceDetail(null);
+      return;
+    }
+
     // 0. Layar Full-Page Category Insight
     if (s.selectedInsightCategory) {
       s.setSelectedInsightCategory(null);
@@ -1672,6 +1758,10 @@ function App() {
     }
     if (s.isFontModalOpen) {
       s.setIsFontModalOpen(false);
+      return;
+    }
+    if (s.isFontSizeModalOpen) {
+      s.setIsFontSizeModalOpen(false);
       return;
     }
     if (s.isLangModalOpen) {
@@ -2745,10 +2835,40 @@ function App() {
     };
   });
 
-  const maxMonthlyAmount = Math.max(
+  // Helper to compute a clean, human-friendly max ceiling (e.g. 500k, 1M, 1.2M, etc.)
+  const rawMaxMonthly = Math.max(
     ...monthlyBarChartData.map(d => Math.max(d.earned, d.spend)),
     100000 // Minimum scale fallback
   );
+
+  const calculateNiceMaxAmount = (val) => {
+    if (val <= 0) return 100000;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(val)));
+    const fraction = val / magnitude;
+    let niceFraction;
+    if (fraction <= 1) niceFraction = 1;
+    else if (fraction <= 1.2) niceFraction = 1.2;
+    else if (fraction <= 1.5) niceFraction = 1.5;
+    else if (fraction <= 2) niceFraction = 2;
+    else if (fraction <= 2.5) niceFraction = 2.5;
+    else if (fraction <= 3) niceFraction = 3;
+    else if (fraction <= 4) niceFraction = 4;
+    else if (fraction <= 5) niceFraction = 5;
+    else if (fraction <= 6) niceFraction = 6;
+    else if (fraction <= 8) niceFraction = 8;
+    else niceFraction = 10;
+    return niceFraction * magnitude;
+  };
+
+  const maxMonthlyAmount = calculateNiceMaxAmount(rawMaxMonthly);
+
+  // Y-axis tick values (4 steps matching 4 grid lines from top 100% to bottom 0%)
+  const yAxisTicks = [
+    maxMonthlyAmount,
+    maxMonthlyAmount * (2 / 3),
+    maxMonthlyAmount * (1 / 3),
+    0
+  ];
 
   if (isAdminView) {
     return (
@@ -2817,21 +2937,57 @@ function App() {
 
           {/* Balance Cards */}
           <section className="balance-section">
-            <div className="balance-card expenses-card">
+            <div 
+              className="balance-card expenses-card balance-card-clickable"
+              onClick={() => setActiveBalanceDetail({
+                type: 'expense',
+                label: t('expenses'),
+                amount: isCurrentMonth ? totalExpenses : 0,
+                color: 'var(--card-expense-text)',
+                bgColor: 'var(--card-expense-bg)',
+                icon: '▼'
+              })}
+              role="button"
+              tabIndex={0}
+            >
               <span className="card-label">{t('expenses')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? fmtMoney(totalExpenses) : fmtMoney(0)}</span>
                 <span className="icon-down">▼</span>
               </div>
             </div>
-            <div className="balance-card income-card">
+            <div 
+              className="balance-card income-card balance-card-clickable"
+              onClick={() => setActiveBalanceDetail({
+                type: 'income',
+                label: t('income'),
+                amount: isCurrentMonth ? totalIncome : 0,
+                color: 'var(--card-income-text)',
+                bgColor: 'var(--card-income-bg)',
+                icon: '▲'
+              })}
+              role="button"
+              tabIndex={0}
+            >
               <span className="card-label">{t('income')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? fmtMoney(totalIncome) : fmtMoney(0)}</span>
                 <span className="icon-up">▲</span>
               </div>
             </div>
-            <div className="balance-card total-card">
+            <div 
+              className="balance-card total-card balance-card-clickable"
+              onClick={() => setActiveBalanceDetail({
+                type: 'total',
+                label: t('total'),
+                amount: isCurrentMonth ? totalBalance : 0,
+                color: '#2D5284',
+                bgColor: '#E6EEFA',
+                icon: '💰'
+              })}
+              role="button"
+              tabIndex={0}
+            >
               <span className="card-label">{t('total')}</span>
               <div className="amount-container">
                 <span className="amount">{isCurrentMonth ? fmtMoney(totalBalance) : fmtMoney(0)}</span>
@@ -3386,12 +3542,16 @@ function App() {
                 }}
               >
                 <div className="stats-bar-chart-grid">
-                  {/* Background Reference Lines */}
+                  {/* Background Reference Lines with Y-Axis Values */}
                   <div className="stats-bar-grid-lines">
-                    <div className="stats-grid-line" />
-                    <div className="stats-grid-line" />
-                    <div className="stats-grid-line" />
-                    <div className="stats-grid-line" />
+                    {yAxisTicks.map((val, idx) => (
+                      <div key={idx} className="stats-grid-line-wrap">
+                        <span className="stats-grid-y-label">
+                          {formatCompactMoney(val, appCurrency, liveExchangeRates)}
+                        </span>
+                        <div className="stats-grid-line" />
+                      </div>
+                    ))}
                   </div>
 
                   {/* 12 Months Columns */}
@@ -3788,7 +3948,7 @@ function App() {
                           <div className="budget-grid-card-info">
                             <span className="budget-grid-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
                             <span className="budget-grid-limit-text">
-                              {hasLimit ? fmtMoney(cat.monthlyLimit) : 'Belum diatur'}
+                              {hasLimit ? fmtMoney(cat.monthlyLimit) : t('tapToSet')}
                             </span>
                           </div>
                         </div>
@@ -3859,9 +4019,10 @@ function App() {
       {/* Bottom Nav */}
       <nav className="bottom-nav">
         <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
+          <rect x="0" y="0" width="400" height="80" rx="20" fill="rgba(248, 239, 230, 0.95)" />
           <path
             d="M 0,20 Q 0,0 20,0 L 145,0 C 165,0 172,34 200,34 C 228,34 235,0 255,0 L 380,0 Q 400,0 400,20 L 400,80 L 0,80 Z"
-            fill="rgba(248, 239, 230, 0.95)"
+            fill="rgba(248, 239, 230, 0.98)"
           />
         </svg>
 
@@ -4708,6 +4869,51 @@ function App() {
                   </div>
                 </div>
 
+                {/* Notifikasi Auto-Tracker (M-Banking & E-Wallet) */}
+                <div 
+                  className="wa-menu-item tour-target-auto-tracker"
+                  onClick={async () => {
+                    if (!isAutoTrackerActive) {
+                      // Cek izin akses notifikasi
+                      try {
+                        const { granted } = await NotificationTracker.checkPermission();
+                        if (!granted) {
+                          showVoiceToast('Buka izin akses notifikasi untuk mengaktifkan');
+                          await NotificationTracker.requestPermission();
+                          return;
+                        }
+                      } catch (err) {
+                        console.warn('Native notification check failed:', err);
+                      }
+                      safeStorageSet('user_auto_tracker_active', true);
+                      setIsAutoTrackerActive(true);
+                      await NotificationTracker.setAutoTrackerEnabled({ enabled: true }).catch(() => {});
+                      showVoiceToast('✨ Pelacak otomatis aktif');
+                    } else {
+                      safeStorageSet('user_auto_tracker_active', false);
+                      setIsAutoTrackerActive(false);
+                      await NotificationTracker.setAutoTrackerEnabled({ enabled: false }).catch(() => {});
+                      showVoiceToast('Pelacak otomatis dinonaktifkan');
+                    }
+                  }}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('notifAutoTrackerTitle') || 'Notifikasi Auto-Tracker'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('notifAutoTrackerSubtitle') || 'Pelacak transaksi M-Banking & E-Wallet'}</span>
+                  </div>
+                  <div className={`wa-custom-toggle-track ${isAutoTrackerActive ? 'active' : ''}`}>
+                    <div className="wa-custom-toggle-thumb" />
+                  </div>
+                </div>
+
                 {/* ========================================================
                     2. TAMPILAN & PREFERENSI (Posisi No. 2)
                    ======================================================== */}
@@ -4753,6 +4959,34 @@ function App() {
                     </div>
                     <span className="wa-menu-subtitle">
                       {FONTS.find(f => f.id === appFont)?.name || 'Lora'}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Ukuran Font */}
+                <div className="wa-menu-item" onClick={handleOpenFontSizeModal}>
+                  <div className="wa-menu-icon-box font-size-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7V5h10v2" />
+                      <path d="M8 5v14" />
+                      <path d="M6 19h4" />
+                      <path d="M15 12v-1h6v1" />
+                      <path d="M18 11v8" />
+                      <path d="M16 19h4" />
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('fontSizeSettingTitle') || 'Ukuran Font'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {(() => {
+                        const currentSize = FONT_SIZES.find(s => s.id === appFontSize);
+                        return currentSize ? (currentSize.id === 'default' ? 'Default' : currentSize.name) : 'Default';
+                      })()}
                     </span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
@@ -5024,6 +5258,65 @@ function App() {
                       {f.name}
                     </span>
                     {tempFont === f.id && (
+                      <div className="full-page-option-check">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Pilihan Ukuran Font */}
+      {isFontSizeModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsFontSizeModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('selectFontSizeTitle')}</h3>
+              <button
+                type="button"
+                className="header-confirm-btn"
+                onClick={() => {
+                  handleSelectFontSize(tempFontSize);
+                  setIsFontSizeModalOpen(false);
+                }}
+                title="Konfirmasi Pilihan Ukuran Font"
+                aria-label="Konfirmasi"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="full-page-settings-group">
+                {FONT_SIZES.map(s => (
+                  <div
+                    key={s.id}
+                    className={`full-page-option-row ${tempFontSize === s.id ? 'selected' : ''}`}
+                    onClick={() => setTempFontSize(s.id)}
+                  >
+                    <span className="full-page-option-title" style={{ fontSize: s.sizePt }}>
+                      {s.name}
+                    </span>
+                    {tempFontSize === s.id && (
                       <div className="full-page-option-check">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12"/>
@@ -5935,7 +6228,48 @@ function App() {
         />
       )}
 
-      {/* Interactive Guided Tour (Walkthrough) */}
+      {/* Pop-up Zoom Detail Card (Naik ke Depan Muka untuk Lihat Total Lengkap) */}
+      {activeBalanceDetail && (
+        <div 
+          className="modal-overlay balance-pop-overlay"
+          onClick={() => setActiveBalanceDetail(null)}
+        >
+          <div 
+            className="balance-pop-card"
+            style={{ backgroundColor: activeBalanceDetail.bgColor }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="balance-pop-header">
+              <span className="balance-pop-badge" style={{ color: activeBalanceDetail.color }}>
+                {activeBalanceDetail.icon} {activeBalanceDetail.label}
+              </span>
+              <button 
+                type="button" 
+                className="balance-pop-close-btn"
+                onClick={() => setActiveBalanceDetail(null)}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="balance-pop-amount-row">
+              <span 
+                className="balance-pop-amount"
+                style={{ color: activeBalanceDetail.color }}
+              >
+                {fmtMoney(activeBalanceDetail.amount)}
+              </span>
+            </div>
+            <div className="balance-pop-subtext">
+              {activeBalanceDetail.type === 'expense' && 'Total seluruh pengeluaran bulan ini'}
+              {activeBalanceDetail.type === 'income' && 'Total seluruh pemasukan bulan ini'}
+              {activeBalanceDetail.type === 'total' && 'Sisa saldo bersih keseluruhan bulan ini'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided Tour Modal */}
       <GuidedTourModal
         isOpen={isTourOpen && !isAppLocked}
         mode={tourMode}

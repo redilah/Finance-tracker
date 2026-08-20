@@ -218,9 +218,9 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Retention Policy**: Artifact upload diatur dengan retensi 14 hari (`retention-days: 14`) untuk efisiensi penyimpanan storage repositori.
 
 ## 26. Android Notification Icon Assets Invariant
-* **Small Icon (`ic_stat_icon.png`)**: Wajib monokrom putih (`#FFFFFF`) di atas background 100% transparan (*alpha channel mask*). Dilarang menyertakan background kotak solid gelap. Tersedia di seluruh folder `res/drawable-*`.
+* **Small Icon (`ic_stat_icon.xml` & `ic_notification.xml`)**: Wajib berupa Android Vector Drawable XML (atau monokrom putih `#FFFFFF` di atas background 100% transparan / *alpha channel mask*). Dilarang keras menggunakan file PNG solid/opaque/berwarna karena Android (API 21+) akan mewarnai seluruh kotak bounding box dan memicu bug kotak hitam/gelap pekat.
 * **Large Icon (`ic_large_icon.png`)**: Wajib berupa full-color RGBA bitmap 32-bit dari logo aplikasi asli (`public/app-icon.png`) pada seluruh folder `res/drawable-*`.
-* **Manifest Fallback**: Wajib mendaftarkan meta-data default notification icon & color di `AndroidManifest.xml`.
+* **Manifest Fallback & Config**: Wajib mendaftarkan meta-data default notification icon & color di `AndroidManifest.xml` serta `capacitor.config.json`.
 
 ## 27. Native Biometric Prompt & Loop-Prevention Invariant
 * **One-Time Init Prompt Guard**: Auto-prompt sidik jari saat lock screen mount wajib dikunci dengan `hasAutoPromptedRef` dan `isCallingBioRef` agar penekanan tombol "Batal / Gunakan PIN" tidak memicu loop re-trigger siklis.
@@ -257,5 +257,18 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 31. Main Monthly Budget Automated Onboarding Notification
 * **Automated 10:00 AM Reminder**: Jika pengguna belum pernah mengatur Budget Utama (`mainMonthlyBudget === null` atau `<= 0`), scheduler notifikasi wajib menjadwalkan notifikasi ramah & personal pada jam **10:00 Pagi** (`notifSetMainBudget` / `notifSetMainBudgetBody`).
 * **Multi-Language Synchronization**: Teks notifikasi pengingat budget utama wajib disinkronkan secara konsisten di seluruh kamus bahasa (`id`, `id_id`, `en`, `jv`, `zh`, `ko`).
+
+## 32. Bottom Navigation Notch Background & Anti-Bleed Invariant
+* **No Open Notch Gaps (Anti-Fragment/Pecahan)**:
+  - Elemen SVG background navigasi bawah (`nav-bg-svg`) dilarang membiarkan celah lekukan notch bolong 100% tembus pandang ke halaman di belakangnya.
+  - Wajib menyertakan lapisan dasar (*base backing layer*) bernuansa krim lembut (`<rect fill="rgba(248, 239, 230, 0.95)" rx="20" />`) di balik lekukan notch agar elemen kartu, teks, atau bayangan di seluruh tab (Home, Account, Budget, Stats) tidak mengintip sebagai serpihan/pecahan janggal saat di-scroll.
+* **Preserve Translucent Aesthetic (No 100% Solid Box)**:
+  - Bar navigasi tetap mengusung nuansa transparan lembut dengan `backdrop-filter: blur(...)` dan `rgba(...)`, dilarang diubah menjadi kotak 100% solid kaku.
+* **Untouched `add.svg` Stroke Width**:
+  - Garis tepi / stroke pada `add.svg` wajib dipertahankan tipis dan rapi (`stroke-width="0.25"`), dilarang dipertebal.
+
+## 33. Category Breakdown Unbudgeted Label ("Tap untuk atur")
+* **Strict Label Copy**: Status kategori pengeluaran yang belum memiliki batas anggaran pada kartu *Category Breakdown* wajib bertuliskan **`"Tap untuk atur"`** (bukan `"Belum diatur"`).
+* **Multi-Language Key (`tapToSet`)**: Wajib disinkronkan ke seluruh kamus bahasa di `src/utils/i18n.js` (`id`/`id_id`: *Tap untuk atur*, `en`: *Tap to set*, `jv`: *Tutul kanggo nata*, `zh`: *Dianji shezhi*, `ko`: *Seoljeong-halyeomyeon taeb*).
 
 

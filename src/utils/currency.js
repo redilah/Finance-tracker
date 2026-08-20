@@ -201,6 +201,39 @@ export function formatMoney(amountInBaseIdr = 0, currencyCode = 'IDR', liveRates
 }
 
 /**
+ * Format numerical amount into compact/clean tick label for chart Y-axis (e.g., 0, 250k, 500k, 1M, 1.5M, etc.)
+ */
+export function formatCompactMoney(amountInBaseIdr = 0, currencyCode = 'IDR', liveRates = null) {
+  const num = Number(amountInBaseIdr) || 0;
+  if (num === 0) return '0';
+  
+  const currency = getCurrency(currencyCode);
+  let val = num;
+  if (currencyCode !== 'IDR') {
+    const rates = liveRates || FALLBACK_RATES_BASE_IDR;
+    const rate = rates[currencyCode] || FALLBACK_RATES_BASE_IDR[currencyCode] || 1;
+    val = num * rate;
+  }
+
+  const symbol = currency.symbol || '';
+  
+  if (val >= 1000000000) {
+    const formatted = (val / 1000000000).toLocaleString('en-US', { maximumFractionDigits: 1 });
+    return `${symbol}${formatted}B`;
+  }
+  if (val >= 1000000) {
+    const formatted = (val / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 });
+    return `${symbol}${formatted}M`;
+  }
+  if (val >= 1000) {
+    const formatted = (val / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 });
+    return `${symbol}${formatted}k`;
+  }
+  
+  return `${symbol}${Math.round(val)}`;
+}
+
+/**
  * Get live exchange rate text (e.g. "1 USD ≈ Rp 16.250")
  */
 export function getExchangeRateText(currencyCode = 'USD', liveRates = null) {

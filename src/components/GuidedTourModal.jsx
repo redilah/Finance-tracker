@@ -155,6 +155,15 @@ export const FULL_GUIDE_STEPS = [
     isCircle: false
   },
   {
+    id: 'auto_tracker',
+    targetSelector: '.tour-target-auto-tracker',
+    tab: 'home',
+    screen: 'profile',
+    titleKey: 'tourAutoTrackerTitle',
+    descKey: 'tourAutoTrackerDesc',
+    isCircle: false
+  },
+  {
     id: 'backup',
     targetSelector: '.tour-target-backup',
     tab: 'home',

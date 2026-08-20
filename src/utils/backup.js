@@ -22,6 +22,7 @@ export function createBackupData({
   profileName,
   profileImage,
   appFont,
+  appFontSize,
   appLanguage,
   appCurrency,
 }) {
@@ -40,6 +41,7 @@ export function createBackupData({
       profileImage: safeStorageGet('user_profile_image') || profileImage || null,
       profileSetupDone: safeStorageGet('user_profile_setup_done') || 'true',
       appFont: appFont || 'lora',
+      appFontSize: appFontSize || 'default',
       appLanguage: appLanguage || 'id',
       appCurrency: appCurrency || 'IDR',
       budgetNotifState: safeStorageGet('user_budget_notif_state') || {},
@@ -103,10 +105,15 @@ export async function exportBackup(backupObj, userName = 'User') {
       }
 
       if (canShare) {
+        // IMPORTANT: In @capacitor/share on Android, if `text` is provided without `files`,
+        // it sets intent.setTypeAndNormalize("text/plain") and does NOT attach EXTRA_STREAM,
+        // causing Google Drive / File Save dialogs not to recognize it as a file.
+        // By passing `files: [fileResult.uri]` (or `url: fileResult.uri` without `text`),
+        // Android triggers ACTION_SEND with EXTRA_STREAM and FileProvider content:// URI,
+        // which brings up "Save to Google Drive", File Managers, etc.
         await Share.share({
           title: 'Cadangkan Data Cassiel',
-          text: `File cadangan data keuangan Cassiel (${safeName})`,
-          url: fileResult.uri,
+          files: [fileResult.uri],
           dialogTitle: 'Simpan Cadangan Data ke Google Drive / Perangkat',
         });
       }
@@ -221,6 +228,7 @@ export function restoreBackupData(backupData, {
   setProfileName,
   setProfileImage,
   setAppFont,
+  setAppFontSize,
   setAppLanguage,
   setAppCurrency,
   setMainMonthlyBudget,
@@ -275,6 +283,10 @@ export function restoreBackupData(backupData, {
     if (d.appFont) {
       setAppFont(d.appFont);
       safeStorageSet('user_app_font', d.appFont);
+    }
+    if (d.appFontSize && setAppFontSize) {
+      setAppFontSize(d.appFontSize);
+      safeStorageSet('user_app_font_size', d.appFontSize);
     }
     if (d.appLanguage) {
       setAppLanguage(d.appLanguage);

@@ -19,6 +19,13 @@ export const FONTS = [
   { id: 'amoresa', name: 'Amoresa', fontFamily: "'Great Vibes', cursive" },
 ];
 
+export const FONT_SIZES = [
+  { id: 'default', name: 'Default', sizePt: '12pt', scale: '1' },
+  { id: '13pt', name: '13pt', sizePt: '13pt', scale: '1.1' },
+  { id: '14pt', name: '14pt', sizePt: '14pt', scale: '1.2' },
+  { id: '18pt', name: '18pt', sizePt: '18pt', scale: '1.35' },
+];
+
 export const CATEGORY_TRANSLATIONS = {
   id_id: {
     'Food': 'Makanan',
@@ -383,6 +390,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Terpakai',
     remainingBudget: 'Sisa',
     categoryBreakdown: 'Rincian per Kategori',
+    tapToSet: 'Tap untuk atur',
     // Profile Section Headers
     sectionNotif: 'NOTIFIKASI',
     sectionPrefs: 'TAMPILAN & PREFERENSI',
@@ -413,6 +421,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih font tampilan aplikasi & catatan',
+    fontSizeSettingTitle: 'Ukuran Font',
+    fontSizeSettingSubtitle: 'Atur ukuran teks seluruh aplikasi',
     langSettingTitle: 'Bahasa',
     langSettingSubtitle: 'Pilih bahasa tampilan aplikasi',
     currencySettingTitle: 'Currency',
@@ -461,6 +471,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
+    selectFontSizeTitle: 'Pilih Ukuran Font',
     
     // Language Modal
     selectLangTitle: 'Pilih Bahasa',
@@ -585,6 +596,12 @@ export const DICTIONARY = {
     notifV20FeatureIntroBody: 'Halo, {name}! Kini kamu bisa pantau riwayat per Bank/E-Wallet dan mencadangkan data catatan keuanganmu agar tetap aman saat penyimpanan penuh atau berganti perangkat 🚀',
     notifV23FeatureIntroTitle: '✨ Fitur Baru: Grafik Batang Bulanan!',
     notifV23FeatureIntroBody: 'Halo, {name}! Kini kamu bisa melihat perbandingan Pemasukan vs Pengeluaran bulanan melalui Grafik Batang di menu Stats 📊',
+    notifV24FeatureIntroTitle: '💳 Fitur Baru: Pelacak Transaksi Otomatis!',
+    notifV24FeatureIntroBody: 'Halo, {name}! Kini Cassiel dapat mencatat transaksi M-Banking & E-Wallet secara otomatis. Aktifkan di menu Profil → Notifikasi!',
+    notifAutoTrackerTitle: 'Notifikasi Auto-Tracker',
+    notifAutoTrackerSubtitle: 'Pelacak transaksi M-Banking & E-Wallet',
+    tourAutoTrackerTitle: '💳 Pelacak Otomatis M-Banking & E-Wallet',
+    tourAutoTrackerDesc: 'Aktifkan sakelar ini untuk mencatat pengeluaran & pemasukan otomatis saat ada notifikasi masuk dari GoPay, OVO, DANA, BCA, BRImo, Mandiri, dan lainnya.',
   },
   id_id: {
     // Nav & Common (Full Bahasa Indonesia)
@@ -655,6 +672,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Terpakai',
     remainingBudget: 'Sisa',
     categoryBreakdown: 'Rincian per Kategori',
+    tapToSet: 'Tap untuk atur',
     // Profile Section Headers
     sectionNotif: 'NOTIFIKASI',
     sectionPrefs: 'TAMPILAN & PREFERENSI',
@@ -685,6 +703,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih font tampilan aplikasi dan catatan',
+    fontSizeSettingTitle: 'Ukuran Font',
+    fontSizeSettingSubtitle: 'Atur ukuran teks seluruh aplikasi',
     langSettingTitle: 'Bahasa',
     langSettingSubtitle: 'Pilih bahasa tampilan aplikasi',
     currencySettingTitle: 'Mata Uang Utama',
@@ -733,6 +753,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
+    selectFontSizeTitle: 'Pilih Ukuran Font',
     
     // Language Modal
     selectLangTitle: 'Pilih Bahasa',
@@ -841,6 +862,12 @@ export const DICTIONARY = {
     notifNewCatBody: 'Halo {name}! Telah hadir 2 kategori baru di Cassiel, yaitu Buah dan Minuman lengkap dengan ikon terbarunya.',
     notifV20FeatureIntroTitle: '✨ Fitur Baru: Akun & Cadangkan Data!',
     notifV20FeatureIntroBody: 'Halo, {name}! Kini kamu bisa pantau riwayat per Bank/E-Wallet dan mencadangkan data catatan keuanganmu agar tetap aman saat penyimpanan penuh atau berganti perangkat 🚀',
+    notifV24FeatureIntroTitle: '💳 Fitur Baru: Pelacak Transaksi Otomatis!',
+    notifV24FeatureIntroBody: 'Halo, {name}! Kini Cassiel dapat mencatat transaksi M-Banking & E-Wallet secara otomatis. Aktifkan di menu Profil → Notifikasi!',
+    notifAutoTrackerTitle: 'Notifikasi Auto-Tracker',
+    notifAutoTrackerSubtitle: 'Pelacak transaksi M-Banking & E-Wallet',
+    tourAutoTrackerTitle: '💳 Pelacak Otomatis M-Banking & E-Wallet',
+    tourAutoTrackerDesc: 'Aktifkan sakelar ini untuk mencatat pengeluaran & pemasukan otomatis saat ada notifikasi masuk dari GoPay, OVO, DANA, BCA, BRImo, Mandiri, dan lainnya.',
   },
   en: {
     // Nav & Common
@@ -907,6 +934,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Used',
     remainingBudget: 'Remaining',
     categoryBreakdown: 'Category Breakdown',
+    tapToSet: 'Tap to set',
     // Profile Section Headers
     sectionNotif: 'NOTIFICATIONS',
     sectionPrefs: 'DISPLAY & PREFERENCES',
@@ -937,6 +965,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Typography',
     fontSettingSubtitle: 'Choose font family for app UI',
+    fontSizeSettingTitle: 'Font Size',
+    fontSizeSettingSubtitle: 'Adjust app-wide text sizing',
     langSettingTitle: 'Language',
     langSettingSubtitle: 'Choose display language',
     currencySettingTitle: 'Primary Currency',
@@ -985,6 +1015,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Select Typography',
+    selectFontSizeTitle: 'Select Font Size',
     
     // Language Modal
     selectLangTitle: 'Select Language',
@@ -1173,6 +1204,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Kagem',
     remainingBudget: 'Turah',
     categoryBreakdown: 'Rincian Saben Kategori',
+    tapToSet: 'Tutul kanggo nata',
     // Profile Section Headers
     sectionNotif: 'PEPÈLING',
     sectionPrefs: 'TAMPILAN & PILIHAN',
@@ -1203,6 +1235,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih gaya tulisan tampilan lan cathetan',
+    fontSizeSettingTitle: 'Ukuran Tulisan',
+    fontSizeSettingSubtitle: 'Setel ukuran aksara sedaya aplikasi',
     langSettingTitle: 'Basa',
     langSettingSubtitle: 'Pilih basa tampilan aplikasi',
     currencySettingTitle: 'Arta Utama',
@@ -1251,6 +1285,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Pilih Gaya Tulisan',
+    selectFontSizeTitle: 'Pilih Ukuran Tulisan',
     
     // Language Modal
     selectLangTitle: 'Pilih Basa',
@@ -1439,6 +1474,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Yi Shiyong',
     remainingBudget: 'Shengyu',
     categoryBreakdown: 'Fenlei Yuesuan Mingxi',
+    tapToSet: 'Dianji shezhi',
     // Profile Section Headers
     sectionNotif: 'TONGZHI',
     sectionPrefs: 'XIANSHI YU PIANHAO',
@@ -1469,6 +1505,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Ziti Yangshi',
     fontSettingSubtitle: 'Xuanze ziti',
+    fontSizeSettingTitle: 'Ziti Daxiao',
+    fontSizeSettingSubtitle: 'Tiaozheng yingyong wenzi daxiao',
     langSettingTitle: 'Yuyan',
     langSettingSubtitle: 'Xuanze yuyan',
     currencySettingTitle: 'Zhuyao Huobi',
@@ -1517,6 +1555,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Xuanze Ziti',
+    selectFontSizeTitle: 'Xuanze Ziti Daxiao',
     
     // Language Modal
     selectLangTitle: 'Xuanze Yuyan',
@@ -1705,6 +1744,7 @@ export const DICTIONARY = {
     usedThisMonth: 'Sayong',
     remainingBudget: 'Janyeo',
     categoryBreakdown: 'Bungnyubyeol Sangse',
+    tapToSet: 'Seoljeong-halyeomyeon taeb',
     // Profile Section Headers
     sectionNotif: 'ALIM',
     sectionPrefs: 'HWAMYEON MIT SEOLJEONG',
@@ -1735,6 +1775,8 @@ export const DICTIONARY = {
 
     fontSettingTitle: 'Geulkkol Seoljeong',
     fontSettingSubtitle: 'Aep geulkkol seontaek',
+    fontSizeSettingTitle: 'Geulja Keugi',
+    fontSizeSettingSubtitle: 'Aep jeonche geulja keugi jojeol',
     langSettingTitle: 'Eoneo',
     langSettingSubtitle: 'Eoneo seontaek',
     currencySettingTitle: 'Juyo Tonghwa',
@@ -1783,6 +1825,7 @@ export const DICTIONARY = {
 
     // Font Modal
     selectFontTitle: 'Geulkkol Seontaek',
+    selectFontSizeTitle: 'Geulja Keugi Seontaek',
     
     // Language Modal
     selectLangTitle: 'Eoneo Seontaek',

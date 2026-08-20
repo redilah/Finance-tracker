@@ -1,3 +1,5 @@
+import { App } from '@capacitor/app';
+
 export const CURRENT_VERSION_CODE = 24;
 export const CURRENT_VERSION_NAME = '1.0.23';
 
@@ -84,19 +86,18 @@ const formatUpdateResult = async (data) => {
     let isDebugOrTestApp = false;
 
     try {
-      const { App } = await import('@capacitor/app');
       const appInfo = await App.getInfo();
       if (appInfo) {
         const id = (appInfo.id || '').toLowerCase();
         const name = (appInfo.name || '').toLowerCase();
         if (id.includes('udin') || name.includes('udin')) {
           isUdinApp = true;
-        } else if (id.includes('debug') || name.includes('debug')) {
+        } else if (id.includes('debug') || name.includes('debug') || id.includes('cassielll1')) {
           isDebugOrTestApp = true;
         }
       }
     } catch {
-      // Ignore native import error on web
+      // Ignore native error on web
     }
 
     // Web / Storage fallback check
@@ -109,13 +110,15 @@ const formatUpdateResult = async (data) => {
     }
 
     let baseApkName = 'Cassiel.apk';
+    let downloadUrl = data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
+    
     if (isUdinApp) {
       baseApkName = 'udin.apk';
+      downloadUrl = data.udinDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=${latestVersionCode}&t=${Date.now()}`;
     } else if (isDebugOrTestApp) {
       baseApkName = 'cassielll1.apk';
+      downloadUrl = data.debugDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=${latestVersionCode}&t=${Date.now()}`;
     }
-
-    const downloadUrl = `https://raw.githubusercontent.com/redilah/Finance-tracker/main/${baseApkName}?v=${latestVersionCode}&t=${Date.now()}`;
 
     return {
       hasUpdate: true,
