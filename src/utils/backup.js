@@ -57,43 +57,54 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 /**
- * Export backup as a downloadable/shareable JSON file.
- * On native mobile (Capacitor), saves JSON to cache and invokes native Android Share Sheet
- * allowing the user to select "Save to Google Drive", File Manager, WhatsApp, etc.
- * On web browser, triggers a direct browser file download.
+ * Export backup as a downloadable/shareable TXT file.
+ * On native mobile (Capacitor), saves file to cache, resolves URI via Filesystem.getUri(),
+ * and invokes native Android / iOS Share Sheet (Google Drive, iCloud, Files, WhatsApp, etc.).
+ * On web browser, triggers a direct text file download.
  * @param {Object} backupObj - The backup object from createBackupData
  * @param {string} userName - User's display name for the filename
  */
 export async function exportBackup(backupObj, userName = 'User') {
   const safeName = (userName || 'User').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_') || 'User';
   const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const fileName = `Cassiel_Backup_${safeName}_${dateStr}.json`;
+  const fileName = `Cassiel_Backup_${safeName}_${dateStr}.txt`;
   const jsonStr = JSON.stringify(backupObj, null, 2);
 
   // 1. Native Mobile Mode (Capacitor Android / iOS)
   if (Capacitor.isNativePlatform()) {
     try {
-      // Also write directly to Documents directory for safety
-      try {
-        await Filesystem.writeFile({
-          path: fileName,
-          data: jsonStr,
-          directory: Directory.Documents,
-          encoding: Encoding.UTF8,
-          recursive: true,
-        });
-      } catch (docErr) {
-        console.warn('[Backup] Documents write fallback to Cache:', docErr);
-      }
-
-      // Write file into temporary Cache directory for sharing
-      const fileResult = await Filesystem.writeFile({
+      // Write file into temporary Cache directory
+      const writeRes = await Filesystem.writeFile({
         path: fileName,
         data: jsonStr,
         directory: Directory.Cache,
         encoding: Encoding.UTF8,
         recursive: true,
       });
+
+      // Android 15 & Scoped Storage fix:
+      // Re-resolve authoritative content/file URI using Filesystem.getUri()
+      let shareUri = writeRes?.uri;
+      try {
+        const uriResult = await Filesystem.getUri({
+          path: fileName,
+          directory: Directory.Cache,
+        });
+        if (uriResult?.uri) {
+          shareUri = uriResult.uri;
+        }
+      } catch (uriErr) {
+        console.warn('[Backup] getUri fallback:', uriErr);
+      }
+
+      // Ensure file:// scheme is present (required by Capacitor SharePlugin on Android)
+      if (shareUri && !shareUri.startsWith('file://')) {
+        shareUri = 'file://' + (shareUri.startsWith('/') ? '' : '/') + shareUri;
+      }
+
+      if (!shareUri) {
+        throw new Error('Gagal mendapatkan URI berkas cadangan.');
+      }
 
       // Check if Native Share Sheet is available
       let canShare = true;
@@ -105,22 +116,23 @@ export async function exportBackup(backupObj, userName = 'User') {
       }
 
       if (canShare) {
-        // IMPORTANT: In @capacitor/share on Android, if `text` is provided without `files`,
-        // it sets intent.setTypeAndNormalize("text/plain") and does NOT attach EXTRA_STREAM,
-        // causing Google Drive / File Save dialogs not to recognize it as a file.
-        // By passing `files: [fileResult.uri]` (or `url: fileResult.uri` without `text`),
-        // Android triggers ACTION_SEND with EXTRA_STREAM and FileProvider content:// URI,
-        // which brings up "Save to Google Drive", File Managers, etc.
+        const isIos = Capacitor.getPlatform() === 'ios';
+        const dialogTitle = isIos 
+          ? 'Simpan Cadangan ke iCloud Drive / File' 
+          : 'Simpan Cadangan ke Google Drive';
+
+        // NOTE: Omit 'text' when sharing a file so Android intent resolver treats this
+        // strictly as a file document (which brings up Google Drive "Simpan ke Drive", File Manager, etc.)
         await Share.share({
           title: 'Cadangkan Data Cassiel',
-          files: [fileResult.uri],
-          dialogTitle: 'Simpan Cadangan Data ke Google Drive / Perangkat',
+          files: [shareUri],
+          dialogTitle: dialogTitle,
         });
       }
 
       return { success: true, method: 'native_share', fileName };
     } catch (err) {
-      if (err.message && (err.message.includes('cancel') || err.message.includes('dismiss') || err.message.includes('Abort') || err.message.includes('canceled'))) {
+      if (err.message && (err.message.includes('cancel') || err.message.includes('dismiss') || err.message.includes('Abort') || err.message.includes('canceled') || err.message.includes('Share canceled'))) {
         return { success: false, cancelled: true };
       }
       console.warn('[Backup] Native share failed, attempting fallback:', err);
@@ -128,10 +140,10 @@ export async function exportBackup(backupObj, userName = 'User') {
   }
 
   // 2. Web Share API (Safari iOS / supported mobile web browsers)
-  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
   if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
     try {
-      const file = new File([blob], fileName, { type: 'application/json' });
+      const file = new File([blob], fileName, { type: 'text/plain' });
       const shareData = { files: [file], title: 'Cassiel Backup', text: `Data cadangan ${safeName}` };
       if (navigator.canShare(shareData)) {
         await navigator.share(shareData);
@@ -167,14 +179,14 @@ export async function exportBackup(backupObj, userName = 'User') {
 }
 
 /**
- * Open a file picker and import a backup JSON file.
+ * Open a file picker and import a backup TXT or JSON file.
  * Returns the parsed backup data or null if cancelled/invalid.
  */
 export function importBackup() {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,application/json';
+    input.accept = '.txt,text/plain,.json,application/json';
     input.style.display = 'none';
 
     input.addEventListener('change', (e) => {
@@ -187,7 +199,8 @@ export function importBackup() {
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
-          const parsed = JSON.parse(ev.target.result);
+          const content = (ev.target.result || '').trim();
+          const parsed = JSON.parse(content);
           // Validate backup structure
           if (parsed._magic !== BACKUP_MAGIC || !parsed.data) {
             resolve({ error: 'invalid_format' });

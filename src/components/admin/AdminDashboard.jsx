@@ -682,15 +682,34 @@ export default function AdminDashboard({ onNavigateToApp }) {
       }
     });
 
-    // Rata-rata durasi (Real data HP)
+    // Rata-rata durasi per hari (Real data HP)
+    let totalDailySecSum = 0;
+    const nowMs = Date.now();
+
+    mobileList.forEach((item) => {
+      const itemSec = Number(item.totalActiveSeconds || 0);
+      if (itemSec > 0) {
+        let daysActive = 1;
+        const installTime = item.installedAt || item.installDate;
+        if (installTime) {
+          const parsedInstallMs = new Date(installTime).getTime();
+          if (!isNaN(parsedInstallMs) && parsedInstallMs > 0 && parsedInstallMs <= nowMs) {
+            const diffDays = Math.floor((nowMs - parsedInstallMs) / (1000 * 60 * 60 * 24)) + 1;
+            daysActive = Math.max(1, diffDays);
+          }
+        }
+        totalDailySecSum += (itemSec / daysActive);
+      }
+    });
+
     const divisor = devicesWithTimeCount > 0 ? devicesWithTimeCount : (totalDevicesCount > 0 ? totalDevicesCount : 1);
-    const avgSec = totalActiveSec > 0 ? Math.round(totalActiveSec / divisor) : 0;
-    const avgMins = Math.floor(avgSec / 60);
-    const remSecs = avgSec % 60;
-    const formattedAvgTime = avgSec > 0
-      ? (avgMins > 0 
-          ? (remSecs > 0 ? `${avgMins} mnt ${remSecs} dtk` : `${avgMins} menit`)
-          : `${avgSec} detik`)
+    const avgDailySec = devicesWithTimeCount > 0 ? Math.round(totalDailySecSum / divisor) : 0;
+    const avgDailyMins = Math.floor(avgDailySec / 60);
+    const remDailySecs = avgDailySec % 60;
+    const formattedAvgDailyTime = avgDailySec > 0
+      ? (avgDailyMins > 0 
+          ? (remDailySecs > 0 ? `${avgDailyMins} mnt ${remDailySecs} dtk` : `${avgDailyMins} menit`)
+          : `${avgDailySec} detik`)
       : '0 detik';
 
     // Process Top 5 Akun (Real data HP)
@@ -733,8 +752,8 @@ export default function AdminDashboard({ onNavigateToApp }) {
       : [];
 
     return {
-      avgSeconds: avgSec,
-      formattedAvgTime,
+      avgSeconds: avgDailySec,
+      formattedAvgTime: formattedAvgDailyTime,
       totalDevicesCount,
       totalMobileTransactions,
       topAccounts,
@@ -1146,7 +1165,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                 </div>
               </div>
 
-              {/* Banner Highlight Rata-Rata Waktu Pengguna HP di Aplikasi */}
+              {/* Banner Highlight Rata-Rata Waktu Per Hari Pengguna HP di Aplikasi */}
               <div className="usage-highlight-banner">
                 <div className="highlight-banner-left">
                   <div className="highlight-icon-glow">
@@ -1154,12 +1173,12 @@ export default function AdminDashboard({ onNavigateToApp }) {
                   </div>
                   <div className="highlight-text-content">
                     <div className="highlight-label-row">
-                      <span className="highlight-label">Rata-Rata Menit Pengguna HP di Dalam Aplikasi</span>
+                      <span className="highlight-label">Rata-Rata Menit Per Hari Pengguna HP di Dalam Aplikasi</span>
                       <span className="highlight-tag">📱 Khusus Pengguna HP</span>
                     </div>
                     <div className="highlight-number-row">
                       <span className="highlight-value-primary">{globalAnalytics.formattedAvgTime}</span>
-                      <span className="highlight-value-sub">/ pengguna HP</span>
+                      <span className="highlight-value-sub">/ hari</span>
                     </div>
                   </div>
                 </div>

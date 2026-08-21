@@ -834,10 +834,7 @@ export function getConsumptiveTransactions(transactions, currentMonthStr = '') {
   const result = [];
   Object.entries(categoryTotals).forEach(([key, data]) => {
     if (data.totalAmount > 0) {
-      let subtext = `Total pengeluaran ${data.categoryName.toLowerCase()} konsumtif bulan ini`;
-      if (key === 'food') {
-        subtext = `Kelebihan Rp ${data.totalAmount.toLocaleString('id-ID')} dari limit Rp 75.000/hari`;
-      }
+      let subtext = `Total konsumtif ${data.categoryName.toLowerCase()} bulan ini`;
 
       result.push({
         id: `cat-summary-${key}`,

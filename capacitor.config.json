@@ -4,12 +4,12 @@
   "webDir": "dist",
   "plugins": {
     "LocalNotifications": {
-      "smallIcon": "ic_notification",
-      "iconColor": "#4F46E5"
+      "smallIcon": "ic_stat_icon",
+      "largeIcon": "ic_large_icon"
     },
     "PushNotifications": {
-      "smallIcon": "ic_notification",
-      "iconColor": "#4F46E5"
+      "smallIcon": "ic_stat_icon",
+      "largeIcon": "ic_large_icon"
     }
   }
 }

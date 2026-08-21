@@ -25,7 +25,8 @@ export const normalizeCanonicalCategory = (rawName) => {
   if (/^(skincare|kosmetik|makeup|perawatan|parfum)$/i.test(clean)) return 'Skincare';
   if (/^(barber|barbershop|potong rambut|salon)$/i.test(clean)) return 'Barbershop';
   if (/^(kost|sewa|kontrakan|rumah)$/i.test(clean)) return 'Kost';
-  if (/^(pulsa|kuota|paket data|internet|wifi)$/i.test(clean)) return 'Pulsa';
+  if (/^(pulsa|kuota|paket data)$/i.test(clean)) return 'Pulsa';
+  if (/^(wifi|wi-fi|indihome|biznet|first media|myrepublic|internet rumah)$/i.test(clean)) return 'WiFi';
   if (/^(hiburan|entertainment|nonton|film|cinema|game|topup|bioskop)$/i.test(clean)) return 'Hiburan';
   if (/^(edukasi|buku|kursus|les|sekolah)$/i.test(clean)) return 'Edukasi';
   if (/^(obat|dokter|rumah sakit|klinik|apotek|kesehatan)$/i.test(clean)) return 'Kesehatan';
@@ -46,6 +47,7 @@ const DEFAULT_AVG_TICKET = {
   Barbershop: 35000,
   Kost: 600000,
   Pulsa: 40000,
+  WiFi: 250000,
   Hiburan: 35000,
   Edukasi: 50000,
   Kesehatan: 35000,

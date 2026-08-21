@@ -59,6 +59,11 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+
+    // Kotlin stdlib + Coroutines — required by @capacitor/filesystem (Kotlin 2.2.20)
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 }

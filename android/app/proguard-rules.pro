@@ -24,6 +24,12 @@
 -keep class com.redilah.financetracker.widget.** { *; }
 -keepclassmembers class com.redilah.financetracker.widget.** { *; }
 
-# Don't warn on missing internal Kotlin coroutines helpers from external libs
--dontwarn kotlin.coroutines.jvm.internal.**
--dontwarn kotlinx.coroutines.**
+# Keep Kotlin stdlib & Coroutines
+-keep class kotlin.** { *; }
+-keep interface kotlin.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-keep interface kotlinx.coroutines.** { *; }
+-keep class kotlin.coroutines.** { *; }
+-keep interface kotlin.coroutines.** { *; }
+-dontwarn kotlin.**
+-dontwarn kotlinx.**

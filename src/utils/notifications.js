@@ -263,7 +263,6 @@ export const sendInstantNotification = (userName, transactions, lang) => {
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
           largeIcon: 'ic_large_icon',
-          iconColor: '#4f46e5'
         }
       ]
     }).catch(err => console.log('Capacitor local notification error:', err));
@@ -296,7 +295,6 @@ export const sendInstantBudgetNotification = (title, body) => {
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
           largeIcon: 'ic_large_icon',
-          iconColor: '#ef4444'
         }
       ]
     }).catch(err => console.log('Capacitor local notification error:', err));
@@ -388,7 +386,6 @@ export const sendUpdateReminderNotification = async (updateInfo, lang) => {
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_large_icon',
-            iconColor: '#10B981'
           }
         ]
       });
@@ -434,8 +431,13 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         vibration: true
       }).catch(() => {});
 
-      // Selalu cancel notifikasi pengingat lama sebelum menjadwalkan yang fresh
-      await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }] }).catch(() => {});
+      // Selalu cancel seluruh notifikasi lama sebelum menjadwalkan yang fresh dengan aset icon terbaru
+      const pendingList = await LocalNotifications.getPending().catch(() => ({ notifications: [] }));
+      if (pendingList && pendingList.notifications && pendingList.notifications.length > 0) {
+        await LocalNotifications.cancel({ notifications: pendingList.notifications.map(n => ({ id: n.id })) }).catch(() => {});
+      } else {
+        await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }, { id: 201 }, { id: 202 }, { id: 301 }, { id: 999 }] }).catch(() => {});
+      }
 
       const now = new Date();
 
@@ -463,7 +465,6 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#4f46e5'
       });
 
       // 2. Notifikasi Pengingat Budget Utama / Kategori Jam 10:00 PAGI
@@ -490,7 +491,6 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
           largeIcon: 'ic_large_icon',
-          iconColor: '#2D5284'
         });
       }
 
@@ -516,7 +516,6 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
           largeIcon: 'ic_large_icon',
-          iconColor: '#059669'
         });
       }
 
@@ -554,7 +553,6 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#7C3AED'
       });
 
       if (notifsToSchedule.length > 0) {
@@ -633,7 +631,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#2D5284'
       },
       {
         id: 202,
@@ -644,7 +641,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#2D5284'
       }
     );
   } else if (now.getTime() < eveningTarget.getTime()) {
@@ -657,7 +653,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
       sound: 'notification',
       smallIcon: 'ic_stat_icon',
       largeIcon: 'ic_large_icon',
-      iconColor: '#2D5284'
     });
   } else {
     const tomorrowMorning = new Date(morningTarget);
@@ -676,7 +671,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#2D5284'
       },
       {
         id: 202,
@@ -687,7 +681,6 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
         largeIcon: 'ic_large_icon',
-        iconColor: '#2D5284'
       }
     );
   }
@@ -753,7 +746,6 @@ export const scheduleNewCategoryNotification = async (userName = 'Teman', lang) 
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_large_icon',
-            iconColor: '#2D5284'
           }
         ]
       });
@@ -817,7 +809,6 @@ export const scheduleV20FeatureIntroNotification = async (userName = 'Teman', la
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_large_icon',
-            iconColor: '#2D5284'
           }
         ]
       });
@@ -881,7 +872,6 @@ export const scheduleV23FeatureIntroNotification = async (userName = 'Teman', la
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_large_icon',
-            iconColor: '#2D5284'
           }
         ]
       });
@@ -945,7 +935,6 @@ export const scheduleV24FeatureIntroNotification = async (userName = 'Teman', la
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_large_icon',
-            iconColor: '#2D5284'
           }
         ]
       });

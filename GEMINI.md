@@ -1,5 +1,20 @@
 # Developer Guidelines for Cassiel (Finance Tracker)
 
+> [!CAUTION]
+> ## ⛔ ATURAN KRITIS APK — JANGAN PERNAH TERTUKAR!
+> 
+> | File APK | Untuk Siapa | Keterangan |
+> |----------|-------------|------------|
+> | **`Cassiel.apk`** / **`Cassiel-Release.apk`** | **USER sendiri (Redilah)** | Build **release** dengan **release key signature** (`CN=Redilah`). Ini APK utama yang dipakai user sehari-hari. |
+> | **`cassielll1.apk`** | **Teman user** | Build **debug** (tanpa release key signature) karena HP teman user **tidak bisa install APK berkunci signature**. JANGAN pernah menyuruh user install file ini. |
+> | **`udin.apk`** / **`Udin.apk`** | **User sendiri untuk testing & konten demo** | Build terpisah dengan `applicationId "com.redilah.udin"`, `app_name "Udin"`. Digunakan user untuk keperluan demo/konten. |
+> 
+> **WAJIB DIPATUHI:**
+> - Jika user minta build/test untuk dirinya sendiri → build **`Cassiel.apk`** (release) atau **`udin.apk`** (demo).
+> - **JANGAN PERNAH** menyuruh user install `cassielll1.apk` — itu khusus untuk temannya.
+> - Jika konteksnya perbaikan notifikasi/bug untuk ditest user sendiri → build **release** (`assembleRelease`) bukan debug.
+
+
 ## 1. Proactive Tool & Command Execution
 * **Rule**: Never instruct or delegate tasks to the user if you have the tools and capabilities to perform them yourself. 
 * **Action**: If you see a compilation error, configuration issue, or resource problem, proactively write scripts, fix code, or run terminal commands to resolve it directly. Present the results/resolutions to the user instead of listing instructions for them to run.
@@ -28,10 +43,28 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
    - **Khusus `udin.apk` / `.\apk\Udin.apk` (Isolated Clone App)**: File `.\udin.apk`, `.\apk\udin.apk`, dan `.\apk\Udin.apk` **dilarang keras** hanya disalin/di-rename dari build Cassiel. Wajib dikompilasi secara terpisah dengan `applicationId "com.redilah.udin"` dan `app_name "Udin"` agar beroperasi sebagai aplikasi klon mandiri yang bisa diinstal berdampingan di HP yang sama tanpa menimpa atau tertukar dengan aplikasi utama `Cassiel` (`com.redilah.financetracker`).
    - **Git Push APK Invariant**: Setiap kali user meminta push kode ke GitHub, wajib memastikan seluruh file APK (`cassielll1.apk`, `udin.apk`, `Cassiel.apk`, serta isi folder `.\apk\`) ikut disertakan dalam staging `git add`, di-commit, dan di-push ke remote repository.
 
+### D. Notification Asset Protection & Keep Rules (Anti-Resource-Stripping)
+1. **AAPT Resource Shrinking Invariant**: File `android/app/src/main/res/raw/keep.xml` wajib selalu dipertahankan dengan `tools:keep="@drawable/ic_*,@drawable/widget_*,@mipmap/*"` untuk mencegah R8/AAPT merusak aset icon notifikasi dinamis Capacitor menjadi dummy hitam/kosong 1x1 piksel saat `shrinkResources true`.
+2. **Large Icon vs Small Icon Separation**:
+   - `ic_large_icon.png`: Digunakan sebagai thumbnail sisi kanan notifikasi. Menggunakan logo Cassiel warna asli resolusi tinggi lengkap dengan teks `"Cassiel Finance"` dan latar squircle warm cream di seluruh density.
+   - `ic_stat_icon.png` / `ic_notification.png`: Digunakan di status bar Android dan badge header notifikasi. Wajib berupa siluet monokrom putih bersih (`#FFFFFF`) murni lambang `CF` **TANPA TEKS** di seluruh density (`mdpi` 24x24, `hdpi` 36x36, `xhdpi` 48x48, `xxhdpi` 72x72, `xxxhdpi` 96x96) agar terbaca tajam dan tidak pecah pada ukuran kecil.
+3. **Pure OS Material You Header Badge (No iconColor Forcing)**:
+   - Dilarang memaksakan parameter `iconColor` pada `LocalNotifications.schedule()`, `capacitor.config.json`, maupun `AndroidManifest.xml` (`default_notification_color`). Sistem wajib membiarkan Android merender badge header secara netral sesuai tema Material You / Dark Mode bawaan HP pengguna (lingkaran abu/putih netral dengan simbol kontras seperti notifikasi Gmail).
+4. **Auto-Purge Pending Notification Queue**:
+   - Sebelum menjadwalkan notifikasi fresh (`schedulePersonalizedNotifications`), wajib mengambil dan membatalkan seluruh ID notifikasi pending (`LocalNotifications.getPending()`) untuk mencegah notifikasi usang/kotak hitam masa lalu tertinggal di sistem Android AlarmManager.
+
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
 * **Image Compression**: Foto profil wajib dikompres (JPEG max 256px), wallpaper dikompres (JPEG max 1024px) sebelum disimpan.
+* **Capacitor Filesystem & Kotlin Coroutines Invariant**:
+  - Plugin `@capacitor/filesystem` (v8+) membutuhkan runtime Kotlin 2.x & `kotlinx-coroutines 1.10.2` (`SpillingKt`).
+  - Dilarang memaksakan versi `kotlin-stdlib` lama (`1.8.x`) di `android/build.gradle`.
+  - Wajib sertakan `implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.0.21'` dan `implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'` di `android/app/build.gradle` serta rule keep di `proguard-rules.pro`.
+* **Backup & Native Share Sheet Document Intent Invariant**:
+  - Berkas cadangan diekspor dalam format teks (`.txt`) agar universal dan tidak memicu penolakan MIME type OS.
+  - Saat memanggil `@capacitor/share` untuk berkas, dilarang menyertakan parameter `text` (hanya `files: [shareUri]`, `title`, dan `dialogTitle`) agar OS Android mengenali intent murni sebagai Dokumen Berkas, sehingga opsi **"Simpan ke Drive" (Google Drive)** dan **File Manager** tampil 100%.
+  - URI wajib diawali dengan skema `file://` agar valid di `SharePlugin.java`.
 
 ## 4. Fitur "Andai" & Prinsip Kedisiplinan Finansial
 * **Kedap Cheating (Anti-Excuse)**: Klasifikasi konsumtif di fitur "Andai" bersifat mutlak dan tidak boleh menyediakan tombol manual untuk mengeluarkan transaksi.
@@ -70,7 +103,20 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
     - Gaming EXP / Progress Bar Frame (`.budget-game-bar-frame`)
     - Tombol Aksi, Navigasi Back, Modal Card, dan Dropdown Item.
   - **Teknik Pemisah Elemen**: Batas visual dan kedalaman antar elemen wajib murni mengandalkan **kontras latar belakang cerah yang halus**, **gradien lembut**, **bayangan melayang alami (*soft warm drop shadow*)**, dan **border-radius melengkung**, bukan garis tepi kaku.
+* **Authentic Asset Vector Invariant for Fingerprint**:
+  - Icon sidik jari di menu profil dan layar kunci PIN wajib menggunakan vector path asli dari `src/assets/fingerprint.svg` (`viewBox="0 0 512 512" fill="currentColor"`) dalam format inline SVG agar 100% anti-broken image dan dinamis mengikuti warna tema teks. Dilarang mengganti dengan icon SVG generik.
+* **Budget Hero Subtitle Strict 5-Word Limit**:
+  - Deskripsi di atas nominal hero budget dibatasi ringkas padat maksimal 4–5 kata (`"Batas total pengeluaran bulan ini"`). Dilarang menggunakan frasa panjang lebih dari 6 kata.
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
+* **Budget Page Architecture & 1-Column Category Row Invariants**:
+  - **Standalone Top Bar**: Header `🎯 Budget` (`font-size: 20px; font-weight: 800;`) wajib berdiri mandiri di atas kartu hero, berdampingan dengan tombol navigasi bulan & tahun.
+  - **Hero Card Proportions**: Kartu hero budget menggunakan `border-radius: 18px;`, lebar seimbang `margin: 0 -4px; width: calc(100% + 8px);`, dan ilustrasi kanan atas menggunakan `kalender.svg` transparan.
+  - **Gaming Progress Bar & Dual Percentage**: Warna bar hero wajib mempertahankan gradien neon energetik (`#34D399` Emerald / `#FBBF24` Amber / `#F87171` Coral Red) dengan kilau *gloss shine* dan animasi strip diagonal. Teks meta di bawah bar wajib menampilkan status kondisi di kiri dan rasio dua persentase di kanan (`XX% / 100%`).
+  - **1-Column Seamless Category List**: Kategori budget disusun vertikal 1 baris per kategori tanpa kotak pembungkus luar (*seamless direct background*).
+  - **Category Row Alignment & Mini Progress Bar**: 
+    - Mini progress bar memiliki `max-width: 84%` dan `height: 6.5px`.
+    - Teks persentase (misal `96%`) wajib berada lurus sejajar secara horizontal dengan teks nominal (`Rp xxx.xxx / Rp xxx.xxx`).
+    - Tombol "Atur" pada kategori yang belum memiliki limit wajib berbentuk kotak memanjang (*rounded rectangle*) dengan sudut halus 4.5px (`border-radius: 4.5px; padding: 3px 14px; min-width: 50px;`), bukan kapsul/lonjong.
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
@@ -155,7 +201,8 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 20. Bottom Navigation & Seamless UI Invariants
 * **5-Tab Symmetrical Bottom Navigation**:
   - Sisi Kiri (`.nav-group-left`): `Home` dan `Account` (`akun.svg`).
-  - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks, terkunci di tengah (`left: 50%; transform: translate(-50%, -24px)`) presisi pada lekukan notch bar.
+  - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks, **DIKUNCI MATI (KRITIS & TIDAK BOLEH DIUBAH)** di posisi tengah `left: 50%; top: 0; transform: translate(-50%, -24px); z-index: 10;`.
+  - **Kurva Lekukan Notch SVG Bottom Nav (Locked Invariant)**: Lekukan notch pada SVG background bottom navigation (`.nav-bg-svg path`) wajib selalu disinkronkan memeluk tombol Add di `transform: translate(-50%, -24px)` dengan path `d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z" fill="var(--bg-app, #F8EFE6)"` tanpa menyisakan celah kosong di bawah tombol. Dilarang mengubah posisi vertikal tombol Add menjadi lebih turun/naik.
   - Sisi Kanan (`.nav-group-right`): `Budget` (`budget.svg`) dan `Stats` (`diagram.svg`).
   - Label tab statistik menggunakan `Stats` di semua bahasa.
 * **Borderless Period Filter**: Tombol filter periode pada menu Stats dan Account (`.stats-period-btn`) wajib tanpa garis tepi/border kaku (`border: none !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);`).
@@ -267,8 +314,59 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Untouched `add.svg` Stroke Width**:
   - Garis tepi / stroke pada `add.svg` wajib dipertahankan tipis dan rapi (`stroke-width="0.25"`), dilarang dipertebal.
 
-## 33. Category Breakdown Unbudgeted Label ("Tap untuk atur")
-* **Strict Label Copy**: Status kategori pengeluaran yang belum memiliki batas anggaran pada kartu *Category Breakdown* wajib bertuliskan **`"Tap untuk atur"`** (bukan `"Belum diatur"`).
-* **Multi-Language Key (`tapToSet`)**: Wajib disinkronkan ke seluruh kamus bahasa di `src/utils/i18n.js` (`id`/`id_id`: *Tap untuk atur*, `en`: *Tap to set*, `jv`: *Tutul kanggo nata*, `zh`: *Dianji shezhi*, `ko`: *Seoljeong-halyeomyeon taeb*).
+## 34. Explain-First & User Confirmation Gate
+* **Strict Clarification Rule**: Jika user meminta *"Jelaskan dulu"*, *"Coba jelaskan"*, atau bertanya bagaimana mekanismenya sebelum perbaikan, asisten **DILARANG KERAS** langsung mengubah file kode atau menjalankan proses *build* di latar belakang.
+* **Prosedur Wajib**: Berikan penjelasan teknis dan logis secara mendalam terlebih dahulu, lalu tunggu konfirmasi/arahan eksplisit dari user (*"ya"*, *"kerjakan"*, *"lanjut"*) sebelum mengeksekusi perubahan kode.
+
+## 35. Financial Notification Auto-Tracker & Anti-Promo Filter Invariants
+* **Two-Tier Architecture**: Pemrosesan notifikasi keuangan wajib disinkronkan secara konsisten di 2 lapis:
+  1. **Native Android Listener** (`AutoExpenseListenerService.java`)
+  2. **JavaScript Engine** (`src/utils/notificationTracker.js`)
+* **Strict Anti-Promo / Noise Filter (Zero False-Positives)**:
+  - **Blacklist Kata Kunci Promo**: Segera buang (*discard*) notifikasi jika mengandung pola diskon/marketing (`diskon`, `discount`, `promo`, `cashback`, `voucher`, `kupon`, `hemat hingga`, `s.d.`, `up to`, persentase diskon `\b\d{1,2}%\b`, `special offer`, `penawaran`, `hadiah`, `ajukan pinjaman`, `paylater`, `kartu kredit`, `investasi`, `kode otp`, dll.).
+  - **Whitelist Transaksi Sah**: Notifikasi hanya diproses jika secara eksplisit mengandung indikator transaksi valid (`berhasil`, `sukses`, `selesai`, `pembayaran`, `pembelian`, `transfer`, `terima`, `top up`, `qris`, `debit`, `kredit`) dan memiliki nominal uang `Rp` / `IDR` yang valid.
+* **Standardized Account Mapping**:
+  - BRI / BRImo wajib dipetakan ke nama akun standar **`BRImo`** (bukan "BRI" atau "Lainnya").
+  - BCA -> `BCA`, Mandiri/Livin -> `Mandiri`, BNI/Wondr -> `BNI`, Jago -> `Bank Jago`, SeaBank -> `SeaBank`, DANA -> `DANA`, GoPay -> `GoPay`, OVO -> `OVO`, ShopeePay -> `ShopeePay`.
+* **Smart Fallback for Merchant Names**:
+  - Jika notifikasi dari bank tidak menyertakan nama merchant (seperti notifikasi QRIS BRImo), gunakan format fallback yang rapi dan informatif: `QRIS [Nama Akun]` (misal: `"QRIS BRImo"`), bukan string generik `"Transaksi Otomatis..."`.
+  - Notifikasi push Cassiel wajib berformat: `"[Nama Merchant / Fallback] ([Nominal]) berhasil disimpan otomatis ke Cassiel."`
+* **Smart Category Guessing**:
+  - Klasifikasikan kategori secara cerdas berdasarkan kata kunci nama merchant (ayam/nasi/makan -> `Food`, kopi/cafe -> `Coffee`, pulsa/kuota -> `Internet`, alfamart/indomaret -> `Groceries`, dll.).
+
+## 36. Standardized Category Addition Runbook (Expense & Income)
+Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X"), asisten **WAJIB** secara otomatis menyelesaikan seluruh 6 titik integrasi berikut tanpa ada yang terlewat:
+
+1. **Aset Ikon & Mapping Runtime (`src/App.jsx`)**:
+   - Salin/taruh file SVG di `src/assets/<nama>.svg` (atau gunakan aset yang diminta).
+   - Import file SVG di bagian header `src/App.jsx`.
+   - Daftarkan ke `DEFAULT_EXPENSE_CATEGORIES` atau `DEFAULT_INCOME_CATEGORIES` dengan `id`, `name`, dan `iconClass`.
+   - Daftarkan `id` ke `ICON_MAP` untuk runtime icon lookup.
+   - Daftarkan alias nama ke `nameToId` di dalam `migrateTransactions()`.
+
+2. **Styling Badge Ikon (`src/App.css`)**:
+   - Tambahkan CSS class `.<id>-icon { background-color: <hex-warm-pastel>; }` yang harmonis dengan palet hangat Cassiel.
+
+3. **Pelatihan Voice AI / Mic Parser (`src/utils/voiceParser.js`)**:
+   - **Kamus Fonetik / Slang Inggris-Indo**: Daftarkan variasi pelafalan/aksen/slang di `ENGLISH_PHONETIC_AND_BOOK_MAP`.
+   - **Kamus Kategori**: Daftarkan puluhan sinonim, merk populer, istilah sehari-hari, dan variasinya di `EXPENSE_CATEGORY_KEYWORDS` / `INCOME_CATEGORY_KEYWORDS`.
+   - **Priority Matcher**: Tambahkan pattern regex kategori baru di blok `matchedExpenseCatId` / `matchedIncomeCatId`.
+   - **Anti-Overlap Keyword**: Bersihkan kata kunci yang beririsan dari kategori lama agar tidak salah klasifikasi (misal: memisahkan wifi dari pulsa).
+
+4. **Multi-Bahasa / Internationalization (`src/utils/i18n.js`)**:
+   - Daftarkan terjemahan kategori untuk seluruh bahasa di `CATEGORY_TRANSLATIONS`:
+     - `id_id` (Bahasa Indonesia)
+     - `jv` (Basa Jawa)
+     - `zh` (Mandarin Pinyin ABC)
+     - `ko` (Bahasa Korea Romaja)
+
+5. **Community Benchmark & Insights (`src/utils/communityBenchmark.js`)**:
+   - Tambahkan normalisasi kanonikal di `normalizeCanonicalCategory()`.
+   - Tentukan estimasi rata-rata pengeluaran bulanan kategori tersebut di `DEFAULT_AVG_TICKET`.
+
+6. **Verifikasi & Build Test**:
+   - Jalankan automated test atau validasi syntax (`npm run build` / `oxlint`) untuk memastikan 0 broken imports dan 100% akurasi deteksi mic.
+
+
 
 

@@ -107,10 +107,11 @@ export const ENGLISH_PHONETIC_AND_BOOK_MAP = [
   { pattern: /\b(?:earphone|erpon|irpon)\b/gi, replacement: 'Earphone' },
   { pattern: /\b(?:mousepad|mauspad|maus\s*ped)\b/gi, replacement: 'Mousepad' },
   { pattern: /\b(?:t-shirt|t\s*shirt|tisort|tisyet)\b/gi, replacement: 'T-Shirt' },
-  { pattern: /\b(?:skincare|skin\s*ker|sekin\s*ker)\b/gi, replacement: 'Skincare' }
+  { pattern: /\b(?:skincare|skin\s*ker|sekin\s*ker)\b/gi, replacement: 'Skincare' },
+  { pattern: /\b(?:wi-fi|wi\s*fi|waifai|wai\s*fai|wai\s*pay|waipay)\b/gi, replacement: 'WiFi' }
 ];
 
-// 3. Kamus Kategori Komprehensif (24 Expense + 6 Income)
+// 3. Kamus Kategori Komprehensif (25 Expense + 6 Income)
 export const EXPENSE_CATEGORY_KEYWORDS = {
   gofood: [
     'gofood', 'go food', 'go-food', 'grabfood', 'grab food', 'grab-food', 'shopeefood', 'shopee food', 'shopee-food',
@@ -259,8 +260,16 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'tiket acara', 'konser', 'dwp', 'coldplay', 'gig'
   ],
   pulsa: [
-    'kuota internet', 'token listrik', 'tagihan wifi', 'first media', 'paket data', 'listrik pln',
-    'telkomsel', 'smartfren', 'indihome', 'pulsa', 'kuota', 'indosat', 'biznet', 'pdam', 'xl', 'tri', 'byu'
+    'kuota internet', 'token listrik', 'paket data', 'listrik pln',
+    'telkomsel', 'smartfren', 'pulsa', 'kuota', 'indosat', 'pdam', 'xl', 'tri', 'byu'
+  ],
+  wifi: [
+    'tagihan wifi', 'bayar wifi', 'iuran wifi', 'biaya wifi', 'pasang wifi', 'langganan wifi',
+    'wifi rumah', 'wifi kos', 'wifi kantor', 'voucher wifi', 'wifi id', 'wifi corner',
+    'indihome', 'indihom', 'biznet', 'first media', 'firstmedia', 'myrepublic', 'my republic',
+    'oxygen id', 'oxygen', 'iconnet', 'cbn', 'mnc play', 'mncplay', 'xl home', 'xl satu',
+    'indosat hifi', 'hifi', 'megavision', 'balifiber', 'cbn fiber', 'starlink', 'router wifi',
+    'modem wifi', 'wifi', 'wi-fi', 'waifai', 'internet rumah', 'internet wifi'
   ],
   rumahSakit: [
     'rawat inap', 'periksa dokter', 'tambal gigi', 'dokter gigi', 'rumah sakit', 'tes darah',
@@ -874,6 +883,10 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'buah';
     latestExpenseIdx = 9300;
     expenseMatchedWord = 'buah';
+  } else if (/\b(tagihan wifi|bayar wifi|iuran wifi|biaya wifi|pasang wifi|langganan wifi|wifi rumah|wifi kos|wifi kantor|voucher wifi|wifi id|wifi corner|indihome|indihom|biznet|first media|firstmedia|myrepublic|my republic|oxygen id|oxygen|iconnet|cbn|mnc play|mncplay|xl home|xl satu|indosat hifi|hifi|megavision|balifiber|cbn fiber|starlink|router wifi|modem wifi|wifi|wi-fi|waifai|internet rumah|internet wifi)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'wifi';
+    latestExpenseIdx = 9250;
+    expenseMatchedWord = 'wifi';
   } else {
     const sortedExpenseCatKeys = Object.keys(EXPENSE_CATEGORY_KEYWORDS).sort((a, b) => {
       return (EXPENSE_CATEGORY_KEYWORDS[b][0]?.length || 0) - (EXPENSE_CATEGORY_KEYWORDS[a][0]?.length || 0);
@@ -1050,6 +1063,9 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
   for (const item of ENGLISH_PHONETIC_AND_BOOK_MAP) {
     note = note.replace(item.pattern, item.replacement);
   }
+
+  // 5. Replace 'dan' with '&' symbol
+  note = note.replace(/\b(dan)\b/gi, '&');
 
   note = note.replace(/\s+/g, ' ').trim();
   note = note.replace(/^[.,!?:;\s]+|[.,!?:;\s]+$/g, '').trim();

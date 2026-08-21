@@ -2,11 +2,11 @@
   "versionCode": 25,
   "versionName": "1.0.24",
   "version": "1.0.24",
-  "changelog": "New in this update:\n- [Fix] Perbaikan Cadangan Data Google Drive & Folder Penyimpanan\n- [Optimization] Peningkatan Stabilitas Pelacakan Transaksi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.24",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=1.0.24",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=1.0.24",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=1.0.24",
+  "changelog": "New in this update:\n[NEW] Target Budget Bulanan & Pemantauan Sisa Belanja Real-Time\n[NEW] Backup & Restore Data Langsung ke Google Drive & Cloud",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.24",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.24",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.24",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.24",
   "sha256": "d712665f8e79f61af726f672dff57864de6bb1eccba3d3f13218189aaf8be5ab",
   "minSdkVersion": 22
 }

@@ -37,7 +37,9 @@ import jajanAdekSvg from './assets/Jajan adek.svg';
 import partySvg from './assets/Party.svg';
 import buahSvg from './assets/Buah.svg';
 import minumanSvg from './assets/Minuman.svg';
-import fingerprintSvg from './assets/fingerprint.svg';
+import wifiSvg from './assets/wifi.svg';
+import budgetClipboardSvg from './assets/budget-clipboard.svg';
+import kalenderSvg from './assets/kalender.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
 import { NotificationTracker, initAutoExpenseTracker } from './utils/notificationTracker';
@@ -107,6 +109,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'party', name: 'Party', iconClass: 'party-icon' },
   { id: 'buah', name: 'Buah', iconClass: 'buah-icon' },
   { id: 'minuman', name: 'Minuman', iconClass: 'minuman-icon' },
+  { id: 'wifi', name: 'WiFi', iconClass: 'wifi-icon' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
@@ -149,6 +152,7 @@ const ICON_MAP = {
   party: partySvg,
   buah: buahSvg,
   minuman: minumanSvg,
+  wifi: wifiSvg,
   gaji: salarySvg,
   bonus: bonusSvg,
   kip: kipSvg,
@@ -175,7 +179,7 @@ const migrateTransactions = (list) => {
     'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
     'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
     'Jajan Adek': 'jajanAdek', 'Party': 'party', 'Buah': 'buah',
-    'Minuman': 'minuman',
+    'Minuman': 'minuman', 'WiFi': 'wifi', 'Wifi': 'wifi', 'WIFI': 'wifi',
   };
   let changed = false;
   const migrated = list.map(tx => {
@@ -322,27 +326,14 @@ function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (
           consumptiveTransactions.map(item => {
             const catDisplay = getCategoryName(item.category || item.categoryId || item.title, appLanguage);
             let dynamicSub = item.subtext;
-            const isFood = item.categoryId === 'food' || (item.category || '').toLowerCase() === 'food' || (item.category || '').toLowerCase() === 'makanan';
-            if (isFood) {
-              if (appLanguage === 'jv') {
-                dynamicSub = `Kelangkungan ${formatMoney(item.amount, appCurrency, liveExchangeRates)} saking wates ${getCurrency(appCurrency).symbol} 75.000/dinten`;
-              } else if (appLanguage === 'en') {
-                dynamicSub = `Exceeded ${formatMoney(item.amount, appCurrency, liveExchangeRates)} from limit ${getCurrency(appCurrency).symbol} 75,000/day`;
-              } else if (appLanguage === 'ko') {
-                dynamicSub = `Hando ${getCurrency(appCurrency).symbol} 75.000/il eseo ${formatMoney(item.amount, appCurrency, liveExchangeRates)} chogwahwa`;
-              } else {
-                dynamicSub = `Kelebihan ${formatMoney(item.amount, appCurrency, liveExchangeRates)} dari limit ${getCurrency(appCurrency).symbol} 75.000/hari`;
-              }
+            if (appLanguage === 'jv') {
+              dynamicSub = `Gunggung konsumtif ${catDisplay.toLowerCase()} wulan punika`;
+            } else if (appLanguage === 'en') {
+              dynamicSub = `Total consumptive ${catDisplay.toLowerCase()} this month`;
+            } else if (appLanguage === 'ko') {
+              dynamicSub = `Ibeondal ${catDisplay.toLowerCase()} chong sobiseong`;
             } else {
-              if (appLanguage === 'jv') {
-                dynamicSub = `Gunggung pangetrapan ${catDisplay.toLowerCase()} konsumtif wulan punika`;
-              } else if (appLanguage === 'en') {
-                dynamicSub = `Total consumptive ${catDisplay.toLowerCase()} expenses this month`;
-              } else if (appLanguage === 'ko') {
-                dynamicSub = `Ibeondal ${catDisplay.toLowerCase()} sobiseong jichul chong-aek`;
-              } else {
-                dynamicSub = `Total pengeluaran ${catDisplay.toLowerCase()} konsumtif bulan ini`;
-              }
+              dynamicSub = `Total konsumtif ${catDisplay.toLowerCase()} bulan ini`;
             }
 
             return (
@@ -1572,6 +1563,7 @@ function App() {
   const dropdownRef = useRef(null);
   const dateInputRef = useRef(null);
   const timeInputRef = useRef(null);
+  const budgetDateInputRef = useRef(null);
 
   // Close custom dropdown when clicking outside
   React.useEffect(() => {
@@ -2536,7 +2528,8 @@ function App() {
     // B. Simpan Transaksi Baru
     const catName = result.category.name;
     const catIconClass = result.category.iconClass || 'food-icon';
-    const finalTitle = result.note.trim() || catName;
+    let finalTitle = (result.note || '').trim() || catName;
+    finalTitle = finalTitle.replace(/\b(dan)\b/gi, '&').replace(/\s+/g, ' ').trim();
 
     // Safety Guard Check: Blokir jika terdapat kata terlarang (rokok, miras, asusila, narkoba, judi)
     const safetyCheck = checkProhibitedContent(`${finalTitle} ${result.rawText || ''}`);
@@ -2585,7 +2578,8 @@ function App() {
     const catName = selectedCategory.name;
     const catIconClass = selectedCategory.iconClass || 'food-icon';
 
-    const finalTitle = note.trim() || catName;
+    let finalTitle = note.trim() || catName;
+    finalTitle = finalTitle.replace(/\b(dan)\b/gi, '&').replace(/\s+/g, ' ').trim();
 
     // Safety Guard Check: Blokir jika terdapat kata terlarang (rokok, miras, asusila, narkoba, judi)
     const safetyCheck = checkProhibitedContent(finalTitle);
@@ -2658,6 +2652,26 @@ function App() {
         return Number(y) === targetYear && Number(m) - 1 === targetMonth;
       })
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions, currentDate]);
+
+  // Monthly Expenses per Category for current navigated month
+  const currentMonthExpensesByCategory = useMemo(() => {
+    const targetYear = currentDate.getFullYear();
+    const targetMonth = currentDate.getMonth();
+    const map = {};
+    transactions.forEach(t => {
+      if (t.type !== 'expense' || !t.date) return;
+      const [y, m] = t.date.split('-');
+      if (Number(y) === targetYear && Number(m) - 1 === targetMonth) {
+        if (t.category) {
+          map[t.category] = (map[t.category] || 0) + (Number(t.amount) || 0);
+        }
+        if (t.categoryId) {
+          map[t.categoryId] = (map[t.categoryId] || 0) + (Number(t.amount) || 0);
+        }
+      }
+    });
+    return map;
   }, [transactions, currentDate]);
 
   // Filter transactions according to period (monthly/weekly/yearly)
@@ -3414,19 +3428,24 @@ function App() {
                         strokeWidth="1.8"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        className="pie-leader-line"
+                        style={{ animationDelay: `${idx * 160 + 160}ms` }}
                       />
                     ))}
 
-                    {/* Layer 2 (Middle): SVG Pie Slices (No outer white stroke) */}
-                    {pieSlices.map((slice, idx) => (
-                      <path
-                        key={`slice-${idx}`}
-                        d={slice.pathData}
-                        fill={slice.color}
-                        stroke="none"
-                        className="pie-slice"
-                      />
-                    ))}
+                    {/* Layer 2 (Middle): SVG Pie Slices with unified continuous rotation */}
+                    <g className="pie-chart-slices-group">
+                      {pieSlices.map((slice, idx) => (
+                        <path
+                          key={`slice-${idx}`}
+                          d={slice.pathData}
+                          fill={slice.color}
+                          stroke="none"
+                          className="pie-slice"
+                          style={{ animationDelay: `${idx * 120}ms` }}
+                        />
+                      ))}
+                    </g>
 
                     {/* Layer 3 (Top): Label Texts */}
                     {pieSlices.map((slice, idx) => {
@@ -3435,6 +3454,7 @@ function App() {
                         <g 
                           key={`label-${idx}`} 
                           className="pie-label-group"
+                          style={{ animationDelay: `${idx * 160 + 200}ms` }}
                         >
                           <text
                             x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
@@ -3577,7 +3597,10 @@ function App() {
                               {item.earned > 0 && (
                                 <div 
                                   className="stats-bar-fill earned-bar"
-                                  style={{ height: `${earnedHeightPct}%` }}
+                                  style={{ 
+                                    height: `${earnedHeightPct}%`,
+                                    animationDelay: `${item.monthIdx * 35}ms`
+                                  }}
                                   title={`${item.fullName} Pemasukan: ${fmtMoney(item.earned)}`}
                                 />
                               )}
@@ -3588,7 +3611,10 @@ function App() {
                               {item.spend > 0 && (
                                 <div 
                                   className="stats-bar-fill spend-bar"
-                                  style={{ height: `${spendHeightPct}%` }}
+                                  style={{ 
+                                    height: `${spendHeightPct}%`,
+                                    animationDelay: `${item.monthIdx * 35 + 90}ms`
+                                  }}
                                   title={`${item.fullName} Pengeluaran: ${fmtMoney(item.spend)}`}
                                 />
                               )}
@@ -3626,7 +3652,6 @@ function App() {
       {/* Budget Cap View (Bottom Nav Tab) */}
       {activeTab === 'budget' && (
         <div className="budget-page-container tab-page-transition">
-          {/* Budget Hero Card (Top Main Budget Container) */}
           {(() => {
             const hasMain = typeof mainMonthlyBudget === 'number' && mainMonthlyBudget > 0;
             const spent = currentMonthExpenses;
@@ -3639,22 +3664,22 @@ function App() {
               : currentDate.toLocaleDateString('id-ID', { month: 'long' });
 
             return (
-              <div className="budget-hero-card">
-                {/* Top Bar inside Card: Target Badge + Month Badge (No Profile Name) */}
-                <div className="budget-hero-top">
-                  <div className="budget-hero-header-badge">
-                    <span className="budget-hero-header-icon">🎯</span>
-                    <span className="budget-hero-header-title">{t('mainBudget')}</span>
+              <>
+                {/* 1. Standalone Top Bar (Outside Container Card) */}
+                <div className="budget-standalone-top-bar">
+                  <div className="budget-standalone-title-badge">
+                    <span className="budget-standalone-title-icon">🎯</span>
+                    <span className="budget-standalone-title-text">Budget</span>
                   </div>
 
-                  <div className="budget-hero-month-nav">
+                  <div className="budget-standalone-month-nav">
                     <button 
                       type="button" 
                       className="budget-hero-month-arrow month-btn" 
                       onClick={handlePrevMonth}
                       aria-label="Bulan Sebelumnya"
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M15 18l-6-6 6-6"/>
                       </svg>
                     </button>
@@ -3663,19 +3688,42 @@ function App() {
                       type="button" 
                       className="budget-hero-badge-btn" 
                       onClick={() => {
-                        setBudgetPickerYear(currentDate.getFullYear());
-                        setIsBudgetMonthPickerOpen(true);
+                        if (budgetDateInputRef.current) {
+                          if (typeof budgetDateInputRef.current.showPicker === 'function') {
+                            budgetDateInputRef.current.showPicker();
+                          } else {
+                            budgetDateInputRef.current.click();
+                            budgetDateInputRef.current.focus();
+                          }
+                        }
                       }}
                       title="Pilih Bulan & Tahun"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="16" y1="2" x2="16" y2="6"></line>
                         <line x1="8" y1="2" x2="8" y2="6"></line>
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                       </svg>
-                      <span>{monthName} {currentDate.getFullYear()}</span>
+                      <span className="budget-month-btn-text">{monthName} {currentDate.getFullYear()}</span>
                     </button>
+
+                    {/* Hidden input for native OS device Month-Year picker */}
+                    <input
+                      ref={budgetDateInputRef}
+                      type="month"
+                      className="hidden-picker-input"
+                      value={`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const [y, m] = e.target.value.split('-').map(Number);
+                          if (y && m) {
+                            setCurrentDate(new Date(y, m - 1, 1));
+                          }
+                        }
+                      }}
+                      aria-label="Pilih Periode Bulan & Tahun Budget"
+                    />
 
                     <button 
                       type="button" 
@@ -3683,75 +3731,84 @@ function App() {
                       onClick={handleNextMonth}
                       aria-label="Bulan Berikutnya"
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 18l6-6-6-6"/>
                       </svg>
                     </button>
                   </div>
                 </div>
 
-                {/* Hero Middle Content */}
-                <div className="budget-hero-content">
-                  <div className="budget-hero-label-row">
-                    <span className="budget-hero-label">
-                      {hasMain ? t('mainBudgetDesc') : 'Total batas pengeluaran seluruh kategori'}
-                    </span>
-                    {hasMain && (
-                      <span className={`budget-hero-pct-badge ${isOver ? 'danger' : (spentPercent >= 80 ? 'warning' : 'safe')}`}>
-                        {isOver ? '⚡ OVER LIMIT' : `Lv. ${Math.round(spentPercent)}%`}
+                {/* 2. Main Floating Hero Budget Card */}
+                <div className="budget-hero-card floating-hero-card">
+                  <div className="budget-hero-top-row">
+                    <div className="budget-hero-title-group">
+                      <span className="budget-hero-subtitle">
+                        {getTranslation(appLanguage, 'budgetThisMonth') || 'Budget bulan ini'}
                       </span>
-                    )}
+                      {isEditingMainBudget ? (
+                        <div className="budget-direct-amount-row">
+                          <span className="budget-direct-currency-prefix">{getCurrency(appCurrency).symbol}</span>
+                          <input 
+                            ref={mainBudgetInputRef}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            autoFocus
+                            className="budget-direct-amount-input"
+                            placeholder="0"
+                            value={mainBudgetInputValue}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                              const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
+                              setMainBudgetInputValue(formatted);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveMainBudget();
+                              if (e.key === 'Escape') setIsEditingMainBudget(false);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div 
+                          className="budget-hero-amount"
+                          onClick={handleStartEditMainBudget}
+                          style={{ cursor: 'pointer' }}
+                          title="Sentuh untuk mengubah budget"
+                        >
+                          {hasMain ? fmtMoney(mainMonthlyBudget) : `${getCurrency(appCurrency).symbol} 0`}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cute Illustration Icon from kalender.svg */}
+                    <div 
+                      className="budget-hero-clipboard-icon"
+                      onClick={handleStartEditMainBudget}
+                      title="Atur Budget Bulan Ini"
+                    >
+                      <img src={kalenderSvg} alt="Budget Kalender" />
+                    </div>
                   </div>
 
-                  {isEditingMainBudget ? (
-                    <div className="budget-direct-amount-row">
-                      <span className="budget-direct-currency-prefix">{getCurrency(appCurrency).symbol}</span>
-                      <input 
-                        ref={mainBudgetInputRef}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        autoFocus
-                        className="budget-direct-amount-input"
-                        placeholder="0"
-                        value={mainBudgetInputValue}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-                          const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
-                          setMainBudgetInputValue(formatted);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveMainBudget();
-                          if (e.key === 'Escape') setIsEditingMainBudget(false);
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div 
-                      className="budget-hero-amount"
-                      onClick={handleStartEditMainBudget}
-                      style={{ cursor: 'pointer' }}
-                      title="Sentuh untuk mengubah budget"
-                    >
-                      {hasMain ? fmtMoney(mainMonthlyBudget) : fmtMoney(0)}
-                    </div>
-                  )}
+                  {/* Dotted Divider */}
+                  <div className="budget-hero-dotted-divider" />
 
-                  {/* Stats Breakdown */}
-                  <div className="budget-hero-stats">
-                    <div className="budget-stat-item">
-                      <span className="budget-stat-label">{t('usedThisMonth')}:</span>
-                      <strong className="budget-stat-val spent">{fmtMoney(spent)}</strong>
+                  {/* Stats Breakdown (Terpakai vs Sisa with Vertical Line) */}
+                  <div className="budget-hero-dual-stats">
+                    <div className="budget-dual-stat-col">
+                      <span className="budget-dual-stat-label">{t('usedThisMonth') || 'Terpakai'}</span>
+                      <strong className="budget-dual-stat-val spent">{fmtMoney(spent)}</strong>
                     </div>
-                    <div className={`budget-stat-item ${isOver ? 'over' : ''}`}>
-                      <span className="budget-stat-label">{t('remainingBudget')}:</span>
-                      <strong className="budget-stat-val remaining">
+                    <div className="budget-dual-stat-divider" />
+                    <div className={`budget-dual-stat-col ${isOver ? 'over' : ''}`}>
+                      <span className="budget-dual-stat-label">{t('remainingBudget') || 'Sisa'}</span>
+                      <strong className="budget-dual-stat-val remaining">
                         {hasMain ? (remaining >= 0 ? fmtMoney(remaining) : `-${fmtMoney(Math.abs(remaining))}`) : '-'}
                       </strong>
                     </div>
                   </div>
 
-                  {/* Gaming Style HP / EXP Progress Track (Borderless) */}
+                  {/* Main Progress Bar */}
                   <div className="budget-game-bar-wrapper">
                     <div className="budget-game-bar-frame borderless">
                       <div 
@@ -3769,81 +3826,81 @@ function App() {
                           : 'Budget belum diatur'}
                       </span>
                       <span className="budget-game-bar-ratio">
-                        {hasMain ? `${fmtMoney(spent, false)} / ${fmtMoney(mainMonthlyBudget, false)}` : `${fmtMoney(spent, false)} / ${fmtMoney(0, false)}`}
+                        {hasMain ? `${Math.round(spentPercent)}% / 100%` : '0% / 100%'}
                       </span>
                     </div>
                   </div>
-                </div>
 
-                {/* Action Buttons with Proper Interactive Logic */}
-                <div className="budget-hero-actions">
-                  {isEditingMainBudget ? (
-                    <>
-                      <button 
-                        type="button" 
-                        className="budget-hero-btn primary"
-                        onClick={handleSaveMainBudget}
-                      >
-                        <span>Simpan Budget</span>
-                      </button>
-                      <button 
-                        type="button" 
-                        className="budget-hero-btn secondary"
-                        onClick={() => {
-                          setIsEditingMainBudget(false);
-                          setMainBudgetInputValue('');
-                        }}
-                        title="Batal Edit"
-                      >
-                        <span>Batal</span>
-                      </button>
-                    </>
-                  ) : hasMain ? (
-                    <>
+                  {/* Action Buttons */}
+                  <div className="budget-hero-actions">
+                    {isEditingMainBudget ? (
+                      <>
+                        <button 
+                          type="button" 
+                          className="budget-hero-btn primary"
+                          onClick={handleSaveMainBudget}
+                        >
+                          <span>Simpan Budget</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="budget-hero-btn secondary"
+                          onClick={() => {
+                            setIsEditingMainBudget(false);
+                            setMainBudgetInputValue('');
+                          }}
+                          title="Batal Edit"
+                        >
+                          <span>Batal</span>
+                        </button>
+                      </>
+                    ) : hasMain ? (
+                      <>
+                        <button 
+                          type="button" 
+                          className="budget-hero-btn primary"
+                          onClick={handleStartEditMainBudget}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                          <span>Ubah Budget</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="budget-hero-btn secondary"
+                          onClick={handleRemoveMainBudget}
+                          title="Hapus Budget Bulan Ini"
+                        >
+                          <span>Hapus</span>
+                        </button>
+                      </>
+                    ) : (
                       <button 
                         type="button" 
                         className="budget-hero-btn primary"
                         onClick={handleStartEditMainBudget}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        <span>Ubah Budget</span>
+                        <span>Atur Budget</span>
                       </button>
-                      <button 
-                        type="button" 
-                        className="budget-hero-btn secondary"
-                        onClick={handleRemoveMainBudget}
-                        title="Hapus Budget Bulan Ini"
-                      >
-                        <span>Hapus</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button 
-                      type="button" 
-                      className="budget-hero-btn primary"
-                      onClick={handleStartEditMainBudget}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                      </svg>
-                      <span>Atur Budget</span>
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
+              </>
             );
           })()}
 
-          {/* Category Section Header */}
+          {/* 3. Category Section Header */}
           <div className="budget-section-header">
-            <h3 className="budget-section-title">{t('categoryBreakdown')}</h3>
+            <h3 className="budget-section-title">{t('categoryBreakdown') || 'Budget per Kategori'}</h3>
           </div>
 
-          {/* Search Bar */}
+          {/* 4. Search Bar */}
           <div className="budget-search-section">
             <div className="budget-search-wrapper">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3869,10 +3926,15 @@ function App() {
             </div>
           </div>
 
-          {/* Filter Tabs */}
+          {/* 5. Dynamic Filter Tabs with Live Real-time Counts */}
           {(() => {
+            const currentMonthData = monthlyBudgetsMap[activeMonthKey] || { main: null, categories: {} };
+            const monthCatLimits = currentMonthData.categories || {};
             const countAll = expenseCategories.length;
-            const countActive = expenseCategories.filter(c => typeof c.monthlyLimit === 'number' && c.monthlyLimit > 0).length;
+            const countActive = expenseCategories.filter(c => {
+              const monthLimit = monthCatLimits[c.id];
+              return (typeof monthLimit === 'number' && monthLimit > 0);
+            }).length;
             const countUnset = countAll - countActive;
 
             return (
@@ -3902,13 +3964,13 @@ function App() {
             );
           })()}
 
-          {/* Category Grid (2 Kolom Compact & Pop-up on Tap) */}
-          <div className="budget-grid-section">
+          {/* 6. Seamless 1-Column Category List (No Outer Box, Row Item with Mini Progress Bars) */}
+          <div className="budget-list-section">
             {(() => {
               const filtered = getFilteredBudgetCategories();
               if (filtered.length === 0) {
                 return (
-                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8C786A' }}>
                     <p style={{ fontSize: '14px', fontWeight: 500 }}>
                       {budgetSearchQuery ? `Kategori "${budgetSearchQuery}" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}
                     </p>
@@ -3916,48 +3978,90 @@ function App() {
                 );
               }
 
-              // Jika sedang searching atau list <= 6, tampilkan semua langsung. Jika tidak, batasi 6 (3 baris x 2 kolom) saat collapse
               const isSearchActive = Boolean(budgetSearchQuery && budgetSearchQuery.trim());
-              const shouldShowAll = isSearchActive || isBudgetCategoriesExpanded || filtered.length <= 6;
-              const displayList = shouldShowAll ? filtered : filtered.slice(0, 6);
+              const shouldShowAll = isSearchActive || isBudgetCategoriesExpanded || filtered.length <= 5;
+              const displayList = shouldShowAll ? filtered : filtered.slice(0, 5);
 
               return (
                 <>
-                  <div className="budget-category-grid">
+                  <div className="budget-category-row-list">
                     {displayList.map(cat => {
                       const iconPath = resolveIcon(cat);
                       const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
+                      const catSpent = (currentMonthExpensesByCategory[cat.name] || 0) + (currentMonthExpensesByCategory[cat.id] || 0);
+                      const catLimit = cat.monthlyLimit || 0;
+                      const catPercent = hasLimit && catLimit > 0 ? (catSpent / catLimit) * 100 : 0;
+                      const isCatOver = hasLimit && catSpent > catLimit;
+                      const catStatus = isCatOver ? 'danger' : (catPercent >= 80 ? 'warning' : 'safe');
 
                       return (
                         <div 
                           key={cat.id} 
-                          className={`budget-grid-card ${hasLimit ? 'has-limit' : ''}`}
+                          className={`budget-row-item ${hasLimit ? 'has-limit' : 'unset-limit'}`}
                           onClick={() => handleOpenCategoryBudgetModal(cat)}
                         >
-                          <div className="budget-grid-card-top">
-                            <div className={`budget-grid-icon-box ${cat.iconClass}`}>
-                              <img src={iconPath} alt={cat.name} />
+                          {/* Left: Category Icon Box */}
+                          <div className={`budget-row-icon-box ${cat.iconClass}`}>
+                            <img src={iconPath} alt={cat.name} />
+                          </div>
+
+                          {/* Middle: Name + Spending Breakdown / Status + Mini Progress Bar */}
+                          <div className="budget-row-content">
+                            <div className="budget-row-title-line">
+                              <span className="budget-row-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
                             </div>
+
                             {hasLimit ? (
-                              <span className="budget-grid-status-dot active" title="Batas Aktif" />
+                              <>
+                                <div className="budget-row-amount-line">
+                                  <span className="budget-row-spent">{fmtMoney(catSpent)}</span>
+                                  <span className="budget-row-sep">/</span>
+                                  <span className="budget-row-limit">{fmtMoney(catLimit)}</span>
+                                </div>
+                                <div className="budget-row-mini-bar-frame">
+                                  <div 
+                                    className={`budget-row-mini-bar-fill ${catStatus}`} 
+                                    style={{ width: `${Math.min(Math.max(catPercent, 4), 100)}%` }}
+                                  />
+                                </div>
+                              </>
                             ) : (
-                              <span className="budget-grid-status-dot unset" title="Belum Diatur" />
+                              <div className="budget-row-unset-desc">
+                                <span>{t('tapToSet') || 'Belum diatur'}</span>
+                              </div>
                             )}
                           </div>
 
-                          <div className="budget-grid-card-info">
-                            <span className="budget-grid-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
-                            <span className="budget-grid-limit-text">
-                              {hasLimit ? fmtMoney(cat.monthlyLimit) : t('tapToSet')}
-                            </span>
+                          {/* Right: Percent Badge / "Atur" Button + Chevron Arrow */}
+                          <div className="budget-row-right">
+                            {hasLimit ? (
+                              <span className={`budget-row-pct-text ${catStatus}`}>
+                                {Math.round(catPercent)}%
+                              </span>
+                            ) : (
+                              <button 
+                                type="button" 
+                                className="budget-row-set-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCategoryBudgetModal(cat);
+                                }}
+                              >
+                                {t('set') || 'Atur'}
+                              </button>
+                            )}
+
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8A494" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-row-chevron">
+                              <polyline points="9 18 15 12 9 6"/>
+                            </svg>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Tombol Lebarkan / Tampilkan Lebih Banyak jika item lebih dari 6 */}
-                  {!isSearchActive && filtered.length > 6 && (
+                  {/* Accordion Expand/Collapse Toggle Button */}
+                  {!isSearchActive && filtered.length > 5 && (
                     <div className="budget-expand-btn-wrapper">
                       <button
                         type="button"
@@ -4019,10 +4123,9 @@ function App() {
       {/* Bottom Nav */}
       <nav className="bottom-nav">
         <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
-          <rect x="0" y="0" width="400" height="80" rx="20" fill="rgba(248, 239, 230, 0.95)" />
           <path
-            d="M 0,20 Q 0,0 20,0 L 145,0 C 165,0 172,34 200,34 C 228,34 235,0 255,0 L 380,0 Q 400,0 400,20 L 400,80 L 0,80 Z"
-            fill="rgba(248, 239, 230, 0.98)"
+            d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z"
+            fill="var(--bg-app, #F8EFE6)"
           />
         </svg>
 
@@ -4306,8 +4409,9 @@ function App() {
                     placeholder=""
                     value={note}
                     onChange={(e) => {
-                      setNote(e.target.value);
-                      setIsNoteSuggestionsOpen(e.target.value.trim().length > 0);
+                      const convertedValue = e.target.value.replace(/\b(dan)(\s+|$)/gi, (match, p1, p2) => `&${p2}`);
+                      setNote(convertedValue);
+                      setIsNoteSuggestionsOpen(convertedValue.trim().length > 0);
                     }}
                     aria-label="Catatan Transaksi"
                     onFocus={() => {
@@ -5063,7 +5167,9 @@ function App() {
                   }}
                 >
                   <div className="wa-menu-icon-box fingerprint-menu-icon">
-                    <img src={fingerprintSvg} alt="Fingerprint" width="22" height="22" style={{ objectFit: 'contain' }} />
+                    <svg width="22" height="22" viewBox="0 0 512 512" fill="currentColor">
+                      <path d="M239.83 0.08C251.25 0.08 262.66 0.08 274.08 0.08C277.79 1.31 282.05 0.88 285.93 1.37C295.76 2.61 305.61 3.44 315.38 5.18C340.86 9.72 365.39 18.5 389.03 28.72C398.94 33.01 424.65 41.35 415.89 56.57C407.57 71.04 388.15 56.27 377.68 51.76C338.88 35.08 298.64 25.41 256 25.68C213.28 25.95 172.85 35.06 133.87 51.8C123.97 56.05 103.79 71.41 96.18 56.47C90.01 44.37 101.74 39.01 110.23 34.72C114.96 32.33 119.63 29.93 124.51 27.91C148.04 18.18 171.57 10.16 196.68 5.3C206.85 3.33 217.21 2.59 227.48 1.32C231.44 0.83 236.06 1.4 239.83 0.08ZM254.63 62.4C269.68 61.85 285.15 63.58 299.98 65.78C354.41 73.83 405.24 96.73 446.13 133.91C458.26 144.94 469.61 157.14 479.3 170.38C483.92 176.7 488.66 182.21 484.74 190.42C481.37 197.45 470.85 198.46 465.29 193.75C461.09 190.18 458.24 184.65 454.81 180.38C451.84 176.67 448.62 173.17 445.59 169.52C436.2 158.2 424.43 148.13 412.81 139.18C368.37 104.97 311.9 87.9 256 88.01C199.85 88.12 142.79 105.37 98.47 140.29C87.05 149.29 75.73 159.23 66.34 170.38C63 174.34 59.44 178.2 56.35 182.36C53.41 186.31 50.59 191.59 46.7 194.66C41.05 199.12 30.74 198.37 27.32 191.31C23.34 183.1 28.05 177.32 32.8 170.99C42.36 158.27 52.94 146.3 64.7 135.55C119.52 85.39 181.03 65.1 254.63 62.4ZM333.41 511.92C331.36 511.92 329.31 511.92 327.26 511.92C325.81 510.51 322.88 510.37 320.97 509.74C315.89 508.05 310.74 506.6 305.71 504.79C290.95 499.47 276.14 492.76 263.17 483.77C218.56 452.86 186.53 406.15 178.84 352.11C174.83 323.96 175.33 299.08 194.31 276.36C202.93 266.04 214.82 258.25 227.36 253.74C237.73 250.01 248.21 248.62 259.27 248.94C290.98 249.86 321.14 271.59 330.79 302.07C334.3 313.16 332.7 323.52 335.24 334.08C339.17 350.41 351.06 362.75 366.06 369.65C395.04 382.97 433.15 364.78 439.78 333.46C441.16 326.93 440.32 320.55 440.08 313.98C439.36 294.25 434.4 273.03 425.74 255.25C413.41 229.95 396.03 206.53 373.38 189.35C299.27 133.13 192.81 135.96 124.24 200.21C97.65 225.13 78.65 258.37 73.15 294.47C70.39 312.63 70.86 331.24 72.15 349.52C73.33 366.23 77.48 383.13 82.2 399.1C84.16 405.72 88.15 412.77 88.8 419.65C89.71 429.28 80.01 435.5 71.45 432.77C63.69 430.3 61.98 419.78 59.77 413.16C53.1 393.14 49.44 372.78 46.76 351.85C42.9 321.7 45.17 288.52 55.25 259.8C73.85 206.74 115.8 165.53 166.35 142.28C250.32 103.65 357.21 126.62 417.68 196.48C434.15 215.51 446.55 237.4 455.24 260.87C462.37 280.16 468.69 311.8 465.76 332.22C457.52 389.77 392.02 417.74 343.35 386.77C326.84 376.27 314.57 359.08 310.17 340.07C306.09 322.46 310.56 314.25 299.75 297.12C296.9 292.6 292.53 288.84 288.34 285.64C264.83 267.63 229.12 272.34 211.3 296.17C198.94 312.69 201.38 334.11 204.71 353.27C213.01 400.96 244.74 445.41 287.5 468.77C297.84 474.42 308.72 478.85 319.8 482.77C325.26 484.7 331.74 485.3 336.77 488.27C343.13 492.03 344.83 500.91 340.56 506.81C338.63 509.48 335.56 509.87 333.41 511.92ZM247.61 186.3C306.85 182.56 369.93 217.54 391.15 274.46C395.99 287.42 399.18 300.05 400.44 313.92C401.04 320.45 402.15 327.38 397.44 332.67C391.17 339.71 379.85 336.79 376.28 328.59C374.28 324.01 375.22 317.9 374.87 313.04C374.59 309.08 373.79 304.61 372.86 300.74C366.85 275.8 351.95 251.31 330.63 236.33C274.9 197.17 200.77 204.82 158.29 259.52C123 304.96 135.14 381.29 163.18 427.58C171.97 442.1 181.25 455.69 192.3 468.63C197.29 474.47 206.33 481 209.7 487.68C214.91 498 205.51 507.72 195.21 505.9C188.92 504.78 178.21 491.18 173.79 486.19C155.4 465.44 139.61 441.61 128.81 416.13C114.51 382.4 105.21 330.84 114.2 294.85C129.84 232.28 183.73 190.33 247.61 186.3ZM252.37 311.57C258.51 310.23 266.08 315.07 267.02 321.46C268.52 331.67 268.17 341.86 271.14 351.86C278.85 377.8 294.64 398.7 316.36 414.73C334.83 428.36 359.14 433.6 381.78 433.51C386.35 433.49 391.25 433.36 395.78 432.82C401.22 432.18 408.12 429.86 413.55 431.18C422.12 433.26 427.22 444.43 420.88 451.5C416.65 456.22 411.96 456.22 406.09 457.31C393.55 459.63 379.46 460.01 366.81 458.33C354.46 456.69 342.64 454.86 330.83 450.76C294.12 438.01 268.66 409.63 252.32 375.41C245.88 361.91 242.22 345.33 241.98 330.36C241.85 321.76 242.31 313.76 252.37 311.57Z" fill="currentColor"/>
+                    </svg>
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
@@ -5105,9 +5211,9 @@ function App() {
                 <div className="wa-menu-item tour-target-backup" onClick={() => setIsBackupModalOpen(true)}>
                   <div className="wa-menu-icon-box backup-icon">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
-                      <polyline points="12 13 12 7"/>
-                      <polyline points="9 10 12 7 15 10"/>
+                      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                      <polyline points="12 13 12 17"/>
+                      <polyline points="9 15 12 12 15 15"/>
                     </svg>
                   </div>
                   <div className="wa-menu-content">
@@ -5676,9 +5782,9 @@ function App() {
                 >
                   <div className="backup-action-icon export-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
-                      <polyline points="12 13 12 7"/>
-                      <polyline points="9 10 12 7 15 10"/>
+                      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                      <polyline points="12 13 12 17"/>
+                      <polyline points="9 15 12 12 15 15"/>
                     </svg>
                   </div>
                   <div className="backup-action-content">
@@ -5699,9 +5805,9 @@ function App() {
                 >
                   <div className="backup-action-icon import-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
-                      <polyline points="12 7 12 13"/>
-                      <polyline points="9 10 12 13 15 10"/>
+                      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                      <polyline points="12 12 12 16"/>
+                      <polyline points="9 14 12 17 15 14"/>
                     </svg>
                   </div>
                   <div className="backup-action-content">
@@ -5731,9 +5837,9 @@ function App() {
           <div className="backup-confirm-card" onClick={(e) => e.stopPropagation()}>
             <div className="backup-confirm-icon-wrapper">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
-                <polyline points="12 7 12 13"/>
-                <polyline points="9 10 12 13 15 10"/>
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                <polyline points="12 12 12 16"/>
+                <polyline points="9 14 12 17 15 14"/>
               </svg>
             </div>
             <h3 className="backup-confirm-title">{t('restoreConfirmTitle')}</h3>

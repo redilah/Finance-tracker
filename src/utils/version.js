@@ -110,18 +110,18 @@ const formatUpdateResult = async (data) => {
     }
 
     let baseApkName = 'Cassiel.apk';
-    let downloadUrl = data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
+    let downloadUrl = data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
     
     if (isUdinApp) {
-      baseApkName = 'udin.apk';
-      downloadUrl = data.udinDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/udin.apk?v=${latestVersionCode}&t=${Date.now()}`;
+      baseApkName = 'Udin.apk';
+      downloadUrl = data.udinDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=${latestVersionCode}&t=${Date.now()}`;
     } else if (isDebugOrTestApp) {
       baseApkName = 'cassielll1.apk';
-      downloadUrl = data.debugDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/cassielll1.apk?v=${latestVersionCode}&t=${Date.now()}`;
+      downloadUrl = data.debugDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=${latestVersionCode}&t=${Date.now()}`;
     } else {
       // Pastikan Cassiel resmi selalu mengarah ke Cassiel.apk bertanda tangan Release Keystore
       baseApkName = 'Cassiel.apk';
-      downloadUrl = data.downloadUrl || data.apkUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
+      downloadUrl = data.downloadUrl || data.apkUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
     }
 
     return {
