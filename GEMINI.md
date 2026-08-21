@@ -121,13 +121,15 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
   1. **Wajib Audit Komprehensif via Git Diff**: Dilarang hanya mencantumkan fitur dari topik obrolan terakhir. Wajib memeriksa perubahan riil secara menyeluruh menggunakan `git diff` / riwayat perubahan terhadap versi rilis sebelumnya untuk mendeteksi seluruh fitur baru, aset, optimasi, dan perbaikan yang masuk ke dalam build rilis tersebut.
-  2. **Format Ringkas 1–2 Poin Utama**: Changelog pada pop-up modal update wajib dibuat sangat ringkas (cukup **1–2 poin fitur utama** saja, tidak perlu menuliskan seluruh daftar panjang).
-  3. **No Nested White Box**: Tampilan daftar pembaruan pada modal pop-up update dilarang menggunakan container/box putih terpisah (`background: transparent; border: none; box-shadow: none;`) agar menyatu mulus dan bersih dengan latar kartu modal tanpa kesan kotak di dalam kotak.
+  2. **High-Impact Value & Benefit (Bukan Perubahan Remeh)**: Dilarang mencantumkan perubahan teknis minor internal atau kosmetik kecil (misal "tampilan kalender", "optimalisasi notif") yang tidak memiliki daya tarik nyata bagi pengguna. Wajib menonjolkan fitur dengan **nilai guna nyata (*core value & benefit*)** yang membuat pengguna merasa sangat butuh dan tertarik untuk melakukan update (misal: "Target Budget Bulanan & Pemantauan Sisa Belanja Real-Time", "Backup & Restore Data Langsung ke Google Drive").
+  3. **Format Tag [NEW] (No Bullet Points)**: Setiap baris pembaruan wajib diawali langsung dengan tag `[NEW]` (tanpa bullet point dash `-` atau dot `•`).
+  4. **Format Ringkas 1–2 Poin Utama**: Changelog pada pop-up modal update wajib dibuat sangat ringkas (cukup **1–2 poin fitur utama** saja, tidak perlu menuliskan seluruh daftar panjang).
+  5. **No Nested White Box**: Tampilan daftar pembaruan pada modal pop-up update dilarang menggunakan container/box putih terpisah (`background: transparent; border: none; box-shadow: none;`) agar menyatu mulus dan bersih dengan latar kartu modal tanpa kesan kotak di dalam kotak.
 * **Format Contoh**:
   ```text
   New in this update:
-  - [New] Fitur Multi-Bahasa Aplikasi
-  - [New] Fitur Saran Pengguna untuk Pengembang
+  [NEW] Target Budget Bulanan & Pemantauan Sisa Belanja Real-Time
+  [NEW] Backup & Restore Data Langsung ke Google Drive & Cloud
   ```
 
 ## 7. In-App Update Anti-Cache & Dynamic Routing Invariants
