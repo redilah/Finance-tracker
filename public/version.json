@@ -1,12 +1,12 @@
 {
-  "versionCode": 26,
-  "versionName": "1.0.25",
-  "version": "1.0.25",
+  "versionCode": 27,
+  "versionName": "1.0.26",
+  "version": "1.0.26",
   "changelog": "New in this update:\n[NEW] Target Budget Bulanan & Pemantauan Sisa Belanja Real-Time\n[NEW] Backup & Restore Data Langsung ke Google Drive & Cloud",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.25",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.25",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.25",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.25",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.26",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.26",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.26",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.26",
   "sha256": "a9e2d6b1310ac4195011a0a683a6c161191ad9c38b3be1001ee9d6c7a1bed60e",
   "minSdkVersion": 22
 }

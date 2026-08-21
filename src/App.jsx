@@ -986,7 +986,7 @@ function App() {
   };
 
   // Translation helper
-  const t = useCallback((key) => getTranslation(appLanguage, key), [appLanguage]);
+  const t = useCallback((key, vars) => getTranslation(appLanguage, key, vars), [appLanguage]);
 
   // Apply Font globally
   useEffect(() => {
@@ -3312,7 +3312,7 @@ function App() {
                             </button>
                           )}
                         </div>
-                        <span className="account-card-count">{item.count} transaksi • {percentage}%</span>
+                        <span className="account-card-count">{t('transactionsCount', { count: item.count }) || `${item.count} transaksi`} • {percentage}%</span>
                       </div>
                     </div>
                     <div className="account-card-right">
@@ -3340,7 +3340,7 @@ function App() {
                 </svg>
               </button>
               <span className="month-text">
-                {periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : 'Minggu Ini'}
+                {periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : (t('statsPeriodWeekly') || 'Minggu Ini')}
               </span>
               <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Period">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -3481,7 +3481,7 @@ function App() {
             ) : (
               <div className="pie-chart-empty">
                 <span>📊</span>
-                <p>Belum ada data {statsType === 'expense' ? 'pengeluaran' : 'pemasukan'}</p>
+                <p>{t('noStatsData') || 'Belum ada data'} {statsType === 'expense' ? (t('expenses') || 'pengeluaran') : (t('income') || 'pemasukan')}</p>
               </div>
             )}
           </div>
@@ -3519,7 +3519,7 @@ function App() {
                     key={idx} 
                     className="stats-breakdown-item interactive"
                     onClick={() => handleOpenCategoryInsight(cat)}
-                    title="Klik untuk melihat insight lengkap"
+                    title={t('tapToViewInsight', { name: '' }) || 'Klik untuk melihat insight lengkap'}
                   >
                     <div className="stats-item-left">
                       <div className="stats-percent-badge" style={{ backgroundColor: cat.color }}>
@@ -3533,7 +3533,7 @@ function App() {
                           </span>
                           {showPulsingCta && (
                             <span className="stats-insight-cta">
-                              ✨ Klik lihat insight mu {profileName || 'No Name'}
+                              {t('tapToViewInsight', { name: profileName || '' }) || `✨ Klik lihat insight mu ${profileName || 'No Name'}`}
                             </span>
                           )}
                         </div>
@@ -3822,8 +3822,8 @@ function App() {
                     <div className="budget-game-bar-meta">
                       <span className="budget-game-bar-status">
                         {hasMain 
-                          ? (isOver ? '⚠️ Limit Terlampaui!' : (spentPercent >= 80 ? '⚡ Waspada Limit!' : '✨ Kondisi Aman')) 
-                          : 'Budget belum diatur'}
+                          ? (isOver ? (t('budgetLimitExceeded') || '⚠️ Limit Terlampaui!') : (spentPercent >= 80 ? (t('budgetNearLimit') || '⚡ Waspada Limit!') : (t('budgetSafeZone') || '✨ Kondisi Aman'))) 
+                          : (t('budgetNotSet') || 'Budget belum diatur')}
                       </span>
                       <span className="budget-game-bar-ratio">
                         {hasMain ? `${Math.round(spentPercent)}% / 100%` : '0% / 100%'}
@@ -3840,7 +3840,7 @@ function App() {
                           className="budget-hero-btn primary"
                           onClick={handleSaveMainBudget}
                         >
-                          <span>Simpan Budget</span>
+                          <span>{t('saveBudget') || 'Simpan Budget'}</span>
                         </button>
                         <button 
                           type="button" 
@@ -3865,7 +3865,7 @@ function App() {
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
-                          <span>Ubah Budget</span>
+                          <span>{t('editBudget') || 'Ubah Budget'}</span>
                         </button>
                         <button 
                           type="button" 
@@ -3886,7 +3886,7 @@ function App() {
                           <line x1="12" y1="5" x2="12" y2="19"/>
                           <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        <span>Atur Budget</span>
+                        <span>{t('setBudget') || 'Atur Budget'}</span>
                       </button>
                     )}
                   </div>
@@ -3910,7 +3910,7 @@ function App() {
               <input 
                 type="text" 
                 className="budget-search-input"
-                placeholder="Cari kategori (kopi, bensin, belanja)..."
+                placeholder={t('searchCategoryPlaceholder') || 'Cari kategori (kopi, bensin, belanja)...'}
                 value={budgetSearchQuery}
                 onChange={(e) => setBudgetSearchQuery(e.target.value)}
               />
@@ -3944,21 +3944,21 @@ function App() {
                   className={`budget-tab-btn ${budgetFilterTab === 'all' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('all')}
                 >
-                  Semua ({countAll})
+                  {t('filterAll') || 'Semua'} ({countAll})
                 </button>
                 <button 
                   type="button" 
                   className={`budget-tab-btn ${budgetFilterTab === 'active' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('active')}
                 >
-                  Aktif ({countActive})
+                  {t('filterActive') || 'Aktif'} ({countActive})
                 </button>
                 <button 
                   type="button" 
                   className={`budget-tab-btn ${budgetFilterTab === 'unset' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('unset')}
                 >
-                  Belum Diatur ({countUnset})
+                  {t('filterUnset') || 'Belum Diatur'} ({countUnset})
                 </button>
               </div>
             );
@@ -3972,7 +3972,7 @@ function App() {
                 return (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8C786A' }}>
                     <p style={{ fontSize: '14px', fontWeight: 500 }}>
-                      {budgetSearchQuery ? `Kategori "${budgetSearchQuery}" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}
+                      {budgetSearchQuery ? (t('categoryNotFound', { query: budgetSearchQuery }) || `Kategori "${budgetSearchQuery}" tidak ditemukan`) : (t('noCategoriesInFilter') || 'Tidak ada kategori pada filter ini')}
                     </p>
                   </div>
                 );
@@ -4070,8 +4070,8 @@ function App() {
                       >
                         <span>
                           {isBudgetCategoriesExpanded 
-                            ? 'Sembunyikan' 
-                            : `Tampilkan Semua (${filtered.length})`}
+                            ? (t('hide') || 'Sembunyikan') 
+                            : `${t('showAll') || 'Tampilkan Semua'} (${filtered.length})`}
                         </span>
                         <svg 
                           width="16" 
@@ -4568,8 +4568,8 @@ function App() {
                           onClick={() => handleSelectCategory(cat)}
                         >
                           {showLastBadge && (
-                            <span className="last-used-badge" title="Kategori paling sering / terakhir digunakan">
-                              Terakhir
+                            <span className="last-used-badge" title={t('recentCategoryTitle') || 'Kategori paling sering / terakhir digunakan'}>
+                              {t('recentBadge') || 'Terakhir'}
                             </span>
                           )}
                           {catIcon ? (
@@ -4596,7 +4596,7 @@ function App() {
                         className={`header-action-btn undo-btn ${deletedAccountsHistory.length > 0 ? 'enabled' : 'disabled'}`}
                         onClick={handleUndoDeleteAccount}
                         disabled={deletedAccountsHistory.length === 0}
-                        title="Batalkan Hapus Akun"
+                        title={t('undoDeleteAccount') || 'Batalkan Hapus Akun'}
                         aria-label="Undo delete account"
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -4611,7 +4611,7 @@ function App() {
                           setIsAccountDeleteMode(!isAccountDeleteMode);
                           if (isCustomAccount) setIsCustomAccount(false);
                         }}
-                        title={isAccountDeleteMode ? "Selesai Hapus" : "Mode Hapus Akun"}
+                        title={isAccountDeleteMode ? (t('doneDeleting') || 'Selesai Hapus') : (t('deleteAccountMode') || 'Mode Hapus Akun')}
                         aria-label="Toggle delete mode"
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
@@ -4625,7 +4625,7 @@ function App() {
                       setIsCustomAccount(!isCustomAccount);
                       if (isAccountDeleteMode) setIsAccountDeleteMode(false);
                     }}
-                    title="Tulis Akun Sendiri"
+                    title={t('writeCustomAccount') || 'Tulis Akun Sendiri'}
                     aria-label="Edit custom account"
                   >
                     ✏️
@@ -4697,8 +4697,8 @@ function App() {
                         </span>
                       )}
                       {!isAccountDeleteMode && showLastBadge && (
-                        <span className="last-used-badge" title="Akun paling sering / terakhir digunakan">
-                          Terakhir
+                        <span className="last-used-badge" title={t('recentAccountTitle') || 'Akun paling sering / terakhir digunakan'}>
+                          {t('recentBadge') || 'Terakhir'}
                         </span>
                       )}
                       <div className="cat-grid-icon account-badge-icon">
@@ -4761,7 +4761,7 @@ function App() {
                     </svg>
                   </div>
                 </div>
-                <span className="profile-picker-hint">Tekan foto untuk memilih dari galeri</span>
+                <span className="profile-picker-hint">{t('tapPhotoToChoose') || 'Tekan foto untuk memilih dari galeri'}</span>
                 <input
                   ref={profileFileInputRef}
                   type="file"
@@ -4773,11 +4773,11 @@ function App() {
 
               {/* Name Input Field */}
               <div className="profile-field-group">
-                <label className="profile-field-label">Nama Lengkap / Panggilan</label>
+                <label className="profile-field-label">{t('fullNameOrNickname') || 'Nama Lengkap / Panggilan'}</label>
                 <input
                   type="text"
                   className="profile-name-input"
-                  placeholder="Ketik nama panggilan Anda..."
+                  placeholder={t('typeNicknamePlaceholder') || 'Ketik nama panggilan Anda...'}
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
                   onKeyDown={(e) => {
@@ -4788,7 +4788,7 @@ function App() {
 
               {/* Language Selection Dropdown for Beginners */}
               <div className="profile-field-group">
-                <label className="profile-field-label">Pilih Bahasa Aplikasi</label>
+                <label className="profile-field-label">{t('chooseAppLanguage') || 'Pilih Bahasa Aplikasi'}</label>
                 <div className="onboarding-lang-dropdown">
                   <div
                     className={`onboarding-lang-trigger ${isOnboardingLangOpen ? 'open' : ''}`}
@@ -5230,7 +5230,7 @@ function App() {
                 {/* ========================================================
                     5. LAINNYA
                    ======================================================== */}
-                <h4 className="wa-profile-section-title">LAINNYA</h4>
+                <h4 className="wa-profile-section-title">{t('sectionOthers') || 'LAINNYA'}</h4>
 
                 {/* Saran & Masukan */}
                 <div className="wa-menu-item" onClick={() => setIsFeedbackModalOpen(true)}>
@@ -5251,7 +5251,7 @@ function App() {
                 </div>
 
                 {/* FAQ */}
-                <div className="wa-menu-item" onClick={() => showVoiceToast('Fitur FAQ akan segera hadir!')}>
+                <div className="wa-menu-item" onClick={() => showVoiceToast(t('faqComingSoon') || 'Fitur FAQ akan segera hadir!')}>
                   <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
@@ -5263,7 +5263,7 @@ function App() {
                     <div className="wa-menu-title-row">
                       <span className="wa-menu-title">FAQ</span>
                     </div>
-                    <span className="wa-menu-subtitle">Pertanyaan umum seputar penggunaan aplikasi</span>
+                    <span className="wa-menu-subtitle">{t('faqSubtitle') || 'Pertanyaan umum seputar penggunaan aplikasi'}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -5279,7 +5279,7 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">Tentang</span>
+                      <span className="wa-menu-title">{t('aboutTitle') || 'Tentang'}</span>
                     </div>
                     <span className="wa-menu-subtitle">Cassiel Finance Tracker</span>
                   </div>
@@ -5992,7 +5992,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="budget-sheet-title">{activeBudgetCategory.name}</h3>
-                  <p className="budget-sheet-subtitle">Atur batas maksimal pengeluaran per bulan</p>
+                  <p className="budget-sheet-subtitle">{t('setCategoryLimitSubtitle') || 'Atur batas maksimal pengeluaran per bulan'}</p>
                 </div>
               </div>
               <button 
@@ -6006,7 +6006,7 @@ function App() {
 
             <div className="budget-sheet-body">
               {/* Quick Chips */}
-              <label className="budget-sheet-label">Pilihan Nominal Cepat</label>
+              <label className="budget-sheet-label">{t('quickAmountLabel') || 'Pilihan Nominal Cepat'}</label>
               <div className="budget-quick-chips">
                 {[
                   { label: '100 Rb', val: 100000 },
@@ -6030,7 +6030,7 @@ function App() {
               </div>
 
               {/* Input box */}
-              <label className="budget-sheet-label" style={{ marginTop: '14px' }}>Nominal Limit</label>
+              <label className="budget-sheet-label" style={{ marginTop: '14px' }}>{t('limitAmountLabel') || 'Nominal Limit'}</label>
               <div className="budget-modal-input-wrapper">
                 <span className="budget-modal-input-prefix">{getCurrency(appCurrency).symbol}</span>
                 <input
@@ -6071,7 +6071,7 @@ function App() {
                   className="budget-sheet-btn delete-btn"
                   onClick={handleRemoveCategoryBudget}
                 >
-                  Hapus Limit
+                  {t('removeLimit') || 'Hapus Limit'}
                 </button>
               ) : (
                 <button
@@ -6087,7 +6087,7 @@ function App() {
                 className="budget-sheet-btn save-btn"
                 onClick={handleSaveCategoryBudget}
               >
-                Simpan Limit
+                {t('saveLimit') || 'Simpan Limit'}
               </button>
             </div>
           </div>
@@ -6100,8 +6100,8 @@ function App() {
           <div className="budget-sheet-card budget-month-picker-modal" onClick={(e) => e.stopPropagation()}>
             <div className="budget-sheet-header">
               <div>
-                <h3 className="budget-sheet-title">Pilih Periode Budget</h3>
-                <p className="budget-sheet-subtitle">Cek riwayat realisasi & pengeluaran bulanan</p>
+                <h3 className="budget-sheet-title">{t('selectBudgetPeriodTitle') || 'Pilih Periode Budget'}</h3>
+                <p className="budget-sheet-subtitle">{t('selectBudgetPeriodSubtitle') || 'Cek riwayat realisasi & pengeluaran bulanan'}</p>
               </div>
               <button 
                 type="button" 
@@ -6173,7 +6173,7 @@ function App() {
                   setIsBudgetMonthPickerOpen(false);
                 }}
               >
-                Bulan Ini
+                {t('thisMonth') || 'Bulan Ini'}
               </button>
               <button 
                 type="button"
@@ -6192,7 +6192,7 @@ function App() {
         <div className="modal-overlay update-overlay">
           <div className="update-modal-card">
             <div className="update-modal-header">
-              <span className="update-modal-badge">🚀 Versi Baru Tersedia</span>
+              <span className="update-modal-badge">{t('newVersionAvailable') || '🚀 Versi Baru Tersedia'}</span>
             </div>
             <div className="update-modal-body">
               <h3 className="update-version-title">Update v{updateInfo.version}</h3>
@@ -6207,7 +6207,7 @@ function App() {
 
                 return (
                   <div className="update-changelog-container">
-                    <p className="update-changelog-header">Yang baru di versi ini:</p>
+                    <p className="update-changelog-header">{t('whatsNewInThisVersion') || 'Yang baru di versi ini:'}</p>
                     <ul className="update-changelog-list">
                       {lines
                         .filter(line => !line.toLowerCase().startsWith('new in this update') && !line.toLowerCase().startsWith('yang baru'))
@@ -6235,15 +6235,15 @@ function App() {
                   setUpdateInfo(null);
                 }}
               >
-                Nanti
+                {t('later') || 'Nanti'}
               </button>
               <button
                 type="button"
                 className="update-now-btn"
                 onClick={() => {
                   const targetApk = updateInfo?.apkName || (updateInfo?.isUdinApp ? 'udin.apk' : 'Cassiel.apk');
-                  const rawUrl = updateInfo?.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/${targetApk}`;
-                  const cleanUrl = rawUrl.split('?')[0] + `?t=${Date.now()}`;
+                  const rawUrl = updateInfo?.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/${targetApk}`;
+                  const cleanUrl = rawUrl.includes('?') ? `${rawUrl}&t=${Date.now()}` : `${rawUrl}?t=${Date.now()}`;
                   console.log('[UpdateModal] Navigating to download URL:', cleanUrl);
                   const opened = window.open(cleanUrl, '_system');
                   if (!opened) {
@@ -6251,7 +6251,7 @@ function App() {
                   }
                 }}
               >
-                Update Sekarang
+                {t('updateNow') || 'Update Sekarang'}
               </button>
             </div>
           </div>
@@ -6269,10 +6269,10 @@ function App() {
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
             </div>
-            <h3 className="safety-warning-title">Aktivitas Tidak Diizinkan</h3>
-            <div className="safety-warning-tag">{safetyWarning.categoryLabel || 'Konten Berbahaya'}</div>
+            <h3 className="safety-warning-title">{t('prohibitedActivityTitle') || 'Aktivitas Tidak Diizinkan'}</h3>
+            <div className="safety-warning-tag">{safetyWarning.categoryLabel || t('prohibitedDangerousContent') || 'Konten Berbahaya'}</div>
             <p className="safety-warning-desc">
-              {safetyWarning.reason || 'Pencatatan untuk kategori berbahaya, ilegal, rokok, miras, atau asusila tidak diizinkan.'}
+              {safetyWarning.reason || t('prohibitedActivityDesc') || 'Pencatatan untuk kategori berbahaya, ilegal, rokok, miras, atau asusila tidak diizinkan.'}
             </p>
             <div className="safety-warning-footer">
               <button
@@ -6280,7 +6280,7 @@ function App() {
                 className="safety-understand-btn"
                 onClick={() => setSafetyWarning({ isOpen: false, categoryLabel: '', reason: '' })}
               >
-                Saya Mengerti
+                {t('iUnderstand') || 'Saya Mengerti'}
               </button>
             </div>
           </div>
@@ -6367,9 +6367,9 @@ function App() {
               </span>
             </div>
             <div className="balance-pop-subtext">
-              {activeBalanceDetail.type === 'expense' && 'Total seluruh pengeluaran bulan ini'}
-              {activeBalanceDetail.type === 'income' && 'Total seluruh pemasukan bulan ini'}
-              {activeBalanceDetail.type === 'total' && 'Sisa saldo bersih keseluruhan bulan ini'}
+              {activeBalanceDetail.type === 'expense' && (t('totalExpenseMonthDesc') || 'Total seluruh pengeluaran bulan ini')}
+              {activeBalanceDetail.type === 'income' && (t('totalIncomeMonthDesc') || 'Total seluruh pemasukan bulan ini')}
+              {activeBalanceDetail.type === 'total' && (t('netBalanceMonthDesc') || 'Sisa saldo bersih keseluruhan bulan ini')}
             </div>
           </div>
         </div>

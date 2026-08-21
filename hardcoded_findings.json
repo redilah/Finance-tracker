@@ -1,0 +1,446 @@
+[
+  {
+    "lineNum": 320,
+    "content": "{/* Ringkasan Transaksi Konsumtif Minimalis */}"
+  },
+  {
+    "lineNum": 336,
+    "content": "dynamicSub = `Total konsumtif ${catDisplay.toLowerCase()} bulan ini`;"
+  },
+  {
+    "lineNum": 379,
+    "content": "const warningLabel = t ? t('lossAversionWarning') : '⚠️ Peringatan Konsumtif';"
+  },
+  {
+    "lineNum": 381,
+    "content": "const prefix = t ? t('lossAversionPrefix') : 'Bulan ini Anda';"
+  },
+  {
+    "lineNum": 383,
+    "content": "const suffix = t ? t('lossAversionSuffix') : 'dalam 5 tahun akibat pengeluaran konsumtif.';"
+  },
+  {
+    "lineNum": 422,
+    "content": "const fullTitle = item.title || item.category || 'Transaksi';"
+  },
+  {
+    "lineNum": 1240,
+    "content": "showVoiceToast(`✨ ${newTransactions.length} transaksi otomatis dicatat!`);"
+  },
+  {
+    "lineNum": 1850,
+    "content": "showVoiceToast('Tekan kembali sekali lagi untuk keluar');"
+  },
+  {
+    "lineNum": 2061,
+    "content": "const msg = (t('adjustAccountSuccess') || 'Akun berhasil disesuaikan ke {name}!').replace('{name}', newAccName);"
+  },
+  {
+    "lineNum": 2289,
+    "content": "showVoiceToast(`${t('mainBudget')} ${fmtMoney(numVal)} berhasil disimpan`);"
+  },
+  {
+    "lineNum": 2312,
+    "content": "showVoiceToast('Budget utama berhasil dihapus');"
+  },
+  {
+    "lineNum": 2386,
+    "content": "const catObj = categories.find(c => c.id === newTx.categoryId) || { name: newTx.category || 'Kategori' };"
+  },
+  {
+    "lineNum": 2420,
+    "content": "showVoiceToast('Belum ada transaksi untuk dihapus');"
+  },
+  {
+    "lineNum": 2507,
+    "content": "showVoiceToast(`Transaksi ${desc} tidak ditemukan`);"
+  },
+  {
+    "lineNum": 2522,
+    "content": "showVoiceToast(`✅ Transaksi \"${targetTx.title}\" berhasil dihapus`);"
+  },
+  {
+    "lineNum": 2597,
+    "content": "alert('Masukkan nominal transaksi');"
+  },
+  {
+    "lineNum": 2933,
+    "content": "title=\"Klik untuk atur profil\""
+  },
+  {
+    "lineNum": 3315,
+    "content": "<span className=\"account-card-count\">{item.count} transaksi • {percentage}%</span>"
+  },
+  {
+    "lineNum": 3343,
+    "content": "{periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : 'Minggu Ini'}"
+  },
+  {
+    "lineNum": 3484,
+    "content": "<p>Belum ada data {statsType === 'expense' ? 'pengeluaran' : 'pemasukan'}</p>"
+  },
+  {
+    "lineNum": 3604,
+    "content": "title={`${item.fullName} Pemasukan: ${fmtMoney(item.earned)}`}"
+  },
+  {
+    "lineNum": 3618,
+    "content": "title={`${item.fullName} Pengeluaran: ${fmtMoney(item.spend)}`}"
+  },
+  {
+    "lineNum": 3680,
+    "content": "aria-label=\"Bulan Sebelumnya\""
+  },
+  {
+    "lineNum": 3700,
+    "content": "title=\"Pilih Bulan & Tahun\""
+  },
+  {
+    "lineNum": 3725,
+    "content": "aria-label=\"Pilih Periode Bulan & Tahun Budget\""
+  },
+  {
+    "lineNum": 3732,
+    "content": "aria-label=\"Bulan Berikutnya\""
+  },
+  {
+    "lineNum": 3746,
+    "content": "{getTranslation(appLanguage, 'budgetThisMonth') || 'Budget bulan ini'}"
+  },
+  {
+    "lineNum": 3787,
+    "content": "title=\"Atur Budget Bulan Ini\""
+  },
+  {
+    "lineNum": 3826,
+    "content": ": 'Budget belum diatur'}"
+  },
+  {
+    "lineNum": 3843,
+    "content": "<span>Simpan Budget</span>"
+  },
+  {
+    "lineNum": 3852,
+    "content": "title=\"Batal Edit\""
+  },
+  {
+    "lineNum": 3854,
+    "content": "<span>Batal</span>"
+  },
+  {
+    "lineNum": 3868,
+    "content": "<span>Ubah Budget</span>"
+  },
+  {
+    "lineNum": 3874,
+    "content": "title=\"Hapus Budget Bulan Ini\""
+  },
+  {
+    "lineNum": 3876,
+    "content": "<span>Hapus</span>"
+  },
+  {
+    "lineNum": 3889,
+    "content": "<span>Atur Budget</span>"
+  },
+  {
+    "lineNum": 3900,
+    "content": "<h3 className=\"budget-section-title\">{t('categoryBreakdown') || 'Budget per Kategori'}</h3>"
+  },
+  {
+    "lineNum": 3913,
+    "content": "placeholder=\"Cari kategori (kopi, bensin, belanja)...\""
+  },
+  {
+    "lineNum": 3947,
+    "content": "Semua ({countAll})"
+  },
+  {
+    "lineNum": 3961,
+    "content": "Belum Diatur ({countUnset})"
+  },
+  {
+    "lineNum": 3975,
+    "content": "{budgetSearchQuery ? `Kategori \"${budgetSearchQuery}\" tidak ditemukan` : 'Tidak ada kategori pada filter ini'}"
+  },
+  {
+    "lineNum": 4030,
+    "content": "<span>{t('tapToSet') || 'Belum diatur'}</span>"
+  },
+  {
+    "lineNum": 4035,
+    "content": "{/* Right: Percent Badge / \"Atur\" Button + Chevron Arrow */}"
+  },
+  {
+    "lineNum": 4050,
+    "content": "{t('set') || 'Atur'}"
+  },
+  {
+    "lineNum": 4074,
+    "content": ": `Tampilkan Semua (${filtered.length})`}"
+  },
+  {
+    "lineNum": 4211,
+    "content": "? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : 'Expense')"
+  },
+  {
+    "lineNum": 4213,
+    "content": "? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : 'Income')"
+  },
+  {
+    "lineNum": 4239,
+    "content": "? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : appLanguage === 'ko' ? 'Jichul' : 'Expense')"
+  },
+  {
+    "lineNum": 4241,
+    "content": "? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : appLanguage === 'ko' ? 'Su-ip' : 'Income')"
+  },
+  {
+    "lineNum": 4313,
+    "content": "aria-label=\"Pilih Tanggal Transaksi\""
+  },
+  {
+    "lineNum": 4321,
+    "content": "aria-label=\"Pilih Waktu Transaksi\""
+  },
+  {
+    "lineNum": 4346,
+    "content": "aria-label=\"Jumlah Transaksi\""
+  },
+  {
+    "lineNum": 4416,
+    "content": "aria-label=\"Catatan Transaksi\""
+  },
+  {
+    "lineNum": 4520,
+    "content": "title=\"Tulis Kategori Sendiri\""
+  },
+  {
+    "lineNum": 4571,
+    "content": "<span className=\"last-used-badge\" title=\"Kategori paling sering / terakhir digunakan\">"
+  },
+  {
+    "lineNum": 4599,
+    "content": "title=\"Batalkan Hapus Akun\""
+  },
+  {
+    "lineNum": 4614,
+    "content": "title={isAccountDeleteMode ? \"Selesai Hapus\" : \"Mode Hapus Akun\"}"
+  },
+  {
+    "lineNum": 4691,
+    "content": "title={`Hapus ${acc}`}"
+  },
+  {
+    "lineNum": 4692,
+    "content": "aria-label={`Hapus ${acc}`}"
+  },
+  {
+    "lineNum": 4780,
+    "content": "placeholder=\"Ketik nama panggilan Anda...\""
+  },
+  {
+    "lineNum": 4791,
+    "content": "<label className=\"profile-field-label\">Pilih Bahasa Aplikasi</label>"
+  },
+  {
+    "lineNum": 4861,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 4920,
+    "content": "title=\"Simpan Nama\""
+  },
+  {
+    "lineNum": 4930,
+    "content": "<button type=\"button\" className=\"wa-edit-pen-btn\" title=\"Ubah Nama\">"
+  },
+  {
+    "lineNum": 5014,
+    "content": "<span className=\"wa-menu-subtitle\">{t('notifAutoTrackerSubtitle') || 'Pelacak transaksi M-Banking & E-Wallet'}</span>"
+  },
+  {
+    "lineNum": 5132,
+    "content": "{/* Atur PIN / Ubah PIN */}"
+  },
+  {
+    "lineNum": 5223,
+    "content": "<span className=\"wa-menu-subtitle\">{t('backupSettingSubtitle') || 'Simpan dan pulihkan catatan transaksi'}</span>"
+  },
+  {
+    "lineNum": 5246,
+    "content": "<span className=\"wa-menu-subtitle\">{t('feedbackSubtitle') || 'Kirim masukan untuk pengembangan Cassiel'}</span>"
+  },
+  {
+    "lineNum": 5322,
+    "content": "{/* Full-Page Screen: Pilihan Custom Font */}"
+  },
+  {
+    "lineNum": 5332,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5346,
+    "content": "title=\"Konfirmasi Pilihan Font\""
+  },
+  {
+    "lineNum": 5347,
+    "content": "aria-label=\"Konfirmasi\""
+  },
+  {
+    "lineNum": 5381,
+    "content": "{/* Full-Page Screen: Pilihan Ukuran Font */}"
+  },
+  {
+    "lineNum": 5391,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5405,
+    "content": "title=\"Konfirmasi Pilihan Ukuran Font\""
+  },
+  {
+    "lineNum": 5406,
+    "content": "aria-label=\"Konfirmasi\""
+  },
+  {
+    "lineNum": 5440,
+    "content": "{/* Full-Page Screen: Pilihan Multi Bahasa */}"
+  },
+  {
+    "lineNum": 5450,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5464,
+    "content": "title=\"Konfirmasi Pilihan Bahasa\""
+  },
+  {
+    "lineNum": 5465,
+    "content": "aria-label=\"Konfirmasi\""
+  },
+  {
+    "lineNum": 5499,
+    "content": "{/* Full-Page Screen: Pilihan Mata Uang Utama (Real-time Kurs 1 Dunia) */}"
+  },
+  {
+    "lineNum": 5509,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5523,
+    "content": "title=\"Konfirmasi Pilihan Mata Uang\""
+  },
+  {
+    "lineNum": 5524,
+    "content": "aria-label=\"Konfirmasi\""
+  },
+  {
+    "lineNum": 5623,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5639,
+    "content": "<p className=\"adjust-account-old-desc\">{t('adjustAccountSubtitle') || 'Ubah akun lama menjadi nama Bank atau E-Wallet resmi'}</p>"
+  },
+  {
+    "lineNum": 5642,
+    "content": "<p className=\"adjust-account-prompt-text\">{t('adjustAccountPrompt') || 'Pilih Bank atau E-Wallet yang sesuai untuk menggantikan akun ini secara permanen:'}</p>"
+  },
+  {
+    "lineNum": 5676,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5746,
+    "content": "aria-label=\"Kembali\""
+  },
+  {
+    "lineNum": 5859,
+    "content": "<span> • {backupRestoreConfirm.data.transactions.length} transaksi</span>"
+  },
+  {
+    "lineNum": 5865,
+    "content": "{t('close') || 'Batal'}"
+  },
+  {
+    "lineNum": 5995,
+    "content": "<p className=\"budget-sheet-subtitle\">Atur batas maksimal pengeluaran per bulan</p>"
+  },
+  {
+    "lineNum": 6009,
+    "content": "<label className=\"budget-sheet-label\">Pilihan Nominal Cepat</label>"
+  },
+  {
+    "lineNum": 6074,
+    "content": "Hapus Limit"
+  },
+  {
+    "lineNum": 6082,
+    "content": "Batal"
+  },
+  {
+    "lineNum": 6090,
+    "content": "Simpan Limit"
+  },
+  {
+    "lineNum": 6103,
+    "content": "<h3 className=\"budget-sheet-title\">Pilih Periode Budget</h3>"
+  },
+  {
+    "lineNum": 6104,
+    "content": "<p className=\"budget-sheet-subtitle\">Cek riwayat realisasi & pengeluaran bulanan</p>"
+  },
+  {
+    "lineNum": 6121,
+    "content": "aria-label=\"Tahun Sebelumnya\""
+  },
+  {
+    "lineNum": 6132,
+    "content": "aria-label=\"Tahun Berikutnya\""
+  },
+  {
+    "lineNum": 6176,
+    "content": "Bulan Ini"
+  },
+  {
+    "lineNum": 6183,
+    "content": "Tutup"
+  },
+  {
+    "lineNum": 6261,
+    "content": "{/* Safety Compliance Warning Modal (Pop-up Merah Transaksi Terlarang) */}"
+  },
+  {
+    "lineNum": 6272,
+    "content": "<h3 className=\"safety-warning-title\">Aktivitas Tidak Diizinkan</h3>"
+  },
+  {
+    "lineNum": 6275,
+    "content": "{safetyWarning.reason || 'Pencatatan untuk kategori berbahaya, ilegal, rokok, miras, atau asusila tidak diizinkan.'}"
+  },
+  {
+    "lineNum": 6306,
+    "content": "{/* Full-Page Screen: Atur / Ubah PIN Keamanan */}"
+  },
+  {
+    "lineNum": 6319,
+    "content": "showVoiceToast(t('pinSuccessSet') || 'PIN keamanan berhasil diatur!');"
+  },
+  {
+    "lineNum": 6356,
+    "content": "aria-label=\"Tutup\""
+  },
+  {
+    "lineNum": 6370,
+    "content": "{activeBalanceDetail.type === 'expense' && 'Total seluruh pengeluaran bulan ini'}"
+  },
+  {
+    "lineNum": 6371,
+    "content": "{activeBalanceDetail.type === 'income' && 'Total seluruh pemasukan bulan ini'}"
+  },
+  {
+    "lineNum": 6372,
+    "content": "{activeBalanceDetail.type === 'total' && 'Sisa saldo bersih keseluruhan bulan ini'}"
+  }
+]

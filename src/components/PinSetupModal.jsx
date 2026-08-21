@@ -95,7 +95,7 @@ export default function PinSetupModal({ isOpen, onClose, onSuccess, t, isChangeM
     } catch (err) {
       console.error('Error saving PIN:', err);
       setIsLoading(false);
-      triggerErrorShake('Gagal menyimpan PIN. Coba lagi.');
+      triggerErrorShake(t ? (t('savePinFailed') || 'Gagal menyimpan PIN. Coba lagi.') : 'Gagal menyimpan PIN. Coba lagi.');
     }
   };
 
@@ -121,7 +121,7 @@ export default function PinSetupModal({ isOpen, onClose, onSuccess, t, isChangeM
               type="button"
               className="back-btn pin-back-arrow-btn"
               onClick={onClose}
-              aria-label="Kembali"
+              aria-label={t ? (t('back') || 'Kembali') : 'Kembali'}
               disabled={isLoading}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -184,7 +184,7 @@ export default function PinSetupModal({ isOpen, onClose, onSuccess, t, isChangeM
               className="pin-backspace-plain-btn"
               onClick={handleBackspace}
               disabled={isLoading}
-              aria-label="Hapus Digit"
+              aria-label={t ? (t('deleteDigit') || 'Hapus Digit') : 'Hapus Digit'}
             >
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>

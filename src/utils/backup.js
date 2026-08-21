@@ -117,14 +117,16 @@ export async function exportBackup(backupObj, userName = 'User') {
 
       if (canShare) {
         const isIos = Capacitor.getPlatform() === 'ios';
+        const lang = safeStorageGet('user_app_lang') || 'id';
+        const isEn = lang === 'en';
         const dialogTitle = isIos 
-          ? 'Simpan Cadangan ke iCloud Drive / File' 
-          : 'Simpan Cadangan ke Google Drive';
+          ? (isEn ? 'Save Backup to iCloud Drive / Files' : 'Simpan Cadangan ke iCloud Drive / File')
+          : (isEn ? 'Save Backup to Google Drive' : 'Simpan Cadangan ke Google Drive');
 
         // NOTE: Omit 'text' when sharing a file so Android intent resolver treats this
         // strictly as a file document (which brings up Google Drive "Simpan ke Drive", File Manager, etc.)
         await Share.share({
-          title: 'Cadangkan Data Cassiel',
+          title: isEn ? 'Backup Cassiel Data' : 'Cadangkan Data Cassiel',
           files: [shareUri],
           dialogTitle: dialogTitle,
         });

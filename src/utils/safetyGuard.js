@@ -87,9 +87,18 @@ function normalizeForSafetyCheck(text) {
  * @param {string} text - Teks yang akan diperiksa
  * @returns {{ isProhibited: boolean, category?: string, matchedKeyword?: string, reason?: string }}
  */
-export function checkProhibitedContent(text) {
+export function checkProhibitedContent(text, customLang) {
   if (!text || typeof text !== 'string') {
     return { isProhibited: false };
+  }
+
+  let lang = customLang;
+  if (!lang) {
+    try {
+      lang = localStorage.getItem('user_app_lang') || 'id';
+    } catch {
+      lang = 'id';
+    }
   }
 
   const cleanText = normalizeForSafetyCheck(text);
@@ -105,20 +114,35 @@ export function checkProhibitedContent(text) {
     // Cek whole word match atau phrase match
     if (paddedText.includes(` ${kw} `) || cleanText === kw) {
       let categoryLabel = 'Aktivitas Ilegal';
-      if (entry.category === 'rokok') categoryLabel = 'Rokok / Tembakau';
-      if (entry.category === 'alkohol') categoryLabel = 'Minuman Keras / Alkohol';
-      if (entry.category === 'narkoba') categoryLabel = 'Narkotika & Zat Terlarang';
-      if (entry.category === 'judi') categoryLabel = 'Perjudian / Taruhan';
-      if (entry.category === 'asusila') categoryLabel = 'Konten Asusila / Pornografi';
-      if (entry.category === 'senjata_ilegal') categoryLabel = 'Senjata & Bahan Berbahaya';
-      if (entry.category === 'kata_kasar') categoryLabel = 'Bahasa Kasar / Kotor';
+      if (lang === 'en') {
+        categoryLabel = 'Illegal Activity';
+        if (entry.category === 'rokok') categoryLabel = 'Tobacco / Smoking';
+        if (entry.category === 'alkohol') categoryLabel = 'Alcohol / Liquor';
+        if (entry.category === 'narkoba') categoryLabel = 'Narcotics & Drugs';
+        if (entry.category === 'judi') categoryLabel = 'Gambling / Betting';
+        if (entry.category === 'asusila') categoryLabel = 'Adult Content / Prostitution';
+        if (entry.category === 'senjata_ilegal') categoryLabel = 'Weapons & Hazardous Materials';
+        if (entry.category === 'kata_kasar') categoryLabel = 'Profanity / Inappropriate Language';
+      } else {
+        if (entry.category === 'rokok') categoryLabel = 'Rokok / Tembakau';
+        if (entry.category === 'alkohol') categoryLabel = 'Minuman Keras / Alkohol';
+        if (entry.category === 'narkoba') categoryLabel = 'Narkotika & Zat Terlarang';
+        if (entry.category === 'judi') categoryLabel = 'Perjudian / Taruhan';
+        if (entry.category === 'asusila') categoryLabel = 'Konten Asusila / Pornografi';
+        if (entry.category === 'senjata_ilegal') categoryLabel = 'Senjata & Bahan Berbahaya';
+        if (entry.category === 'kata_kasar') categoryLabel = 'Bahasa Kasar / Kotor';
+      }
+
+      const reason = lang === 'en'
+        ? `Logging "${kw}" (${categoryLabel}) is prohibited in this app to maintain financial ethics and compliance.`
+        : `Pencatatan "${kw}" (${categoryLabel}) tidak diizinkan di aplikasi ini demi menjaga etika dan kepatuhan finansial.`;
 
       return {
         isProhibited: true,
         category: entry.category,
         matchedKeyword: kw,
         categoryLabel,
-        reason: `Pencatatan "${kw}" (${categoryLabel}) tidak diizinkan di aplikasi ini demi menjaga etika dan kepatuhan finansial.`
+        reason
       };
     }
   }
