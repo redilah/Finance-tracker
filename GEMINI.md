@@ -13,6 +13,7 @@
 > - Jika user minta build/test untuk dirinya sendiri → build **`Cassiel.apk`** (release) atau **`udin.apk`** (demo).
 > - **JANGAN PERNAH** menyuruh user install `cassielll1.apk` — itu khusus untuk temannya.
 > - **JANGAN PERNAH** menuduh/mengasumsikan user menginstal `cassielll1.apk` saat user mengalami kendala instalasi "App not installed". User HANYA memakai `Cassiel.apk`.
+> - **DILARANG KERAS** menyuruh/menyarankan user melakukan **UNINSTALL** aplikasi, karena akan menghapus seluruh data finansial lokal pengguna di `localStorage`. Semua proses pembaruan WAJIB mendukung update langsung (*seamless in-place update*) tanpa kehilangan data.
 > - Jika konteksnya perbaikan notifikasi/bug untuk ditest user sendiri → build **release** (`assembleRelease`) bukan debug.
 
 
