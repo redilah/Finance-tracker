@@ -4,10 +4,8 @@
  */
 import React from 'react';
 import bcaSvg from '../assets/payment-logos/bca.svg';
-import bniSvg from '../assets/payment-logos/bniva.svg';
 import briSvg from '../assets/payment-logos/bri.svg';
 import bsiSvg from '../assets/payment-logos/bsi.svg';
-import mandiriSvg from '../assets/payment-logos/mandiriva.svg';
 import cimbSvg from '../assets/payment-logos/cimbva.svg';
 import permataSvg from '../assets/payment-logos/permatabank.svg';
 import maybankSvg from '../assets/payment-logos/maybankva.svg';
@@ -37,19 +35,19 @@ import baleByBtnSvg from '../assets/payment-logos/balebybtn.svg';
 export const DEFAULT_ACCOUNTS = [
   { id: 'cash', name: 'Cash', type: 'cash' },
   // Bank Resmi
-  { id: 'bri', name: 'BRImo', type: 'bank', icon: briSvg },
   { id: 'bca', name: 'BCA', type: 'bank', icon: bcaSvg },
-  { id: 'bpddiy', name: 'BPD DIY', type: 'bank', icon: bpddiySvg },
-  { id: 'bale_by_btn', name: 'bale by btn', type: 'bank', icon: baleByBtnSvg },
-  { id: 'livin', name: 'Livin', type: 'bank', icon: livinSvg },
-  { id: 'wondr', name: 'Wondr', type: 'bank', icon: wondrSvg },
+  { id: 'bri', name: 'BRImo', type: 'bank', icon: briSvg },
+  { id: 'livin', name: "Livin' by Mandiri", type: 'bank', icon: livinSvg },
+  { id: 'wondr', name: 'Wondr by BNI', type: 'bank', icon: wondrSvg },
+  { id: 'jago', name: 'Jago', type: 'bank', icon: jagoSvg },
   { id: 'bsi', name: 'BSI', type: 'bank', icon: bsiSvg },
   { id: 'cimb', name: 'CIMB Niaga', type: 'bank', icon: cimbSvg },
-  { id: 'permata', name: 'Permata', type: 'bank', icon: permataSvg },
-  { id: 'maybank', name: 'Maybank', type: 'bank', icon: maybankSvg },
   { id: 'seabank', name: 'SeaBank', type: 'bank', icon: seabankSvg },
   { id: 'jenius', name: 'Jenius', type: 'bank', icon: jeniusSvg },
-  { id: 'jago', name: 'Bank Jago', type: 'bank', icon: jagoSvg },
+  { id: 'maybank', name: 'Maybank', type: 'bank', icon: maybankSvg },
+  { id: 'bpddiy', name: 'BPD DIY', type: 'bank', icon: bpddiySvg },
+  { id: 'bale_by_btn', name: 'bale by btn', type: 'bank', icon: baleByBtnSvg },
+  { id: 'permata', name: 'Permata', type: 'bank', icon: permataSvg },
   { id: 'blu', name: 'blu', type: 'bank', icon: bluSvg },
   // E-Wallet & Payment
   { id: 'gopay', name: 'GoPay', type: 'ewallet', icon: gopaySvg },
@@ -66,10 +64,12 @@ export const DEFAULT_ACCOUNTS = [
 ];
 
 const LOGO_MAP = {
-  'bca': bcaSvg,
-  'mandiri': mandiriSvg,
-  'livin': livinSvg,
   'livin by mandiri': livinSvg,
+  "livin' by mandiri": livinSvg,
+  'livin': livinSvg,
+  'wondr by bni': wondrSvg,
+  'wondr': wondrSvg,
+  'bca': bcaSvg,
   'bri': briSvg,
   'brimo': briSvg,
   'bank bri': briSvg,
@@ -84,9 +84,6 @@ const LOGO_MAP = {
   'btn': baleByBtnSvg,
   'bank btn': baleByBtnSvg,
   'bale btn': baleByBtnSvg,
-  'bni': bniSvg,
-  'wondr': wondrSvg,
-  'wondr by bni': wondrSvg,
   'bsi': bsiSvg,
   'syariah': bsiSvg,
   'cimb': cimbSvg,
@@ -103,6 +100,8 @@ const LOGO_MAP = {
   'blu by bca': bluSvg,
   'gopay': gopaySvg,
   'go-pay': gopaySvg,
+  'gope': gopaySvg,
+  'go pay': gopaySvg,
   'ovo': ovoSvg,
   'dana': danaSvg,
   'linkaja': linkajaSvg,
@@ -122,8 +121,8 @@ const LOGO_MAP = {
 const STANDALONE_BADGES = [
   'linkaja', 'link aja', 
   'shopee', 'shopeepay', 'spay', 
-  'dana', 'ovo', 'gopay', 'go-pay',
-  'livin', 'livin by mandiri',
+  'dana', 'ovo', 'gopay', 'go-pay', 'gope', 'go pay',
+  'livin', 'livin by mandiri', "livin' by mandiri",
   'wondr', 'wondr by bni',
   'bri', 'brimo', 'bank bri',
   'bpddiy', 'bpd diy', 'bpd diy mobile', 'bpddiy mobile', 'bank bpd diy',
@@ -274,7 +273,7 @@ export const normalizeAccountName = (rawName) => {
   }
 
   // 6. GoPay
-  if (/^(gopay|go-pay|gojek|gopay\s*coin)$/i.test(lower)) {
+  if (/^(gopay|go-pay|gope|go\s*pay|gojek|gopay\s*coin)$/i.test(lower)) {
     return 'GoPay';
   }
 

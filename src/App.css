@@ -600,7 +600,6 @@ img[src*="Kost"] {
   height: 85px;
   background: transparent;
   z-index: 100;
-  filter: drop-shadow(0 -6px 16px rgba(0, 0, 0, 0.06));
   pointer-events: none;
 }
 
@@ -612,6 +611,8 @@ img[src*="Kost"] {
   height: 100%;
   z-index: 1;
   display: block;
+  filter: drop-shadow(0 -4px 14px rgba(0, 0, 0, 0.05));
+  pointer-events: none;
 }
 
 .nav-items-container {
@@ -1741,145 +1742,823 @@ img[src*="Kost"] {
   color: #FF5252;
 }
 
-/* ==========================================
-   Accounts Page Container & Seamless Items
-   ========================================== */
+/* ==========================================================================
+   ACCOUNTS PAGE REDESIGN: SALDO TERCATAT
+   ========================================================================== */
+
 .accounts-page-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-bottom: 24px;
+  gap: 14px;
+  padding-top: 0;
+  padding-bottom: 28px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.accounts-summary-hero {
-  background: transparent;
+/* 1. Hero Summary Card (Identical Gradient to Budget Hero) */
+.account-hero-card.floating-hero-card {
+  position: relative;
+  margin: 0 -4px;
+  width: calc(100% + 8px);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F1 22%, #F7ECE0 65%, #EFE1D2 100%);
+  border-radius: 18px;
+  padding: 20px 18px 18px 18px;
+  color: var(--text-main, #333333);
+  box-shadow: 0 10px 24px -4px rgba(180, 140, 110, 0.2), 0 4px 10px rgba(0, 0, 0, 0.03);
   border: none;
-  box-shadow: none;
-  padding: 10px 0 16px 0;
+}
+
+.account-hero-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-hero-title-group {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.account-hero-subtitle-top {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C786A;
+  display: flex;
   align-items: center;
-  justify-content: center;
   gap: 4px;
 }
 
-.accounts-hero-sub {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.accounts-hero-total {
-  font-size: 28px;
+.account-hero-amount {
+  font-size: clamp(23px, 6.8vw, 28px);
   font-weight: 800;
-  color: #FF7676;
+  color: #BC6C25 !important;
   letter-spacing: -0.5px;
+  line-height: 1.2;
+  margin: 2px 0 3px 0;
 }
 
-.accounts-hero-total.expense-color,
-.account-card-amount.expense-color {
-  color: #FF7676;
+.account-hero-subtitle-bot {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #8C786A;
+  line-height: 1.3;
 }
 
-.accounts-hero-total.income-color,
-.account-card-amount.income-color {
-  color: #10B981;
-}
-
-.account-swipe-dots {
+.account-hero-wallet-icon {
+  width: 54px;
+  height: 58px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 6px;
-  pointer-events: none;
-  user-select: none;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.account-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.15);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.account-hero-wallet-icon:active {
+  transform: scale(0.92);
 }
 
-.account-dot.active {
-  width: 16px;
-  background-color: #2D5284;
+.account-hero-wallet-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.accounts-breakdown-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+.account-hero-dotted-divider {
+  width: 100%;
+  height: 1px;
+  border-top: 1.5px dotted rgba(200, 175, 150, 0.55);
+  margin: 14px 0 12px 0;
 }
 
-.account-card-item {
-  background: transparent;
-  border-radius: 0;
-  padding: 14px 0;
+/* Dual Stats: Pemasukan & Pengeluaran */
+.account-hero-dual-stats {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: none;
-  transition: opacity 0.15s ease;
-  user-select: none;
+  margin-bottom: 2px;
 }
 
-.account-card-item:last-child {
-  border-bottom: none;
+.account-dual-stat-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.account-card-item:hover {
-  opacity: 0.85;
-}
-
-.account-card-item:active {
-  opacity: 0.65;
-  transform: none;
-}
-
-.account-card-left {
+.account-dual-stat-label-wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 5px;
 }
 
-.account-card-badge-wrap {
+.account-dual-stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.account-dual-stat-dot.income {
+  background: #10B981;
+}
+
+.account-dual-stat-dot.expense {
+  background: #EF4444;
+}
+
+.account-dual-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8C786A;
+}
+
+.account-dual-stat-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.account-dual-stat-val.income {
+  color: #059669;
+}
+
+.account-dual-stat-val.expense {
+  color: #DC2626;
+}
+
+.account-dual-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(200, 175, 150, 0.4);
+  margin: 0 16px;
+}
+
+/* Hero Button: Tambah Akun */
+.account-hero-add-btn {
+  width: 100%;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: transparent;
+  gap: 7px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%) !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(188, 108, 37, 0.22);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+  user-select: none;
 }
 
-.account-card-info {
+.account-hero-add-btn:active {
+  transform: scale(0.96);
+}
+
+.account-hero-add-btn span {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.account-hero-add-btn svg {
+  stroke: #FFFFFF !important;
+}
+
+/* 3. Section Header: Daftar Akun */
+.account-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px 2px 2px;
+}
+
+.account-section-title {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #2D2520;
+  letter-spacing: -0.3px;
+}
+
+/* 4. Daftar Baris Akun (Seamless Direct BG — No White Card Boxes) */
+.accounts-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.account-row-card {
+  background: transparent;
+  border-radius: 14px;
+  padding: 10px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+  user-select: none;
+}
+
+.account-row-card:active {
+  transform: scale(0.985);
+  opacity: 0.75;
+}
+
+.account-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.account-row-icon-wrap {
+  flex-shrink: 0;
+}
+
+.account-row-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-row-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-row-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #2D221A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-row-meta {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #8C786A;
+  white-space: nowrap;
+}
+
+.account-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.account-row-balance-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.account-row-balance-val {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #2D221A;
+  letter-spacing: -0.3px;
+}
+
+.account-row-balance-val.negative {
+  color: #DC2626;
+}
+
+.account-row-balance-sub {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #8C786A;
+}
+
+.account-row-unset-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #A08C7D;
+}
+
+.account-row-set-btn {
+  background: #EFE3D5;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #BC6C25;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.account-row-set-btn:active {
+  transform: scale(0.94);
+  background: #E4D4C3;
+}
+
+.account-row-chevron {
+  color: #C4B5A5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Row Khusus: Tambah Akun Baru di bawah (Garis Putus-Putus) */
+.account-row-add-new {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px dashed rgba(200, 175, 150, 0.65);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  margin-top: 4px;
+}
+
+.account-row-add-new:active {
+  transform: scale(0.985);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.account-add-plus-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #F4EAE0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BC6C25;
+  flex-shrink: 0;
+}
+
+.account-row-add-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.account-row-add-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #2D221A;
+}
+
+.account-row-add-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #8C786A;
+}
+
+/* Info Banner di Bawah */
+.account-info-banner {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.account-info-banner-icon {
+  color: #BC6C25;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.account-info-banner-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.account-card-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.account-card-count {
+.account-info-banner-title {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: #2D221A;
 }
 
-.account-card-name-row {
+.account-info-banner-desc {
+  font-size: 11px;
+  color: #8C786A;
+  line-height: 1.4;
+}
+
+.account-info-banner-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.account-info-banner-ack-btn {
+  background: #BC6C25;
+  color: #FFFFFF !important;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(188, 108, 37, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-info-banner-ack-btn:active {
+  transform: scale(0.95);
+  background: #9d561a;
+}
+
+/* 5. Modal Dialog: Atur Saldo Akun */
+.set-balance-modal-card {
+  background: #FFFFFF;
+  border-radius: 24px;
+  padding: 24px 20px;
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: popScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.set-balance-header {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.set-balance-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-balance-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #2D221A;
+}
+
+.set-balance-sub {
+  font-size: 12px;
+  color: #8C786A;
+}
+
+/* Tab Switcher: Tambah Saldo vs Edit Saldo Awal */
+.set-balance-tabs {
+  display: flex;
+  background: #F4EAE0;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.set-balance-tab-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8C786A;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.set-balance-tab-btn.active {
+  background: #FFFFFF;
+  color: #BC6C25;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.set-balance-input-box {
+  background: #FAF6F1;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.set-balance-note-box {
+  background: #FAF6F1;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.set-balance-note-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #2D221A;
+  font-family: inherit;
+}
+
+.set-balance-note-input::placeholder {
+  color: #A08C7D;
+}
+
+.set-balance-currency {
+  font-size: 22px;
+  font-weight: 800;
+  color: #BC6C25;
+}
+
+.set-balance-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 22px;
+  font-weight: 800;
+  color: #BC6C25;
+  font-family: inherit;
+  width: 100%;
+}
+
+.set-balance-prompt-text {
+  font-size: 12px;
+  color: #8C786A;
+  line-height: 1.45;
+  background: rgba(244, 234, 224, 0.4);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.set-balance-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.set-balance-btn-cancel {
+  flex: 1;
+  background: #F4EAE0;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #8C786A;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.set-balance-btn-cancel:active {
+  transform: scale(0.97);
+}
+
+.set-balance-btn-save {
+  flex: 1.5;
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #FFFFFF !important;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(188, 108, 37, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.set-balance-btn-save:active {
+  transform: scale(0.97);
+}
+
+/* 6. Full-Page Detail Akun Drawer / Screen */
+.account-detail-screen {
+  background-color: var(--bg-app, #F8EFE6) !important;
+  z-index: 1000 !important;
+}
+
+.account-detail-container {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: var(--bg-app, #F8EFE6);
+  position: relative;
+  overflow-y: auto;
+  padding: 18px 16px 32px 16px;
+}
+
+.account-detail-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.account-detail-top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-detail-top-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #2D221A;
+}
+
+.account-detail-edit-init-btn {
+  background: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #BC6C25;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+
+.account-detail-edit-init-btn:active {
+  transform: scale(0.95);
+}
+
+.account-detail-summary-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F1 22%, #F7ECE0 65%, #EFE1D2 100%);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 10px 24px -4px rgba(180, 140, 110, 0.2);
+  margin-bottom: 18px;
+}
+
+.account-detail-current-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-detail-current-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C786A;
+}
+
+.account-detail-current-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #BC6C25;
+  letter-spacing: -0.5px;
+}
+
+.account-detail-grid-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.account-detail-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-detail-stat-item-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8C786A;
+}
+
+.account-detail-stat-item-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2D221A;
+}
+
+.account-detail-stat-item-val.income {
+  color: #059669;
+}
+
+.account-detail-stat-item-val.expense {
+  color: #DC2626;
+}
+
+.account-detail-tx-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-detail-tx-header {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #2D221A;
+  margin-bottom: 4px;
+}
+
+.account-detail-tx-item {
+  background: transparent;
+  border-radius: 12px;
+  padding: 10px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: none;
+  border: none;
+}
+
+.account-detail-tx-left {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.account-detail-tx-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-detail-tx-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.account-detail-tx-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-detail-tx-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #2D221A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-detail-tx-date {
+  font-size: 11px;
+  color: #8C786A;
+}
+
+.account-detail-tx-amount {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+.account-detail-tx-amount.income {
+  color: #059669;
+}
+
+.account-detail-tx-amount.expense {
+  color: #DC2626;
 }
 
 .account-adjust-tag-btn {
@@ -1921,7 +2600,6 @@ img[src*="Kost"] {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .adjust-account-current-badge {
@@ -1958,8 +2636,8 @@ img[src*="Kost"] {
 }
 
 .adjust-account-grid-item {
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #FFFFFF;
+  border: none;
   border-radius: 16px;
   padding: 14px 8px;
   display: flex;
@@ -1969,7 +2647,7 @@ img[src*="Kost"] {
   gap: 8px;
   cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .adjust-account-grid-item:hover {
@@ -1999,6 +2677,329 @@ img[src*="Kost"] {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* =========================================================
+   Modern "Tambah Akun Baru" Screen Styling (Design System)
+   ========================================================= */
+
+.add-acc-new-screen-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0 32px 0;
+}
+
+/* Search Bar */
+.add-acc-search-box {
+  background: #FFFFFF;
+  border-radius: 18px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.2s ease;
+}
+
+.add-acc-search-box:focus-within {
+  box-shadow: 0 6px 18px rgba(188, 108, 37, 0.12);
+}
+
+.add-acc-search-icon {
+  color: #B0A195;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.add-acc-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2D221A;
+  font-family: inherit;
+}
+
+.add-acc-search-input::placeholder {
+  color: #B5A89E;
+  font-weight: 400;
+}
+
+.add-acc-search-clear {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #A09084;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+}
+
+/* Category Filter Tabs / Pills */
+.add-acc-tab-list {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.add-acc-tab-pill {
+  flex: 1;
+  border: none;
+  outline: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFFFFF;
+  color: #8C786A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.add-acc-tab-pill.active {
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(188, 108, 37, 0.32);
+}
+
+.add-acc-tab-pill:active {
+  transform: scale(0.96);
+}
+
+/* Section Containers */
+.add-acc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-acc-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.add-acc-section-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2D221A;
+  margin: 0;
+}
+
+.add-acc-section-link {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #BC6C25;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  transition: opacity 0.15s ease;
+}
+
+.add-acc-section-link:active {
+  opacity: 0.7;
+}
+
+/* Grid System */
+.add-acc-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.add-acc-card-item {
+  background: #FFFFFF;
+  border: none;
+  outline: none;
+  border-radius: 18px;
+  padding: 16px 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.035);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 98px;
+}
+
+.add-acc-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.add-acc-card-item:active {
+  transform: scale(0.93);
+}
+
+.add-acc-card-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.add-acc-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2D221A;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 0 2px;
+}
+
+/* Bottom Banner: Tidak menemukan akunmu? */
+.add-acc-custom-banner {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  margin-top: 6px;
+}
+
+.add-acc-custom-plus-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(244, 234, 224, 0.6);
+  border: 1.5px dashed #BC6C25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BC6C25;
+  flex-shrink: 0;
+}
+
+.add-acc-custom-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.add-acc-custom-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #2D221A;
+}
+
+.add-acc-custom-desc {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #8C786A;
+  line-height: 1.35;
+}
+
+.add-acc-custom-action-btn {
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  color: #FFFFFF !important;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(188, 108, 37, 0.25);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.add-acc-custom-action-btn:active {
+  transform: scale(0.94);
+}
+
+/* Custom Input Card Popup / Inline Form */
+.add-acc-custom-form-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  animation: popScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.add-acc-custom-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-acc-custom-input {
+  flex: 1;
+  background: #FAF6F1;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #2D221A;
+}
+
+.add-acc-custom-submit-btn {
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(188, 108, 37, 0.25);
+}
+
+.add-acc-custom-submit-btn:active {
+  transform: scale(0.95);
+}
+
+.add-acc-empty-search {
+  text-align: center;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-acc-empty-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2D221A;
+}
+
+.add-acc-empty-sub {
+  font-size: 12px;
+  color: #8C786A;
 }
 
 .account-card-right {
@@ -3939,28 +4940,28 @@ img[src*="Kost"] {
 .budget-standalone-title-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .budget-standalone-title-icon {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
 }
 
 .budget-standalone-title-text {
-  font-size: 20px;
+  font-size: 16.5px;
   font-weight: 800;
   color: #2D2520;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.3px;
 }
 
 .budget-standalone-month-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F1 35%, #F7ECE0 100%);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 3px 6px;
   box-shadow: 0 4px 14px -2px rgba(180, 140, 110, 0.22), 0 1.5px 4px rgba(0, 0, 0, 0.03);
   border: none;
 }
@@ -3970,13 +4971,13 @@ img[src*="Kost"] {
   border: none;
   outline: none;
   box-shadow: none;
-  padding: 3px 4px;
-  font-size: 13px;
+  padding: 2px 3px;
+  font-size: 12px;
   font-weight: 700;
   color: #2D221A;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: opacity 0.15s ease;
   user-select: none;
@@ -3996,6 +4997,10 @@ img[src*="Kost"] {
 
 .budget-hero-month-arrow {
   color: #8C786A;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s ease, transform 0.15s ease;
 }
 
@@ -4004,14 +5009,14 @@ img[src*="Kost"] {
 }
 
 .budget-calendar-icon-img {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .budget-month-btn-text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #2D221A;
   line-height: 1;

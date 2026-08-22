@@ -40,6 +40,7 @@ import minumanSvg from './assets/Minuman.svg';
 import wifiSvg from './assets/wifi.svg';
 import budgetClipboardSvg from './assets/budget-clipboard.svg';
 import kalenderSvg from './assets/kalender.svg';
+import dompetSvg from './assets/dompet.svg';
 import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
 import { playPositiveChime } from './utils/soundFeedback';
 import { NotificationTracker, initAutoExpenseTracker } from './utils/notificationTracker';
@@ -75,6 +76,7 @@ import {
   scheduleNewCategoryNotification,
   scheduleV20FeatureIntroNotification,
   scheduleV23FeatureIntroNotification,
+  scheduleV28AccountFeatureIntroNotification,
   buildBudgetNotifText,
   buildMainBudgetNotifText,
   playSound,
@@ -156,6 +158,7 @@ const ICON_MAP = {
   gaji: salarySvg,
   bonus: bonusSvg,
   kip: kipSvg,
+  tambahSaldo: addSvg,
 };
 
 // Resolve icon SVG from category id (runtime only, not from storage)
@@ -174,7 +177,7 @@ const migrateTransactions = (list) => {
     'Barbershop': 'barber', 'Skincare': 'skincare', 'Edukasi': 'edukasi',
     'Air Galon': 'galon', 'Fashion': 'fashion', 'Supermarket': 'supermarket',
     'Subscription': 'sub', 'Pesawat': 'pesawat', 'Kost': 'kost',
-    'Gaji': 'gaji', 'Bonus': 'bonus', 'KIP': 'kip',
+    'Gaji': 'gaji', 'Bonus': 'bonus', 'KIP': 'kip', 'Tambah Saldo': 'tambahSaldo',
     'Bensin': 'bensin', 'Investasi': 'investasi', 'Bisnis': 'bisnis',
     'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
     'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
@@ -639,9 +642,35 @@ function App() {
     }
   });
 
+  // Saldo Awal per Akun (Reference Initial Balance)
+  const [accountInitialBalances, setAccountInitialBalances] = useState(() => {
+    try {
+      const saved = safeStorageGet('user_account_initial_balances');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+      return {};
+    }
+  });
+
   const [isCustomAccount, setIsCustomAccount] = useState(false);
   const [customAccountInput, setCustomAccountInput] = useState('');
   const [adjustingAccount, setAdjustingAccount] = useState(null); // Akun generik lama yang sedang disesuaikan (misal: 'Bank' / 'E-Wallet')
+
+  // State Modal Atur Saldo Awal / Tambah Saldo
+  const [accountToSetBalance, setAccountToSetBalance] = useState(null);
+  const [balanceModalInputValue, setBalanceModalInputValue] = useState('');
+  const [balanceModalMode, setBalanceModalMode] = useState('add'); // 'add' | 'edit_initial'
+  const [balanceModalNote, setBalanceModalNote] = useState('');
+
+  // State Detail Akun Drawer / Screen
+  const [selectedAccountDetail, setSelectedAccountDetail] = useState(null);
+
+  // State Modal Tambah Akun Baru
+  const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
+  const [newAccountInput, setNewAccountInput] = useState('');
+  const [addAccountCategoryTab, setAddAccountCategoryTab] = useState('all'); // 'all' | 'bank' | 'ewallet'
+  const [addAccountSearchQuery, setAddAccountSearchQuery] = useState('');
+  const [isCustomAddAccOpen, setIsCustomAddAccOpen] = useState(false);
 
   // Status One-time Discovery Hint "Terakhir" untuk urutan No. 1
   const [dismissedLastBadge, setDismissedLastBadge] = useState(() => {
@@ -653,6 +682,20 @@ function App() {
       setDismissedLastBadge(true);
       try {
         safeStorageSet('user_last_badge_dismissed', 'true');
+      } catch {}
+    }
+  };
+
+  // Status One-time Info Banner "Saldo di Cassiel bersifat manual"
+  const [dismissedAccountInfoBanner, setDismissedAccountInfoBanner] = useState(() => {
+    return safeStorageGet('user_account_info_banner_dismissed') === 'true' || safeStorageGet('user_account_info_banner_dismissed') === true;
+  });
+
+  const handleDismissAccountInfoBanner = () => {
+    if (!dismissedAccountInfoBanner) {
+      setDismissedAccountInfoBanner(true);
+      try {
+        safeStorageSet('user_account_info_banner_dismissed', 'true');
       } catch {}
     }
   };
@@ -833,6 +876,7 @@ function App() {
   const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
 
   const [accountsSubTab, setAccountsSubTab] = useState('expense'); // 'expense' | 'income'
+  const [expandedAccountName, setExpandedAccountName] = useState(null);
   const accountTouchStartXRef = useRef(null);
   const accountTouchStartYRef = useRef(null);
 
@@ -1060,6 +1104,7 @@ function App() {
         incomeCategories,
         accountsList,
         deletedAccountsList,
+        accountInitialBalances,
         profileName,
         profileImage,
         appFont,
@@ -1125,6 +1170,7 @@ function App() {
       setIncomeCategories,
       setAccountsList,
       setDeletedAccountsList,
+      setAccountInitialBalances,
       setProfileName,
       setProfileImage,
       setAppFont,
@@ -1307,6 +1353,7 @@ function App() {
     scheduleNewCategoryNotification(profileName, appLanguage);
     scheduleV20FeatureIntroNotification(profileName, appLanguage);
     scheduleV23FeatureIntroNotification(profileName, appLanguage);
+    scheduleV28AccountFeatureIntroNotification(profileName, appLanguage);
   }, [profileName, appLanguage]);
 
   // Schedule / sync notifications when profile name, transactions, expenseCategories, language, or main budget update
@@ -1408,6 +1455,10 @@ function App() {
   React.useEffect(() => {
     safeStorageSet('user_accounts_list', accountsList);
   }, [accountsList]);
+
+  React.useEffect(() => {
+    safeStorageSet('user_account_initial_balances', accountInitialBalances);
+  }, [accountInitialBalances]);
 
   // Note Suggestions & Modal state
   const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false);
@@ -1699,6 +1750,12 @@ function App() {
     setBackupRestoreConfirm,
     adjustingAccount,
     setAdjustingAccount,
+    accountToSetBalance,
+    setAccountToSetBalance,
+    selectedAccountDetail,
+    setSelectedAccountDetail,
+    isAddAccountModalOpen,
+    setIsAddAccountModalOpen,
     isPinSetupModalOpen,
     setIsPinSetupModalOpen,
     isAddModalOpen,
@@ -1722,6 +1779,22 @@ function App() {
     // -1. Pop-up Balance Card Detail
     if (s.activeBalanceDetail) {
       s.setActiveBalanceDetail(null);
+      return;
+    }
+
+    // -0.5 Layar Detail Akun
+    if (s.selectedAccountDetail) {
+      s.setSelectedAccountDetail(null);
+      return;
+    }
+
+    // -0.4 Modal Atur Saldo Akun / Tambah Akun
+    if (s.accountToSetBalance) {
+      s.setAccountToSetBalance(null);
+      return;
+    }
+    if (s.isAddAccountModalOpen) {
+      s.setIsAddAccountModalOpen(false);
       return;
     }
 
@@ -1960,6 +2033,37 @@ function App() {
     setAccount(trimmed);
     setCustomAccountInput('');
     setIsCustomAccount(false);
+  };
+
+  // Handle Select or Add Account (dari modal Tambah Akun Baru)
+  const handleSelectOrAddAccount = (accName) => {
+    const trimmed = (accName || '').trim();
+    if (!trimmed) return;
+
+    // 1. Pastikan masuk ke accountsList
+    setAccountsList(prev => {
+      if (!prev.some(a => a.toLowerCase().trim() === trimmed.toLowerCase())) {
+        const updated = [...prev, trimmed];
+        try { safeStorageSet('user_accounts_list', updated); } catch {}
+        return updated;
+      }
+      return prev;
+    });
+
+    // 2. Pulihkan dari deletedAccountsList jika pernah dihapus
+    setDeletedAccountsList(prev => {
+      const updated = prev.filter(a => (a || '').toLowerCase().trim() !== trimmed.toLowerCase());
+      try { safeStorageSet('user_deleted_accounts', updated); } catch {}
+      return updated;
+    });
+
+    // 3. Reset input kustom
+    setNewAccountInput('');
+
+    // 4. Siapkan nilai input awal dan langsung buka modal Atur Saldo Awal
+    const existingInit = accountInitialBalances[trimmed];
+    setBalanceModalInputValue(typeof existingInit === 'number' && !isNaN(existingInit) ? new Intl.NumberFormat('id-ID').format(existingInit) : '');
+    setAccountToSetBalance(trimmed);
   };
 
   // Handle Delete Account (Removes from list & stores in persistent blacklist)
@@ -2659,20 +2763,23 @@ function App() {
     const targetYear = currentDate.getFullYear();
     const targetMonth = currentDate.getMonth();
     const map = {};
-    transactions.forEach(t => {
-      if (t.type !== 'expense' || !t.date) return;
+    const monthExpenses = transactions.filter(t => {
+      if (t.type !== 'expense' || !t.date) return false;
       const [y, m] = t.date.split('-');
-      if (Number(y) === targetYear && Number(m) - 1 === targetMonth) {
-        if (t.category) {
-          map[t.category] = (map[t.category] || 0) + (Number(t.amount) || 0);
-        }
-        if (t.categoryId) {
-          map[t.categoryId] = (map[t.categoryId] || 0) + (Number(t.amount) || 0);
-        }
-      }
+      return Number(y) === targetYear && Number(m) - 1 === targetMonth;
     });
+
+    (expenseCategories || []).forEach(cat => {
+      const catTotal = monthExpenses
+        .filter(t => (cat.id && t.categoryId === cat.id) || (cat.name && t.category === cat.name))
+        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      
+      map[cat.id] = catTotal;
+      map[cat.name] = catTotal;
+    });
+
     return map;
-  }, [transactions, currentDate]);
+  }, [transactions, currentDate, expenseCategories]);
 
   // Filter transactions according to period (monthly/weekly/yearly)
   const filteredTransactions = transactions.filter(t => {
@@ -2773,7 +2880,7 @@ function App() {
   // Second pass: Separate into left and right groups and push y positions to prevent overlap
   const adjustYPositions = (group) => {
     group.sort((a, b) => a.idealY - b.idealY);
-    const minYSpacing = 24;
+    const minYSpacing = 26;
     for (let i = 1; i < group.length; i++) {
       if (group[i].idealY - group[i - 1].idealY < minYSpacing) {
         group[i].idealY = group[i - 1].idealY + minYSpacing;
@@ -3155,176 +3262,254 @@ function App() {
         </div>
       )}
 
-      {/* Account View (Swipeable Expense / Income Breakdown by Account) */}
+      {/* Account View (Redesigned: Saldo Tercatat Cassiel) */}
       {activeTab === 'accounts' && (
-        <div 
-          className="accounts-page-container tab-page-transition"
-          onTouchStart={handleAccountTouchStart}
-          onTouchEnd={handleAccountTouchEnd}
-        >
-          {/* Header Row: Date Navigator (left) & Period Dropdown (right) */}
-          <header className="stats-header-bar">
-            <div className="stats-date-nav">
-              <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Period">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 18l-6-6 6-6"/>
-                </svg>
-              </button>
-              <span className="month-text">
-                {periodFilter === 'monthly' ? formatMonthYear(currentDate) : periodFilter === 'yearly' ? `${currentDate.getFullYear()}` : formatMonthYear(currentDate)}
-              </span>
-              <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Period">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </button>
-            </div>
-
-            <div className="stats-dropdown-wrapper" ref={dropdownRef}>
-              <button
-                type="button"
-                className="stats-period-btn"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              >
-                <span>{periodFilter === 'monthly' ? 'Monthly' : periodFilter === 'weekly' ? 'Weekly' : 'Yearly'}</span>
-                <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </span>
-              </button>
-
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  {[
-                    { id: 'monthly', label: 'Monthly' },
-                    { id: 'weekly', label: 'Weekly' },
-                    { id: 'yearly', label: 'Yearly' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={`custom-dropdown-item ${periodFilter === opt.id ? 'active' : ''}`}
-                      onClick={() => {
-                        setPeriodFilter(opt.id);
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {opt.label}
-                      {periodFilter === opt.id && <span className="check-mark">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* Accounts Summary Hero Card with Dots Indicator */}
+        <div className="accounts-page-container tab-page-transition">
           {(() => {
-            const currentTypeTxs = filteredTransactions.filter(t => t.type === accountsSubTab);
-            const totalSum = currentTypeTxs.reduce((sum, t) => sum + t.amount, 0);
-            const isExpense = accountsSubTab === 'expense';
+            // Kalkulasi metrik saldo per akun
+            const getAccountStats = (accName) => {
+              const rawInit = accountInitialBalances[accName];
+              const hasInitialBalance = typeof rawInit === 'number' && !isNaN(rawInit);
+              const initialBalance = hasInitialBalance ? rawInit : 0;
+
+              // Transaksi akun ini (sepanjang masa)
+              const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (accName || '').toLowerCase().trim());
+              const totalIncome = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+              const totalExpense = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+              
+              // Akun dianggap memiliki saldo tercatat jika:
+              // 1. User sudah mengatur saldo awal (hasInitialBalance), ATAU
+              // 2. Ada pemasukan uang (income) yang masuk ke akun ini
+              const hasRecordedBalance = hasInitialBalance || totalIncome > 0;
+              const currentBalance = initialBalance + totalIncome - totalExpense;
+
+              return {
+                hasInitialBalance,
+                hasRecordedBalance,
+                initialBalance,
+                totalIncome,
+                totalExpense,
+                currentBalance,
+                txCount: accTxs.length,
+                transactions: accTxs
+              };
+            };
+
+            // Hitung total saldo tercatat dari seluruh akun:
+            // Total saldo = penjumlahan currentBalance dari semua akun yang memiliki saldo tercatat (punya saldo awal atau punya income)
+            let totalRecordedBalance = 0;
+
+            accountsList.forEach(acc => {
+              const stats = getAccountStats(acc);
+              if (stats.hasRecordedBalance) {
+                totalRecordedBalance += stats.currentBalance;
+              }
+            });
+
+            // Summary Pemasukan & Pengeluaran dari seluruh transaksi tercatat
+            const allRecordedIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            const allRecordedExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
             return (
-              <div className="accounts-summary-hero">
-                <span className="accounts-hero-sub">
-                  {isExpense ? t('expenses') : t('income')}
-                </span>
-                <h1 className={`accounts-hero-total ${isExpense ? 'expense-color' : 'income-color'}`}>
-                  {isExpense ? '' : '+'}{fmtMoney(totalSum)}
-                </h1>
-
-                {/* Pagination indicator dots (Non-clickable visual marker) */}
-                <div className="account-swipe-dots" aria-hidden="true">
-                  <span className={`account-dot ${isExpense ? 'active' : ''}`} />
-                  <span className={`account-dot ${!isExpense ? 'active' : ''}`} />
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Accounts Breakdown List */}
-          <div className="accounts-breakdown-list">
-            {(() => {
-              const currentTypeTxs = filteredTransactions.filter(t => t.type === accountsSubTab);
-              const isExpense = accountsSubTab === 'expense';
-              const accMap = {};
-
-              currentTypeTxs.forEach(t => {
-                const accName = t.account || 'Cash';
-                if (!accMap[accName]) {
-                  accMap[accName] = {
-                    name: accName,
-                    amount: 0,
-                    count: 0,
-                    transactions: []
-                  };
-                }
-                accMap[accName].amount += t.amount;
-                accMap[accName].count += 1;
-                accMap[accName].transactions.push(t);
-              });
-
-              const activeAccounts = Object.values(accMap).sort((a, b) => b.amount - a.amount);
-              const totalAmount = currentTypeTxs.reduce((sum, t) => sum + t.amount, 0);
-
-              if (activeAccounts.length === 0) {
-                return (
-                  <div className="empty-transactions" style={{ marginTop: '20px' }}>
-                    <span className="empty-icon">💳</span>
-                    <span className="empty-title">{t('noTransactions')}</span>
-                    <span className="empty-subtitle">
-                      {isExpense ? t('noExpenseDesc') : t('noIncomeDesc')}
-                    </span>
-                  </div>
-                );
-              }
-
-              return activeAccounts.map((item, idx) => {
-                const percentage = totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0;
-                const normName = (item.name || '').toLowerCase().trim();
-                const isLegacyGeneric = normName === 'bank' || normName === 'e-wallet' || normName === 'ewallet' || normName === 'mandiri' || normName === 'bni' || normName === 'pos indonesia' || normName === 'pegadaian';
-
-                return (
-                  <div key={idx} className="account-card-item">
-                    <div className="account-card-left">
-                      <div className="account-card-badge-wrap">
-                        <AccountIconBadge accountName={item.name} size={32} />
-                      </div>
-                      <div className="account-card-info">
-                        <div className="account-card-name-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="account-card-name">{item.name}</span>
-                          {isLegacyGeneric && (
-                            <button
-                              type="button"
-                              className="account-adjust-tag-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAdjustingAccount(item.name);
-                              }}
-                              title={t('adjustAccountTitle') || 'Sesuaikan Akun'}
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 20h9"/>
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                              </svg>
-                              <span>{t('adjustAccountBtn') || 'Sesuaikan'}</span>
-                            </button>
-                          )}
-                        </div>
-                        <span className="account-card-count">{t('transactionsCount', { count: item.count }) || `${item.count} transaksi`} • {percentage}%</span>
-                      </div>
+              <>
+                {/* 1. Hero Summary Card (Identical Gradient to Budget Hero + dompet.svg) */}
+                <div className="account-hero-card floating-hero-card">
+                  <div className="account-hero-top-row">
+                    <div className="account-hero-title-group">
+                      <span className="account-hero-subtitle-top">
+                        {t('totalBalanceInCassiel') || 'Total saldo di Cassiel'}
+                      </span>
+                      <h1 className="account-hero-amount">
+                        {fmtMoney(totalRecordedBalance)}
+                      </h1>
+                      <span className="account-hero-subtitle-bot">
+                        {t('totalBalanceInCassielSub') || 'Saldo tercatat dari semua akun'}
+                      </span>
                     </div>
-                    <div className="account-card-right">
-                      <span className={`account-card-amount ${isExpense ? 'expense-color' : 'income-color'}`}>
-                        {isExpense ? '-' : '+'}{fmtMoney(item.amount)}
+
+                    {/* Cute Wallet Illustration from dompet.svg */}
+                    <div className="account-hero-wallet-icon">
+                      <img src={dompetSvg} alt="Cassiel Wallet" />
+                    </div>
+                  </div>
+
+                  <div className="account-hero-dotted-divider" />
+
+                  {/* Dual Stats Row (Pemasukan vs Pengeluaran) */}
+                  <div className="account-hero-dual-stats">
+                    <div className="account-dual-stat-col">
+                      <div className="account-dual-stat-label-wrap">
+                        <span className="account-dual-stat-dot income" />
+                        <span className="account-dual-stat-label">{t('income') || 'Pemasukan'}</span>
+                      </div>
+                      <span className="account-dual-stat-val income">
+                        +{fmtMoney(allRecordedIncome)}
+                      </span>
+                    </div>
+
+                    <div className="account-dual-stat-divider" />
+
+                    <div className="account-dual-stat-col">
+                      <div className="account-dual-stat-label-wrap">
+                        <span className="account-dual-stat-dot expense" />
+                        <span className="account-dual-stat-label">{t('expenses') || 'Pengeluaran'}</span>
+                      </div>
+                      <span className="account-dual-stat-val expense">
+                        -{fmtMoney(allRecordedExpense)}
                       </span>
                     </div>
                   </div>
-                );
-              });
-            })()}
-          </div>
+                </div>
+
+                {/* 2. Section Header: Daftar Akun */}
+                <div className="account-section-header">
+                  <span className="account-section-title">{t('accountListTitle') || 'Daftar Akun'}</span>
+                </div>
+
+                {/* 3. Daftar Akun Rows (Hanya yang sudah punya transaksi atau sudah diatur saldo awal) */}
+                <div className="accounts-card-list">
+                  {(() => {
+                    const activeAccounts = accountsList.filter((accName) => {
+                      const stats = getAccountStats(accName);
+                      return stats.txCount > 0 || stats.hasInitialBalance;
+                    });
+
+                    if (activeAccounts.length === 0) {
+                      return (
+                        <div className="empty-transactions" style={{ margin: '16px 0 10px 0' }}>
+                          <span className="empty-icon">💳</span>
+                          <span className="empty-title">{t('noTransactions')}</span>
+                          <span className="empty-subtitle">Belum ada akun yang memiliki transaksi tercatat.</span>
+                        </div>
+                      );
+                    }
+
+                    return activeAccounts.map((accName) => {
+                      const stats = getAccountStats(accName);
+                      const isNegative = stats.currentBalance < 0;
+
+                      return (
+                        <div
+                          key={accName}
+                          className="account-row-card"
+                          onClick={() => {
+                            setSelectedAccountDetail({
+                              name: accName,
+                              ...stats
+                            });
+                          }}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="account-row-left">
+                            <div className="account-row-icon-wrap">
+                              <AccountIconBadge accountName={accName} size={36} />
+                            </div>
+                            <div className="account-row-details">
+                              <div className="account-row-name-wrap">
+                                <span className="account-row-name">{accName}</span>
+                              </div>
+                              <span className="account-row-meta">
+                                {stats.txCount} {t('transactions') || 'transaksi'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="account-row-right">
+                            {stats.hasRecordedBalance ? (
+                              <div className="account-row-balance-wrap">
+                                <span className={`account-row-balance-val ${isNegative ? 'negative' : ''}`}>
+                                  {fmtMoney(stats.currentBalance)}
+                                </span>
+                                <span className="account-row-balance-sub">{t('recordedBalance') || 'Sisa saldo tercatat'}</span>
+                              </div>
+                            ) : (
+                              <div className="account-row-balance-wrap">
+                                <span className="account-row-unset-label">{t('balanceNotSet') || 'Saldo belum diatur'}</span>
+                                <button
+                                  type="button"
+                                  className="account-row-set-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAccountToSetBalance(accName);
+                                    setBalanceModalInputValue('');
+                                  }}
+                                >
+                                  {t('setBalanceBtn') || 'Atur saldo'}
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="account-row-chevron">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* Row: Tambah Akun Baru */}
+                  <div
+                    className="account-row-add-new"
+                    onClick={() => {
+                      setIsAddAccountModalOpen(true);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="account-add-plus-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                    <div className="account-row-add-info">
+                      <span className="account-row-add-title">{t('addNewAccountTitle') || 'Tambah Akun Baru'}</span>
+                      <span className="account-row-add-sub">{t('addNewAccountSub') || 'Pilih bank, e-wallet, atau buat akun sendiri'}</span>
+                    </div>
+                    <div className="account-row-chevron">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Banner Manual Cassiel (One-time, bisa ditutup dengan tombol Paham) */}
+                {!dismissedAccountInfoBanner && (
+                  <div className="account-info-banner">
+                    <div className="account-info-banner-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                    </div>
+                    <div className="account-info-banner-text">
+                      <div className="account-info-banner-header">
+                        <span className="account-info-banner-title">{t('accountManualInfoTitle') || 'Saldo di Cassiel bersifat manual'}</span>
+                      </div>
+                      <span className="account-info-banner-desc">
+                        {t('accountManualInfoDesc') || 'Masukkan saldo terkini akunmu. Cassiel akan menyesuaikannya berdasarkan transaksi yang kamu catat.'}
+                      </span>
+                      <div className="account-info-banner-actions">
+                        <button
+                          type="button"
+                          className="account-info-banner-ack-btn"
+                          onClick={handleDismissAccountInfoBanner}
+                        >
+                          {t('understand') || 'Paham'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -3450,6 +3635,7 @@ function App() {
                     {/* Layer 3 (Top): Label Texts */}
                     {pieSlices.map((slice, idx) => {
                       const textAnchor = slice.isRight ? 'start' : 'end';
+                      const labelX = slice.pLabel.x + (slice.isRight ? 3 : -3);
                       return (
                         <g 
                           key={`label-${idx}`} 
@@ -3457,17 +3643,19 @@ function App() {
                           style={{ animationDelay: `${idx * 160 + 200}ms` }}
                         >
                           <text
-                            x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
-                            y={slice.pLabel.y - 3}
+                            x={labelX}
+                            y={slice.pLabel.y}
                             textAnchor={textAnchor}
+                            dominantBaseline="central"
                             className="pie-label-name"
                           >
                             {getCategoryName(slice.name, appLanguage)}
                           </text>
                           <text
-                            x={slice.pLabel.x + (slice.isRight ? 2 : -2)}
-                            y={slice.pLabel.y + 10}
+                            x={labelX}
+                            y={slice.pLabel.y + 11.5}
                             textAnchor={textAnchor}
+                            dominantBaseline="central"
                             className="pie-label-percent"
                           >
                             {slice.percentage}%
@@ -3659,9 +3847,9 @@ function App() {
             const spentPercent = hasMain ? (spent / mainMonthlyBudget) * 100 : 0;
             const isOver = hasMain && spent > mainMonthlyBudget;
             const barStatus = isOver ? 'danger' : (spentPercent >= 80 ? 'warning' : 'safe');
-            const monthName = MONTH_NAMES_I18N[appLanguage] 
-              ? MONTH_NAMES_I18N[appLanguage][currentDate.getMonth()] 
-              : currentDate.toLocaleDateString('id-ID', { month: 'long' });
+            const monthName = MONTH_SHORT_I18N[appLanguage] 
+              ? MONTH_SHORT_I18N[appLanguage][currentDate.getMonth()] 
+              : (MONTH_SHORT_I18N.id?.[currentDate.getMonth()] || currentDate.toLocaleDateString('id-ID', { month: 'short' }));
 
             return (
               <>
@@ -3679,7 +3867,7 @@ function App() {
                       onClick={handlePrevMonth}
                       aria-label="Bulan Sebelumnya"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M15 18l-6-6 6-6"/>
                       </svg>
                     </button>
@@ -3699,7 +3887,7 @@ function App() {
                       }}
                       title="Pilih Bulan & Tahun"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="16" y1="2" x2="16" y2="6"></line>
                         <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -3731,7 +3919,7 @@ function App() {
                       onClick={handleNextMonth}
                       aria-label="Bulan Berikutnya"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 18l6-6-6-6"/>
                       </svg>
                     </button>
@@ -3910,7 +4098,7 @@ function App() {
               <input 
                 type="text" 
                 className="budget-search-input"
-                placeholder={t('searchCategoryPlaceholder') || 'Cari kategori (kopi, bensin, belanja)...'}
+                placeholder={t('searchCategoryPlaceholder') || 'Cari kategori...'}
                 value={budgetSearchQuery}
                 onChange={(e) => setBudgetSearchQuery(e.target.value)}
               />
@@ -3988,7 +4176,7 @@ function App() {
                     {displayList.map(cat => {
                       const iconPath = resolveIcon(cat);
                       const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
-                      const catSpent = (currentMonthExpensesByCategory[cat.name] || 0) + (currentMonthExpensesByCategory[cat.id] || 0);
+                      const catSpent = currentMonthExpensesByCategory[cat.id] ?? currentMonthExpensesByCategory[cat.name] ?? 0;
                       const catLimit = cat.monthlyLimit || 0;
                       const catPercent = hasLimit && catLimit > 0 ? (catSpent / catLimit) * 100 : 0;
                       const isCatOver = hasLimit && catSpent > catLimit;
@@ -4120,75 +4308,77 @@ function App() {
         </div>
       )}
 
-      {/* Bottom Nav */}
-      <nav className="bottom-nav">
-        <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
-          <path
-            d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z"
-            fill="var(--bg-app, #F8EFE6)"
-          />
-        </svg>
+      {/* Bottom Nav (Hidden when editing main budget to prevent keyboard pushup) */}
+      {!isEditingMainBudget && (
+        <nav className="bottom-nav">
+          <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
+            <path
+              d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z"
+              fill="#F8EFE6"
+            />
+          </svg>
 
-        <div className="nav-items-container">
-          <div className="nav-group-left">
-            <button
-              type="button"
-              className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
-              onClick={() => setActiveTab('home')}
-              aria-label={t('home')}
-            >
-              <img src={houseSvg} alt="Home" className="nav-icon" />
-              <span className="nav-label">{t('home')}</span>
-            </button>
+          <div className="nav-items-container">
+            <div className="nav-group-left">
+              <button
+                type="button"
+                className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
+                onClick={() => setActiveTab('home')}
+                aria-label={t('home')}
+              >
+                <img src={houseSvg} alt="Home" className="nav-icon" />
+                <span className="nav-label">{t('home')}</span>
+              </button>
 
-            <button
-              type="button"
-              className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
-              onClick={() => setActiveTab('accounts')}
-              aria-label={t('accounts')}
-            >
-              <img src={akunSvg} alt="Account" className="nav-icon" />
-              <span className="nav-label">{t('accounts')}</span>
-            </button>
+              <button
+                type="button"
+                className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
+                onClick={() => setActiveTab('accounts')}
+                aria-label={t('accounts')}
+              >
+                <img src={akunSvg} alt="Account" className="nav-icon" />
+                <span className="nav-label">{t('accounts')}</span>
+              </button>
+            </div>
+
+            <div className="center-add-wrapper tour-target-add">
+              <button
+                type="button"
+                className="center-add-btn"
+                onClick={() => {
+                  playPopSound('bubble_pop_2.wav');
+                  handleOpenAddModal();
+                }}
+                aria-label="Add transaction"
+              >
+                <img src={addSvg} alt="Add" className="add-icon" />
+              </button>
+            </div>
+
+            <div className="nav-group-right">
+              <button
+                type="button"
+                className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
+                onClick={() => setActiveTab('budget')}
+                aria-label={t('budget')}
+              >
+                <img src={budgetSvg} alt="Budget" className="nav-icon" />
+                <span className="nav-label">{t('budget')}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
+                onClick={() => setActiveTab('stats')}
+                aria-label={t('stats')}
+              >
+                <img src={diagramSvg} alt="Stats" className="nav-icon" />
+                <span className="nav-label">{t('stats')}</span>
+              </button>
+            </div>
           </div>
-
-          <div className="center-add-wrapper tour-target-add">
-            <button
-              type="button"
-              className="center-add-btn"
-              onClick={() => {
-                playPopSound('bubble_pop_2.wav');
-                handleOpenAddModal();
-              }}
-              aria-label="Add transaction"
-            >
-              <img src={addSvg} alt="Add" className="add-icon" />
-            </button>
-          </div>
-
-          <div className="nav-group-right">
-            <button
-              type="button"
-              className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
-              onClick={() => setActiveTab('budget')}
-              aria-label={t('budget')}
-            >
-              <img src={budgetSvg} alt="Budget" className="nav-icon" />
-              <span className="nav-label">{t('budget')}</span>
-            </button>
-
-            <button
-              type="button"
-              className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
-              onClick={() => setActiveTab('stats')}
-              aria-label={t('stats')}
-            >
-              <img src={diagramSvg} alt="Stats" className="nav-icon" />
-              <span className="nav-label">{t('stats')}</span>
-            </button>
-          </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Full Page Add Transaction Screen (Triggered by Plus button) */}
       {isAddModalOpen && (
@@ -6199,9 +6389,12 @@ function App() {
               {(() => {
                 const rawChangelog = updateInfo.changelog || 'Pembaruan aplikasi telah tersedia.';
                 const lines = rawChangelog.split('\n').map(l => l.trim()).filter(Boolean);
-                const isBulletList = lines.some(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('*'));
-                
-                if (!isBulletList) {
+                const featureLines = lines.filter(line => 
+                  !line.toLowerCase().startsWith('new in this update') && 
+                  !line.toLowerCase().startsWith('yang baru')
+                );
+
+                if (featureLines.length === 0) {
                   return <p className="update-changelog-text">{rawChangelog}</p>;
                 }
 
@@ -6209,11 +6402,10 @@ function App() {
                   <div className="update-changelog-container">
                     <p className="update-changelog-header">{t('whatsNewInThisVersion') || 'Yang baru di versi ini:'}</p>
                     <ul className="update-changelog-list">
-                      {lines
-                        .filter(line => !line.toLowerCase().startsWith('new in this update') && !line.toLowerCase().startsWith('yang baru'))
-                        .slice(0, 2)
+                      {featureLines
+                        .slice(0, 3)
                         .map((line, idx) => {
-                          const cleanText = line.replace(/^[-•*]\s*/, '').replace(/^\[New\]\s*/i, '');
+                          const cleanText = line.replace(/^[-•*]\s*/, '').replace(/^\[New\]\s*/i, '').trim();
                           return (
                             <li key={idx} className="update-changelog-item">
                               <span className="update-changelog-bullet">•</span>
@@ -6370,6 +6562,662 @@ function App() {
               {activeBalanceDetail.type === 'expense' && (t('totalExpenseMonthDesc') || 'Total seluruh pengeluaran bulan ini')}
               {activeBalanceDetail.type === 'income' && (t('totalIncomeMonthDesc') || 'Total seluruh pemasukan bulan ini')}
               {activeBalanceDetail.type === 'total' && (t('netBalanceMonthDesc') || 'Sisa saldo bersih keseluruhan bulan ini')}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Atur Saldo Awal / Tambah Saldo Akun */}
+      {accountToSetBalance && (() => {
+        const rawInit = accountInitialBalances[accountToSetBalance];
+        const hasInitial = typeof rawInit === 'number' && !isNaN(rawInit);
+        const initVal = hasInitial ? rawInit : 0;
+        
+        const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (accountToSetBalance || '').toLowerCase().trim());
+        const totalInc = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const totalExp = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const currBal = initVal + totalInc - totalExp;
+
+        const isAddMode = hasInitial ? balanceModalMode === 'add' : false;
+
+        const handleSave = () => {
+          const raw = parseInt(balanceModalInputValue.replace(/\./g, '').replace(/[^0-9]/g, '') || '0', 10);
+          if (raw <= 0) {
+            showVoiceToast(t('enterValidAmount') || 'Masukkan nominal yang valid!');
+            return;
+          }
+
+          if (!hasInitial || balanceModalMode === 'edit_initial') {
+            // Catat atau koreksi Saldo Awal
+            setAccountInitialBalances(prev => ({ ...prev, [accountToSetBalance]: raw }));
+            showVoiceToast(t('balanceSavedSuccess', { name: accountToSetBalance }) || `Saldo awal ${accountToSetBalance} berhasil disimpan!`);
+          } else {
+            // Tambah Saldo (Top-up / Pemasukan)
+            const newIncomeTx = {
+              id: Date.now(),
+              amount: raw,
+              type: 'income',
+              category: 'Bonus',
+              categoryId: 'tambahSaldo',
+              iconClass: 'sub-icon',
+              title: balanceModalNote.trim() || `Tambah Saldo`,
+              account: accountToSetBalance,
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toTimeString().slice(0, 5),
+              note: `[Tambah Saldo Akun]`
+            };
+
+            setTransactions(prev => {
+              const updated = [newIncomeTx, ...prev];
+              safeStorageSet('user_transactions', updated);
+              return updated;
+            });
+
+            showVoiceToast(`✨ Saldo ${accountToSetBalance} bertambah +${fmtMoney(raw)}!`);
+          }
+
+          setAccountToSetBalance(null);
+          setBalanceModalInputValue('');
+          setBalanceModalNote('');
+        };
+
+        return (
+          <div 
+            className="modal-overlay"
+            onClick={() => setAccountToSetBalance(null)}
+            style={{ zIndex: 100000 }}
+          >
+            <div 
+              className="set-balance-modal-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="set-balance-header">
+                <AccountIconBadge accountName={accountToSetBalance} size={40} />
+                <div className="set-balance-title-wrap">
+                  <h3 className="set-balance-title">
+                    {!hasInitial 
+                      ? (t('setInitialBalanceTitle') || 'Atur Saldo Awal') 
+                      : (isAddMode ? (t('addBalanceTitle') || 'Tambah Saldo') : (t('editInitialBalanceTitle') || 'Koreksi Saldo Awal'))}
+                  </h3>
+                  <span className="set-balance-sub">
+                    {accountToSetBalance} {hasInitial && `• Sisa: ${fmtMoney(currBal)}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Opsi Tab jika akun sudah memiliki saldo awal */}
+              {hasInitial && (
+                <div className="set-balance-tabs">
+                  <button
+                    type="button"
+                    className={`set-balance-tab-btn ${isAddMode ? 'active' : ''}`}
+                    onClick={() => {
+                      setBalanceModalMode('add');
+                      setBalanceModalInputValue('');
+                    }}
+                  >
+                    ➕ {t('addBalanceTab') || 'Tambah Saldo'}
+                  </button>
+                  <button
+                    type="button"
+                    className={`set-balance-tab-btn ${!isAddMode ? 'active' : ''}`}
+                    onClick={() => {
+                      setBalanceModalMode('edit_initial');
+                      setBalanceModalInputValue(new Intl.NumberFormat('id-ID').format(initVal));
+                    }}
+                  >
+                    ✏️ {t('editInitialTab') || 'Edit Saldo Awal'}
+                  </button>
+                </div>
+              )}
+
+              <div className="set-balance-input-box">
+                <span className="set-balance-currency">{getCurrency(appCurrency).symbol}</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoFocus
+                  className="set-balance-input"
+                  placeholder="0"
+                  value={balanceModalInputValue}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                    const formatted = raw ? new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)) : '';
+                    setBalanceModalInputValue(formatted);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSave();
+                    if (e.key === 'Escape') setAccountToSetBalance(null);
+                  }}
+                />
+              </div>
+
+              {/* Input Catatan Opsional jika mode Tambah Saldo */}
+              {hasInitial && isAddMode && (
+                <div className="set-balance-note-box">
+                  <input
+                    type="text"
+                    className="set-balance-note-input"
+                    placeholder="Catatan (misal: Top Up, Gaji, Transfer masuk)..."
+                    value={balanceModalNote}
+                    onChange={(e) => setBalanceModalNote(e.target.value)}
+                    maxLength={40}
+                  />
+                </div>
+              )}
+
+              <p className="set-balance-prompt-text">
+                {!hasInitial 
+                  ? (t('setInitialBalancePrompt') || 'Masukkan saldo awal saat pertama kali menggunakan akun ini. Cassiel akan menghitung sisa saldo otomatis dari transaksi.') 
+                  : (isAddMode 
+                      ? (t('addBalancePrompt') || 'Nominal ini akan langsung ditambahkan ke saldo akun dan dicatat ke histori pemasukan.')
+                      : (t('editInitialBalancePrompt') || 'Mengubah saldo awal akan menyesuaikan nilai dasar tanpa menghapus histori transaksimu.'))}
+              </p>
+
+              <div className="set-balance-actions">
+                <button
+                  type="button"
+                  className="set-balance-btn-cancel"
+                  onClick={() => {
+                    setAccountToSetBalance(null);
+                    setBalanceModalInputValue('');
+                    setBalanceModalNote('');
+                  }}
+                >
+                  {t('close') || 'Batal'}
+                </button>
+                <button
+                  type="button"
+                  className="set-balance-btn-save"
+                  onClick={handleSave}
+                >
+                  {!hasInitial 
+                    ? (t('saveInitialBalanceBtn') || 'Simpan Saldo Awal') 
+                    : (isAddMode ? (t('submitAddBalanceBtn') || 'Tambah ke Saldo') : (t('saveBalanceBtn') || 'Simpan Perubahan'))}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modal: Tambah Akun Baru */}
+      {isAddAccountModalOpen && (() => {
+        // Daftar akun terstruktur sesuai referensi UI (Populer menyertakan Cash, Bank & E-Wallet utama)
+        const popularList = [
+          { id: 'cash', name: 'Cash' },
+          { id: 'bca', name: 'BCA' },
+          { id: 'bri', name: 'BRImo' },
+          { id: 'livin', name: "Livin' by Mandiri" },
+          { id: 'wondr', name: 'Wondr by BNI' },
+          { id: 'jago', name: 'Jago' },
+          { id: 'gopay', name: 'GoPay' },
+          { id: 'ovo', name: 'OVO' },
+          { id: 'dana', name: 'DANA' },
+          { id: 'shopeepay', name: 'ShopeePay' }
+        ];
+
+        const bankList = [
+          { id: 'bsi', name: 'BSI' },
+          { id: 'cimb', name: 'CIMB Niaga' },
+          { id: 'seabank', name: 'SeaBank' },
+          { id: 'jenius', name: 'Jenius' },
+          { id: 'maybank', name: 'Maybank' },
+          { id: 'bpddiy', name: 'BPD DIY' },
+          { id: 'bale_by_btn', name: 'bale by btn' },
+          { id: 'permata', name: 'Permata' },
+          { id: 'blu', name: 'blu' }
+        ];
+
+        const ewalletList = [
+          { id: 'linkaja', name: 'LinkAja' },
+          { id: 'gopay', name: 'GoPay' },
+          { id: 'ovo', name: 'OVO' },
+          { id: 'dana', name: 'DANA' },
+          { id: 'shopeepay', name: 'ShopeePay' },
+          { id: 'qris', name: 'QRIS' },
+          { id: 'paypal', name: 'PayPal' }
+        ];
+
+        // Helper: Cek apakah akun sudah pernah ditulis/diatur saldonya (termasuk Cash / Tunai)
+        const isAccountAlreadyConfigured = (accName) => {
+          const norm = (accName || '').trim().toLowerCase();
+          const isTargetCash = norm === 'cash' || norm === 'tunai' || norm === 'uang tunai';
+
+          return Object.keys(accountInitialBalances || {}).some(k => {
+            const kNorm = (k || '').trim().toLowerCase();
+            const val = accountInitialBalances[k];
+            const isKeyCash = kNorm === 'cash' || kNorm === 'tunai' || kNorm === 'uang tunai';
+
+            if (isTargetCash && isKeyCash) {
+              return typeof val === 'number' && !isNaN(val);
+            }
+
+            return (kNorm === norm || kNorm.includes(norm) || norm.includes(kNorm)) && typeof val === 'number' && !isNaN(val);
+          });
+        };
+
+        const activePopularList = popularList.filter(item => !isAccountAlreadyConfigured(item.name));
+        const activeBankList = bankList.filter(item => !isAccountAlreadyConfigured(item.name));
+        const activeEwalletList = ewalletList.filter(item => !isAccountAlreadyConfigured(item.name));
+
+        const searchTrim = addAccountSearchQuery.trim().toLowerCase();
+
+        // Filter pencarian
+        const filterBySearch = (list) => {
+          if (!searchTrim) return list;
+          return list.filter(item => item.name.toLowerCase().includes(searchTrim));
+        };
+
+        const filteredPopular = filterBySearch(activePopularList);
+        const filteredBank = filterBySearch(activeBankList);
+        const filteredEwallet = filterBySearch(activeEwalletList);
+
+        const showPopular = addAccountCategoryTab === 'all' && !searchTrim;
+        const showBank = (addAccountCategoryTab === 'all' || addAccountCategoryTab === 'bank') && (filteredBank.length > 0 || searchTrim);
+        const showEwallet = (addAccountCategoryTab === 'all' || addAccountCategoryTab === 'ewallet') && (filteredEwallet.length > 0 || searchTrim);
+
+        const hasAnyResult = (showPopular && filteredPopular.length > 0) || 
+                             (showBank && filteredBank.length > 0) || 
+                             (showEwallet && filteredEwallet.length > 0);
+
+        return (
+          <div 
+            className="modal-overlay profile-setup-overlay full-page-profile-screen"
+            style={{ zIndex: 99999 }}
+          >
+            <div className="wa-profile-screen-container">
+              {/* Header */}
+              <div className="wa-profile-top-header">
+                <button
+                  type="button"
+                  className="back-btn"
+                  onClick={() => {
+                    setIsAddAccountModalOpen(false);
+                    setAddAccountSearchQuery('');
+                    setIsCustomAddAccOpen(false);
+                  }}
+                  aria-label="Kembali"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <h3 className="profile-modal-title">{t('addNewAccountTitle') || 'Tambah Akun Baru'}</h3>
+              </div>
+
+              {/* Body */}
+              <div className="full-page-sub-body">
+                <div className="add-acc-new-screen-body">
+                  {/* 1. Search Bar */}
+                  <div className="add-acc-search-box">
+                    <span className="add-acc-search-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      className="add-acc-search-input"
+                      placeholder={t('searchAccountPlaceholder') || 'Cari bank atau e-wallet...'}
+                      value={addAccountSearchQuery}
+                      onChange={(e) => setAddAccountSearchQuery(e.target.value)}
+                    />
+                    {addAccountSearchQuery && (
+                      <button
+                        type="button"
+                        className="add-acc-search-clear"
+                        onClick={() => setAddAccountSearchQuery('')}
+                        aria-label="Hapus pencarian"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 2. Tabs / Category Pills */}
+                  <div className="add-acc-tab-list">
+                    <button
+                      type="button"
+                      className={`add-acc-tab-pill ${addAccountCategoryTab === 'all' ? 'active' : ''}`}
+                      onClick={() => setAddAccountCategoryTab('all')}
+                    >
+                      {t('all') || 'Semua'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`add-acc-tab-pill ${addAccountCategoryTab === 'bank' ? 'active' : ''}`}
+                      onClick={() => setAddAccountCategoryTab('bank')}
+                    >
+                      Bank
+                    </button>
+                    <button
+                      type="button"
+                      className={`add-acc-tab-pill ${addAccountCategoryTab === 'ewallet' ? 'active' : ''}`}
+                      onClick={() => setAddAccountCategoryTab('ewallet')}
+                    >
+                      E-Wallet
+                    </button>
+                  </div>
+
+                  {/* 3. Empty Search State */}
+                  {searchTrim && !hasAnyResult && (
+                    <div className="add-acc-empty-search">
+                      <p className="add-acc-empty-text">Tidak menemukan "{addAccountSearchQuery}"</p>
+                      <p className="add-acc-empty-sub">Kamu bisa menambahkan akun tersebut secara manual di bawah.</p>
+                    </div>
+                  )}
+
+                  {/* 4. Section: Populer (hanya muncul di tab Semua & tanpa filter query) */}
+                  {showPopular && filteredPopular.length > 0 && (
+                    <div className="add-acc-section">
+                      <div className="add-acc-section-header">
+                        <h4 className="add-acc-section-title">Populer</h4>
+                      </div>
+                      <div className="add-acc-cards-grid">
+                        {filteredPopular.map((acc) => (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            className="add-acc-card-item"
+                            onClick={() => handleSelectOrAddAccount(acc.name)}
+                          >
+                            <div className="add-acc-card-logo-wrap">
+                              <AccountIconBadge accountName={acc.name} size={42} />
+                            </div>
+                            <span className="add-acc-card-name">{acc.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 5. Section: Bank */}
+                  {showBank && filteredBank.length > 0 && (
+                    <div className="add-acc-section">
+                      <div className="add-acc-section-header">
+                        <h4 className="add-acc-section-title">Bank</h4>
+                        {addAccountCategoryTab === 'all' && !searchTrim && (
+                          <button
+                            type="button"
+                            className="add-acc-section-link"
+                            onClick={() => setAddAccountCategoryTab('bank')}
+                          >
+                            <span>Lihat semua</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="add-acc-cards-grid">
+                        {filteredBank.map((acc) => (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            className="add-acc-card-item"
+                            onClick={() => handleSelectOrAddAccount(acc.name)}
+                          >
+                            <div className="add-acc-card-logo-wrap">
+                              <AccountIconBadge accountName={acc.name} size={42} />
+                            </div>
+                            <span className="add-acc-card-name">{acc.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 6. Section: E-Wallet */}
+                  {showEwallet && filteredEwallet.length > 0 && (
+                    <div className="add-acc-section">
+                      <div className="add-acc-section-header">
+                        <h4 className="add-acc-section-title">E-Wallet</h4>
+                        {addAccountCategoryTab === 'all' && !searchTrim && (
+                          <button
+                            type="button"
+                            className="add-acc-section-link"
+                            onClick={() => setAddAccountCategoryTab('ewallet')}
+                          >
+                            <span>Lihat semua</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="add-acc-cards-grid">
+                        {filteredEwallet.map((acc) => (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            className="add-acc-card-item"
+                            onClick={() => handleSelectOrAddAccount(acc.name)}
+                          >
+                            <div className="add-acc-card-logo-wrap">
+                              <AccountIconBadge accountName={acc.name} size={42} />
+                            </div>
+                            <span className="add-acc-card-name">{acc.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 7. Bottom Card: Tidak Menemukan Akunmu? */}
+                  <div className="add-acc-custom-banner">
+                    <div className="add-acc-custom-plus-box">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </div>
+                    <div className="add-acc-custom-info">
+                      <span className="add-acc-custom-title">Tidak menemukan akunmu?</span>
+                      <span className="add-acc-custom-desc">Buat akun secara manual sesuai kebutuhanmu.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="add-acc-custom-action-btn"
+                      onClick={() => setIsCustomAddAccOpen(prev => !prev)}
+                    >
+                      {isCustomAddAccOpen ? 'Tutup' : 'Buat akun sendiri'}
+                    </button>
+                  </div>
+
+                  {/* Form input akun manual */}
+                  {isCustomAddAccOpen && (
+                    <div className="add-acc-custom-form-card">
+                      <div className="add-acc-custom-input-row">
+                        <input
+                          type="text"
+                          className="add-acc-custom-input"
+                          placeholder={t('accountNamePlaceholder') || 'Nama akun baru...'}
+                          value={newAccountInput}
+                          autoFocus
+                          onChange={(e) => setNewAccountInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newAccountInput.trim()) {
+                              handleSelectOrAddAccount(newAccountInput.trim());
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="add-acc-custom-submit-btn"
+                          onClick={() => {
+                            if (newAccountInput.trim()) {
+                              handleSelectOrAddAccount(newAccountInput.trim());
+                            }
+                          }}
+                        >
+                          <span>{t('add') || 'Tambah'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Screen / Drawer: Detail Akun (Histori Transaksi Akun) */}
+      {selectedAccountDetail && (
+        <div 
+          className="modal-overlay profile-setup-overlay full-page-profile-screen account-detail-screen"
+          style={{ zIndex: 99999 }}
+        >
+          <div className="wa-profile-screen-container account-detail-container">
+            {/* Top Bar */}
+            <div className="account-detail-top-bar">
+              <div className="account-detail-top-left">
+                <button
+                  type="button"
+                  className="back-btn"
+                  onClick={() => setSelectedAccountDetail(null)}
+                  aria-label="Kembali"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AccountIconBadge accountName={selectedAccountDetail.name} size={28} />
+                  <span className="account-detail-top-title">{selectedAccountDetail.name}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="account-detail-edit-init-btn"
+                onClick={() => {
+                  setAccountToSetBalance(selectedAccountDetail.name);
+                  setBalanceModalMode('add');
+                  setBalanceModalInputValue('');
+                  setBalanceModalNote('');
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                <span>{t('adjustBalanceBtn') || 'Sesuaikan saldo'}</span>
+              </button>
+            </div>
+
+            {/* Kartu Ringkasan Detail Saldo */}
+            {(() => {
+              const rawInit = accountInitialBalances[selectedAccountDetail.name];
+              const hasInitial = typeof rawInit === 'number' && !isNaN(rawInit);
+              const initVal = hasInitial ? rawInit : 0;
+
+              const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (selectedAccountDetail.name || '').toLowerCase().trim());
+              const totalInc = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+              const totalExp = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+              const hasRecorded = hasInitial || totalInc > 0;
+              const currBal = initVal + totalInc - totalExp;
+
+              return (
+                <div className="account-detail-summary-card">
+                  <div className="account-detail-current-wrap">
+                    <span className="account-detail-current-sub">
+                      {hasRecorded ? (t('recordedBalance') || 'Sisa saldo tercatat saat ini') : (t('balanceNotSet') || 'Saldo belum diatur')}
+                    </span>
+                    <span className="account-detail-current-val" style={{ color: hasRecorded ? (currBal < 0 ? '#DC2626' : '#BC6C25') : '#A08C7D' }}>
+                      {hasRecorded ? fmtMoney(currBal) : '-'}
+                    </span>
+                  </div>
+
+                  <div className="account-detail-grid-stats">
+                    <div className="account-detail-stat-item">
+                      <span className="account-detail-stat-item-label">{t('initialBalance') || 'Saldo awal'}</span>
+                      <span className="account-detail-stat-item-val">{hasInitial ? fmtMoney(initVal) : fmtMoney(0)}</span>
+                    </div>
+                    <div className="account-detail-stat-item">
+                      <span className="account-detail-stat-item-label">{t('income') || 'Pemasukan'}</span>
+                      <span className="account-detail-stat-item-val income">+{fmtMoney(totalInc)}</span>
+                    </div>
+                    <div className="account-detail-stat-item">
+                      <span className="account-detail-stat-item-label">{t('expenses') || 'Pengeluaran'}</span>
+                      <span className="account-detail-stat-item-val expense">-{fmtMoney(totalExp)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Histori Transaksi Akun */}
+            <div className="account-detail-tx-list-wrap">
+              <span className="account-detail-tx-header">{t('accountTransactionsHistory') || 'Histori Transaksi Akun'}</span>
+              {(() => {
+                const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (selectedAccountDetail.name || '').toLowerCase().trim());
+
+                if (accTxs.length === 0) {
+                  return (
+                    <div className="empty-transactions" style={{ marginTop: '20px' }}>
+                      <span className="empty-icon">💳</span>
+                      <span className="empty-title">{t('noTransactions')}</span>
+                      <span className="empty-subtitle">Belum ada transaksi dengan akun ini.</span>
+                    </div>
+                  );
+                }
+
+                // Urutkan transaksi dari yang paling baru
+                const sorted = [...accTxs].sort((a, b) => {
+                  const dateA = a.date || '';
+                  const dateB = b.date || '';
+                  if (dateA !== dateB) return dateB.localeCompare(dateA);
+                  const timeA = a.time || '';
+                  const timeB = b.time || '';
+                  if (timeA !== timeB) return timeB.localeCompare(timeA);
+                  return (b.id || 0) - (a.id || 0);
+                });
+
+                return sorted.map((tx) => {
+                  const iconSrc = resolveIcon(tx);
+                  const isExpense = tx.type === 'expense';
+                  let formattedDate = tx.date || '';
+                  if (tx.date) {
+                    const parts = tx.date.split('-');
+                    if (parts.length === 3) {
+                      const dayNum = parseInt(parts[2], 10);
+                      const monthIdx = parseInt(parts[1], 10) - 1;
+                      const shortMonth = monthNamesShort[monthIdx] || parts[1];
+                      formattedDate = `${dayNum} ${shortMonth} ${parts[0]}`;
+                    }
+                  }
+
+                  const catMeta = expenseCategories.find(c => c.name === tx.category || c.id === tx.categoryId || c.id === tx.id) ||
+                                  incomeCategories.find(c => c.name === tx.category || c.id === tx.categoryId || c.id === tx.id);
+                  const catIconClass = tx.iconClass || (catMeta ? catMeta.iconClass : '') || 'food-icon';
+
+                  return (
+                    <div key={tx.id} className="account-detail-tx-item">
+                      <div className="account-detail-tx-left">
+                        <div className={`account-detail-tx-icon ${catIconClass}`}>
+                          {iconSrc ? <img src={iconSrc} alt={tx.category} /> : <span>🏷️</span>}
+                        </div>
+                        <div className="account-detail-tx-meta">
+                          <span className="account-detail-tx-title">{tx.title || tx.category}</span>
+                          <span className="account-detail-tx-date">
+                            {getCategoryName(tx.category, appLanguage)} • {formattedDate} {tx.time ? `(${tx.time})` : ''}
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`account-detail-tx-amount ${isExpense ? 'expense' : 'income'}`}>
+                        {isExpense ? '-' : '+'}{fmtMoney(tx.amount)}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>

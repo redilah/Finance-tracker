@@ -19,6 +19,7 @@ export function createBackupData({
   incomeCategories,
   accountsList,
   deletedAccountsList,
+  accountInitialBalances,
   profileName,
   profileImage,
   appFont,
@@ -37,6 +38,7 @@ export function createBackupData({
       incomeCategories: incomeCategories || [],
       accountsList: accountsList || [],
       deletedAccountsList: deletedAccountsList || [],
+      accountInitialBalances: accountInitialBalances || safeStorageGet('user_account_initial_balances') || {},
       profileName: profileName || '',
       profileImage: safeStorageGet('user_profile_image') || profileImage || null,
       profileSetupDone: safeStorageGet('user_profile_setup_done') || 'true',
@@ -240,6 +242,7 @@ export function restoreBackupData(backupData, {
   setIncomeCategories,
   setAccountsList,
   setDeletedAccountsList,
+  setAccountInitialBalances,
   setProfileName,
   setProfileImage,
   setAppFont,
@@ -279,6 +282,12 @@ export function restoreBackupData(backupData, {
     if (Array.isArray(d.deletedAccountsList)) {
       setDeletedAccountsList(d.deletedAccountsList);
       safeStorageSet('user_deleted_accounts', d.deletedAccountsList);
+    }
+
+    // 5b. Account Initial Balances
+    if (d.accountInitialBalances && typeof d.accountInitialBalances === 'object') {
+      if (setAccountInitialBalances) setAccountInitialBalances(d.accountInitialBalances);
+      safeStorageSet('user_account_initial_balances', d.accountInitialBalances);
     }
 
     // 6. Profile

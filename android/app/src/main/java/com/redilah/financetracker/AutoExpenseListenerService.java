@@ -40,7 +40,14 @@ public class AutoExpenseListenerService extends NotificationListenerService {
         }
         
         String packageName = sbn.getPackageName();
-        if (packageName == null || !isFinancialApp(packageName.toLowerCase())) {
+        if (packageName == null) return;
+
+        // Ignore our own notifications to avoid recursion loops
+        if (packageName.equalsIgnoreCase(getPackageName())) {
+            return;
+        }
+
+        if (!isFinancialApp(packageName.toLowerCase())) {
             return; // Ignore non-financial packages
         }
 
@@ -72,7 +79,7 @@ public class AutoExpenseListenerService extends NotificationListenerService {
 
         // Filter out promo, iklan, atau notifikasi non-transaksi
         if (isPromoOrNonTransaction(title, text)) {
-            Log.d(TAG, "Ignored promo/marketing notification: " + title + " | " + text);
+            Log.d(TAG, "Ignored promo/marketing/non-financial notification: " + title + " | " + text);
             return;
         }
 
@@ -85,31 +92,46 @@ public class AutoExpenseListenerService extends NotificationListenerService {
     private boolean isPromoOrNonTransaction(String title, String text) {
         String combined = (title + " " + text).toLowerCase();
 
-        // 1. Cek pola diskon persentase & promo
-        if (combined.contains("diskon") || combined.contains("discount") || combined.contains("promo") || combined.contains("cashback")) {
-            return true;
-        }
-        if (combined.matches(".*\\b\\d{1,2}%.*")) {
-            return true;
-        }
-
-        // 2. Blacklist kata-kata promo & marketing
-        String[] promoKeywords = {
-            "voucher", "kupon", "hemat hingga", "s.d.", "up to", "special offer",
-            "penawaran", "hadiah", "reward", "gratis", "undian", "kesempatan",
-            "ajukan", "pinjaman", "paylater", "kartu kredit", "limit kredit",
-            "bunga ", "investasi", "reksa dana", "deposito", "upgrade",
-            "kode otp", "kode verifikasi", "rahasia", "login baru", "peringatan", "keamanan"
+        // 1. Blacklist kata-kata murni keamanan/OTP/login
+        String[] securityKeywords = {
+            "kode otp", "kode verifikasi", "rahasia jangan bagikan", "login baru", "device baru", "security alert"
         };
-        for (String kw : promoKeywords) {
+        for (String kw : securityKeywords) {
             if (combined.contains(kw)) return true;
         }
 
-        // 3. Wajib ada indikator transaksi riil
+        // 2. Blacklist kata-kata promo & penawaran murni TANPA transaksi riil
+        String[] promoKeywords = {
+            "diskon hingga", "discount up to", "cashback hingga", "special offer",
+            "ajukan pinjaman", "ajukan kartu kredit", "klaim voucher", "klaim reward",
+            "dapatkan hadiah", "kesempatan emas", "promo hemat", "yuk pakai"
+        };
+        for (String kw : promoKeywords) {
+            if (combined.contains(kw) && !combined.contains("berhasil") && !combined.contains("sukses") && !combined.contains("debit") && !combined.contains("kredit")) {
+                return true;
+            }
+        }
+
+        // 3. Cek nominal uang Rp / IDR / format ribuan
+        Pattern amountPattern = Pattern.compile("(?i)(?:rp|idr|idr\\.|rp\\.)\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]+)");
+        Matcher m = amountPattern.matcher(combined);
+        boolean hasAmount = m.find();
+
+        if (!hasAmount) {
+            // Cek jika ada angka ribuan murni (contoh: "sebesar 50.000")
+            Pattern numPattern = Pattern.compile("(?i)(?:sebesar|nominal|jumlah|total|bayar|transfer)\\s*([0-9]{1,3}(?:\\.[0-9]{3})+)");
+            if (!numPattern.matcher(combined).find()) {
+                return true; // Tolak jika sama sekali tidak ada angka nominal
+            }
+        }
+
+        // 4. Periksa indikator transaksi yang sah (sangat luas & inklusif)
         String[] legitKeywords = {
-            "berhasil", "sukses", "selesai", "debit", "kredit",
-            "pembayaran", "pembelian", "transfer", "terima",
-            "top up", "qris", "tarik tunai", "terkirim", "masuk", "keluar"
+            "berhasil", "sukses", "selesai", "debit", "kredit", "cr", "db",
+            "pembayaran", "pembelian", "transfer", "terima", "terima uang",
+            "top up", "topup", "qris", "tarik tunai", "terkirim", "masuk", "keluar",
+            "transaksi", "paid", "payment", "received", "sent", "sebesar", "terpotong",
+            "berkurang", "bertambah", "saldo", "tagihan", "dana keluar", "dana masuk"
         };
         boolean hasLegit = false;
         for (String kw : legitKeywords) {
@@ -118,32 +140,38 @@ public class AutoExpenseListenerService extends NotificationListenerService {
                 break;
             }
         }
-        if (!hasLegit) return true;
 
-        // 4. Wajib ada nominal uang Rp / IDR yang valid
-        Pattern amountPattern = Pattern.compile("(?i)(?:rp|idr)\\s*(\\d{1,3}(?:[.,]\\d{3})*)");
-        if (!amountPattern.matcher(combined).find()) {
-            return true;
-        }
-
-        return false;
+        return !hasLegit;
     }
 
     private boolean isFinancialApp(String pkg) {
-        return pkg.contains("bca") ||
-               pkg.contains("mandiri") ||
-               pkg.contains("bri") ||
-               pkg.contains("bni") ||
-               pkg.contains("gojek") ||
-               pkg.contains("ovo") ||
-               pkg.contains("dana") ||
-               pkg.contains("shopee") ||
-               pkg.contains("seabank") ||
-               pkg.contains("jago") ||
-               pkg.contains("jenius") ||
-               pkg.contains("bsi") ||
-               pkg.contains("cimb") ||
-               pkg.contains("permata");
+        String p = pkg.toLowerCase();
+        return p.contains("bca") ||
+               p.contains("mandiri") ||
+               p.contains("livin") ||
+               p.contains("bri") ||
+               p.contains("brimo") ||
+               p.contains("bni") ||
+               p.contains("wondr") ||
+               p.contains("gojek") ||
+               p.contains("gopay") ||
+               p.contains("ovo") ||
+               p.contains("dana") ||
+               p.contains("shopee") ||
+               p.contains("seabank") ||
+               p.contains("jago") ||
+               p.contains("jenius") ||
+               p.contains("bsi") ||
+               p.contains("bsimobile") ||
+               p.contains("cimb") ||
+               p.contains("octo") ||
+               p.contains("permata") ||
+               p.contains("danamon") ||
+               p.contains("btpn") ||
+               p.contains("bank") ||
+               p.contains("fintech") ||
+               p.contains("wallet") ||
+               p.contains("pay");
     }
 
     private void saveNotificationToPrefs(String packageName, String title, String text, long postTime) {
@@ -156,12 +184,12 @@ public class AutoExpenseListenerService extends NotificationListenerService {
             newNotif.put("packageName", packageName);
             newNotif.put("title", title);
             newNotif.put("text", text);
-            newNotif.put("time", postTime);
+            newNotif.put("time", postTime > 0 ? postTime : System.currentTimeMillis());
 
             pendingArray.put(newNotif);
 
             prefs.edit().putString(PENDING_KEY, pendingArray.toString()).apply();
-            Log.d(TAG, "Saved notification to pending queue.");
+            Log.d(TAG, "Saved notification to pending queue. Total: " + pendingArray.length());
         } catch (Exception e) {
             Log.e(TAG, "Error saving notification", e);
         }
@@ -171,32 +199,41 @@ public class AutoExpenseListenerService extends NotificationListenerService {
         try {
             String accountName = "E-Wallet/Bank";
             String pkgLower = packageName.toLowerCase();
-            if (pkgLower.contains("gojek")) accountName = "GoPay";
+            if (pkgLower.contains("gojek") || pkgLower.contains("gopay")) accountName = "GoPay";
             else if (pkgLower.contains("dana")) accountName = "DANA";
             else if (pkgLower.contains("ovo")) accountName = "OVO";
             else if (pkgLower.contains("shopee")) accountName = "ShopeePay";
-            else if (pkgLower.contains("bca")) accountName = "BCA";
-            else if (pkgLower.contains("mandiri")) accountName = "Mandiri";
-            else if (pkgLower.contains("bri")) accountName = "BRImo";
-            else if (pkgLower.contains("bni")) accountName = "BNI";
             else if (pkgLower.contains("seabank")) accountName = "SeaBank";
+            else if (pkgLower.contains("bca")) accountName = "BCA";
+            else if (pkgLower.contains("mandiri") || pkgLower.contains("livin")) accountName = "Mandiri";
+            else if (pkgLower.contains("brimo") || pkgLower.contains("bri")) accountName = "BRImo";
+            else if (pkgLower.contains("wondr") || pkgLower.contains("bni")) accountName = "BNI";
             else if (pkgLower.contains("jago")) accountName = "Bank Jago";
             else if (pkgLower.contains("jenius")) accountName = "Jenius";
             else if (pkgLower.contains("bsi")) accountName = "BSI";
+            else if (pkgLower.contains("cimb") || pkgLower.contains("octo")) accountName = "CIMB Niaga";
+            else if (pkgLower.contains("permata")) accountName = "Permata";
+            else if (pkgLower.contains("danamon")) accountName = "Danamon";
 
             String combined = (title + " " + text).trim();
 
             // 1. Extract Amount
             String amountFormatted = "";
-            Pattern amountPattern = Pattern.compile("(?i)(?:rp|idr)\\s*(\\d{1,3}(?:[.,]\\d{3})*)");
+            Pattern amountPattern = Pattern.compile("(?i)(?:rp|idr|idr\\.|rp\\.)\\s*([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]+)");
             Matcher amountMatcher = amountPattern.matcher(combined);
             if (amountMatcher.find()) {
                 amountFormatted = "Rp " + amountMatcher.group(1);
+            } else {
+                Pattern numPattern = Pattern.compile("(?i)(?:sebesar|nominal|jumlah|total|bayar|transfer)\\s*([0-9]{1,3}(?:\\.[0-9]{3})+)");
+                Matcher numMatcher = numPattern.matcher(combined);
+                if (numMatcher.find()) {
+                    amountFormatted = "Rp " + numMatcher.group(1);
+                }
             }
 
             // 2. Extract Merchant / Item / Target Name
             String itemName = "";
-            Pattern merchantPattern = Pattern.compile("(?i)(?:transfer ke|pembayaran ke|bayar di|merchant|di|ke|qris bayar|pembayaran qris|tujuan)\\s+([a-zA-Z0-9\\s*\\-,.]+?)(?:\\s*(?:sebesar|rp|idr|berhasil|sukses|pada|\\.|,|$))");
+            Pattern merchantPattern = Pattern.compile("(?i)(?:transfer ke|pembayaran ke|bayar di|merchant|qris bayar|pembayaran qris|ke|di|tujuan)\\s+([a-zA-Z0-9\\s*\\-,.]+?)(?:\\s*(?:sebesar|rp|idr|berhasil|sukses|pada|\\.|,|$))");
             Matcher merchantMatcher = merchantPattern.matcher(combined);
             if (merchantMatcher.find()) {
                 itemName = merchantMatcher.group(1).trim();
@@ -245,6 +282,7 @@ public class AutoExpenseListenerService extends NotificationListenerService {
                         NotificationManager.IMPORTANCE_HIGH
                 );
                 channel.setDescription("Notifikasi saat transaksi otomatis berhasil dicatat");
+                channel.enableVibration(true);
                 manager.createNotificationChannel(channel);
             }
 
@@ -257,11 +295,8 @@ public class AutoExpenseListenerService extends NotificationListenerService {
                     PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
             );
 
-            android.graphics.Bitmap largeIcon = android.graphics.BitmapFactory.decodeResource(getResources(), R.drawable.ic_large_icon);
-
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_stat_icon)
-                    .setLargeIcon(largeIcon)
                     .setContentTitle(notifTitle)
                     .setContentText(notifBody)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(notifBody))
@@ -269,7 +304,15 @@ public class AutoExpenseListenerService extends NotificationListenerService {
                     .setContentIntent(pendingIntent)
                     .setPriority(NotificationCompat.PRIORITY_HIGH);
 
+            try {
+                android.graphics.Bitmap largeIcon = android.graphics.BitmapFactory.decodeResource(getResources(), R.drawable.ic_large_icon);
+                if (largeIcon != null) {
+                    builder.setLargeIcon(largeIcon);
+                }
+            } catch (Exception ignored) {}
+
             manager.notify((int) System.currentTimeMillis(), builder.build());
+            Log.d(TAG, "Success notification posted: " + notifTitle + " - " + notifBody);
         } catch (Exception e) {
             Log.e(TAG, "Failed to show local success notification", e);
         }

@@ -36,7 +36,7 @@ const SLANG_NUMBER_MAP = [
   { pattern: /\b(goceng|go\s*ceng)\b/gi, value: 5000 },
   { pattern: /\b(noceng|no\s*ceng)\b/gi, value: 2000 },
   { pattern: /\b(seceng|sceng|se\s*ceng)\b/gi, value: 1000 },
-  { pattern: /\b(gopek|go\s*pek)\b/gi, value: 500 },
+  { pattern: /\b(gopek|go\s*pek|gope\s*perak|gopek\s*perak|500\s*perak)\b/gi, value: 500 },
   { pattern: /\b(cepek|sepek|ce\s*pek)\b/gi, value: 100 }
 ];
 
@@ -430,6 +430,10 @@ const ACCOUNT_SYNONYMS = {
   'bank maybank': 'Maybank',
   'gopay': 'GoPay',
   'go-pay': 'GoPay',
+  'gope': 'GoPay',
+  'go pay': 'GoPay',
+  'gojek': 'GoPay',
+  'gopay coin': 'GoPay',
   'ovo': 'OVO',
   'dana': 'DANA',
   'shopeepay': 'ShopeePay',
@@ -464,7 +468,7 @@ const ACCOUNT_INTERCHANGEABLE_ALIASES = {
   'cimb': ['cimb niaga', 'cimb'],
   'cimb niaga': ['cimb niaga', 'cimb'],
   'shopeepay': ['shopeepay', 'spay', 'shopee pay', 'shopee'],
-  'gopay': ['gopay', 'go-pay'],
+  'gopay': ['gopay', 'go-pay', 'gope', 'go pay', 'gojek', 'gopay coin'],
   'linkaja': ['linkaja', 'link aja']
 };
 
@@ -490,7 +494,7 @@ export const CONNECTING_WORDS = [
 
   'gofood', 'go-food', 'go food', 'grabfood', 'grab-food', 'grab food', 'shopeefood', 'shopee-food', 'shopee food',
   'scan', 'barcode', 'scan barcode', 'transfer', 'tf', 'debit', 'rekening', 'qris', 'kris', 'keris', 'cash', 'tunai', 'mbanking', 'm-banking',
-  'bca', 'mandiri', 'bri', 'bni', 'gopay', 'ovo', 'dana', 'shopeepay', 'spay',
+  'bca', 'mandiri', 'bri', 'bni', 'gopay', 'gope', 'go pay', 'ovo', 'dana', 'shopeepay', 'spay',
 
   'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'ya', 'kan', 'ada',
   'buat', 'untuk', 'sebesar', 'senilai', 'nominal', 'sejumlah', 'uang', 'keluar', 'masuk', 'terima', 'dapat', 'dapet', 'oleh',

@@ -15,6 +15,9 @@
 > - **JANGAN PERNAH** menuduh/mengasumsikan user menginstal `cassielll1.apk` saat user mengalami kendala instalasi "App not installed". User HANYA memakai `Cassiel.apk`.
 > - **DILARANG KERAS** menyuruh/menyarankan user melakukan **UNINSTALL** aplikasi, karena akan menghapus seluruh data finansial lokal pengguna di `localStorage`. Semua proses pembaruan WAJIB mendukung update langsung (*seamless in-place update*) tanpa kehilangan data.
 > - Jika konteksnya perbaikan notifikasi/bug untuk ditest user sendiri → build **release** (`assembleRelease`) bukan debug.
+> - **PEMISAHAN LOCAL BUILD VS FULL RELEASE**:
+>   - Jika user meminta **build ke file APK / compile ke Cassiel.apk saja** (tanpa menyebut rilis/GitHub): **JANGAN** menaikkan versi (`versionCode`/`versionName`) dan **JANGAN** melakukan git push. Cukup kompilasi aset web, sinkronkan Capacitor, build gradle, dan salin APK ke root/folder `./apk/`.
+>   - Hanya jalankan alur **Multi-File Version Bump** dan **Git Push** jika user secara eksplisit meminta **rilis versi baru / push ke GitHub**.
 
 
 ## 1. Proactive Tool & Command Execution
@@ -111,7 +114,8 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - Deskripsi di atas nominal hero budget dibatasi ringkas padat maksimal 4–5 kata (`"Batas total pengeluaran bulan ini"`). Dilarang menggunakan frasa panjang lebih dari 6 kata.
 * **Floating FAB Screen Isolation**: Tombol melayang (seperti Voice Mic) wajib dibatasi secara ketat hanya pada layar Home (`activeTab === 'home' && !isAddModalOpen && !isProfileModalOpen && !isBudgetCapModalOpen`) agar tidak menimpa layar form atau modal.
 * **Budget Page Architecture & 1-Column Category Row Invariants**:
-  - **Standalone Top Bar**: Header `🎯 Budget` (`font-size: 20px; font-weight: 800;`) wajib berdiri mandiri di atas kartu hero, berdampingan dengan tombol navigasi bulan & tahun.
+  - **Standalone Top Bar & Short Month Pill**: Header `🎯 Budget` (`font-size: 20px; font-weight: 800;`) wajib berdiri mandiri di atas kartu hero, berdampingan dengan tombol navigasi bulan & tahun. Tombol pill navigasi bulan wajib menggunakan format nama bulan yang disingkat (`MONTH_SHORT_I18N`, seperti `Agu 2026` / `Aug 2026`) agar tampilan tetap ringkas dan tidak memakan ruang berlebih.
+  - **Single-Count Category Calculation (Anti-Double-Counting)**: Perhitungan pengeluaran kategori bulanan (`currentMonthExpensesByCategory`) wajib memetakan setiap transaksi pengeluaran hanya 1 kali per kategori (`t.categoryId === cat.id || t.category === cat.name`). Dilarang mencatat ke dua key (`category` dan `categoryId`) lalu menjumlahkannya kembali saat render.
   - **Hero Card Proportions**: Kartu hero budget menggunakan `border-radius: 18px;`, lebar seimbang `margin: 0 -4px; width: calc(100% + 8px);`, dan ilustrasi kanan atas menggunakan `kalender.svg` transparan.
   - **Gaming Progress Bar & Dual Percentage**: Warna bar hero wajib mempertahankan gradien neon energetik (`#34D399` Emerald / `#FBBF24` Amber / `#F87171` Coral Red) dengan kilau *gloss shine* dan animasi strip diagonal. Teks meta di bawah bar wajib menampilkan status kondisi di kiri dan rasio dua persentase di kanan (`XX% / 100%`).
   - **1-Column Seamless Category List**: Kategori budget disusun vertikal 1 baris per kategori tanpa kotak pembungkus luar (*seamless direct background*).
@@ -119,6 +123,13 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
     - Mini progress bar memiliki `max-width: 84%` dan `height: 6.5px`.
     - Teks persentase (misal `96%`) wajib berada lurus sejajar secara horizontal dengan teks nominal (`Rp xxx.xxx / Rp xxx.xxx`).
     - Tombol "Atur" pada kategori yang belum memiliki limit wajib berbentuk kotak memanjang (*rounded rectangle*) dengan sudut halus 4.5px (`border-radius: 4.5px; padding: 3px 14px; min-width: 50px;`), bukan kapsul/lonjong.
+* **Pie Chart Leader Line & Label Alignment Invariant**:
+  - Garis penunjuk horizontal (*leader line*) pada diagram lingkaran Pie Chart Stats wajib mengarah dan berhenti lurus tepat di tengah vertikal teks **[Nama Kategori]** (`dominantBaseline="central"` pada ketinggian `slice.pLabel.y`).
+  - Teks persentase diletakkan rapi di bawah nama kategori, dengan jarak bebas tabrakan vertikal antar-label (`minYSpacing`) minimal 26px.
+* **Bottom Navigation GPU Solid Backing & Soft Keyboard Avoidance**:
+  - **Solid Opaque Backing**: Siluet lengkungan `<path>` pada `.nav-bg-svg` wajib menggunakan warna solid `fill="#F8EFE6"` (bukan variabel CSS mentah di inline SVG path) agar GPU Android me-rendernya 100% kedap dan tidak tembus ke konten yang di-scroll di belakangnya.
+  - **Shadow Layer Isolation**: Properti `filter: drop-shadow` wajib ditempelkan langsung pada elemen `.nav-bg-svg`, bukan pada kontainer pembungkus `.bottom-nav`, guna mencegah artefak kotak bayangan bolong (*bounding box clipping*) pada tombol Add dan ikon.
+  - **Soft Keyboard Avoidance**: Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi tombol aksi "Simpan Budget" / "Batal".
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
@@ -185,6 +196,11 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Strict 3-Column Grid**: Susunan ikon dan label kategori pada panel bawah form transaksi (`.category-grid`) bersifat mutlak **3 kolom ke samping** (`grid-template-columns: repeat(3, 1fr)`) agar nama kategori (termasuk terjemahan daerah seperti Basa Jawa) memiliki ruang baca yang proporsional dan tidak terpotong.
 
 ## 17. Standalone & Emblem-Only Payment Badges Invariant
+* **Strict Ban on Legacy Mandiri & BNI Assets/Names**:
+  - Dilarang keras mengimpor, membuat file, atau menggunakan aset `mandiriva.svg` dan `bniva.svg`.
+  - Aplikasi secara mutlak hanya menggunakan **`Livin' by Mandiri`** (`livin.svg`) dan **`Wondr by BNI`** (`wondr.svg`).
+* **Preserve Standard White Container for Bank Logos**:
+  - Wadah logo akun (`.account-logo-frame`) **wajib mempertahankan latar putih rounded dengan bayangan lembut** (`background: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); padding: 3px;`). Dilarang menghapus background putih ini.
 * **Emblem/Symbol Only without Redundant Text**: Logo bank dan e-wallet (seperti DANA, SeaBank, Jenius, Bank Jago, BRI, OVO, ShopeePay) wajib menggunakan lambang/emblem inti murni tanpa teks/subteks panjang di dalam kotak badge.
 * **Standalone Badges (No Double White Box)**: Akun dengan aset berwarna mandiri (seperti `Livin`, `Wondr`, `ShopeePay`, `DANA`, `LinkAja`, `OVO`, `GoPay`) wajib didaftarkan di `STANDALONE_BADGES` (`background: transparent`, `padding: 0`) agar tidak terbungkus kotak putih ganda atau padding putih kaku.
 * **Cash / Tunai Standalone Badge (No White Container)**: Ikon Cash / Tunai hijau (`#10B981`) wajib disajikan secara murni dan mandiri (*standalone*) tanpa bingkai kotak putih, shadow, atau border (`background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important;`).
@@ -331,7 +347,9 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - **Whitelist Transaksi Sah**: Notifikasi hanya diproses jika secara eksplisit mengandung indikator transaksi valid (`berhasil`, `sukses`, `selesai`, `pembayaran`, `pembelian`, `transfer`, `terima`, `top up`, `qris`, `debit`, `kredit`) dan memiliki nominal uang `Rp` / `IDR` yang valid.
 * **Standardized Account Mapping**:
   - BRI / BRImo wajib dipetakan ke nama akun standar **`BRImo`** (bukan "BRI" atau "Lainnya").
-  - BCA -> `BCA`, Mandiri/Livin -> `Mandiri`, BNI/Wondr -> `BNI`, Jago -> `Bank Jago`, SeaBank -> `SeaBank`, DANA -> `DANA`, GoPay -> `GoPay`, OVO -> `OVO`, ShopeePay -> `ShopeePay`.
+  - Mandiri / Livin wajib dipetakan ke **`Livin' by Mandiri`** (dilarang menggunakan "Mandiri").
+  - BNI / Wondr wajib dipetakan ke **`Wondr by BNI`** (dilarang menggunakan "BNI").
+  - BCA -> `BCA`, Jago -> `Bank Jago` / `Jago`, SeaBank -> `SeaBank`, DANA -> `DANA`, GoPay -> `GoPay`, OVO -> `OVO`, ShopeePay -> `ShopeePay`.
 * **Smart Fallback for Merchant Names**:
   - Jika notifikasi dari bank tidak menyertakan nama merchant (seperti notifikasi QRIS BRImo), gunakan format fallback yang rapi dan informatif: `QRIS [Nama Akun]` (misal: `"QRIS BRImo"`), bukan string generik `"Transaksi Otomatis..."`.
   - Notifikasi push Cassiel wajib berformat: `"[Nama Merchant / Fallback] ([Nominal]) berhasil disimpan otomatis ke Cassiel."`
@@ -371,6 +389,20 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
 6. **Verifikasi & Build Test**:
    - Jalankan automated test atau validasi syntax (`npm run build` / `oxlint`) untuk memastikan 0 broken imports dan 100% akurasi deteksi mic.
 
-
-
-
+## 37. Modern "Tambah Akun Baru" Screen & Bank Selection Invariants
+* **Layout & Color-Synchronized Tabs**:
+  - Tab kategori filter (`Semua`, `Bank`, `E-Wallet`) wajib menggunakan gradien aktif warm terracotta (`linear-gradient(135deg, #D4A373 0%, #BC6C25 100%)`) yang seragam dengan tombol aksi "Tambah" dan "Buat akun sendiri".
+  - Search bar menggunakan placeholder resmi `"Cari bank atau e-wallet..."` yang terdaftar di `i18n.js`.
+* **Official Mobile Banking App Identities (Strict Ban on Legacy Mandiri/BNI)**:
+  - Bank Mandiri dan BNI wajib menggunakan nama & branding resmi aplikasi terkini: **`Livin' by Mandiri`** dan **`Wondr by BNI`** (dilarang menggunakan opsi duplikat generic "Mandiri" atau "BNI", dan aset `mandiriva.svg` serta `bniva.svg` tidak boleh digunakan).
+  - Kategori Populer memuat akun utama: `Cash`, `BCA`, `BRImo`, `Livin' by Mandiri`, `Wondr by BNI`, `Jago`, `GoPay`, `OVO`, `DANA`, `ShopeePay`.
+* **Standard Account Logo Frame Styling**:
+  - Frame logo akun (`.account-logo-frame`) menggunakan latar putih bersih dengan bayangan lembut (`background: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); padding: 3px;`) agar logo bank (BCA, BSI, CIMB, dll.) tampil tegas dan kontras di semua grid.
+  - Akun dengan aset berwarna mandiri (`STANDALONE_BADGES` seperti Livin, Wondr, LinkAja, DANA, OVO, ShopeePay) serta `Cash` tetap menggunakan `background: transparent; padding: 0;` tanpa kotak putih ganda.
+* **Silent & Non-Intrusive Account Selection**:
+  - Dilarang memutar efek suara pop/bubble (`bubble_pop_2.wav`) saat pengguna mengetuk salah satu kartu bank/e-wallet.
+* **Layering & Navigation State Preservation**:
+  - Pop-up *"Atur Saldo Awal"* berjalan di atas layer `zIndex: 100000`.
+  - Saat pengguna membatalkan/menutup pop-up saldo awal, aplikasi **wajib tetap berada di layar Tambah Akun Baru** tanpa menutup layar ke menu awal.
+* **Dynamic Auto-Hide for Configured Accounts**:
+  - Sistem wajib menyaring seluruh daftar (`popularList`, `bankList`, `ewalletList`) menggunakan `isAccountAlreadyConfigured()`. Akun yang sudah pernah diatur saldonya (termasuk Cash/Tunai) wajib otomatis dihilangkan dari kartu pilihan Tambah Akun Baru.

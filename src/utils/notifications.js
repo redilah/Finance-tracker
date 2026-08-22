@@ -436,7 +436,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       if (pendingList && pendingList.notifications && pendingList.notifications.length > 0) {
         await LocalNotifications.cancel({ notifications: pendingList.notifications.map(n => ({ id: n.id })) }).catch(() => {});
       } else {
-        await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }, { id: 201 }, { id: 202 }, { id: 301 }, { id: 999 }] }).catch(() => {});
+        await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }, { id: 105 }, { id: 201 }, { id: 202 }, { id: 301 }, { id: 999 }] }).catch(() => {});
       }
 
       const now = new Date();
@@ -555,6 +555,27 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         largeIcon: 'ic_large_icon',
       });
 
+      // 5. Notifikasi Pengingat Atur Budget & Limit Pos Setiap Tanggal 1 Awal Bulan (Pukul 08:00 Pagi)
+      let firstDayTarget = new Date(currentYear, currentMonth, 1, 8, 0, 0, 0);
+      if (now.getTime() >= firstDayTarget.getTime()) {
+        // Jika tanggal 1 jam 08:00 bulan ini sudah lewat, jadwalkan untuk tanggal 1 bulan depan
+        firstDayTarget = new Date(currentYear, currentMonth + 1, 1, 8, 0, 0, 0);
+      }
+
+      notifsToSchedule.push({
+        title: tr(l, 'notifSetMainBudget', { name }),
+        body: tr(l, 'notifSetMainBudgetBody', { name }),
+        id: 105,
+        schedule: {
+          at: firstDayTarget,
+          allowWhileIdle: true
+        },
+        channelId: 'financial_notifications',
+        sound: 'notification',
+        smallIcon: 'ic_stat_icon',
+        largeIcon: 'ic_large_icon',
+      });
+
       if (notifsToSchedule.length > 0) {
         await LocalNotifications.schedule({
           notifications: notifsToSchedule
@@ -568,7 +589,14 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
     try {
       const now = new Date();
       const isUnnamed = !userName || userName.trim() === '' || userName.trim().toLowerCase() === 'pengguna' || userName.trim().toLowerCase() === 'teman';
-      if (now.getHours() === 19 && now.getMinutes() === 0) {
+      if (now.getDate() === 1 && now.getHours() === 8 && now.getMinutes() === 0) {
+        new Notification(tr(l, 'notifSetMainBudget', { name }), {
+          body: tr(l, 'notifSetMainBudgetBody', { name }),
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+      } else if (now.getHours() === 19 && now.getMinutes() === 0) {
         const msg = generateNotificationMessage(userName, transactions, l);
         new Notification(msg.title, {
           body: msg.body,
@@ -960,6 +988,70 @@ export const scheduleV24FeatureIntroNotification = async (userName = 'Teman', la
     localStorage.setItem(NOTIF_KEY, 'true');
   }
 };
+
+// Schedule 1-Time 5-Second Post-Update Notification for v1.0.28 Features (Account & Multi-Account Management)
+export const scheduleV28AccountFeatureIntroNotification = async (userName = 'Teman', lang) => {
+  if (typeof localStorage === 'undefined') return;
+  const NOTIF_KEY = 'v1_0_28_account_feature_intro_notif';
+  if (localStorage.getItem(NOTIF_KEY) === 'true') {
+    return;
+  }
+
+  const l = lang || getLang();
+  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
+  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
+  const title = tr(l, 'notifV28AccountFeatureIntroTitle', { name });
+  const body = tr(l, 'notifV28AccountFeatureIntroBody', { name });
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'financial_notifications',
+        name: 'Notifikasi Finansial',
+        description: 'Pengingat dan notifikasi anggaran harian',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 603,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
+            channelId: 'financial_notifications',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
+          }
+        ]
+      });
+      localStorage.setItem(NOTIF_KEY, 'true');
+    } catch (e) {
+      console.warn('Failed to schedule v1.0.28 feature intro notification:', e);
+    }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        playSound('notification');
+        localStorage.setItem(NOTIF_KEY, 'true');
+      } catch (e) {
+        console.log('Web notification error:', e);
+      }
+    }, 5000);
+  } else {
+    localStorage.setItem(NOTIF_KEY, 'true');
+  }
+};
+
 
 
 
