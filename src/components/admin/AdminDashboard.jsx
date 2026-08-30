@@ -53,7 +53,9 @@ import {
   Trophy,
   Award,
   BarChart3,
-  Layers
+  Layers,
+  FolderHeart,
+  UserCheck
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
@@ -278,6 +280,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const [isFeedbackPerPageOpen, setIsFeedbackPerPageOpen] = useState(false);
   const feedbackPerPageRef = useRef(null);
 
+  // Groups state (TAB 4: PELACAKAN GRUP PENGGUNA)
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
+  const [groupTypeFilter, setGroupTypeFilter] = useState('all'); // 'all' | 'Organisasi' | 'Keluarga' | 'Komunitas' | 'Lainnya'
+  const [groupPage, setGroupPage] = useState(1);
+  const [groupPerPage, setGroupPerPage] = useState(8);
+  const [isGroupPerPageOpen, setIsGroupPerPageOpen] = useState(false);
+  const groupPerPageRef = useRef(null);
+
   // Global loading & timer state
   const [isLoading, setIsLoading] = useState(true);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -298,6 +308,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
       }
       if (feedbackPerPageRef.current && !feedbackPerPageRef.current.contains(event.target)) {
         setIsFeedbackPerPageOpen(false);
+      }
+      if (groupPerPageRef.current && !groupPerPageRef.current.contains(event.target)) {
+        setIsGroupPerPageOpen(false);
       }
     };
 
@@ -598,10 +611,74 @@ export default function AdminDashboard({ onNavigateToApp }) {
     return filteredFeedbacks.slice(start, start + feedbackPerPage);
   }, [filteredFeedbacks, feedbackPage, feedbackPerPage]);
 
+  // TAB 4: Groups List Aggregation & Filtering across all devices
+  const allGroups = useMemo(() => {
+    const list = [];
+    telemetryList.forEach(device => {
+      const userDisplayName = resolveRealUserName(device.userName, device.id, telemetryList);
+      if (Array.isArray(device.groups) && device.groups.length > 0) {
+        device.groups.forEach(grp => {
+          list.push({
+            ...grp,
+            creatorUserName: userDisplayName,
+            creatorDeviceName: device.deviceName || 'Perangkat Pengguna',
+            creatorDeviceId: device.id,
+            creatorLastActive: device.lastActive
+          });
+        });
+      }
+    });
+
+    // Sort descending by creation date / timestamp
+    list.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    return list;
+  }, [telemetryList]);
+
+  const filteredGroups = useMemo(() => {
+    return allGroups.filter(grp => {
+      // 1. Search Query
+      if (groupSearchQuery.trim()) {
+        const query = groupSearchQuery.toLowerCase().trim();
+        const name = (grp.name || '').toLowerCase();
+        const creator = (grp.creatorUserName || '').toLowerCase();
+        const device = (grp.creatorDeviceName || '').toLowerCase();
+        const type = (grp.type || '').toLowerCase();
+        if (!name.includes(query) && !creator.includes(query) && !device.includes(query) && !type.includes(query)) {
+          return false;
+        }
+      }
+
+      // 2. Type Filter
+      if (groupTypeFilter !== 'all') {
+        if ((grp.type || 'Organisasi') !== groupTypeFilter) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allGroups, groupSearchQuery, groupTypeFilter]);
+
+  const totalGroupPages = groupPerPage === -1 
+    ? 1 
+    : Math.ceil(filteredGroups.length / groupPerPage) || 1;
+
+  const paginatedGroups = useMemo(() => {
+    if (groupPerPage === -1) return filteredGroups;
+    const start = (groupPage - 1) * groupPerPage;
+    return filteredGroups.slice(start, start + groupPerPage);
+  }, [filteredGroups, groupPage, groupPerPage]);
+
   // Counts for Badges
   const totalUsers = telemetryList.length;
   const activeDevices = telemetryList.filter(item => getDeviceStatus(item.lastActive).status !== 'offline').length;
   const totalTransactions = telemetryList.reduce((acc, curr) => acc + (curr.totalTransactions || 0), 0);
+  const totalGroupsCreated = allGroups.length;
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
   
@@ -891,6 +968,14 @@ export default function AdminDashboard({ onNavigateToApp }) {
               <MessageSquare size={18} />
               <span>Saran & Keluh Kesah</span>
               <span className="tab-badge-count feedback-count">{feedbacks.length}</span>
+            </button>
+            <button 
+              className={`view-tab-btn ${activeTab === 'groups' ? 'active' : ''}`}
+              onClick={() => setActiveTab('groups')}
+            >
+              <Users size={18} />
+              <span>Pelacakan Grup</span>
+              <span className="tab-badge-count highlight-purple">{totalGroupsCreated}</span>
             </button>
           </div>
         </div>
@@ -1895,6 +1980,23 @@ export default function AdminDashboard({ onNavigateToApp }) {
 
                       <div className="feedback-card-body">
                         <p className="feedback-message-text">{item.message}</p>
+                        {item.screenshot && (
+                          <div style={{ marginTop: '10px', borderRadius: '10px', overflow: 'hidden', border: '1px solid #E5E7EB', background: '#000000' }}>
+                            <a href={item.screenshot} target="_blank" rel="noopener noreferrer" title="Klik untuk perbesar screenshot">
+                              <img 
+                                src={item.screenshot} 
+                                alt="Screenshot Lampiran" 
+                                style={{ width: '100%', maxHeight: '220px', objectFit: 'contain', display: 'block' }} 
+                              />
+                            </a>
+                          </div>
+                        )}
+                        {(item.appVersion || item.deviceModel) && (
+                          <div style={{ marginTop: '8px', fontSize: '11px', color: '#6B7280', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {item.appVersion && <span>📦 {item.appVersion}</span>}
+                            {item.deviceModel && <span>📱 {item.deviceModel}</span>}
+                          </div>
+                        )}
                       </div>
 
                       <div className="feedback-card-footer">
@@ -1972,6 +2074,160 @@ export default function AdminDashboard({ onNavigateToApp }) {
                       className="btn-page-nav"
                       disabled={feedbackPage >= totalFeedbackPages}
                       onClick={() => setFeedbackPage(prev => Math.min(totalFeedbackPages, prev + 1))}
+                    >
+                      <span>Berikutnya</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* TAB 4: PELACAKAN GRUP PENGGUNA */}
+        {activeTab === 'groups' && (
+          <div className="tab-pane-content">
+            {/* Group Controls & Search */}
+            <section className="admin-controls-card">
+              <div className="controls-row">
+                <div className="search-box">
+                  <Search size={18} color="#9CA3AF" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari nama grup, nama pembuat, tipe, atau perangkat..." 
+                    value={groupSearchQuery}
+                    onChange={(e) => {
+                      setGroupSearchQuery(e.target.value);
+                      setGroupPage(1);
+                    }}
+                  />
+                  {groupSearchQuery && (
+                    <button 
+                      className="btn-clear-search" 
+                      onClick={() => {
+                        setGroupSearchQuery('');
+                        setGroupPage(1);
+                      }}
+                      title="Hapus pencarian"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <div className="filter-group">
+                  <span className="filter-label">Tipe Grup:</span>
+                  <div className="filter-buttons">
+                    <button 
+                      className={`btn-filter ${groupTypeFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => { setGroupTypeFilter('all'); setGroupPage(1); }}
+                    >
+                      Semua ({allGroups.length})
+                    </button>
+                    <button 
+                      className={`btn-filter ${groupTypeFilter === 'Organisasi' ? 'active' : ''}`}
+                      onClick={() => { setGroupTypeFilter('Organisasi'); setGroupPage(1); }}
+                    >
+                      🏢 Organisasi ({allGroups.filter(g => (g.type || 'Organisasi') === 'Organisasi').length})
+                    </button>
+                    <button 
+                      className={`btn-filter ${groupTypeFilter === 'Keluarga' ? 'active' : ''}`}
+                      onClick={() => { setGroupTypeFilter('Keluarga'); setGroupPage(1); }}
+                    >
+                      🏡 Keluarga ({allGroups.filter(g => g.type === 'Keluarga').length})
+                    </button>
+                    <button 
+                      className={`btn-filter ${groupTypeFilter === 'Komunitas' ? 'active' : ''}`}
+                      onClick={() => { setGroupTypeFilter('Komunitas'); setGroupPage(1); }}
+                    >
+                      👥 Komunitas ({allGroups.filter(g => g.type === 'Komunitas').length})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Groups Grid / Cards List */}
+            <section className="groups-display-section">
+              {filteredGroups.length === 0 ? (
+                <div className="empty-state-card">
+                  <Users size={48} color="#D1D5DB" />
+                  <h3>Belum Ada Grup yang Dibuat</h3>
+                  <p>
+                    {groupSearchQuery || groupTypeFilter !== 'all'
+                      ? 'Tidak ada grup yang sesuai dengan filter pencarian.'
+                      : 'Grup kas/organisasi yang dibuat pengguna melalui fitur Kas & Grup akan otomatis terlacak dan muncul di sini.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="admin-groups-grid">
+                  {paginatedGroups.map((grp, idx) => {
+                    const dt = formatDateTime(grp.createdAt);
+                    const initialChar = (grp.name || 'G').charAt(0).toUpperCase();
+                    
+                    return (
+                      <div key={grp.id || idx} className="admin-group-card">
+                        <div className="group-card-header">
+                          <div className="group-avatar-wrapper">
+                            {initialChar}
+                          </div>
+                          <div className="group-header-info">
+                            <h4 className="group-title" title={grp.name}>{grp.name}</h4>
+                            <span className="group-type-badge">
+                              {grp.type === 'Keluarga' ? '🏡 Keluarga' : grp.type === 'Komunitas' ? '👥 Komunitas' : '🏢 Organisasi'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="group-card-body">
+                          {grp.description && (
+                            <p className="group-desc-text">"{grp.description}"</p>
+                          )}
+
+                          <div className="group-metric-row">
+                            <div className="group-metric-pill">
+                              <UserCheck size={14} color="#4F46E5" />
+                              <span><b>{grp.memberCount || 1}</b> Anggota</span>
+                            </div>
+                          </div>
+
+                          <div className="group-date-row">
+                            <Calendar size={13} color="#6B7280" />
+                            <span>Dibuat: <b>{dt.dateStr !== '-' ? dt.full : 'Tidak tercatat'}</b></span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Group Pagination Footer */}
+              {filteredGroups.length > 0 && (
+                <div className="pagination-footer">
+                  <div className="pagination-info">
+                    Menampilkan <b>{paginatedGroups.length}</b> dari <b>{filteredGroups.length}</b> grup
+                  </div>
+
+                  <div className="pagination-controls">
+                    <button 
+                      className="btn-page-nav"
+                      disabled={groupPage <= 1}
+                      onClick={() => setGroupPage(prev => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Sebelumnya</span>
+                    </button>
+
+                    <div className="pagination-page-indicator">
+                      Halaman <b>{groupPage}</b> dari <b>{totalGroupPages}</b>
+                    </div>
+
+                    <button 
+                      className="btn-page-nav"
+                      disabled={groupPage >= totalGroupPages}
+                      onClick={() => setGroupPage(prev => Math.min(totalGroupPages, prev + 1))}
                     >
                       <span>Berikutnya</span>
                       <ChevronRight size={16} />

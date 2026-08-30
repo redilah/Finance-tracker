@@ -12,7 +12,8 @@ export default function VoiceMicButton({
   setSelectedCategory,
   setAccount,
   setNote,
-  handleSaveVoiceTransaction
+  handleSaveVoiceTransaction,
+  onOpenQuickText
 }) {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'success' | 'error'
   const webRecognitionRef = useRef(null);
@@ -313,38 +314,55 @@ export default function VoiceMicButton({
 
   return (
     <div className="voice-mic-container tour-target-voice">
-      <span className="voice-mic-beta-badge">BETA</span>
-      <button 
-        type="button"
-        className={`voice-mic-fab status-${status} tour-target-voice-btn`}
-        onClick={handleMicClick}
-        disabled={status === 'success'}
-        aria-label="Input Transaksi Suara"
-        title={
-          status === 'listening' 
-            ? 'Sedang mendengarkan... (Klik untuk selesai / proses)' 
-            : status === 'processing' 
-              ? 'Sedang memproses... (Klik untuk batal)' 
-              : 'Bicara untuk catat atau hapus transaksi'
-        }
-      >
-        {status === 'success' ? (
-          <svg className="voice-mic-icon check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"></polyline>
+      {onOpenQuickText && (
+        <button
+          type="button"
+          className="quick-text-fab tour-target-quick-text-btn"
+          onClick={onOpenQuickText}
+          aria-label="Input Teks Cepat"
+          title="Ketik satu baris cepat (cth: kopi 18k gopay)"
+        >
+          <svg className="quick-text-fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-        ) : status === 'error' ? (
-          <svg className="voice-mic-icon cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        ) : (
-          <svg className="voice-mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="22"></line>
-          </svg>
-        )}
-      </button>
+        </button>
+      )}
+      <div className="voice-mic-fab-wrapper">
+        <span className="voice-mic-beta-badge">BETA</span>
+        <button 
+          type="button"
+          className={`voice-mic-fab status-${status} tour-target-voice-btn`}
+          onClick={handleMicClick}
+          disabled={status === 'success'}
+          aria-label="Input Transaksi Suara"
+          title={
+            status === 'listening' 
+              ? 'Sedang mendengarkan... (Klik untuk selesai / proses)' 
+              : status === 'processing' 
+                ? 'Sedang memproses... (Klik untuk batal)' 
+                : 'Bicara untuk catat atau hapus transaksi'
+          }
+        >
+          {status === 'success' ? (
+            <svg className="voice-mic-icon check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          ) : status === 'error' ? (
+            <svg className="voice-mic-icon cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          ) : (
+            <svg className="voice-mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
+

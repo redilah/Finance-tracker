@@ -1,13 +1,13 @@
 {
-  "versionCode": 29,
-  "versionName": "1.0.28",
-  "version": "1.0.28",
-  "changelog": "New in this update:\n[NEW] Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time\n[NEW] Filter Cepat & Pemantauan Arus Kas per Sumber Dana",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.28",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.28",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.28",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.28",
-  "sha256": "075cfe007dd0b935cfb44b5f319109a00e65c83bfe45bf879e20286f6837ad29",
+  "versionCode": 30,
+  "versionName": "1.0.29",
+  "version": "1.0.29",
+  "changelog": "New in this update:\n[NEW] Optimasi Sistem Notifikasi & Pembaruan Stabilitas Kategori\n[NEW] Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.29",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.29",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.29",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.29",
+  "sha256": "07016bf8169077229e150f82440accfda56e3c023a47e2ae873cdfddbcd62237",
   "minSdkVersion": 22
 }
 

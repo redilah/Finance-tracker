@@ -6,7 +6,6 @@ import {
   formatRupiah 
 } from '../utils/categoryInsightEngine.js';
 import { getInstallDate } from '../utils/telemetry.js';
-import { fetchCommunityBenchmark, getCommunityAverage, getInitialCommunityBenchmark } from '../utils/communityBenchmark.js';
 import { MONTH_NAMES_I18N, MONTH_SHORT_I18N, getTranslation } from '../utils/i18n.js';
 import { AccountIconBadge } from '../utils/accountLogos.jsx';
 
@@ -38,7 +37,6 @@ export default function CategoryInsightScreen({
   const [currentDate, setCurrentDate] = useState(() => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
   const [isTxListExpanded, setIsTxListExpanded] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
-  const [benchmarkData, setBenchmarkData] = useState(() => getInitialCommunityBenchmark());
 
   // Helper translation fallback
   const tr = (key) => (t ? t(key) : getTranslation(appLanguage, key));
@@ -127,24 +125,10 @@ export default function CategoryInsightScreen({
   const isUnlocked = isEndOfMonthOrTesting(year, monthIndex) || timeLeft.isExpired;
 
   // Fetch community benchmark data (async, non-blocking)
-  useEffect(() => {
-    let cancelled = false;
-    fetchCommunityBenchmark().then(data => {
-      if (!cancelled) setBenchmarkData(data);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  // Resolve community average for current category
-  const catNameForBenchmark = category.name || category.category || 'Kategori';
-  const communityDataForCat = useMemo(() => {
-    return getCommunityAverage(catNameForBenchmark, benchmarkData);
-  }, [catNameForBenchmark, benchmarkData]);
-
-  // Generate insight data
+  // Generate insight data (V1: Tanpa Community Benchmark)
   const insight = useMemo(() => {
     return generateCategoryInsight({
-      categoryName: catNameForBenchmark,
+      categoryName: category.name || category.category || 'Kategori',
       year,
       monthIndex,
       allTransactions,
@@ -152,9 +136,9 @@ export default function CategoryInsightScreen({
       appLanguage,
       fmtMoney,
       getCategoryName,
-      communityData: communityDataForCat
+      communityData: null
     });
-  }, [category, year, monthIndex, allTransactions, userName, appLanguage, fmtMoney, getCategoryName, communityDataForCat]);
+  }, [category, year, monthIndex, allTransactions, userName, appLanguage, fmtMoney, getCategoryName]);
 
   const catIcon = resolveIcon ? resolveIcon(category) : null;
   const catColor = category.color || '#4EBE96';

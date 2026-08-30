@@ -24,11 +24,9 @@
 -keep class com.redilah.financetracker.widget.** { *; }
 -keepclassmembers class com.redilah.financetracker.widget.** { *; }
 
-# Keep Notification Tracker Plugin and Listener Service
--keep class com.redilah.financetracker.NotificationTrackerPlugin { *; }
--keepclassmembers class com.redilah.financetracker.NotificationTrackerPlugin { *; }
--keep class com.redilah.financetracker.AutoExpenseListenerService { *; }
--keepclassmembers class com.redilah.financetracker.AutoExpenseListenerService { *; }
+# Keep Notification Tracker
+-keep class com.redilah.financetracker.notificationtracker.** { *; }
+-keepclassmembers class com.redilah.financetracker.notificationtracker.** { *; }
 
 # Keep Kotlin stdlib & Coroutines
 -keep class kotlin.** { *; }

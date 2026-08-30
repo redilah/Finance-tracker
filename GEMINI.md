@@ -71,11 +71,6 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - Saat memanggil `@capacitor/share` untuk berkas, dilarang menyertakan parameter `text` (hanya `files: [shareUri]`, `title`, dan `dialogTitle`) agar OS Android mengenali intent murni sebagai Dokumen Berkas, sehingga opsi **"Simpan ke Drive" (Google Drive)** dan **File Manager** tampil 100%.
   - URI wajib diawali dengan skema `file://` agar valid di `SharePlugin.java`.
 
-## 4. Fitur "Andai" & Prinsip Kedisiplinan Finansial
-* **Kedap Cheating (Anti-Excuse)**: Klasifikasi konsumtif di fitur "Andai" bersifat mutlak dan tidak boleh menyediakan tombol manual untuk mengeluarkan transaksi.
-* **Smart Hybrid Engine**: Gunakan `src/utils/classifier.js` untuk deteksi otomatis. Wajib mendeteksi konteks Bahasa Indonesia, Gaul, Singkatan, Daerah/Pulau, dan Bahasa Inggris (seperti `pulkam`, `dinas`, `mudik`, `homecoming`, `kalbar`, dll.).
-* **Threshold Barbershop**: Transaksi Barbershop < Rp 50.000 dianggap kebutuhan kebersihan pokok (non-konsumtif).
-
 ## 5. UI Invariants & Design Standards
 * **Warna & Theme (Strict Ban on Dark/Black Containers)**: 
   - **DILARANG KERAS** menggunakan container, card, hero header, atau elemen utama dengan warna hitam, abu-abu gelap, cokelat tua pekat, atau gradien gelap kaku (`#000000`, `#27221F`, `#333333`, dll.). 
@@ -129,7 +124,52 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Bottom Navigation GPU Solid Backing & Soft Keyboard Avoidance**:
   - **Solid Opaque Backing**: Siluet lengkungan `<path>` pada `.nav-bg-svg` wajib menggunakan warna solid `fill="#F8EFE6"` (bukan variabel CSS mentah di inline SVG path) agar GPU Android me-rendernya 100% kedap dan tidak tembus ke konten yang di-scroll di belakangnya.
   - **Shadow Layer Isolation**: Properti `filter: drop-shadow` wajib ditempelkan langsung pada elemen `.nav-bg-svg`, bukan pada kontainer pembungkus `.bottom-nav`, guna mencegah artefak kotak bayangan bolong (*bounding box clipping*) pada tombol Add dan ikon.
-  - **Soft Keyboard Avoidance**: Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi tombol aksi "Simpan Budget" / "Batal".
+  - **Soft Keyboard Avoidance**: Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`) atau saat kolom pencarian kategori difokuskan (`isSearchingBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi antarmuka pencarian dan tombol aksi.
+* **Home Segmented Filter Tabs & Quick Dropdown Invariants**:
+  - **Click Isolation & Independent Dropdown Trigger**:
+    - Menekan tab **Expense** murni hanya berpindah filter kategori transaksi (`homeTxFilter = 'expense'`) dan **WAJIB** menutup dropdown (`isExpenseDropdownOpen = false`). Dilarang keras otomatis memunculkan dropdown saat berpindah tab.
+    - Dropdown menu filter periode tanggal **HANYA BOLEH DIBUKA** ketika pengguna secara eksplisit menekan tombol panah dropdown (`.capsule-dropdown-arrow`).
+  - **Optical Center Alignment & Position for Arrow (Locked Invariant)**:
+    - Tombol panah dropdown (`.capsule-dropdown-arrow`) wajib terkunci di sisi kanan kapsul tab (`position: absolute; right: 8px; top: calc(50% + 1.5px); transform: translateY(-50%); z-index: 5;`). Dilarang mendekatkannya/menempelkannya ke teks Expense.
+    - Menggunakan vektor SVG chevron bersih (`width="10" height="6"` dengan stroke `1.8` round) berukuran sentuh nyaman `24x24px` flexbox agar posisinya sejajar presisi secara optik dengan garis tengah karakter teks `Expense`.
+  - **Dropdown Stacking & Isolation**: Kontainer bilah filter kapsul (`.home-tx-filter-bar`) wajib menaikkan `z-index` secara dinamis (`zIndex: isDropdownOpen ? 1150 : 5`) saat dropdown menu terbuka agar daftar filter melayang 100% di atas kartu-kartu transaksi di bawahnya tanpa terpotong atau tembus.
+  - **Action Button Text Color Inheritance**: Tombol segmen aktif (seperti `.expense-active` dan `.income-active`) wajib memaksakan warna tema pada seluruh child element (`.home-tx-filter-btn.active.expense-active, .home-tx-filter-btn.active.expense-active * { color: var(--card-expense-text, #BC6C25) !important; }`) guna mencegah penimpaan warna oleh aturan global `span { color: var(--text-main); }`.
+  - **Cash Counter Rolling Animation**: Perubahan filter nominal pada kartu ringkasan wajib menggunakan animasi mesin hitung uang bergulir (*cash counter*, durasi ~1.2 detik dengan kurva *cubic-bezier ease-out*) dari nominal sebelumnya ke nominal baru.
+* **Transaction Card Category-Bound Palette (Strict Ban on :nth-child)**:
+  - **Dilarang Keras** memberi warna background balok kartu transaksi menggunakan selektor urutan baris CSS `:nth-child(N)`.
+  - Seluruh kategori (35 kategori pengeluaran & pemasukan) wajib terikat secara permanen dengan warna balok pastel khusus melalui kelas `.cat-card-${id}` / `.cat-card-${iconClass}`.
+  - Warna wajib menggunakan *Soft Muted Luxury Pastel* yang berkontras jelas terhadap latar `#F8EFE6` tanpa terlihat pudar/tersamar dan tidak menyilaukan/ngejreng.
+* **Budget Progress Bar & Percentage No-Red Invariant**:
+  - Saat kategori budget mencapai limit ($\ge 100\%$) atau melebihi limit (*over-limit*), warna mini bar dan teks persentase wajib menggunakan gradien/warna Warm Amber (`#FBBF24` $\rightarrow$ `#D97706`), **DILARANG KERAS** menggunakan warna merah.
+* **Accounts Page 3-Metric Asset Distribution Invariant**:
+  - Kartu hero halaman Akun wajib menyajikan 3 metrik sebaran aset yang terisolasi: `Rekening Bank` (khusus bank resmi), `E-Wallet` (khusus dompet digital, tanpa cash), dan `Kartu Kredit`.
+  - Dilarang mengulang ringkasan Income/Expense yang sudah ada di halaman Home & Stats.
+* **Add Transaction Modal Independent Amount State**:
+  - Input nominal Expense dan Income wajib memiliki state mandiri (`expenseAmountVal` dan `incomeAmountVal`) agar nominal yang diketik pengguna tidak tercopy ke tab lain dan tidak hilang saat berpindah-pindah antar-tab. Kedua nilai hanya di-reset saat modal dibuka dari awal atau saat transaksi berhasil disimpan.
+* **Category & Account Warehouse Isolation Invariants**:
+  - **Menu Utama Form Add Transaksi (Active List Lean Invariant)**:
+    - Menu form Add transaksi wajib tampil ramping dengan hanya memuat kategori/akun default aktif:
+      - **Expense**: Maksimal 4 kategori default aktif (`food`, `transport`, `coffee`, `bensin`) + kategori kustom pengguna.
+      - **Income**: Maksimal 3 kategori default aktif (`gaji`, `bonus`, `affiliate`) + kategori kustom pengguna.
+      - **Accounts**: 3 akun default aktif (`Cash`, `GoPay`, `BRImo`) + akun kustom pengguna.
+    - Seluruh kategori default dan akun lainnya wajib berada di dalam **📦 Gudang (Warehouse)** saat inisialisasi awal maupun migrasi storage.
+  - **Eksklusi Mutlak Kartu Kredit dari Gudang Akun**:
+    - Gudang Akun (`warehouseAccountsList`) **DILARANG KERAS** memuat Kartu Kredit (`type === 'credit_card'`). Gudang Akun hanya untuk Bank Resmi, E-Wallet, dan Tunai (Cash).
+  - **Strict Dedicated Icon Mapping in ICON_MAP**:
+    - Dilarang memetakan kategori default ke icon dummy `addSvg`. Kategori `investasi`, `bisnis`, `accessories`, dan lainnya wajib terhubung ke file SVG aslinya (`investasiSvg`, `bisnisSvg`, `accessoriesSvg`, dll.).
+* **Notification Auto Tracker OS Push Invariant**:
+  - Saat notifikasi transaksi bank/e-wallet tertangkap di background Android (`CassielNotificationListenerService.java`), sistem wajib langsung memunculkan notifikasi status bar native dari Cassiel:
+    - **Judul**: `"Transaksi [Nama Bank / E-Wallet] Berhasil Dicatat"` *(contoh: `Transaksi BRImo Berhasil Dicatat`, `Transaksi BCA Berhasil Dicatat`, `Transaksi GoPay Berhasil Dicatat`)*.
+    - **Isi (Body)**: `[Merchant / Kategori] • Rp [Nominal]` *(contoh: `Starbucks • Rp 55.000` atau `Food • Rp 25.000`)*.
+    - **Ikon**: `R.drawable.ic_stat_icon` (small icon monokrom putih) dan `R.drawable.ic_large_icon` (large icon logo Cassiel).
+    - **Aksi Tap**: `PendingIntent` menuju `MainActivity`.
+* **Auto-Tracker Transaction Edit & Settle Lifecycle**:
+  - Tombol kapsul **"Edit"** hanya tampil pada transaksi yang berasal dari notifikasi otomatis (`autoTracked: true` / `inputMethod: 'notification'`).
+  - Menekan tombol "Edit" membuka modal form Add dalam mode edit dengan data terisi (nominal, nama merchant, kategori, akun).
+  - Menyimpan transaksi (`handleSaveTransaction`) wajib memperbarui data transaksi di tempat (*in-place update*) dan mengubah `autoTracked: false` & `inputMethod: 'manual'` agar tombol kapsul Edit **langsung hilang otomatis**.
+* **Transaction Pop-Up Zoom Detail Invariant**:
+  - Kartu zoom pop-up transaksi wajib 100% solid opacity menggunakan palet warna kategori masing-masing (`CATEGORY_BG_COLORS` / `resolveCardBgColor`), anti-tembus pandang.
+  - Wajib 100% borderless tanpa garis tepi kaku dan tanpa `inset` outline pada `box-shadow`.
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
@@ -216,7 +256,7 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Strict 1-Word Form Labels**: Seluruh label input form transaksi wajib berupa **1 kata tunggal murni** di semua pilihan bahasa (misal: `Tanggal`, `Jumlah`, `Kategori`, `Akun`, `Catatan`, `Simpan`). Dilarang menggunakan simbol garis miring (`/`), kata "atau", atau frasa panjang.
 * **Basa Jawa "Gunggung" Nominal**: Label nominal uang pada Basa Jawa wajib menggunakan **`Gunggung`** (bukan `Gunggungipun Arta`) agar tidak menempel atau terlalu dekat ke awalan teks `Rp`.
 * **Mandarin Pinyin Format**: Opsi Bahasa Mandarin wajib disajikan dalam ejaan alfabet latin murni (**Hanyu Pinyin / ABC**) seperti `Shouye`, `Tongji`, `Riqi`, `Jine`, `Fenlei`, `Zhanghu`, `Beizhu`, `Baocun` tanpa aksara Hanzi agar mudah dibaca.
-* **Dynamic Full-App Synchronization**: Seluruh judul layar (`Pengaturan Profil`, `Pemasukan / Pengeluaran / Andai`), salam sapaan (`Good Day,` / `Halo,` / `Sugeng Rawuh,` / `Ni Hao,`), dan subteks ringkasan wajib terhubung secara dinamis ke engine `i18n.js`.
+* **Dynamic Full-App Synchronization**: Seluruh judul layar (`Pengaturan Profil`, `Pemasukan / Pengeluaran`), salam sapaan (`Good Day,` / `Halo,` / `Sugeng Rawuh,` / `Ni Hao,`), dan subteks ringkasan wajib terhubung secara dinamis ke engine `i18n.js`.
 
 ## 20. Bottom Navigation & Seamless UI Invariants
 * **5-Tab Symmetrical Bottom Navigation**:
@@ -233,7 +273,8 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Pure Visual Indicator Dots**: Titik penanda halaman di bawah nominal hero (`.account-swipe-dots`) bersifat murni visual (*non-clickable*, `pointer-events: none`).
 
 ## 22. Dynamic Smart Priority Ranking for Budget
-* **Top Priority for High-Frequency Unbudgeted Categories**: Kategori pengeluaran yang paling sering memiliki transaksi riil namun belum pernah disetel limit-nya (`monthlyLimit <= 0`) wajib otomatis diprioritaskan di urutan teratas.
+* **Top Priority for Configured Categories (`hasLimit`)**: Kategori pengeluaran yang SUDAH memiliki limit budget bulanan aktif (`hasLimit`) wajib otomatis diprioritaskan di urutan teratas (diurutkan berdasarkan frekuensi transaksi terbanyak), disusul kategori yang belum diatur namun pernah ada transaksi, dan terakhir kategori tanpa transaksi.
+* **3-Item Initial Preview Limit**: Tampilan awal daftar kategori budget sebelum tombol ekspansi ditekan wajib dibatasi tepat 3 kategori teratas (`displayList.slice(0, 3)`).
 * **Centered Personalized Header**: Judul halaman budget wajib rata tengah (`text-align: center`) dengan format `Ayo atur budget [Nama User]`.
 
 ## 23. Apple-Grade Smooth & Fluid Motion Invariants
@@ -294,6 +335,13 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 * **Clean Dialog Typography**: Dialog `verifyIdentity` hanya menampilkan `title: 'Sidik Jari'` dan `negativeButtonText: 'Gunakan PIN'` tanpa subtitle/description bertumpuk yang berulang.
 
 ## 28. Interactive Guided Tour & Dynamic Spotlight Invariants
+* **5 Essential Steps Limit & Hierarchy**:
+  - Alur panduan onboarding wajib dibatasi maksimal **5 langkah esensial** (tanpa membebani pengguna dengan form mikro bertingkat atau menu minor).
+  - **Urutan 1 (Wajib Paling Awal)**: `Cadangkan Data` di halaman Profil dengan deskripsi universal perlindungan data dari kehilangan kapan pun (bukan hanya saat ganti perangkat).
+  - **Urutan 2**: `Catat Lewat Suara (Voice AI)` di Beranda.
+  - **Urutan 3**: `Tambah Transaksi Manual` di Bottom Navigation.
+  - **Urutan 4**: `Rencana & Limit Budget` di Bottom Navigation.
+  - **Urutan 5**: `Statistik & Laporan` di Bottom Navigation.
 * **Direct Physical Target**: Target class `.tour-target-*` wajib dipasang langsung pada elemen DOM yang memiliki layout nyata (dilarang pada `display: contents`).
 * **Dynamic Floating Card Placement**: Posisi kartu panduan wajib dinamis berdasarkan koordinat bounding box elemen target (melayang di atas jika target berada di area bawah layar, dan melayang di bawah jika target di area atas) dengan panah penunjuk (*arrow*) yang presisi menunjuk ke titik tengah (*center X*) target.
 
@@ -406,3 +454,37 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
   - Saat pengguna membatalkan/menutup pop-up saldo awal, aplikasi **wajib tetap berada di layar Tambah Akun Baru** tanpa menutup layar ke menu awal.
 * **Dynamic Auto-Hide for Configured Accounts**:
   - Sistem wajib menyaring seluruh daftar (`popularList`, `bankList`, `ewalletList`) menggunakan `isAccountAlreadyConfigured()`. Akun yang sudah pernah diatur saldonya (termasuk Cash/Tunai) wajib otomatis dihilangkan dari kartu pilihan Tambah Akun Baru.
+
+## 38. 🔒 Code Scope Protection — Menu ADD (LOCKED)
+
+> [!CAUTION]
+> ## ⛔ SELURUH ISI MENU ADD DIKUNCI PERMANEN
+> 
+> **Seluruh kode, logika, UI, dan perilaku yang berkaitan dengan Menu ADD (Modal Add Transaksi) berstatus LOCKED dan DILARANG KERAS diubah** tanpa izin eksplisit dari user.
+> 
+> ### Area yang Dilindungi (LOCKED):
+> | Komponen | Status |
+> |----------|--------|
+> | Form Add Transaksi (Expense & Income tabs) | 🔒 Locked |
+> | Input nominal (`expenseAmountVal`, `incomeAmountVal`) | 🔒 Locked |
+> | Pemilihan kategori (termasuk Gudang/Warehouse) | 🔒 Locked |
+> | Pemilihan akun | 🔒 Locked |
+> | Input catatan/note | 🔒 Locked |
+> | Pemilihan tanggal | 🔒 Locked |
+> | Logika simpan/save transaksi | 🔒 Locked |
+> | Validasi form | 🔒 Locked |
+> | State management modal ADD | 🔒 Locked |
+> | Tampilan/UI modal ADD (layout, styling, animasi) | 🔒 Locked |
+> | Tombol aksi (Save, tab switch Expense/Income) | 🔒 Locked |
+> | Animasi & interaksi di dalam modal ADD | 🔒 Locked |
+> | Panel kategori, panel akun, panel note | 🔒 Locked |
+> | Badge "Terakhir" & Dynamic Smart Frequency di form ADD | 🔒 Locked |
+> | 3-Column Category Grid di form ADD | 🔒 Locked |
+> 
+> ### Aturan Wajib:
+> 1. **DILARANG** memodifikasi, merefaktor, menyederhanakan, mengganti, merestruktur, atau "memperbaiki" area yang terkunci di atas.
+> 2. **DILARANG** melakukan refactoring oportunistik (rename variabel, reorganisasi fungsi, pindah kode, rewrite fungsi yang sudah berjalan) pada area Menu ADD.
+> 3. Jika perubahan pada fitur lain secara teknis membutuhkan modifikasi pada kode Menu ADD, **WAJIB jelaskan alasannya dan minta izin eksplisit** dari user terlebih dahulu.
+> 4. Perubahan visual/UI pada fitur lain **WAJIB** diimplementasikan tanpa menyentuh kode Menu ADD jika memungkinkan.
+> 5. Aturan ini berlaku di **semua percakapan baru** — tidak hanya pada sesi percakapan saat aturan ini dibuat.
+> 6. Kunci ini hanya bisa dibuka jika user secara eksplisit mengatakan ingin mengubah bagian tertentu dari Menu ADD.

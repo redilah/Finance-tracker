@@ -1,0 +1,13 @@
+<svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="36" rx="6" fill="#091A28"/>
+  <circle cx="42" cy="8" r="14" fill="#00AA5B" fill-opacity="0.3"/>
+  <!-- Chip -->
+  <rect x="6" y="8" width="7" height="5.5" rx="1.2" fill="#D4AF37"/>
+  <!-- Toped owl badge on top right -->
+  <circle cx="38" cy="11" r="4.5" fill="#00AA5B"/>
+  <circle cx="38" cy="11" r="2.2" fill="#FFFFFF"/>
+  <circle cx="38" cy="11" r="1.1" fill="#091A28"/>
+  <!-- Text -->
+  <text x="6" y="23" font-family="Arial, sans-serif" font-size="5" font-weight="800" fill="#FFFFFF">tokopedia</text>
+  <text x="6" y="29.5" font-family="Arial, sans-serif" font-size="4" font-weight="800" fill="#00AA5B" letter-spacing="0.5">CARD</text>
+</svg>

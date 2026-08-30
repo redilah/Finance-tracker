@@ -1,0 +1,17 @@
+<svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="36" rx="6" fill="#003399"/>
+  <path d="M0 24C12 21 32 27 48 22V30C48 33.3137 45.3137 36 42 36H6C2.68629 36 0 33.3137 0 30V24Z" fill="url(#bca_gold)"/>
+  <!-- Chip -->
+  <rect x="6" y="8" width="7" height="5.5" rx="1.2" fill="#E6C065"/>
+  <path d="M6 10.7H13M9.5 8V13.5" stroke="#9A7B2C" stroke-width="0.5"/>
+  <!-- Text -->
+  <text x="42" y="13" font-family="Arial, sans-serif" font-size="6" font-weight="900" fill="#FFFFFF" text-anchor="end">BCA</text>
+  <text x="42" y="19" font-family="Arial, sans-serif" font-size="4.5" font-weight="800" fill="#E6C065" text-anchor="end" letter-spacing="0.5">CARD</text>
+  <defs>
+    <linearGradient id="bca_gold" x1="0" y1="22" x2="48" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C59B27"/>
+      <stop offset="0.5" stop-color="#F3E08A"/>
+      <stop offset="1" stop-color="#9A7B2C"/>
+    </linearGradient>
+  </defs>
+</svg>

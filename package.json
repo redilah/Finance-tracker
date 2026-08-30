@@ -1,13 +1,16 @@
 {
   "name": "app",
   "private": true,
-  "version": "1.0.28",
+  "version": "1.0.29",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:insight": "node test/insightEngine.test.js",
+    "test": "npm run verify && npm run test:insight",
+    "verify": "node -e \"import('./src/utils/notificationProviders.js').then(m => { const res = m.runParserTests(); console.log('===================================='); console.log('Cassiel Notification Auto Tracker Verification'); console.log('Total Tests Run: ' + res.length); const passed = res.filter(t => t.passed).length; const failed = res.filter(t => !t.passed).length; console.log('Passed: ' + passed + ' | Failed: ' + failed); console.log('===================================='); if (failed > 0) { console.error('FAILED TESTS:'); res.filter(t => !t.passed).forEach(t => console.error(' - ' + t.name + ' => expected: ' + t.expected + ', actual: ' + t.actual)); process.exit(1); } else { console.log('ALL NOTIFICATION TRACKER TESTS PASSED SUCCESSFULLY! (100%)'); } })\"",
     "postinstall": "node scripts/patch-speech-spm.js"
   },
   "dependencies": {
@@ -20,6 +23,7 @@
     "@capacitor/ios": "^8.5.0",
     "@capacitor/local-notifications": "^8.2.1",
     "@capacitor/share": "^8.0.1",
+    "@capawesome/capacitor-badge": "^8.0.2",
     "@capgo/capacitor-native-biometric": "^8.6.6",
     "firebase": "^12.17.1",
     "lucide-react": "^1.30.0",

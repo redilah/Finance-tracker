@@ -1,0 +1,9 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60" width="100" height="60">
+  <!-- GPN Logo Stylized Wing + Text -->
+  <g fill="#D32F2F">
+    <!-- Wing Silhouette -->
+    <path d="M12 38c6-10 16-16 26-18-5 4-8 10-10 16 8-6 16-8 24-8-6 5-10 11-12 18 10-7 18-9 28-9-8 7-14 15-16 23-4 0-28-2-40-22z"/>
+    <!-- Text GPN -->
+    <text x="58" y="38" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="24" fill="#D32F2F" letter-spacing="1">gpn</text>
+  </g>
+</svg>

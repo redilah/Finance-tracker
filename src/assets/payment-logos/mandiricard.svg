@@ -1,0 +1,9 @@
+<svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="36" rx="6" fill="#002D62"/>
+  <path d="M0 26C16 23 32 29 48 24V30C48 33.3137 45.3137 36 42 36H6C2.68629 36 0 33.3137 0 30V26Z" fill="#F58220"/>
+  <!-- Chip -->
+  <rect x="6" y="8" width="7" height="5.5" rx="1.2" fill="#E6C065"/>
+  <!-- Text -->
+  <text x="42" y="13" font-family="Arial, sans-serif" font-size="5.2" font-weight="900" fill="#FFFFFF" text-anchor="end">mandırı</text>
+  <text x="42" y="19" font-family="Arial, sans-serif" font-size="4" font-weight="800" fill="#F58220" text-anchor="end">CARD</text>
+</svg>

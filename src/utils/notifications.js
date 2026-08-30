@@ -1,4 +1,5 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Badge } from '@capawesome/capacitor-badge';
 import { Capacitor } from '@capacitor/core';
 import { getTranslation } from './i18n';
 import { safeStorageGet } from './secureStorage';
@@ -408,15 +409,43 @@ export const sendUpdateReminderNotification = async (updateInfo, lang) => {
 };
 
 // Schedule background/routine local notifications on HP / Native Android & Web
-export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = [], lang, mainBudget = null) => {
+export const schedulePersonalizedNotifications = async (userName = 'Teman', transactions = [], categories = [], lang, mainBudget = null, monthlyBudgetsMap = null) => {
   if (!isNotificationEnabled()) return;
 
   const l = lang || getLang();
   const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
   const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
-  const hasAnyBudgetLimit = categories.some(cat => typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0);
-  const resolvedMainBudget = mainBudget !== null ? mainBudget : (Number(safeStorageGet('user_main_monthly_budget')) || null);
-  const hasMainBudget = typeof resolvedMainBudget === 'number' && resolvedMainBudget > 0;
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  let budgetsMap = monthlyBudgetsMap;
+  if (!budgetsMap) {
+    try {
+      const saved = safeStorageGet('user_monthly_budgets_map');
+      if (saved) budgetsMap = typeof saved === 'string' ? JSON.parse(saved) : saved;
+    } catch {}
+  }
+
+  const currentMonthData = (budgetsMap && budgetsMap[currentMonthKey]) || null;
+  const currentMonthCatLimits = currentMonthData?.categories || {};
+
+  // Deteksi apakah user sudah mengatur budget kategori di bulan ini, di map bulan manapun, atau di array categories
+  const hasCategoryLimitInCurrentMonth = Object.values(currentMonthCatLimits).some(v => typeof v === 'number' && v > 0);
+  const hasCategoryLimitInAnyMonth = budgetsMap ? Object.values(budgetsMap).some(m => m?.categories && Object.values(m.categories).some(v => typeof v === 'number' && v > 0)) : false;
+  const hasCategoryLimitInList = Array.isArray(categories) && categories.some(cat => typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0);
+  const hasAnyBudgetLimit = hasCategoryLimitInCurrentMonth || hasCategoryLimitInAnyMonth || hasCategoryLimitInList;
+
+  // Deteksi apakah user sudah mengatur Main Budget
+  const mainFromMap = currentMonthData && typeof currentMonthData.main === 'number' && currentMonthData.main > 0 ? currentMonthData.main : null;
+  const mainFromAnyMonth = budgetsMap ? Object.values(budgetsMap).some(m => typeof m?.main === 'number' && m.main > 0) : false;
+  const resolvedMainBudget = (typeof mainBudget === 'number' && mainBudget > 0) 
+    ? mainBudget 
+    : (mainFromMap || Number(safeStorageGet('user_main_monthly_budget')) || null);
+  const hasMainBudget = (typeof resolvedMainBudget === 'number' && resolvedMainBudget > 0) || mainFromAnyMonth;
+
+  // Flag: apakah pengguna sudah mengatur salah satu budget (Budget Utama ataupun Limit Kategori)
+  const hasAnyBudgetConfigured = hasMainBudget || hasAnyBudgetLimit;
 
   if (Capacitor.isNativePlatform()) {
     try {
@@ -438,8 +467,6 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
       } else {
         await LocalNotifications.cancel({ notifications: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }, { id: 105 }, { id: 201 }, { id: 202 }, { id: 301 }, { id: 999 }] }).catch(() => {});
       }
-
-      const now = new Date();
 
       const notifsToSchedule = [];
 
@@ -467,8 +494,8 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         largeIcon: 'ic_large_icon',
       });
 
-      // 2. Notifikasi Pengingat Budget Utama / Kategori Jam 10:00 PAGI
-      if (!hasMainBudget || !hasAnyBudgetLimit) {
+      // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI (Hanya jika belum mengatur budget sama sekali)
+      if (!hasAnyBudgetConfigured) {
         let budgetReminderTarget = new Date();
         budgetReminderTarget.setHours(10, 0, 0, 0);
         
@@ -476,12 +503,9 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           budgetReminderTarget.setDate(budgetReminderTarget.getDate() + 1);
         }
 
-        const notifTitle = !hasMainBudget ? tr(l, 'notifSetMainBudget', { name }) : tr(l, 'notifSetBudget', { name });
-        const notifBody = !hasMainBudget ? tr(l, 'notifSetMainBudgetBody', { name }) : tr(l, 'notifSetBudgetBody', { name });
-
         notifsToSchedule.push({
-          title: notifTitle,
-          body: notifBody,
+          title: tr(l, 'notifSetMainBudget', { name }),
+          body: tr(l, 'notifSetMainBudgetBody', { name }),
           id: 102,
           schedule: { 
             at: budgetReminderTarget,
@@ -604,11 +628,9 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           badge: '/app-icon.png'
         });
         playSound('notification');
-      } else if (now.getHours() === 10 && now.getMinutes() === 0 && (!hasMainBudget || !hasAnyBudgetLimit)) {
-        const notifTitle = !hasMainBudget ? tr(l, 'notifSetMainBudget', { name }) : tr(l, 'notifSetBudget', { name });
-        const notifBody = !hasMainBudget ? tr(l, 'notifSetMainBudgetBody', { name }) : tr(l, 'notifSetBudgetBody', { name });
-        new Notification(notifTitle, {
-          body: notifBody,
+      } else if (now.getHours() === 10 && now.getMinutes() === 0 && !hasAnyBudgetConfigured) {
+        new Notification(tr(l, 'notifSetMainBudget', { name }), {
+          body: tr(l, 'notifSetMainBudgetBody', { name }),
           icon: '/app-icon.png',
           badge: '/app-icon.png'
         });
@@ -737,66 +759,11 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
   }
 };
 
-// Schedule 1-Time 5-Second Post-Update Notification for New Categories (Buah & Minuman)
-export const scheduleNewCategoryNotification = async (userName = 'Teman', lang) => {
-  if (typeof localStorage === 'undefined') return;
-  const NOTIF_KEY = 'new_categories_buah_minuman_notif_v1';
-  if (localStorage.getItem(NOTIF_KEY) === 'true') {
-    return;
-  }
-
-  const l = lang || getLang();
-  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
-  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
-  const title = tr(l, 'notifNewCatTitle', { name });
-  const body = tr(l, 'notifNewCatBody', { name });
-
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await LocalNotifications.createChannel({
-        id: 'financial_notifications',
-        name: 'Notifikasi Finansial',
-        description: 'Pengingat dan notifikasi anggaran harian',
-        importance: 5,
-        visibility: 1,
-        sound: 'notification',
-        vibration: true
-      }).catch(() => {});
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: 301,
-            title: title,
-            body: body,
-            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
-            channelId: 'financial_notifications',
-            sound: 'notification',
-            smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
-          }
-        ]
-      });
-      localStorage.setItem(NOTIF_KEY, 'true');
-    } catch (e) {
-      console.warn('Failed to schedule new category notification:', e);
-    }
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    setTimeout(() => {
-      try {
-        new Notification(title, {
-          body: body,
-          icon: '/app-icon.png',
-          badge: '/app-icon.png'
-        });
-        playSound('notification');
-        localStorage.setItem(NOTIF_KEY, 'true');
-      } catch (e) {
-        console.log('Web notification error:', e);
-      }
-    }, 5000);
-  } else {
-    localStorage.setItem(NOTIF_KEY, 'true');
+// Schedule 1-Time 5-Second Post-Update Notification for New Categories (Buah & Minuman) - DEPRECATED
+export const scheduleNewCategoryNotification = async () => {
+  // Deprecated: disabled to prevent obsolete category announcement on new users
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('new_categories_buah_minuman_notif_v1', 'true');
   }
 };
 
@@ -926,69 +893,6 @@ export const scheduleV23FeatureIntroNotification = async (userName = 'Teman', la
   }
 };
 
-// Schedule 1-Time 5-Second Post-Update Notification for v1.0.24 Features (Auto Expense Tracker via Notification Listener)
-export const scheduleV24FeatureIntroNotification = async (userName = 'Teman', lang) => {
-  if (typeof localStorage === 'undefined') return;
-  const NOTIF_KEY = 'v1_0_24_feature_intro_notif';
-  if (localStorage.getItem(NOTIF_KEY) === 'true') {
-    return;
-  }
-
-  const l = lang || getLang();
-  const fallbackName = l === 'en' ? 'Friend' : l === 'jv' ? 'Mitra' : l === 'zh' ? 'Pengyou' : l === 'ko' ? 'Chingu' : 'Teman';
-  const name = (userName && userName.trim()) ? userName.trim() : fallbackName;
-  const title = tr(l, 'notifV24FeatureIntroTitle', { name });
-  const body = tr(l, 'notifV24FeatureIntroBody', { name });
-
-  if (Capacitor.isNativePlatform()) {
-    try {
-      await LocalNotifications.createChannel({
-        id: 'financial_notifications',
-        name: 'Notifikasi Finansial',
-        description: 'Pengingat dan notifikasi anggaran harian',
-        importance: 5,
-        visibility: 1,
-        sound: 'notification',
-        vibration: true
-      }).catch(() => {});
-
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: 602,
-            title: title,
-            body: body,
-            schedule: { at: new Date(Date.now() + 5000), allowWhileIdle: true },
-            channelId: 'financial_notifications',
-            sound: 'notification',
-            smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
-          }
-        ]
-      });
-      localStorage.setItem(NOTIF_KEY, 'true');
-    } catch (e) {
-      console.warn('Failed to schedule v1.0.24 feature intro notification:', e);
-    }
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    setTimeout(() => {
-      try {
-        new Notification(title, {
-          body: body,
-          icon: '/app-icon.png',
-          badge: '/app-icon.png'
-        });
-        playSound('notification');
-        localStorage.setItem(NOTIF_KEY, 'true');
-      } catch (e) {
-        console.log('Web notification error:', e);
-      }
-    }, 5000);
-  } else {
-    localStorage.setItem(NOTIF_KEY, 'true');
-  }
-};
-
 // Schedule 1-Time 5-Second Post-Update Notification for v1.0.28 Features (Account & Multi-Account Management)
 export const scheduleV28AccountFeatureIntroNotification = async (userName = 'Teman', lang) => {
   if (typeof localStorage === 'undefined') return;
@@ -1049,6 +953,130 @@ export const scheduleV28AccountFeatureIntroNotification = async (userName = 'Tem
     }, 5000);
   } else {
     localStorage.setItem(NOTIF_KEY, 'true');
+  }
+};
+
+// ==========================================
+// CASSIEL APP ICON BADGE & GROUP CHAT PUSH
+// ==========================================
+
+const UNREAD_BADGE_KEY = 'user_cassiel_unread_badge_count';
+
+export const getAppBadgeCount = () => {
+  try {
+    const raw = localStorage.getItem(UNREAD_BADGE_KEY);
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+};
+
+export const setAppBadgeCount = async (count = 0) => {
+  const safeCount = Math.max(0, count);
+  try {
+    localStorage.setItem(UNREAD_BADGE_KEY, String(safeCount));
+    if (Capacitor.isNativePlatform()) {
+      const sup = await Badge.isSupported().catch(() => ({ isSupported: false }));
+      if (sup && sup.isSupported) {
+        if (safeCount > 0) {
+          await Badge.set({ count: safeCount }).catch(() => {});
+        } else {
+          await Badge.clear().catch(() => {});
+        }
+      }
+    }
+    if ('setAppBadge' in navigator) {
+      if (safeCount > 0) {
+        await navigator.setAppBadge(safeCount).catch(() => {});
+      } else {
+        await navigator.clearAppBadge().catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn('Set badge error:', err);
+  }
+};
+
+export const incrementAppBadgeCount = async (amount = 1) => {
+  const current = getAppBadgeCount();
+  const next = current + amount;
+  await setAppBadgeCount(next);
+  return next;
+};
+
+export const clearAppBadgeCount = async () => {
+  await setAppBadgeCount(0);
+};
+
+export const sendGroupChatNotification = async ({
+  groupName = 'Grup Kas',
+  senderName = 'Anggota',
+  text = '',
+  amount = null,
+  type = 'text',
+  isMe = false
+}) => {
+  // If sent by me, do not push notification to ourselves
+  if (isMe) return;
+
+  // Increment App Icon Badge (Angka Merah di Layar Utama)
+  await incrementAppBadgeCount(1);
+
+  let title = `${groupName} • ${senderName}`;
+  let body = text;
+  if (type === 'financial_in') {
+    body = `✅ Kas Masuk: +Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Iuran Kas'})`;
+  } else if (type === 'financial_out') {
+    body = `💸 Kas Keluar: -Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Pengeluaran'})`;
+  }
+
+  const notifId = Math.floor(Date.now() % 100000) + 7000;
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.createChannel({
+        id: 'group_chat_channel',
+        name: 'Chat & Kas Grup',
+        description: 'Notifikasi pesan dan aktivitas kas grup',
+        importance: 5,
+        visibility: 1,
+        sound: 'notification',
+        vibration: true
+      }).catch(() => {});
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notifId,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
+            channelId: 'group_chat_channel',
+            sound: 'notification',
+            smallIcon: 'ic_stat_icon',
+            largeIcon: 'ic_large_icon',
+            extra: {
+              type: 'group_chat',
+              groupName,
+              senderName
+            }
+          }
+        ]
+      });
+    } catch (e) {
+      console.warn('Native group chat notification error:', e);
+    }
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: '/app-icon.png',
+        badge: '/app-icon.png'
+      });
+      playSound('notification');
+    } catch (e) {
+      console.warn('Web notification error:', e);
+    }
   }
 };
 

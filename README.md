@@ -1,6 +1,6 @@
 # 💰 Cassiel — Personal Finance Tracker
 
-> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Sistem Mata Uang 1 Dunia & Kurs Real-Time**, **Multi-Bahasa (Termasuk Romaja Korea & Basa Jawa)**, **Keamanan PIN & Biometrik Sidik Jari**, **Cadangan Data Dokumen & Google Drive**, **Interactive Monthly Stats Bar Chart**, **Direct Budget Editing & Gaming EXP Bar**, **Live Category Insight Engine**, **Animasi 3D Typewriter Transaksi**, **Simulator Opportunity Cost "Andai"**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran sehari-hari.
+> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Sistem Mata Uang 1 Dunia & Kurs Real-Time**, **Multi-Bahasa (Termasuk Romaja Korea & Basa Jawa)**, **Keamanan PIN & Biometrik Sidik Jari**, **Manajemen Multi-Akun & Sebaran Aset 3-Metrik**, **Cadangan Data Dokumen & Google Drive**, **Interactive Monthly Stats Bar Chart**, **Direct Budget Editing & Gaming EXP Bar**, **Live Category Insight Engine**, **Animasi Mesin Hitung Uang (Cash Counter)**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran sehari-hari.
 
 ---
 
@@ -8,6 +8,7 @@
 
 - [Tentang Cassiel](#tentang-cassiel)
 - [Fitur Utama](#fitur-utama)
+- [💳 Manajemen Multi-Akun & Sebaran Aset](#-manajemen-multi-akun--sebaran-aset)
 - [🌍 Sistem Mata Uang Dunia & Kurs Real-Time](#-sistem-mata-uang-dunia--kurs-real-time)
 - [🌐 Multi-Bahasa (i18n)](#-multi-bahasa-i18n)
 - [🎙️ Input Transaksi Suara (Voice AI Engine)](#️-input-transaksi-suara-voice-ai-engine)
@@ -16,12 +17,8 @@
 - [🎯 Direct In-Place Budget & Gaming EXP Bar](#-direct-in-place-budget--gaming-exp-bar)
 - [📊 Analisis Statistik & Monthly Bar Chart Switcher](#-analisis-statistik--monthly-bar-chart-switcher)
 - [⏱️ Category Insight & Live Countdown Engine](#️-category-insight--live-countdown-engine)
-- [✨ 3D Pop-in & Typewriter Animation](#-3d-pop-in--typewriter-animation)
-- [🔮 Fitur Andai (What-If Simulator)](#-fitur-andai-what-if-simulator)
-- [⚡ Loss Aversion Badge](#-loss-aversion-badge)
-- [🔔 Audio Feedback — Positive Chime](#-audio-feedback--positive-chime)
-- [🧠 Hybrid AI Classifier](#-hybrid-ai-classifier)
-- [📏 Aturan Threshold Kategori Khusus](#-aturan-threshold-kategori-khusus)
+- [🔔 Notifikasi Finansial Cerdas & Auto-Purge](#-notifikasi-finansial-cerdas--auto-purge)
+- [🎛️ Bilah Filter Transaksi Segmen & Quick Dropdown](#️-bilah-filter-transaksi-segmen--quick-dropdown)
 - [🏷️ Sistem Kategori & Smart Frequency Ranking](#️-sistem-kategori--smart-frequency-ranking)
 - [🛡️ Keamanan & Integritas Data](#️-keamanan--integritas-data)
 - [📱 Android Edge-Swipe Gesture](#-android-edge-swipe-gesture)
@@ -51,6 +48,11 @@ Cassiel tersedia dalam dua platform:
 
 ## Fitur Utama
 
+### 💳 Manajemen Multi-Akun & Sebaran Aset 3-Metrik
+- **Multi-Dompet Terisolasi**: Atur saldo terpisah untuk Bank (BCA, Mandiri, BRI, BNI, Jago, dll.), E-Wallet (GoPay, OVO, Dana, ShopeePay), dan Tunai (Cash).
+- **Sebaran Aset 3-Metrik**: Menampilkan ringkasan portofolio terisolasi di kartu hero halaman Akun: *Rekening Bank*, *E-Wallet*, dan *Kartu Kredit*.
+- **Filter Arus Kas Cepat**: Filter transaksi per sumber dana dengan animasi mesin hitung uang (*Cash Counter Rolling Animation*).
+
 ### 🌍 Multi-Currency & Live Exchange Rates (1 Dunia)
 - **Database Mata Uang Global**: Mendukung seluruh mata uang dunia utama (IDR, USD, EUR, JPY, GBP, KRW, SGD, MYR, AUD, SAR, AED, CNY, dll.) dengan bendera resmi berkualitas tinggi (*FlagCDN*).
 - **Live Exchange Rate Engine**: Integrasi kurs *real-time* otomatis via Open Exchange Rates API dengan sistem *smart caching* 30 menit hemat kuota serta fallback luring aman.
@@ -78,15 +80,36 @@ Cassiel tersedia dalam dua platform:
 ### 💾 Cadangan & Pemulihan Universal
 - **Format File Dokumen Bersih (`.txt`)**: Struktur JSON terenkapsulasi yang universal dan bebas penolakan MIME type OS.
 - **Native Android Share Sheet**: Mendukung langsung opsi **"Simpan ke Google Drive"**, File Manager, WhatsApp, maupun email.
-- **Import / Restore Cerdas**: Mengembalikan seluruh riwayat catatan, saldo, kategori, dan preferensi akun secara instan.
+- **Restore & Merge**: Pemulihan data tanpa risiko kehilangan konfigurasi pengaturan pengguna.
 
 ### 🎯 Direct In-Place Budget & Gaming EXP Bar
 - **Touch-to-Edit Budget**: Nominal batas pengeluaran bulanan di hero card dapat langsung disentuh untuk memunculkan keyboard angka/kalkulator tanpa modal terpisah.
-- **Gaming Arcade EXP Progress Bar**: Indikator persentase pemakaian budget bergaya bilah HP/EXP game futuristik dengan gradien dinamis (Cyber Neon Emerald, Amber Warning, Hyper Coral Danger).
+- **Gaming Arcade EXP Progress Bar**: Indikator persentase pemakaian budget bergaya bilah HP/EXP game futuristik dengan gradien dinamis (Cyber Neon Emerald, Amber Energy, Hyper Coral Red).
+- **No-Red Limit Invariant**: Kategori yang mencapai limit menggunakan warna Warm Amber yang elegan tanpa warna merah kaku.
 
 ### 📊 Monthly Stats Switcher & Bar Chart
 - **Interaktif Bar Chart**: Visualisasi tren pengeluaran dan pemasukan bulanan yang jelas.
+- **Pie Chart Stats**: Diagram lingkaran pengeluaran dengan garis penunjuk lurus (*leader line*) presisi horizontal sejajar nama kategori.
 - **Month-to-Month Switcher**: Navigasi cepat antar bulan untuk membandingkan performa finansial historis.
+
+---
+
+## 💳 Manajemen Multi-Akun & Sebaran Aset
+
+Cassiel menyediakan tata kelola akun keuangan terstruktur dan terisolasi:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 Kartu Hero Halaman Akun                 │
+│         Sebaran Aset Mandiri & Portofolio Riil          │
+├───────────────────┬───────────────────┬─────────────────┤
+│   🏦 Bank Resmi   │   📱 E-Wallet     │ 💳 Kartu Kredit │
+│   (BCA, Mandiri)  │  (GoPay, OVO, ..) │ (Limit/Tagihan) │
+└───────────────────┴───────────────────┴─────────────────┘
+```
+
+- **Independent Amount State**: Nominal pada form input Expense dan Income terisolasi mandiri sehingga tidak tertukar atau hilang saat berganti tab.
+- **Seamless Account Adjustment**: Penyesuaian saldo awal dan koreksi nominal secara aman tanpa merusak riwayat transaksi terdahulu.
 
 ---
 
@@ -110,8 +133,8 @@ Cassiel menghadirkan mesin konversi dan pemformatan mata uang global yang fleksi
      ┌───────────────────────┼───────────────────────┐
      ▼                       ▼                       ▼
 ┌──────────────┐     ┌──────────────┐     ┌────────────────┐
-│  Dashboard   │     │ Transactions │     │ Andai & Insight│
-│ Balance Card │     │  Daily Rows  │     │   Simulators   │
+│  Dashboard   │     │ Transactions │     │    Category    │
+│ Balance Card │     │  Daily Rows  │     │    Insights    │
 └──────────────┘     └──────────────┘     └────────────────┘
 ```
 
@@ -180,9 +203,9 @@ Mesin pemroses suara cerdas Cassiel mengekstrak seluruh parameter transaksi dari
 ## 🔒 Keamanan PIN & Biometrik Sidik Jari
 
 Cassiel mengamankan akses aplikasi dengan lapisan proteksi ganda:
-1. **PIN Lock Screen**: Layar input PIN 6 digit yang responsif dengan haptic feedback dan animasi transisi halus.
+1. **PIN Lock Screen**: Layar input PIN 6 digit yang responsif dengan haptic feedback dan animasi transisi halus (`background: var(--bg-app, #F8EFE6)`).
 2. **Native Biometric Support**: Opsi login cepat menggunakan sidik jari / face unlock bawaan smartphone pengguna.
-3. **Smart Session Protection**: Proteksi otomatis mengunci layar saat aplikasi ditutup atau diminimalkan.
+3. **Authentic Vector Path**: Ikon sidik jari menggunakan vector path asli (`src/assets/fingerprint.svg`) untuk tampilan tajam anti-broken.
 
 ---
 
@@ -198,15 +221,16 @@ Cassiel mengamankan akses aplikasi dengan lapisan proteksi ganda:
 
 - **Direct In-Place Editing**: Sentuh nominal budget pada kartu hero untuk langsung mengubah batas pengeluaran bulanan tanpa jendela popup tambahan.
 - **Gaming Arcade EXP Progress Bar**: Menampilkan sisa budget dalam persentase visual yang tajam, modern, dan bebas garis tepi kaku (*borderless*).
-- **Kondisi Dinamis**: Bar berubah warna secara cerdas dari Hijau (Aman) → Kuning/Oranye (Peringatan) → Merah Neon (Overbudget).
+- **Animasi Kilau Gloss & Strip**: Efek kilau dinamis bergaya bilah HP/EXP game.
+- **Kondisi Dinamis**: Bar berubah warna secara cerdas dari Cyber Neon Emerald (Aman) → Amber Energy (Peringatan/Limit) → Hyper Coral Red (Over-budget).
 
 ---
 
 ## 📊 Analisis Statistik & Monthly Bar Chart Switcher
 
 - **Grafik Batang Komparatif**: Menampilkan perbandingan riil total pemasukan vs pengeluaran setiap bulan.
-- **Distribusi Kategori**: Diagram persentase pengeluaran berdasarkan masing-masing kategori belanja.
-- **Selector Bulan Mudah**: Menggeser atau memilih bulan tertentu untuk melihat rekap keuangan masa lampau.
+- **Distribusi Kategori**: Diagram persentase pengeluaran berdasarkan masing-masing kategori belanja dengan leader line sejajar nama kategori.
+- **Selector Bulan Mudah**: Tombol pill ringkas (`MONTH_SHORT_I18N`) untuk menelusuri rekap keuangan masa lampau.
 
 ---
 
@@ -219,80 +243,35 @@ Sistem analitik berbasis perilaku belanja lokal yang memberikan wawasan disiplin
 
 ---
 
-## 🔮 Fitur Andai (What-If Simulator)
+## 🔔 Notifikasi Finansial Cerdas & Auto-Purge
 
-Fitur **Andai** membantu pengguna menyadari **biaya peluang (opportunity cost)** dari pengeluaran konsumtif bulanan mereka.
-
-### Cara Kerja:
-1. Sistem mengidentifikasi seluruh transaksi konsumtif bulan berjalan via **Hybrid AI Classifier**.
-2. Pengguna memilih **instrumen investasi** dan **jangka waktu** (1, 3, 5, atau 10 tahun).
-3. Proyeksi nilai masa depan dihitung menggunakan rumus *Compound Interest*:
-
-$$\text{FV} = P \times (1 + r)^n$$
-
-### Instrumen Investasi:
-| Instrumen | Return Proyeksi | Keterangan |
-|---|---|---|
-| **Big Bank** | 10% / tahun | Saham perbankan fundamental kuat |
-| **Emas Mulia** | 7% / tahun | Instrumen lindung nilai (*hedging*) |
-| **Obligasi** | 6.5% / tahun | Surat Berharga Negara / Fixed Income |
+- **Scheduled Daily Reminder**: Mengingatkan pencatatan transaksi harian secara konsisten.
+- **Auto-Purge Pending Notification**: Membersihkan antrean notifikasi kadaluarsa sebelum menjadwalkan notifikasi fresh untuk mencegah notifikasi kotak hitam tertinggal di OS.
+- **Aset Notifikasi Terpisah**: `ic_large_icon.png` (resolusi tinggi berwarna) untuk thumbnail kanan dan `ic_stat_icon.png` (siluet monokrom putih bersih) untuk status bar Android.
 
 ---
 
-## ⚡ Loss Aversion Badge
+## 🎛️ Bilah Filter Transaksi Segmen & Quick Dropdown
 
-**Loss Aversion Badge** adalah kartu interaktif di dashboard utama yang mengingatkan potensi nominal yang hilang akibat belanja impulsif/konsumtif bulan ini.
-
-- **Kondisi Muncul**: Hanya tampil saat bulan aktif jika terdapat transaksi konsumtif (`totalConsumptiveAmount > 0`).
-- **Multi-Bahasa & Multi-Mata Uang**: Pesan peringatan dan nominal uang otomatis menyesuaikan pengaturan bahasa dan mata uang aktif.
-- **Aksi Cepat**: Mengetuk badge langsung membuka simulator Andai untuk rincian lebih detail.
-
----
-
-## 🔔 Audio Feedback — Positive Chime
-
-Untuk membentuk kebiasaan finansial yang sehat, aplikasi memberikan *dopamine reward* positif saat pengguna mencatat pengeluaran non-konsumtif (kebutuhan primer/esensial):
-- **Melodi**: Arpeggio nada naik C5 → E5 → G5 → **C6**.
-- **Sintesis Audio**: 100% menggunakan Web Audio API tanpa file audio eksternal (ringan dan bebas latensi).
-
----
-
-## 🧠 Hybrid AI Classifier
-
-Klasifikasi transaksi di Cassiel berjalan **100% offline, deterministik, dan bebas kuota internet**.
-
-### Pipeline Klasifikasi:
-1. **Text Normalizer & Noise Stripper**: Pembersihan karakter khusus, konversi huruf kecil, dan perataan slang kata.
-2. **Threshold Rule Engine**: Evaluasi khusus untuk kategori yang bergantung pada batas nominal.
-3. **Exact & Context Match**: Pencocokan kata kunci esensial dan konsumtif khas multi-bahasa.
-4. **Fuzzy Match Engine**: Kombinasi algoritma Levenshtein & Jaro-Winkler untuk menangani salah ketik/typo.
-5. **Naive Bayes Weighted Voting**: Menggabungkan seluruh bukti untuk menghasilkan status akhir (*Konsumtif* vs *Non-Konsumtif*).
-
----
-
-## 📏 Aturan Threshold Kategori Khusus
-
-| Kategori | Batas Nominal | Logika Keputusan |
-|---|---|---|
-| 🍔 **Food** | > Rp 50.000 / tx *atau* > Rp 75.000 / hari | Pengeluaran makan wajar dianggap primer. Kelebihan batas harian masuk hitungan konsumtif. *(Sembako dikecualikan)* |
-| ☕ **Coffee** | > Rp 20.000 / tx *atau* > Rp 20.000 / hari | Kopi harian di atas Rp 20k diklasifikasikan sebagai gaya hidup. |
-| 💈 **Barbershop** | Rp 50.000 | Potong rambut reguler (<50k) = esensial; Perawatan/styling premium (≥50k) = konsumtif. |
+- **Segmented Income / Expense Filter**: Navigasi cepat penyaringan transaksi dengan animasi sliding indicator mulus.
+- **Click Isolation & Independent Trigger**: Menekan tab Expense hanya memindahkan filter tanpa memunculkan dropdown secara otomatis.
+- **Quick Date Filter Dropdown**: Dropdown filter tanggal (*Bulan Ini*, *Kemarin*, *3 Hari Lalu*, *1 Minggu Lalu*, *2 Minggu Lalu*) dibuka secara eksklusif hanya melalui tombol panah chevron (▼) di sisi kanan tombol Expense dengan penyelarasan optik presisi.
 
 ---
 
 ## 🏷️ Sistem Kategori & Smart Frequency Ranking
 
-- **21 Kategori Pengeluaran (Expense)**: `food`, `bioskop`, `transport`, `barber`, `skincare`, `edukasi`, `galon`, `fashion`, `supermarket`, `sub`, `pesawat`, `kost`, `coffee`, `gofood`, `sepatu`, `donasi`, `topupGame`, `bensin`, `konser`, `pulsa`, `rumahSakit`, `obatSakit`.
-- **6 Kategori Pemasukan (Income)**: `gaji`, `bonus`, `kip`, `investasi`, `bisnis`, `affiliate`.
+- **21+ Kategori Pengeluaran (Expense)**: `food`, `bioskop`, `transport`, `barber`, `skincare`, `edukasi`, `galon`, `fashion`, `supermarket`, `sub`, `pesawat`, `kost`, `coffee`, `gofood`, `sepatu`, `donasi`, `topupGame`, `bensin`, `konser`, `pulsa`, `rumahSakit`, `obatSakit`, dll.
+- **6+ Kategori Pemasukan (Income)**: `gaji`, `bonus`, `kip`, `investasi`, `bisnis`, `affiliate`, dll.
+- **Category-Bound Pastel Palette**: Setiap kategori memiliki warna balok pastel mewah permanen tanpa selektor urutan baris `:nth-child`.
 - **Dynamic Smart Frequency Ranking**: Kategori dan akun yang paling sering/terakhir digunakan secara otomatis berada di posisi terdepan.
-- **One-Time "Terakhir" Discovery Badge**: Memberikan penanda visual elegan pada pilihan paling relevan.
 
 ---
 
 ## 🛡️ Keamanan & Integritas Data
 
 1. **Local-First Isolation**: Seluruh riwayat transaksi keuangan tersimpan privat di perangkat lokal.
-2. **Secure Storage Wrappers**: Serialisasi data aman dengan validasi schema sebelum disimpan ke storage.
+2. **Seamless In-Place Update**: Seluruh pembaruan aplikasi dirancang mendukung update langsung tanpa perlu uninstall (menjaga data `localStorage` tetap 100% utuh).
 3. **In-App Update Signature Integrity**: Pengecekan checksum SHA-256 dan validasi URL download terpercaya sebelum mengizinkan pembaruan aplikasi.
 4. **Firestore Rules Hardening**: Aturan Firestore terkunci rapat — hanya mengizinkan pengiriman metrik telemetri agregat perangkat tanpa akses membaca data pribadi pengguna lain.
 
@@ -313,8 +292,8 @@ Sistem navigasi tombol kembali fisik dan usap tepi layar (*edge-swipe gesture*) 
 Aplikasi dilengkapi mekanisme pembaruan mandiri yang cerdas:
 - **GitHub API Zero-Cache Fetching**: Melewati cache CDN Fastly untuk mendeteksi update terbaru secara instan.
 - **Dynamic Routing**: Otomatis mengarahkan unduhan sesuai tipe instalasi pengguna:
-  - **`Cassiel.apk`**: Aplikasi resmi bertanda tangan Release Key (`CN=Redilah`).
-  - **`udin.apk`**: Aplikasi demo mandiri (`com.redilah.udin`).
+  - **`Cassiel.apk` / `Cassiel-Release.apk`**: Aplikasi resmi bertanda tangan Release Key (`CN=Redilah`).
+  - **`Udin.apk` / `udin.apk`**: Aplikasi demo mandiri ber-ID klon (`com.redilah.udin`).
   - **`cassielll1.apk`**: Build sideload debug tanpa konflik signature.
 
 ---
@@ -335,6 +314,7 @@ Panel admin (`/?admin`) memisahkan ranah teknis dan privasi secara ketat:
 | **Mobile Runtime** | Capacitor 8 (Android & iOS Platform) |
 | **Speech Engine** | `@capacitor-community/speech-recognition`, Web Speech API |
 | **Biometrics** | `@capgo/capacitor-native-biometric` |
+| **Notifications** | `@capacitor/local-notifications` |
 | **Filesystem & Sharing** | `@capacitor/filesystem`, `@capacitor/share` |
 | **Currency & Flags** | Open Exchange Rates API, FlagCDN |
 | **Icons & UI** | Custom Hand-crafted SVGs, Lucide React |
@@ -365,33 +345,41 @@ finance-tracker/
 │   │       ├── AdminDashboard.jsx    # Dashboard telemetri & AI learning admin
 │   │       └── AdminDashboard.css
 │   └── utils/
-│       ├── currency.js          # Mesin mata uang 1 dunia & live exchange rates
-│       ├── i18n.js              # Engine multi-bahasa (ID, EN, JV, ZH, KO)
+│       ├── accountLogos.jsx     # Peta logo rekening & e-wallet
 │       ├── authPin.js           # Mesin verifikasi PIN & biometrik
 │       ├── backup.js            # Engine ekspor/impor cadangan data & Google Drive
-│       ├── feedback.js          # Pengiriman saran pengguna ke developer
-│       ├── voiceParser.js       # Natural Language Parser suara majemuk Indonesia
-│       ├── voiceLearner.js      # Mesin pembelajaran kebiasaan kata lokal
-│       ├── noiseFilter.js       # Pembersih noise transkrip suara & tanda baca
 │       ├── categoryInsightEngine.js # Mesin kalkulasi jeda & wawasan kategori
+│       ├── communityBenchmark.js# Perbandingan belanja komunitas lokal
+│       ├── currency.js          # Mesin mata uang 1 dunia & live exchange rates
+│       ├── feedback.js          # Pengiriman saran pengguna ke developer
+│       ├── firebase.js          # Inisialisasi Firebase Firestore
 │       ├── fuzzyMatch.js        # Algoritma fuzzy string matching
+│       ├── i18n.js              # Engine multi-bahasa (ID, EN, JV, ZH, KO)
+│       ├── noiseFilter.js       # Pembersih noise transkrip suara & tanda baca
+│       ├── notifications.js     # Manajemen notifikasi lokal & auto-purge
+│       ├── notificationTracker.js# Pelacak riwayat interaksi notifikasi
 │       ├── safetyGuard.js       # Sanitasi input & pencegahan manipulasi data
 │       ├── secureStorage.js     # Storage wrapper dengan validasi integritas
-│       ├── classifier.js        # Hybrid AI classifier & logic konsumtif
 │       ├── soundFeedback.js     # Audio synthesizer feedback positif
-│       ├── notifications.js     # Manajemen notifikasi lokal
 │       ├── telemetry.js         # Pengiriman metrik perangkat anonim
-│       ├── firebase.js          # Inisialisasi Firebase Firestore
-│       └── version.js           # Sistem in-app update checker
+│       ├── version.js           # Sistem in-app update checker & target routing
+│       ├── voiceLearner.js      # Mesin pembelajaran kebiasaan kata lokal
+│       ├── voiceParser.js       # Natural Language Parser suara majemuk Indonesia
+│       └── widgetSync.js        # Sinkronisasi data widget Android
 ├── public/
 │   ├── version.json             # Manifest metadata versi APK
 │   ├── favicon.svg              # Logo favicon
 │   └── audio/                   # Audio asset pendukung
+├── apk/                         # Direktori penyimpanan seluruh output berkas APK
+│   ├── Cassiel.apk              # Rilis APK Android resmi (Signed Release)
+│   ├── Cassiel-Release.apk      # Mirror rilis APK release
+│   ├── cassielll1.apk           # APK pengujian debug sideload
+│   └── Udin.apk                 # APK demo klon mandiri (com.redilah.udin)
 ├── android/                     # Source project Android native (Capacitor)
-├── Cassiel.apk                  # Rilis APK Android resmi (Signed Release)
-├── Cassiel-Release.apk          # Mirror rilis APK release
-├── cassielll1.apk               # APK pengujian debug sideload
-├── udin.apk                     # APK demo klon mandiri
+├── Cassiel.apk                  # Root mirror APK rilis resmi
+├── Cassiel-Release.apk          # Root mirror APK rilis resmi
+├── cassielll1.apk               # Root mirror APK sideload debug
+├── udin.apk                     # Root mirror APK demo klon
 ├── capacitor.config.json        # Konfigurasi Capacitor
 ├── package.json
 ├── vite.config.js
@@ -458,6 +446,7 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 | Key LocalStorage | Tipe Data | Deskripsi |
 |---|---|---|
 | `user_transactions` | `Array<Object>` | Seluruh catatan transaksi pengguna |
+| `user_accounts_list` | `Array<Object>` | Daftar akun, rekening bank, e-wallet, & saldo terpisah |
 | `user_app_currency` | `String` | Kode mata uang aktif (e.g. `IDR`, `USD`, `KRW`) |
 | `user_app_language` | `String` | Kode bahasa aktif (`id`, `en`, `jv`, `zh`, `ko`) |
 | `user_app_font` | `String` | ID font aktif yang dipilih |
@@ -467,11 +456,10 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 | `user_learned_voice_aliases` | `Object` | Kamus asosiasi kata suara hasil pembelajaran lokal |
 | `user_expense_categories` | `Array<Object>` | Daftar kategori pengeluaran kustom |
 | `user_income_categories` | `Array<Object>` | Daftar kategori pemasukan kustom |
-| `user_accounts_list` | `Array<Object>` | Daftar akun / dompet keuangan |
 | `user_profile_name` | `String` | Nama profil pengguna |
 | `user_profile_image` | `String` | Foto profil terkompresi (JPEG max 256px) |
 | `user_app_wallpaper` | `String` | Wallpaper terkompresi (JPEG max 1024px) |
-| `user_notification_bell_enabled`| `Boolean` | Preferensi status notifikasi |
+| `user_notification_bell_enabled`| `Boolean` | Preferensi status notifikasi harian |
 | `app_device_id` | `String` | UUID unik perangkat untuk telemetri |
 
 ---
@@ -480,7 +468,11 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |---|---|---|---|
-| **1.0.24** | **25** | **Agustus 2026** | **Perbaikan Cadangan Data Google Drive & File Picker**, Optimasi Dynamic Target APK Routing (Cassiel, Udin, Debug) |
+| **1.0.28** | **29** | **Agustus 2026** | **Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time**, Filter Cepat & Pemantauan Arus Kas per Sumber Dana, Animasi Cash Counter Rolling, Notifikasi Personal Cerdas |
+| 1.0.27 | 28 | Agustus 2026 | Auto Expense Listener Service & Izin Notifikasi Android Background |
+| 1.0.26 | 27 | Agustus 2026 | Sinkronisasi APK Folder `./apk/`, Dynamic Target APK Routing, SHA-256 Checksum Verification |
+| 1.0.25 | 26 | Agustus 2026 | High-Impact What's New In-App Update, Borderless Luxury UI Design Refresh |
+| 1.0.24 | 25 | Agustus 2026 | **Perbaikan Cadangan Data Google Drive & File Picker**, Optimasi Dynamic Target APK Routing (Cassiel, Udin, Debug) |
 | 1.0.23 | 24 | Agustus 2026 | **Monthly Stats Bar Chart Switcher**, Visualisasi Tren Finansial Bulanan |
 | 1.0.22 | 23 | Agustus 2026 | Pembaruan Asset Notifikasi Android & Guided Tour Interaktif |
 | 1.0.21 | 22 | Agustus 2026 | Modal Penyesuaian Akun Legacy & Large Notification Icon Android |

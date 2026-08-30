@@ -3,6 +3,7 @@ package com.redilah.financetracker;
 import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.redilah.financetracker.notificationtracker.NotificationTrackerPlugin;
 import com.redilah.financetracker.widget.WidgetBridgePlugin;
 
 public class MainActivity extends BridgeActivity {

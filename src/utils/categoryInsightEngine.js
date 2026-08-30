@@ -519,7 +519,7 @@ export const generateCategoryInsight = ({
         );
         if (savingsIfCut10 > 0) {
           sentences.push(
-            `Andai turun 10% saja, kamu bisa menabung ${formatAmt(savingsIfCut10)}.`
+            `Jika pengeluaran turun 10% saja, kamu bisa menabung ${formatAmt(savingsIfCut10)}.`
           );
         }
       } else if (diffStatus === 'down') {

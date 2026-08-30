@@ -3,7 +3,7 @@
   --text-main: #333333;
   --text-muted: #888888;
   --card-expense-bg: #FBE5DC;
-  --card-expense-text: #A73A3A;
+  --card-expense-text: #BC6C25;
   --card-income-bg: #E1F0E0;
   --card-income-text: #2D6A43;
   
@@ -18,38 +18,7 @@
   --font-scale: 1;
 }
 
-/* Font Size Scales (App-wide) */
-[data-font-size="default"] {
-  --font-scale: 1;
-}
 
-[data-font-size="13pt"] {
-  --font-scale: 1.1;
-}
-
-[data-font-size="14pt"] {
-  --font-scale: 1.2;
-}
-
-[data-font-size="18pt"] {
-  --font-scale: 1.35;
-}
-
-[data-font="outfit"] {
-  --app-font: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-[data-font="lora"] {
-  --app-font: 'Lora', Georgia, serif;
-}
-
-[data-font="the-seasons"] {
-  --app-font: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
-}
-
-[data-font="amoresa"] {
-  --app-font: 'Great Vibes', cursive;
-}
 
 * {
   margin: 0;
@@ -61,84 +30,20 @@
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Global Font Scaling on text nodes */
-[data-font-size="13pt"] .wa-menu-title,
-[data-font-size="13pt"] .wa-menu-subtitle,
-[data-font-size="13pt"] .transaction-title,
-[data-font-size="13pt"] .transaction-category,
-[data-font-size="13pt"] .transaction-amount,
-[data-font-size="13pt"] .card-label,
-[data-font-size="13pt"] .amount,
-[data-font-size="13pt"] .greeting-text,
-[data-font-size="13pt"] .profile-name,
-[data-font-size="13pt"] .month-text,
-[data-font-size="13pt"] .budget-cat-name,
-[data-font-size="13pt"] .budget-cat-limit,
-[data-font-size="13pt"] .budget-cat-spent,
-[data-font-size="13pt"] .budget-hero-title,
-[data-font-size="13pt"] .budget-hero-amount-text,
-[data-font-size="13pt"] .account-total-amount,
-[data-font-size="13pt"] .account-item-title,
-[data-font-size="13pt"] .account-item-balance,
-[data-font-size="13pt"] .profile-modal-title,
-[data-font-size="13pt"] .full-page-option-title,
-[data-font-size="13pt"] .wa-profile-section-title,
-[data-font-size="13pt"] .home-tx-filter-btn {
-  font-size: calc(1em * 1.1) !important;
-}
-
-[data-font-size="14pt"] .wa-menu-title,
-[data-font-size="14pt"] .wa-menu-subtitle,
-[data-font-size="14pt"] .transaction-title,
-[data-font-size="14pt"] .transaction-category,
-[data-font-size="14pt"] .transaction-amount,
-[data-font-size="14pt"] .card-label,
-[data-font-size="14pt"] .amount,
-[data-font-size="14pt"] .greeting-text,
-[data-font-size="14pt"] .profile-name,
-[data-font-size="14pt"] .month-text,
-[data-font-size="14pt"] .budget-cat-name,
-[data-font-size="14pt"] .budget-cat-limit,
-[data-font-size="14pt"] .budget-cat-spent,
-[data-font-size="14pt"] .budget-hero-title,
-[data-font-size="14pt"] .budget-hero-amount-text,
-[data-font-size="14pt"] .account-total-amount,
-[data-font-size="14pt"] .account-item-title,
-[data-font-size="14pt"] .account-item-balance,
-[data-font-size="14pt"] .profile-modal-title,
-[data-font-size="14pt"] .full-page-option-title,
-[data-font-size="14pt"] .wa-profile-section-title,
-[data-font-size="14pt"] .home-tx-filter-btn {
-  font-size: calc(1em * 1.2) !important;
-}
-
-[data-font-size="18pt"] .wa-menu-title,
-[data-font-size="18pt"] .wa-menu-subtitle,
-[data-font-size="18pt"] .transaction-title,
-[data-font-size="18pt"] .transaction-category,
-[data-font-size="18pt"] .transaction-amount,
-[data-font-size="18pt"] .card-label,
-[data-font-size="18pt"] .amount,
-[data-font-size="18pt"] .greeting-text,
-[data-font-size="18pt"] .profile-name,
-[data-font-size="18pt"] .month-text,
-[data-font-size="18pt"] .budget-cat-name,
-[data-font-size="18pt"] .budget-cat-limit,
-[data-font-size="18pt"] .budget-cat-spent,
-[data-font-size="18pt"] .budget-hero-title,
-[data-font-size="18pt"] .budget-hero-amount-text,
-[data-font-size="18pt"] .account-total-amount,
-[data-font-size="18pt"] .account-item-title,
-[data-font-size="18pt"] .account-item-balance,
-[data-font-size="18pt"] .profile-modal-title,
-[data-font-size="18pt"] .full-page-option-title,
-[data-font-size="18pt"] .wa-profile-section-title,
-[data-font-size="18pt"] .home-tx-filter-btn {
-  font-size: calc(1em * 1.35) !important;
-}
-
 input, button, textarea, select {
   font-family: inherit;
+}
+
+/* Remove stepper spin buttons from all number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 *::-webkit-scrollbar {

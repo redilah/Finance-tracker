@@ -38,19 +38,22 @@ import partySvg from './assets/Party.svg';
 import buahSvg from './assets/Buah.svg';
 import minumanSvg from './assets/Minuman.svg';
 import wifiSvg from './assets/wifi.svg';
+import freelanceSvg from './assets/Freelance.svg';
+import biayaAdminSvg from './assets/Biaya admin.svg';
+import accessoriesSvg from './assets/Accesories.svg';
 import budgetClipboardSvg from './assets/budget-clipboard.svg';
 import kalenderSvg from './assets/kalender.svg';
 import dompetSvg from './assets/dompet.svg';
-import { isConsumptiveHybrid, getConsumptiveTransactions } from './utils/classifier';
+
 import { playPositiveChime } from './utils/soundFeedback';
-import { NotificationTracker, initAutoExpenseTracker } from './utils/notificationTracker';
-import { scheduleV24FeatureIntroNotification } from './utils/notifications';
-import { checkForAppUpdates, CURRENT_VERSION_NAME } from './utils/version';
+import { checkForAppUpdates, CURRENT_VERSION_NAME, CURRENT_VERSION_CODE } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
+import QuickTextModal from './components/QuickTextModal';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
-import { getTranslation, getCategoryName, LANGUAGES, FONTS, FONT_SIZES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
+import { generateFinancialInsights, formatActivePeriodRange } from './utils/financialInsightEngine';
+import { getTranslation, getCategoryName, LANGUAGES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
 import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
 import { WORLD_CURRENCIES, getCurrency, formatMoney, formatCompactMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
@@ -59,12 +62,15 @@ import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, se
 import PinSetupModal from './components/PinSetupModal';
 import PinLockScreen from './components/PinLockScreen';
 import GuidedTourModal from './components/GuidedTourModal';
+import GroupsHubModal from './components/groups/GroupsHubModal';
+import HomeGroupTabContent from './components/HomeGroupTabContent';
 import { syncWidgetData } from './utils/widgetSync';
+import { FAQ_ITEMS } from './utils/faqData';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
 import { checkProhibitedContent } from './utils/safetyGuard';
-import { updateCurrentDeviceTelemetry, startActiveUsageTracking } from './utils/telemetry';
+import { updateCurrentDeviceTelemetry, startActiveUsageTracking, detectDeviceName, getDeviceId } from './utils/telemetry';
 import { 
   isNotificationEnabled,
   toggleNotificationState,
@@ -73,15 +79,23 @@ import {
   sendUpdateReminderNotification,
   schedulePersonalizedNotifications,
   scheduleFeatureIntroNotification,
-  scheduleNewCategoryNotification,
   scheduleV20FeatureIntroNotification,
   scheduleV23FeatureIntroNotification,
   scheduleV28AccountFeatureIntroNotification,
   buildBudgetNotifText,
   buildMainBudgetNotifText,
   playSound,
-  playPopSound 
+  playPopSound,
+  requestNotificationPermission
 } from './utils/notifications';
+import { 
+  isAutoTrackerPreferenceEnabled, 
+  setAutoTrackerPreference, 
+  checkNotificationAccessPermission, 
+  openNotificationAccessSettings, 
+  drainAndProcessQueuedNotifications,
+  NotificationTrackerNative
+} from './utils/notificationTracker';
 
 // Categories: NO icon field stored — icons resolved at runtime via ICON_MAP
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -112,16 +126,23 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'buah', name: 'Buah', iconClass: 'buah-icon' },
   { id: 'minuman', name: 'Minuman', iconClass: 'minuman-icon' },
   { id: 'wifi', name: 'WiFi', iconClass: 'wifi-icon' },
+  { id: 'biayaAdmin', name: 'Biaya Admin', iconClass: 'biaya-admin-icon' },
+  { id: 'accessories', name: 'Accessories', iconClass: 'accessories-icon' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
-  { id: 'gaji', name: 'Gaji', iconClass: 'food-icon' },
-  { id: 'bonus', name: 'Bonus', iconClass: 'sub-icon' },
-  { id: 'kip', name: 'KIP', iconClass: 'car-icon' },
+  { id: 'gaji', name: 'Gaji', iconClass: 'gaji-icon' },
+  { id: 'bonus', name: 'Bonus', iconClass: 'bonus-icon' },
+  { id: 'kip', name: 'KIP', iconClass: 'kip-icon' },
   { id: 'investasi', name: 'Investasi', iconClass: 'investasi-icon' },
   { id: 'bisnis', name: 'Bisnis', iconClass: 'bisnis-icon' },
   { id: 'affiliate', name: 'Affiliate', iconClass: 'affiliate-icon' },
+  { id: 'freelance', name: 'Freelance', iconClass: 'freelance-icon' },
 ];
+
+const DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS = ['food', 'transport', 'coffee', 'bensin'];
+const DEFAULT_ACTIVE_INCOME_CATEGORY_IDS = ['gaji', 'bonus', 'affiliate'];
+const DEFAULT_ACTIVE_ACCOUNTS = ['Cash', 'GoPay', 'BRImo'];
 
 // Runtime icon lookup — NEVER stored to localStorage, only used during render
 const ICON_MAP = {
@@ -138,7 +159,7 @@ const ICON_MAP = {
   pesawat: pesawatSvg,
   kost: kostSvg,
   coffee: coffeeSvg,
-  gofood: gofoodSvg,
+  gofood: fastFoodSvg,
   sepatu: sepatuSvg,
   donasi: donasiSvg,
   topupGame: topupGameSvg,
@@ -155,9 +176,12 @@ const ICON_MAP = {
   buah: buahSvg,
   minuman: minumanSvg,
   wifi: wifiSvg,
+  biayaAdmin: biayaAdminSvg,
+  accessories: accessoriesSvg,
   gaji: salarySvg,
   bonus: bonusSvg,
-  kip: kipSvg,
+  kip: bookSvg,
+  freelance: freelanceSvg,
   tambahSaldo: addSvg,
 };
 
@@ -166,6 +190,98 @@ const resolveIcon = (catOrTx) => {
   if (!catOrTx) return null;
   const id = catOrTx.categoryId || catOrTx.id || null;
   return id ? (ICON_MAP[id] || null) : null;
+};
+
+// Resolve category-bound background card class for consistent block colors
+const resolveCardBgClass = (catOrTx) => {
+  if (!catOrTx) return 'cat-card-food';
+  const id = catOrTx.categoryId || catOrTx.id;
+  if (id) return `cat-card-${id}`;
+  if (catOrTx.category) {
+    const norm = (catOrTx.category || '').toLowerCase().trim();
+    const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
+    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
+    if (found) return `cat-card-${found.id}`;
+  }
+  if (catOrTx.iconClass) {
+    return `cat-card-${catOrTx.iconClass}`;
+  }
+  return 'cat-card-food';
+};
+
+const CATEGORY_BG_COLORS = {
+  food: '#FAE2CB',
+  coffee: '#F3DBC4',
+  bioskop: '#EEDCE9',
+  transport: '#D9E8F1',
+  barber: '#F8DECE',
+  skincare: '#F7D8E4',
+  edukasi: '#DAE4F5',
+  galon: '#D6EFE7',
+  fashion: '#E6E1F6',
+  supermarket: '#F7EFC8',
+  sub: '#D7ECE4',
+  pesawat: '#D0E6F5',
+  kost: '#F4DFD2',
+  gofood: '#F8D7D7',
+  sepatu: '#EBDEFA',
+  donasi: '#F6DCE6',
+  topupGame: '#D7F4E1',
+  topupgame: '#D7F4E1',
+  bensin: '#F8DFCA',
+  konser: '#F6D0E3',
+  pulsa: '#D4E4F8',
+  rumahSakit: '#F9D8DC',
+  rumahsakit: '#F9D8DC',
+  obatSakit: '#DBF2E4',
+  obatsakit: '#DBF2E4',
+  jajanAdek: '#F7D8D8',
+  jajanadek: '#F7D8D8',
+  party: '#F7EAB9',
+  buah: '#DCF1DB',
+  minuman: '#D1E6F9',
+  wifi: '#D8F1EB',
+  biayaAdmin: '#EBE2F7',
+  biayaadmin: '#EBE2F7',
+  accessories: '#F5D7DF',
+  gaji: '#D5F1DF',
+  bonus: '#D8EBF9',
+  kip: '#F5DFDE',
+  freelance: '#EBE0F7',
+  investasi: '#DCF3DC',
+  bisnis: '#F8E7D1',
+  affiliate: '#F9E5DC',
+  tambahSaldo: '#D8ECF9',
+};
+
+const resolveIconClass = (catOrTx) => {
+  if (!catOrTx) return 'food-icon';
+  const id = catOrTx.categoryId || catOrTx.id;
+  const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
+  if (id) {
+    const found = allCats.find(c => c.id.toLowerCase() === id.toLowerCase());
+    if (found && found.iconClass) return found.iconClass;
+  }
+  if (catOrTx.category || catOrTx.name) {
+    const norm = (catOrTx.category || catOrTx.name || '').toLowerCase().trim();
+    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
+    if (found && found.iconClass) return found.iconClass;
+  }
+  if (catOrTx.iconClass) return catOrTx.iconClass;
+  return 'food-icon';
+};
+
+const resolveCardBgColor = (catOrTx) => {
+  if (!catOrTx) return '#FAE2CB';
+  const id = catOrTx.categoryId || catOrTx.id;
+  if (id && CATEGORY_BG_COLORS[id]) return CATEGORY_BG_COLORS[id];
+  if (catOrTx.category) {
+    const norm = (catOrTx.category || '').toLowerCase().trim();
+    const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
+    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
+    if (found && CATEGORY_BG_COLORS[found.id]) return CATEGORY_BG_COLORS[found.id];
+  }
+  return catOrTx.type === 'income' ? 'var(--card-income-bg, #E8F5E9)' : 'var(--card-expense-bg, #FBE9E7)';
 };
 
 // One-time migration: strip raw SVG `icon` blobs from old stored transactions
@@ -183,6 +299,7 @@ const migrateTransactions = (list) => {
     'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
     'Jajan Adek': 'jajanAdek', 'Party': 'party', 'Buah': 'buah',
     'Minuman': 'minuman', 'WiFi': 'wifi', 'Wifi': 'wifi', 'WIFI': 'wifi',
+    'Biaya Admin': 'biayaAdmin', 'Accessories': 'accessories', 'Aksesoris': 'accessories', 'accesories': 'accessories', 'accessories': 'accessories',
   };
   let changed = false;
   const migrated = list.map(tx => {
@@ -219,209 +336,21 @@ const migrateCategories = (list) => {
 
 const INITIAL_TRANSACTIONS = [];
 
-// Instrumen investasi beserta estimasi return tahunan
-const INVESTMENT_INSTRUMENTS = [
-  { id: 'bigbank', name: 'Big Bank', rate: 0.10, label: '10%' },
-  { id: 'emas', name: 'Emas Mulia', rate: 0.07, label: '7%' },
-  { id: 'obligasi', name: 'Obligasi', rate: 0.065, label: '6.5%' },
-];
-
-function AndaiFeatureView({ transactions, resolveIcon, appLanguage = 'id', t = (k) => k, appCurrency = 'IDR', liveExchangeRates = null }) {
-  const [investmentYear, setInvestmentYear] = useState(5); // 1, 3, 5, 10
-  const [selectedInstrument, setSelectedInstrument] = useState(INVESTMENT_INSTRUMENTS[0]); // Big Bank (8%)
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Filter transaksi konsumtif bulanan
-  const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  const consumptiveTransactions = getConsumptiveTransactions(transactions, currentMonthStr);
-
-  const totalConsumptiveAmount = consumptiveTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-  // Hitung Future Value: FV = P * (1 + r)^n
-  const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
-  const gain = futureValue - totalConsumptiveAmount;
-
-  const yearUnit = t('andaiYearUnit') || 'Thn';
-
-  return (
-    <div className="andai-container-clean">
-      {/* Stat Card Ringkas */}
-      <div className="andai-hero-card">
-        <span className="andai-hero-label">{t('andaiHeroLabel')}</span>
-        <h2 className="andai-hero-amount">{formatMoney(totalConsumptiveAmount, appCurrency, liveExchangeRates)}</h2>
-        <span className="andai-hero-sub">{consumptiveTransactions.length} {t('andaiTxDetected')}</span>
-      </div>
-
-      {/* Kontrol Ringkas (Pill selector & Custom Dropdown) */}
-      <div className="andai-pill-row">
-        <div className="andai-pill-group">
-          {[1, 3, 5, 10].map(yr => (
-            <button
-              key={yr}
-              type="button"
-              className={`andai-mini-pill ${investmentYear === yr ? 'active' : ''}`}
-              onClick={() => setInvestmentYear(yr)}
-            >
-              {yr} {yearUnit}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom Dropdown dengan persentase ringkas */}
-        <div className="stats-dropdown-wrapper" style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className="stats-period-btn"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <span>{selectedInstrument.name} {selectedInstrument.label}</span>
-            <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </span>
-          </button>
-
-          {isDropdownOpen && (
-            <div className="custom-dropdown-menu" style={{ right: 0, left: 'auto', minWidth: '160px' }}>
-              {INVESTMENT_INSTRUMENTS.map((inst) => (
-                <button
-                  key={inst.id}
-                  type="button"
-                  className={`custom-dropdown-item ${selectedInstrument.id === inst.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedInstrument(inst);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  {inst.name} {inst.label}/thn
-                  {selectedInstrument.id === inst.id && <span className="check-mark">✓</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Hero Visual Hasil Investment vs Hangus */}
-      <div className="andai-comparison-card">
-        <div className="andai-compare-item current">
-          <span className="compare-lbl">{t('andaiIfBought')}</span>
-          <span className="compare-val zero">{getCurrency(appCurrency).symbol} 0</span>
-          <span className="compare-desc">{t('andaiBurnt')}</span>
-        </div>
-
-        <div className="andai-compare-item future">
-          <span className="compare-lbl">{t('andaiIfInvested')} ({investmentYear} {yearUnit})</span>
-          <span className="compare-val grow">{formatMoney(futureValue, appCurrency, liveExchangeRates)}</span>
-          <span className="compare-gain">+{formatMoney(gain, appCurrency, liveExchangeRates)} (+{Math.round((gain / (totalConsumptiveAmount || 1)) * 100)}%)</span>
-        </div>
-      </div>
-
-      {/* Ringkasan Transaksi Konsumtif Minimalis */}
-      <div className="andai-list-clean">
-        <div className="list-clean-title">{t('andaiConsumptiveTitle')}</div>
-        {consumptiveTransactions.length === 0 ? (
-          <div className="empty-clean-text">{t('andaiEmptyClean')}</div>
-        ) : (
-          consumptiveTransactions.map(item => {
-            const catDisplay = getCategoryName(item.category || item.categoryId || item.title, appLanguage);
-            let dynamicSub = item.subtext;
-            if (appLanguage === 'jv') {
-              dynamicSub = `Gunggung konsumtif ${catDisplay.toLowerCase()} wulan punika`;
-            } else if (appLanguage === 'en') {
-              dynamicSub = `Total consumptive ${catDisplay.toLowerCase()} this month`;
-            } else if (appLanguage === 'ko') {
-              dynamicSub = `Ibeondal ${catDisplay.toLowerCase()} chong sobiseong`;
-            } else {
-              dynamicSub = `Total konsumtif ${catDisplay.toLowerCase()} bulan ini`;
-            }
-
-            return (
-              <div className="item-clean-row" key={item.id}>
-                <div className="item-clean-left">
-                  <div className="item-clean-icon">
-                    {resolveIcon(item) ? (
-                      <img src={resolveIcon(item)} alt={catDisplay} />
-                    ) : (
-                      <span>🛍️</span>
-                    )}
-                  </div>
-                  <div className="item-clean-meta">
-                    <span className="item-clean-title">{catDisplay}</span>
-                    <span className="item-clean-sub">{dynamicSub}</span>
-                  </div>
-                </div>
-                <span className="item-clean-amount">-{formatMoney(item.amount, appCurrency, liveExchangeRates)}</span>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function LossAversionBadge({ transactions, handleOpenAndaiModal, fmtMoney, t }) {
-  const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-  const consumptiveTransactions = getConsumptiveTransactions(transactions, currentMonthStr);
-
-  const totalConsumptiveAmount = consumptiveTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
-  if (totalConsumptiveAmount === 0) return null;
-
-  const selectedInstrument = INVESTMENT_INSTRUMENTS[0];
-  const investmentYear = 5;
-  const futureValue = Math.round(totalConsumptiveAmount * Math.pow(1 + selectedInstrument.rate, investmentYear));
-  const gain = futureValue - totalConsumptiveAmount;
-
-  const warningLabel = t ? t('lossAversionWarning') : '⚠️ Peringatan Konsumtif';
-  const detailLabel = t ? t('lossAversionDetail') : 'Detail ›';
-  const prefix = t ? t('lossAversionPrefix') : 'Bulan ini Anda';
-  const lostLabel = t ? t('lossAversionLost') : 'kehilangan potensi dana';
-  const suffix = t ? t('lossAversionSuffix') : 'dalam 5 tahun akibat pengeluaran konsumtif.';
-  const formattedGain = fmtMoney ? fmtMoney(gain) : `Rp ${gain.toLocaleString('id-ID')}`;
-
-  return (
-    <div 
-      className="loss-aversion-badge" 
-      onClick={handleOpenAndaiModal}
-      style={{
-        margin: '0 0 16px',
-        padding: '12px 16px',
-        background: 'linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%)',
-        borderLeft: '4px solid #ff4d4f',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(255, 77, 79, 0.1)',
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px'
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: '600', color: '#cf1322' }}>
-          ⚠️ {warningLabel.replace(/^⚠️\s*/, '')}
-        </span>
-        <span style={{ fontSize: '12px', color: '#ff4d4f' }}>{detailLabel}</span>
-      </div>
-      <span style={{ fontSize: '12px', color: '#5c0011', lineHeight: '1.4' }}>
-        {prefix} <strong>{lostLabel} {formattedGain}</strong> {suffix}
-      </span>
-    </div>
-  );
-}
+// Helper to identify unedited auto-tracked transactions from Notification Tracker (Past & Present)
+const isAutoTrackedTx = (tx) => Boolean(
+  tx && (
+    tx.autoTracked === true ||
+    tx.inputMethod === 'notification' ||
+    (Boolean(tx.rawProvider) && tx.inputMethod !== 'manual')
+  )
+);
 
 /**
  * Komponen Kartu Transaksi Baru Khusus Input Suara:
  * 1. Pop Timbul dari Belakang (3D Elevation Depth)
  * 2. Animasi Ketik (Typewriter) Mengalir Alami dari Kiri ke Kanan (Single Unified Timer - Anti-Stuck)
  */
-function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete }) {
+function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete, onSelectTx, onEditTx }) {
   const fullTitle = item.title || item.category || 'Transaksi';
   const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
   const prefix = item.type === 'expense' ? '-' : '+';
@@ -486,7 +415,13 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimati
   }
 
   return (
-    <div className={`transaction-item voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} key={item.id}>
+    <div 
+      className={`transaction-item ${resolveCardBgClass(item)} voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} 
+      key={item.id}
+      onClick={() => onSelectTx && onSelectTx(item)}
+      role="button"
+      tabIndex={0}
+    >
       <div className={`transaction-icon ${item.iconClass} voice-icon-pop`}>
         {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
       </div>
@@ -500,12 +435,80 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimati
           {currentCursor === 'sub' && <span className="typewriter-cursor">|</span>}
         </span>
       </div>
-      <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', minWidth: '105px' }}>
-        <span>{displayedAmount}</span>
-        {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
+      <div className="transaction-actions-right">
+        {isAutoTrackedTx(item) && (
+          <button 
+            type="button" 
+            className="tx-edit-capsule-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onEditTx) onEditTx(item);
+            }}
+            title="Edit Transaksi Otomatis"
+            aria-label="Edit Transaksi Otomatis"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            <span>Edit</span>
+          </button>
+        )}
+        <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', minWidth: '105px' }}>
+          <span>{displayedAmount}</span>
+          {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
+        </div>
       </div>
     </div>
   );
+}
+
+// Hook for cash counter / money counting machine animation
+function useCashCounter(targetValue, duration = 1200) {
+  const [displayValue, setDisplayValue] = useState(targetValue);
+  const prevValueRef = useRef(targetValue);
+  const isFirstRun = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      prevValueRef.current = targetValue;
+      setDisplayValue(targetValue);
+      return;
+    }
+
+    const startValue = prevValueRef.current;
+    const endValue = targetValue;
+    if (startValue === endValue) return;
+
+    const startTime = performance.now();
+    let animFrame;
+
+    const update = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth cubic-out easing for realistic cash counter deceleration
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(startValue + (endValue - startValue) * easeProgress);
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        animFrame = requestAnimationFrame(update);
+      } else {
+        setDisplayValue(endValue);
+        prevValueRef.current = endValue;
+      }
+    };
+
+    animFrame = requestAnimationFrame(update);
+    return () => {
+      if (animFrame) cancelAnimationFrame(animFrame);
+    };
+  }, [targetValue, duration]);
+
+  return displayValue;
 }
 
 function App() {
@@ -513,6 +516,8 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [expenseDateFilter, setExpenseDateFilter] = useState('month'); // 'month' | 'today' | 'yesterday' | '3days' | '1week' | '2weeks'
+  const [isExpenseDropdownOpen, setIsExpenseDropdownOpen] = useState(false);
   const [statsType, setStatsType] = useState('expense'); // 'expense' | 'income'
   const [statsSubTab, setStatsSubTab] = useState('pie'); // 'pie' | 'chart'
   const [selectedInsightCategory, setSelectedInsightCategory] = useState(null);
@@ -561,45 +566,118 @@ function App() {
     }
   });
 
-  // LocalStorage Persistence for Custom Categories & Accounts
+  // LocalStorage Persistence for Custom Categories, Accounts, & Warehouse
   const [expenseCategories, setExpenseCategories] = useState(() => {
     try {
-      const saved = safeStorageGet('user_expense_categories');
-      if (saved) {
-        const loaded = migrateCategories(saved);
-        const merged = [...loaded];
-        DEFAULT_EXPENSE_CATEGORIES.forEach(defaultCat => {
-          if (!merged.some(cat => cat.id === defaultCat.id)) {
-            merged.push(defaultCat);
-          }
-        });
-        return merged;
+      const savedActive = safeStorageGet('user_expense_categories');
+      if (Array.isArray(savedActive) && savedActive.length > 0) {
+        if (!safeStorageGet('user_lean_warehouse_sync_v4')) {
+          const customCats = savedActive.filter(c => !DEFAULT_EXPENSE_CATEGORIES.some(def => def.id === c.id || def.name.toLowerCase() === (c.name || '').toLowerCase()));
+          const cleanActive = [
+            ...DEFAULT_EXPENSE_CATEGORIES.filter(cat => DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id)),
+            ...customCats
+          ];
+          return cleanActive;
+        }
+        return migrateCategories(savedActive);
       }
-      return DEFAULT_EXPENSE_CATEGORIES;
+      return DEFAULT_EXPENSE_CATEGORIES.filter(cat => DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id));
     } catch {
-      return DEFAULT_EXPENSE_CATEGORIES;
+      return DEFAULT_EXPENSE_CATEGORIES.filter(cat => DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id));
+    }
+  });
+
+  const [warehouseExpenseCategories, setWarehouseExpenseCategories] = useState(() => {
+    try {
+      const isSyncNeeded = !safeStorageGet('user_lean_warehouse_sync_v4');
+      const savedWarehouse = safeStorageGet('user_warehouse_expense_categories');
+      const savedActive = safeStorageGet('user_expense_categories');
+      
+      let activeList;
+      if (isSyncNeeded) {
+        const customCats = Array.isArray(savedActive) ? savedActive.filter(c => !DEFAULT_EXPENSE_CATEGORIES.some(def => def.id === c.id || def.name.toLowerCase() === (c.name || '').toLowerCase())) : [];
+        activeList = [
+          ...DEFAULT_EXPENSE_CATEGORIES.filter(cat => DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id)),
+          ...customCats
+        ];
+      } else {
+        activeList = Array.isArray(savedActive) && savedActive.length > 0 ? migrateCategories(savedActive) : DEFAULT_EXPENSE_CATEGORIES.filter(cat => DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id));
+      }
+      const activeKeys = activeList.map(c => (c.id || c.name || '').toLowerCase().trim());
+
+      const warehouseList = (!isSyncNeeded && Array.isArray(savedWarehouse)) ? migrateCategories(savedWarehouse) : [];
+      const loadedWarehouse = warehouseList.filter(c => !activeKeys.includes((c.id || '').toLowerCase()) && !activeKeys.includes((c.name || '').toLowerCase()));
+
+      DEFAULT_EXPENSE_CATEGORIES.forEach(defCat => {
+        const isAlreadyActive = activeKeys.includes(defCat.id.toLowerCase()) || activeKeys.includes(defCat.name.toLowerCase());
+        const isAlreadyInWarehouse = loadedWarehouse.some(c => (c.id || '').toLowerCase() === defCat.id.toLowerCase() || (c.name || '').toLowerCase() === defCat.name.toLowerCase());
+        if (!isAlreadyActive && !isAlreadyInWarehouse) {
+          loadedWarehouse.push(defCat);
+        }
+      });
+      return loadedWarehouse;
+    } catch {
+      return DEFAULT_EXPENSE_CATEGORIES.filter(cat => !DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS.includes(cat.id));
     }
   });
 
   const [incomeCategories, setIncomeCategories] = useState(() => {
     try {
-      const saved = safeStorageGet('user_income_categories');
-      if (saved) {
-        const loaded = migrateCategories(saved);
-        const merged = [...loaded];
-        DEFAULT_INCOME_CATEGORIES.forEach(defaultCat => {
-          if (!merged.some(cat => cat.id === defaultCat.id)) {
-            merged.push(defaultCat);
-          }
-        });
-        return merged;
+      const savedActive = safeStorageGet('user_income_categories');
+      if (Array.isArray(savedActive) && savedActive.length > 0) {
+        if (!safeStorageGet('user_lean_warehouse_sync_v4')) {
+          const customCats = savedActive.filter(c => !DEFAULT_INCOME_CATEGORIES.some(def => def.id === c.id || def.name.toLowerCase() === (c.name || '').toLowerCase()));
+          const cleanActive = [
+            ...DEFAULT_INCOME_CATEGORIES.filter(cat => DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id)),
+            ...customCats
+          ];
+          return cleanActive;
+        }
+        return migrateCategories(savedActive);
       }
-      return DEFAULT_INCOME_CATEGORIES;
+      return DEFAULT_INCOME_CATEGORIES.filter(cat => DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id));
     } catch {
-      return DEFAULT_INCOME_CATEGORIES;
+      return DEFAULT_INCOME_CATEGORIES.filter(cat => DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id));
     }
   });
 
+  const [warehouseIncomeCategories, setWarehouseIncomeCategories] = useState(() => {
+    try {
+      const isSyncNeeded = !safeStorageGet('user_lean_warehouse_sync_v4');
+      const savedWarehouse = safeStorageGet('user_warehouse_income_categories');
+      const savedActive = safeStorageGet('user_income_categories');
+
+      let activeList;
+      if (isSyncNeeded) {
+        const customCats = Array.isArray(savedActive) ? savedActive.filter(c => !DEFAULT_INCOME_CATEGORIES.some(def => def.id === c.id || def.name.toLowerCase() === (c.name || '').toLowerCase())) : [];
+        activeList = [
+          ...DEFAULT_INCOME_CATEGORIES.filter(cat => DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id)),
+          ...customCats
+        ];
+      } else {
+        activeList = Array.isArray(savedActive) && savedActive.length > 0 ? migrateCategories(savedActive) : DEFAULT_INCOME_CATEGORIES.filter(cat => DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id));
+      }
+      const activeKeys = activeList.map(c => (c.id || c.name || '').toLowerCase().trim());
+
+      const warehouseList = (!isSyncNeeded && Array.isArray(savedWarehouse)) ? migrateCategories(savedWarehouse) : [];
+      const loadedWarehouse = warehouseList.filter(c => !activeKeys.includes((c.id || '').toLowerCase()) && !activeKeys.includes((c.name || '').toLowerCase()));
+
+      DEFAULT_INCOME_CATEGORIES.forEach(defCat => {
+        const isAlreadyActive = activeKeys.includes(defCat.id.toLowerCase()) || activeKeys.includes(defCat.name.toLowerCase());
+        const isAlreadyInWarehouse = loadedWarehouse.some(c => (c.id || '').toLowerCase() === defCat.id.toLowerCase() || (c.name || '').toLowerCase() === defCat.name.toLowerCase());
+        if (!isAlreadyActive && !isAlreadyInWarehouse) {
+          loadedWarehouse.push(defCat);
+        }
+      });
+      return loadedWarehouse;
+    } catch {
+      return DEFAULT_INCOME_CATEGORIES.filter(cat => !DEFAULT_ACTIVE_INCOME_CATEGORY_IDS.includes(cat.id));
+    }
+  });
+
+  const [isCategoryWarehouseOpen, setIsCategoryWarehouseOpen] = useState(false);
+  const [isCategoryDeleteMode, setIsCategoryDeleteMode] = useState(false);
+  const [isAccountWarehouseOpen, setIsAccountWarehouseOpen] = useState(false);
   const [isAccountDeleteMode, setIsAccountDeleteMode] = useState(false);
   const [deletedAccountsHistory, setDeletedAccountsHistory] = useState([]);
   const [deletedAccountsList, setDeletedAccountsList] = useState(() => {
@@ -612,33 +690,59 @@ function App() {
   });
 
   const [accountsList, setAccountsList] = useState(() => {
-    const defaultList = DEFAULT_ACCOUNTS.map(a => a.name);
     try {
       const saved = safeStorageGet('user_accounts_list');
-      const deleted = safeStorageGet('user_deleted_accounts') || [];
-      const deletedNorm = Array.isArray(deleted) ? deleted.map(d => (d || '').toLowerCase().trim()) : [];
-      const deprecated = ['bank', 'e-wallet', 'mandiri', 'bni', 'pos indonesia', 'pos', 'pegadaian'];
-
       if (Array.isArray(saved) && saved.length > 0) {
-        const filtered = saved
-          .filter(acc => {
-            const n = (acc || '').toLowerCase().trim();
-            return !deprecated.includes(n) && !deletedNorm.includes(n);
-          })
-          .map(acc => (acc && acc.toLowerCase().trim() === 'bri') ? 'BRImo' : acc);
-        
-        // Hanya gabungkan akun default baru yang belum ada dan belum pernah dihapus pengguna
-        defaultList.forEach(item => {
-          const itemNorm = item.toLowerCase().trim();
-          if (!filtered.some(a => a.toLowerCase() === item.toLowerCase()) && !deletedNorm.includes(itemNorm) && !deprecated.includes(itemNorm)) {
-            filtered.push(item);
-          }
-        });
-        return filtered.length > 0 ? filtered : ['Cash', 'BRImo'];
+        if (!safeStorageGet('user_lean_warehouse_sync_v4')) {
+          const customAccs = saved.filter(acc => !DEFAULT_ACCOUNTS.some(def => def.name.toLowerCase() === (acc || '').toLowerCase().trim()));
+          return [...DEFAULT_ACTIVE_ACCOUNTS, ...customAccs];
+        }
+        return saved.map(acc => (acc && acc.toLowerCase().trim() === 'bri') ? 'BRImo' : acc);
       }
-      return defaultList.filter(item => !deletedNorm.includes(item.toLowerCase().trim()));
+      return DEFAULT_ACTIVE_ACCOUNTS;
     } catch {
-      return defaultList;
+      return DEFAULT_ACTIVE_ACCOUNTS;
+    }
+  });
+
+  const [warehouseAccountsList, setWarehouseAccountsList] = useState(() => {
+    // Gudang Akun HANYA untuk Bank Resmi & E-Wallet (Bukan Kartu Kredit)
+    const bankAndEwalletAccounts = DEFAULT_ACCOUNTS.filter(a => a.type === 'bank' || a.type === 'ewallet' || a.type === 'cash').map(a => a.name);
+    try {
+      const isSyncNeeded = !safeStorageGet('user_lean_warehouse_sync_v4');
+      const savedWarehouse = safeStorageGet('user_warehouse_accounts');
+      const savedActive = safeStorageGet('user_accounts_list');
+      
+      let activeList;
+      if (isSyncNeeded) {
+        const customAccs = Array.isArray(savedActive) ? savedActive.filter(acc => !DEFAULT_ACCOUNTS.some(def => def.name.toLowerCase() === (acc || '').toLowerCase().trim())) : [];
+        activeList = [...DEFAULT_ACTIVE_ACCOUNTS, ...customAccs];
+        // Selesaikan penandaan sinkronisasi Lean Warehouse
+        safeStorageSet('user_lean_warehouse_sync_v4', 'true');
+      } else {
+        activeList = Array.isArray(savedActive) && savedActive.length > 0 ? savedActive.map(acc => (acc && acc.toLowerCase().trim() === 'bri') ? 'BRImo' : acc) : DEFAULT_ACTIVE_ACCOUNTS;
+      }
+      const activeLower = activeList.map(a => (a || '').toLowerCase().trim());
+
+      // Filter out credit card names completely from warehouse
+      const isCreditCardAccount = (name) => {
+        const accObj = DEFAULT_ACCOUNTS.find(a => a.name.toLowerCase() === (name || '').toLowerCase());
+        return accObj && accObj.type === 'credit_card';
+      };
+
+      const warehouseList = (!isSyncNeeded && Array.isArray(savedWarehouse)) ? savedWarehouse : [];
+      const loadedWarehouse = warehouseList
+        .map(acc => (acc && acc.toLowerCase().trim() === 'bri') ? 'BRImo' : acc)
+        .filter(acc => !isCreditCardAccount(acc) && !activeLower.includes((acc || '').toLowerCase().trim()));
+
+      bankAndEwalletAccounts.forEach(defAcc => {
+        if (!activeLower.includes(defAcc.toLowerCase().trim()) && !loadedWarehouse.some(a => a.toLowerCase().trim() === defAcc.toLowerCase().trim())) {
+          loadedWarehouse.push(defAcc);
+        }
+      });
+      return loadedWarehouse;
+    } catch {
+      return bankAndEwalletAccounts.filter(acc => !DEFAULT_ACTIVE_ACCOUNTS.some(a => a.toLowerCase() === acc.toLowerCase()));
     }
   });
 
@@ -698,6 +802,30 @@ function App() {
         safeStorageSet('user_account_info_banner_dismissed', 'true');
       } catch {}
     }
+  };
+
+  // State Dismissal Kartu Insight Berbasis Periode & ID Insight (Living Lifecycle V1)
+  const [dismissedInsightMap, setDismissedInsightMap] = useState(() => {
+    try {
+      const saved = safeStorageGet('user_dismissed_insights_map');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleDismissInsight = (periodKey, insightId) => {
+    if (!periodKey || !insightId) return;
+    setDismissedInsightMap(prev => {
+      const updated = {
+        ...prev,
+        [periodKey]: insightId
+      };
+      try {
+        safeStorageSet('user_dismissed_insights_map', updated);
+      } catch {}
+      return updated;
+    });
   };
 
   // Smart Frequency & Recency Ranking untuk Kategori
@@ -874,6 +1002,7 @@ function App() {
   const [activeBudgetCategory, setActiveBudgetCategory] = useState(null);
   const [budgetModalInputValue, setBudgetModalInputValue] = useState('');
   const [budgetSearchQuery, setBudgetSearchQuery] = useState('');
+  const [isSearchingBudget, setIsSearchingBudget] = useState(false);
 
   const [accountsSubTab, setAccountsSubTab] = useState('expense'); // 'expense' | 'income'
   const [expandedAccountName, setExpandedAccountName] = useState(null);
@@ -919,11 +1048,7 @@ function App() {
   // Home Transaction Type Filter ('expense' | 'income')
   const [homeTxFilter, setHomeTxFilter] = useState('expense');
 
-  // Font, Font Size, and Language Settings
-  const [appFont, setAppFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
-  const [tempFont, setTempFont] = useState(() => safeStorageGet('user_app_font') || 'lora');
-  const [appFontSize, setAppFontSize] = useState(() => safeStorageGet('user_app_font_size') || 'default');
-  const [tempFontSize, setTempFontSize] = useState(() => safeStorageGet('user_app_font_size') || 'default');
+  // Language Settings
   const [appLanguage, setAppLanguage] = useState(() => {
     const savedLang = safeStorageGet('user_app_lang');
     const migratedVersion = safeStorageGet('user_lang_migrated_v19');
@@ -937,8 +1062,6 @@ function App() {
   });
   const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'jv');
   const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
-  const [isFontModalOpen, setIsFontModalOpen] = useState(false);
-  const [isFontSizeModalOpen, setIsFontSizeModalOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   
   // Currency State
@@ -980,14 +1103,69 @@ function App() {
     return formatMoney(amount, appCurrency, liveExchangeRates, includeSymbol);
   }, [appCurrency, liveExchangeRates]);
 
+  // Privacy / Hide Amounts in Home State (Menyimpan preferensi terakhir, default false/terbuka)
+  const [isHomeAmountsHidden, setIsHomeAmountsHidden] = useState(() => {
+    const val = safeStorageGet('cassiel_hide_home_amounts');
+    return val === 'true' || val === true;
+  });
+
+  // First-Time Privacy Eye Guide Hand Pointer State (Hanya untuk user pertama kali, tidak akan muncul lagi jika sudah dilihat/ditekan)
+  const [showPrivacyPointerHint, setShowPrivacyPointerHint] = useState(() => {
+    const seen = safeStorageGet('cassiel_has_seen_privacy_pointer');
+    return seen !== 'true' && seen !== true;
+  });
+
+  const handleToggleHideHomeAmounts = (e) => {
+    if (e) e.stopPropagation();
+    setIsHomeAmountsHidden(prev => {
+      const next = !prev;
+      safeStorageSet('cassiel_hide_home_amounts', next);
+      return next;
+    });
+
+    // Sekali user menekan tombol mata, hilangkan pointer selamanya
+    if (showPrivacyPointerHint) {
+      setShowPrivacyPointerHint(false);
+    }
+    safeStorageSet('cassiel_has_seen_privacy_pointer', true);
+  };
+
+  const fmtHomeMoney = useCallback((amount, includeSymbol = true) => {
+    if (isHomeAmountsHidden) {
+      return '••••••';
+    }
+    return fmtMoney(amount, includeSymbol);
+  }, [isHomeAmountsHidden, fmtMoney]);
+
   // Balance Card Detail Popup (Pop to front on tap)
   const [activeBalanceDetail, setActiveBalanceDetail] = useState(null);
+  const [activeTxDetail, setActiveTxDetail] = useState(null);
+
+  // Groups State
+  const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
   // Feedback for Developer State
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Saran Fitur');
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  // Help Center & Subpage States
+  const [isHelpCenterOpen, setIsHelpCenterOpen] = useState(false);
+  const [isFaqModalOpen, setIsFaqModalOpen] = useState(false);
+  const [isReportIssueModalOpen, setIsReportIssueModalOpen] = useState(false);
+  const [reportIssueCat, setReportIssueCat] = useState('');
+  const [isReportCatDropdownOpen, setIsReportCatDropdownOpen] = useState(false);
+  const [reportIssueText, setReportIssueText] = useState('');
+  const [reportIssueScreenshot, setReportIssueScreenshot] = useState(null);
+  const [isReportSubmittedSuccess, setIsReportSubmittedSuccess] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const reportFileInputRef = useRef(null);
+  const [isContactUsModalOpen, setIsContactUsModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [expandedFaqId, setExpandedFaqId] = useState(null);
 
   // Backup & Restore State
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
@@ -1014,7 +1192,7 @@ function App() {
     const updateTourCompleted = safeStorageGet('cassiel_guided_tour_v20_completed');
     return updateTourCompleted !== 'true' && updateTourCompleted !== true;
   });
-  const [tourMode, setTourMode] = useState('new_user_v20'); // 'new_user_v20' (4 steps) | 'full_guide' (8 steps)
+  const [tourMode, setTourMode] = useState('full_guide'); // 'full_guide' (5 essential steps)
 
   const handleCompleteTour = () => {
     try {
@@ -1032,60 +1210,9 @@ function App() {
   // Translation helper
   const t = useCallback((key, vars) => getTranslation(appLanguage, key, vars), [appLanguage]);
 
-  // Apply Font globally
-  useEffect(() => {
-    document.documentElement.setAttribute('data-font', appFont);
-    const rootEl = document.getElementById('root');
-    if (rootEl) {
-      rootEl.setAttribute('data-font', appFont);
-    }
-  }, [appFont]);
-
-  // Apply Font Size globally
-  useEffect(() => {
-    document.documentElement.setAttribute('data-font-size', appFontSize);
-    const rootEl = document.getElementById('root');
-    if (rootEl) {
-      rootEl.setAttribute('data-font-size', appFontSize);
-    }
-    
-    // Direct Global CSS Font Multiplier
-    const scaleMap = {
-      'default': '100%',
-      '13pt': '110%',
-      '14pt': '120%',
-      '18pt': '135%'
-    };
-    const targetScale = scaleMap[appFontSize] || '100%';
-    document.documentElement.style.fontSize = targetScale;
-    if (rootEl) {
-      rootEl.style.fontSize = targetScale;
-    }
-  }, [appFontSize]);
-
-  const handleOpenFontModal = () => {
-    setTempFont(appFont);
-    setIsFontModalOpen(true);
-  };
-
-  const handleOpenFontSizeModal = () => {
-    setTempFontSize(appFontSize);
-    setIsFontSizeModalOpen(true);
-  };
-
   const handleOpenLangModal = () => {
     setTempLanguage(appLanguage);
     setIsLangModalOpen(true);
-  };
-
-  const handleSelectFont = (fontId) => {
-    setAppFont(fontId);
-    safeStorageSet('user_app_font', fontId);
-  };
-
-  const handleSelectFontSize = (sizeId) => {
-    setAppFontSize(sizeId);
-    safeStorageSet('user_app_font_size', sizeId);
   };
 
   const handleSelectLanguage = (langCode) => {
@@ -1107,8 +1234,6 @@ function App() {
         accountInitialBalances,
         profileName,
         profileImage,
-        appFont,
-        appFontSize,
         appLanguage,
         appCurrency,
       });
@@ -1173,8 +1298,6 @@ function App() {
       setAccountInitialBalances,
       setProfileName,
       setProfileImage,
-      setAppFont,
-      setAppFontSize,
       setAppLanguage,
       setAppCurrency,
       setMainMonthlyBudget,
@@ -1229,6 +1352,118 @@ function App() {
     }
   };
 
+  const handleScreenshotChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showVoiceToast('Mohon pilih berkas gambar atau screenshot yang valid.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showVoiceToast('Ukuran berkas screenshot maksimal 10 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setReportIssueScreenshot(compressedDataUrl);
+        } catch (err) {
+          console.warn('Canvas compression fallback:', err);
+          setReportIssueScreenshot(event.target.result);
+        }
+      };
+      img.onerror = () => {
+        showVoiceToast('Gagal memuat berkas gambar screenshot.');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveScreenshot = () => {
+    setReportIssueScreenshot(null);
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = '';
+    }
+  };
+
+  const handleCloseReportIssue = () => {
+    setIsReportIssueModalOpen(false);
+    setIsReportSubmittedSuccess(false);
+    setReportIssueCat('');
+    setIsReportCatDropdownOpen(false);
+    setReportIssueText('');
+    setReportIssueScreenshot(null);
+    if (reportFileInputRef.current) {
+      reportFileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmitReportIssue = async () => {
+    if (!reportIssueCat) {
+      showVoiceToast('Silakan pilih jenis masalah terlebih dahulu.');
+      return;
+    }
+    if (!reportIssueText.trim()) {
+      showVoiceToast('Silakan jelaskan masalah yang terjadi.');
+      return;
+    }
+
+    setIsSubmittingReport(true);
+    try {
+      const deviceName = detectDeviceName();
+      const devId = getDeviceId();
+
+      await submitUserFeedback({
+        category: `[MASALAH] ${reportIssueCat}`,
+        message: reportIssueText.trim(),
+        userName: profileName || 'Pengguna Cassiel',
+        screenshot: reportIssueScreenshot,
+        appVersion: `v${CURRENT_VERSION_NAME} (Build ${CURRENT_VERSION_CODE})`,
+        deviceModel: deviceName,
+        metadata: {
+          issueType: reportIssueCat,
+          deviceId: devId,
+          platform: typeof navigator !== 'undefined' ? (navigator.platform || 'Unknown') : 'Unknown',
+          userAgent: typeof navigator !== 'undefined' ? (navigator.userAgent || 'Unknown') : 'Unknown'
+        }
+      });
+
+      setIsReportSubmittedSuccess(true);
+    } catch (err) {
+      console.error('Report issue submit error:', err);
+      showVoiceToast('Laporan belum berhasil dikirim. Periksa koneksi internet dan coba lagi.');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   const handleVoiceAnimationComplete = useCallback((txId) => {
     setVoiceAnimatingTxIds(prev => {
       if (!prev.has(txId)) return prev;
@@ -1259,39 +1494,9 @@ function App() {
   // Notification Bell State (Persisted)
   const [isNotifActive, setIsNotifActive] = useState(() => isNotificationEnabled());
 
-  // Auto-Tracker Notification Listener Toggle State (Persisted in localStorage & SharedPreferences)
-  const [isAutoTrackerActive, setIsAutoTrackerActive] = useState(() => {
-    return safeStorageGet('user_auto_tracker_active') === true;
-  });
-
-  // Sync Auto-Tracker setting with native layer on startup
-  useEffect(() => {
-    if (isAutoTrackerActive) {
-      NotificationTracker.setAutoTrackerEnabled({ enabled: true }).catch(() => {});
-    } else {
-      NotificationTracker.setAutoTrackerEnabled({ enabled: false }).catch(() => {});
-    }
-  }, [isAutoTrackerActive]);
-
-  // Hook Auto-Tracker incoming transactions to App state
-  useEffect(() => {
-    if (!isAutoTrackerActive) return;
-    initAutoExpenseTracker((newTransactions) => {
-      if (Array.isArray(newTransactions) && newTransactions.length > 0) {
-        setTransactions(prev => {
-          const updated = [...newTransactions, ...prev];
-          safeStorageSet('user_transactions', updated);
-          return updated;
-        });
-        showVoiceToast(`✨ ${newTransactions.length} transaksi otomatis dicatat!`);
-      }
-    });
-  }, [isAutoTrackerActive, showVoiceToast]);
-
-  // Schedule 5-second post-update notification for v1.0.24 features
-  useEffect(() => {
-    scheduleV24FeatureIntroNotification(profileName, appLanguage);
-  }, [profileName, appLanguage]);
+  // Notification Auto Tracker State (Persisted)
+  const [isAutoTrackerPref, setIsAutoTrackerPref] = useState(() => isAutoTrackerPreferenceEnabled());
+  const [hasNotifPermission, setHasNotifPermission] = useState(false);
 
   // Web Admin Dashboard URL detection (?admin or /admin)
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -1350,18 +1555,17 @@ function App() {
   // Schedule 1-day feature intro notification on Android native (08:00 & 18:00)
   React.useEffect(() => {
     scheduleFeatureIntroNotification(profileName, appLanguage);
-    scheduleNewCategoryNotification(profileName, appLanguage);
     scheduleV20FeatureIntroNotification(profileName, appLanguage);
     scheduleV23FeatureIntroNotification(profileName, appLanguage);
     scheduleV28AccountFeatureIntroNotification(profileName, appLanguage);
   }, [profileName, appLanguage]);
 
-  // Schedule / sync notifications when profile name, transactions, expenseCategories, language, or main budget update
+  // Schedule / sync notifications when profile name, transactions, expenseCategories, language, main budget, or monthly budgets map update
   React.useEffect(() => {
     if (isNotifActive) {
-      schedulePersonalizedNotifications(profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget);
+      schedulePersonalizedNotifications(profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget, monthlyBudgetsMap);
     }
-  }, [isNotifActive, profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget]);
+  }, [isNotifActive, profileName, transactions, expenseCategories, appLanguage, mainMonthlyBudget, monthlyBudgetsMap]);
 
   React.useEffect(() => {
     let active = true;
@@ -1392,6 +1596,29 @@ function App() {
     // 1. Cek langsung saat mount aplikasi
     setTimeout(() => {
       if (active) checkUpdate();
+
+      // Deteksi jika aplikasi dibuka melalui Link Undangan Grup (?g= atau ?joinGroup=)
+      try {
+        if (typeof window !== 'undefined' && window.location && window.location.search) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const inviteG = urlParams.get('g') || urlParams.get('joinGroup');
+          if (inviteG) {
+            import('./utils/groupStorage').then(({ joinGroupByInviteCode }) => {
+              const currentUName = safeStorageGet('user_profile_name', 'Pengguna Cassiel');
+              joinGroupByInviteCode({ inviteCode: inviteG, currentUserName: currentUName })
+                .then(res => {
+                  if (res && res.group) {
+                    showVoiceToast(`🎉 Berhasil bergabung ke grup "${res.group.name}"!`);
+                    setIsGroupsModalOpen(true);
+                  }
+                })
+                .catch(e => {
+                  console.warn('Auto-join from URL failed:', e);
+                });
+            }).catch(() => {});
+          }
+        }
+      } catch {}
     }, 1500); // Beri sedikit jeda agar load UI/splash screen lancar
 
     // 2. Set interval untuk melakukan cek update setiap 1 jam sekali (3600000 ms)
@@ -1449,12 +1676,24 @@ function App() {
   }, [expenseCategories]);
 
   React.useEffect(() => {
+    safeStorageSet('user_warehouse_expense_categories', warehouseExpenseCategories);
+  }, [warehouseExpenseCategories]);
+
+  React.useEffect(() => {
     safeStorageSet('user_income_categories', incomeCategories);
   }, [incomeCategories]);
 
   React.useEffect(() => {
+    safeStorageSet('user_warehouse_income_categories', warehouseIncomeCategories);
+  }, [warehouseIncomeCategories]);
+
+  React.useEffect(() => {
     safeStorageSet('user_accounts_list', accountsList);
   }, [accountsList]);
+
+  React.useEffect(() => {
+    safeStorageSet('user_warehouse_accounts', warehouseAccountsList);
+  }, [warehouseAccountsList]);
 
   React.useEffect(() => {
     safeStorageSet('user_account_initial_balances', accountInitialBalances);
@@ -1463,6 +1702,7 @@ function App() {
   // Note Suggestions & Modal state
   const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isQuickTextModalOpen, setIsQuickTextModalOpen] = useState(false);
 
   const [tempName, setTempName] = useState(profileName);
   const [tempProfileImage, setTempProfileImage] = useState(profileImage);
@@ -1629,7 +1869,17 @@ function App() {
 
   // Form State
   const [transType, setTransType] = useState('Expense'); // 'Income' | 'Expense' | 'Transfer'
-  const [amountVal, setAmountVal] = useState('');
+  const [expenseAmountVal, setExpenseAmountVal] = useState('');
+  const [incomeAmountVal, setIncomeAmountVal] = useState('');
+  const amountVal = transType === 'Expense' ? expenseAmountVal : incomeAmountVal;
+
+  const setAmountVal = (val) => {
+    if (transType === 'Expense') {
+      setExpenseAmountVal(val);
+    } else {
+      setIncomeAmountVal(val);
+    }
+  };
 
   // Format amount input with Indonesian thousand separators (e.g. 15000 -> 15.000)
   const formatAmountInput = (val) => {
@@ -1641,7 +1891,12 @@ function App() {
 
   const handleAmountChange = (e) => {
     const rawVal = e.target.value;
-    setAmountVal(formatAmountInput(rawVal));
+    const formatted = formatAmountInput(rawVal);
+    if (transType === 'Expense') {
+      setExpenseAmountVal(formatted);
+    } else {
+      setIncomeAmountVal(formatted);
+    }
   };
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_EXPENSE_CATEGORIES[0]);
   const [isCustomCat, setIsCustomCat] = useState(false);
@@ -1681,11 +1936,15 @@ function App() {
     return currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth();
   })();
 
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
+
   // Open Full-Page Add Form (Plus button)
   const handleOpenAddModal = () => {
+    setEditingTransactionId(null);
     setTransType('Expense');
-    setAmountVal('');
-    setSelectedCategory(expenseCategories[0]);
+    setExpenseAmountVal('');
+    setIncomeAmountVal('');
+    setSelectedCategory(expenseCategories[0] || DEFAULT_EXPENSE_CATEGORIES[0]);
     setIsCustomCat(false);
     setCustomCatInput('');
     setAccount('BRImo');
@@ -1699,13 +1958,47 @@ function App() {
     }, 100);
   };
 
-  const handleOpenAndaiModal = () => {
-    setTransType('Andai');
-    setAmountVal('');
-    setNote('');
+  // Open Full-Page Form in Edit Mode for a Transaction
+  const handleEditTransaction = (tx) => {
+    if (!tx) return;
+    const isInc = tx.type === 'income';
+    const typeLabel = isInc ? 'Income' : 'Expense';
+    setEditingTransactionId(tx.id);
+    setTransType(typeLabel);
+
+    const fmtAmt = Number(tx.amount || 0).toLocaleString('id-ID');
+    if (isInc) {
+      setIncomeAmountVal(fmtAmt);
+      setExpenseAmountVal('');
+    } else {
+      setExpenseAmountVal(fmtAmt);
+      setIncomeAmountVal('');
+    }
+
+    const activeCatList = isInc ? incomeCategories : expenseCategories;
+    const allCatList = isInc ? DEFAULT_INCOME_CATEGORIES : DEFAULT_EXPENSE_CATEGORIES;
+    const norm = (tx.category || '').toLowerCase().trim();
+    let found = activeCatList.find(c => (c.id && c.id === tx.categoryId) || (c.name || '').toLowerCase().trim() === norm) ||
+                allCatList.find(c => (c.id && c.id === tx.categoryId) || (c.name || '').toLowerCase().trim() === norm);
+
+    if (found) {
+      setSelectedCategory(found);
+      setIsCustomCat(false);
+      setCustomCatInput('');
+    } else {
+      setSelectedCategory({ id: 'custom', name: tx.category || (isInc ? 'Gaji' : 'Food'), iconClass: tx.iconClass || 'food-icon' });
+      setIsCustomCat(true);
+      setCustomCatInput(tx.category || '');
+    }
+
+    setAccount(tx.account || 'BRImo');
+    setNote(tx.title || '');
+    setSelectedDateVal(tx.date || getTodayISO());
     setActivePanel('amount');
+    setIsNoteSuggestionsOpen(false);
     setIsAddModalOpen(true);
   };
+
 
   // Auto Advance from Amount to Category
   const handleAdvanceFromAmount = () => {
@@ -1718,6 +2011,8 @@ function App() {
   backHandlerStateRef.current = {
     activeBalanceDetail,
     setActiveBalanceDetail,
+    activeTxDetail,
+    setActiveTxDetail,
     selectedInsightCategory,
     setSelectedInsightCategory,
     isCropModalOpen,
@@ -1730,20 +2025,32 @@ function App() {
     setIsBudgetMonthPickerOpen,
     isEditingMainBudget,
     setIsEditingMainBudget,
+    isSearchingBudget,
+    setIsSearchingBudget,
     safetyWarning,
     setSafetyWarning,
     updateInfo,
     setUpdateInfo,
-    isFontModalOpen,
-    setIsFontModalOpen,
-    isFontSizeModalOpen,
-    setIsFontSizeModalOpen,
     isLangModalOpen,
     setIsLangModalOpen,
     isCurrencyModalOpen,
     setIsCurrencyModalOpen,
     isFeedbackModalOpen,
     setIsFeedbackModalOpen,
+    isHelpCenterOpen,
+    setIsHelpCenterOpen,
+    isFaqModalOpen,
+    setIsFaqModalOpen,
+    isReportIssueModalOpen,
+    setIsReportIssueModalOpen,
+    isContactUsModalOpen,
+    setIsContactUsModalOpen,
+    isAboutModalOpen,
+    setIsAboutModalOpen,
+    isPrivacyModalOpen,
+    setIsPrivacyModalOpen,
+    isTermsModalOpen,
+    setIsTermsModalOpen,
     isBackupModalOpen,
     setIsBackupModalOpen,
     backupRestoreConfirm,
@@ -1758,6 +2065,14 @@ function App() {
     setIsAddAccountModalOpen,
     isPinSetupModalOpen,
     setIsPinSetupModalOpen,
+    isCategoryWarehouseOpen,
+    setIsCategoryWarehouseOpen,
+    isCategoryDeleteMode,
+    setIsCategoryDeleteMode,
+    isAccountWarehouseOpen,
+    setIsAccountWarehouseOpen,
+    isAccountDeleteMode,
+    setIsAccountDeleteMode,
     isAddModalOpen,
     setIsAddModalOpen,
     isProfileModalOpen,
@@ -1776,9 +2091,13 @@ function App() {
   const handleAppBack = () => {
     const s = backHandlerStateRef.current;
 
-    // -1. Pop-up Balance Card Detail
+    // -1. Pop-up Balance Card Detail & Transaction Pop-up Detail
     if (s.activeBalanceDetail) {
       s.setActiveBalanceDetail(null);
+      return;
+    }
+    if (s.activeTxDetail) {
+      s.setActiveTxDetail(null);
       return;
     }
 
@@ -1804,7 +2123,35 @@ function App() {
       return;
     }
 
-    // 0.1 Sub-Modals di Profile / Account
+    // 0.1 Sub-Modals di Profile / Account / Help Center
+    if (s.isTermsModalOpen) {
+      s.setIsTermsModalOpen(false);
+      return;
+    }
+    if (s.isPrivacyModalOpen) {
+      s.setIsPrivacyModalOpen(false);
+      return;
+    }
+    if (s.isAboutModalOpen) {
+      s.setIsAboutModalOpen(false);
+      return;
+    }
+    if (s.isContactUsModalOpen) {
+      s.setIsContactUsModalOpen(false);
+      return;
+    }
+    if (s.isReportIssueModalOpen) {
+      s.setIsReportIssueModalOpen(false);
+      return;
+    }
+    if (s.isFaqModalOpen) {
+      s.setIsFaqModalOpen(false);
+      return;
+    }
+    if (s.isHelpCenterOpen) {
+      s.setIsHelpCenterOpen(false);
+      return;
+    }
     if (s.adjustingAccount) {
       s.setAdjustingAccount(null);
       return;
@@ -1819,14 +2166,6 @@ function App() {
     }
     if (s.isCurrencyModalOpen) {
       s.setIsCurrencyModalOpen(false);
-      return;
-    }
-    if (s.isFontModalOpen) {
-      s.setIsFontModalOpen(false);
-      return;
-    }
-    if (s.isFontSizeModalOpen) {
-      s.setIsFontSizeModalOpen(false);
       return;
     }
     if (s.isLangModalOpen) {
@@ -1866,6 +2205,12 @@ function App() {
       return;
     }
 
+    // 2d. Mode Pencarian Budget (tutup keyboard & reset state searching)
+    if (s.isSearchingBudget) {
+      s.setIsSearchingBudget(false);
+      return;
+    }
+
     // 3. Layar Penuh Budget Cap
     if (s.isBudgetCapModalOpen) {
       s.setIsBudgetCapModalOpen(false);
@@ -1886,7 +2231,24 @@ function App() {
 
     // 6. Form Layar Tambah Transaksi (Add Modal)
     if (s.isAddModalOpen) {
+      if (s.isCategoryWarehouseOpen) {
+        s.setIsCategoryWarehouseOpen(false);
+        return;
+      }
+      if (s.isAccountWarehouseOpen) {
+        s.setIsAccountWarehouseOpen(false);
+        return;
+      }
+      if (s.isCategoryDeleteMode) {
+        s.setIsCategoryDeleteMode(false);
+        return;
+      }
+      if (s.isAccountDeleteMode) {
+        s.setIsAccountDeleteMode(false);
+        return;
+      }
       s.setIsAddModalOpen(false);
+      setEditingTransactionId(null);
       return;
     }
 
@@ -2003,6 +2365,27 @@ function App() {
       return;
     }
 
+    // Cek apakah kategori ada di gudang
+    if (transType === 'Expense') {
+      const inWarehouse = warehouseExpenseCategories.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+      if (inWarehouse) {
+        handleRestoreCategoryFromWarehouse(inWarehouse);
+        setSelectedCategory(inWarehouse);
+        setCustomCatInput('');
+        setIsCustomCat(false);
+        return;
+      }
+    } else {
+      const inWarehouse = warehouseIncomeCategories.find(c => c.name.toLowerCase() === trimmed.toLowerCase());
+      if (inWarehouse) {
+        handleRestoreCategoryFromWarehouse(inWarehouse);
+        setSelectedCategory(inWarehouse);
+        setCustomCatInput('');
+        setIsCustomCat(false);
+        return;
+      }
+    }
+
     const newCat = {
       id: `custom-${Date.now()}`,
       name: trimmed,
@@ -2029,6 +2412,15 @@ function App() {
       return;
     }
 
+    const inWarehouse = warehouseAccountsList.find(a => a.toLowerCase() === trimmed.toLowerCase());
+    if (inWarehouse) {
+      handleRestoreAccountFromWarehouse(inWarehouse);
+      setAccount(inWarehouse);
+      setCustomAccountInput('');
+      setIsCustomAccount(false);
+      return;
+    }
+
     setAccountsList(prev => [...prev, trimmed]);
     setAccount(trimmed);
     setCustomAccountInput('');
@@ -2050,10 +2442,10 @@ function App() {
       return prev;
     });
 
-    // 2. Pulihkan dari deletedAccountsList jika pernah dihapus
-    setDeletedAccountsList(prev => {
+    // 2. Hapus dari gudang akun jika ada
+    setWarehouseAccountsList(prev => {
       const updated = prev.filter(a => (a || '').toLowerCase().trim() !== trimmed.toLowerCase());
-      try { safeStorageSet('user_deleted_accounts', updated); } catch {}
+      try { safeStorageSet('user_warehouse_accounts', updated); } catch {}
       return updated;
     });
 
@@ -2066,47 +2458,105 @@ function App() {
     setAccountToSetBalance(trimmed);
   };
 
-  // Handle Delete Account (Removes from list & stores in persistent blacklist)
-  const handleDeleteAccount = (accToDelete, e) => {
+  // Handle Move Category to Warehouse (Simpan Kategori ke Gudang)
+  const handleMoveCategoryToWarehouse = (catToMove, e) => {
     if (e) e.stopPropagation();
     playPopSound('bubble_pop_2.wav');
 
-    setAccountsList(prev => prev.filter(a => a !== accToDelete));
-    setDeletedAccountsList(prev => {
-      const updated = [...prev.filter(a => a !== accToDelete), accToDelete];
-      try {
-        safeStorageSet('user_deleted_accounts', updated);
-      } catch {}
-      return updated;
-    });
-    setDeletedAccountsHistory(prev => [...prev, accToDelete]);
-
-    if (account === accToDelete) {
-      const remaining = accountsList.filter(a => a !== accToDelete);
-      setAccount(remaining.length > 0 ? remaining[0] : 'Cash');
+    if (transType === 'Expense') {
+      setExpenseCategories(prev => {
+        const updated = prev.filter(c => c.id !== catToMove.id);
+        if (selectedCategory && selectedCategory.id === catToMove.id) {
+          setSelectedCategory(updated.length > 0 ? updated[0] : null);
+        }
+        return updated;
+      });
+      setWarehouseExpenseCategories(prev => {
+        if (!prev.some(c => c.id === catToMove.id)) {
+          return [...prev, catToMove];
+        }
+        return prev;
+      });
+    } else {
+      setIncomeCategories(prev => {
+        const updated = prev.filter(c => c.id !== catToMove.id);
+        if (selectedCategory && selectedCategory.id === catToMove.id) {
+          setSelectedCategory(updated.length > 0 ? updated[0] : null);
+        }
+        return updated;
+      });
+      setWarehouseIncomeCategories(prev => {
+        if (!prev.some(c => c.id === catToMove.id)) {
+          return [...prev, catToMove];
+        }
+        return prev;
+      });
     }
   };
 
-  // Handle Undo Delete Account (Restores last deleted account)
-  const handleUndoDeleteAccount = () => {
-    if (deletedAccountsHistory.length === 0) return;
+  // Handle Restore Category from Warehouse (Keluarkan Kategori dari Gudang ke Tampilan Utama)
+  const handleRestoreCategoryFromWarehouse = (catToRestore, e) => {
+    if (e) e.stopPropagation();
+    playPopSound('bubble_pop_2.wav');
 
-    const restoredAcc = deletedAccountsHistory[deletedAccountsHistory.length - 1];
-    setDeletedAccountsHistory(prev => prev.slice(0, prev.length - 1));
-    setDeletedAccountsList(prev => {
-      const updated = prev.filter(a => a !== restoredAcc);
-      try {
-        safeStorageSet('user_deleted_accounts', updated);
-      } catch {}
+    if (transType === 'Expense') {
+      setWarehouseExpenseCategories(prev => prev.filter(c => c.id !== catToRestore.id));
+      setExpenseCategories(prev => {
+        if (!prev.some(c => c.id === catToRestore.id)) {
+          return [...prev, catToRestore];
+        }
+        return prev;
+      });
+    } else {
+      setWarehouseIncomeCategories(prev => prev.filter(c => c.id !== catToRestore.id));
+      setIncomeCategories(prev => {
+        if (!prev.some(c => c.id === catToRestore.id)) {
+          return [...prev, catToRestore];
+        }
+        return prev;
+      });
+    }
+    if (!selectedCategory) {
+      setSelectedCategory(catToRestore);
+    }
+  };
+
+  // Handle Move Account to Warehouse (Simpan Akun ke Gudang)
+  const handleMoveAccountToWarehouse = (accToDelete, e) => {
+    if (e) e.stopPropagation();
+    playPopSound('bubble_pop_2.wav');
+
+    setAccountsList(prev => {
+      const updated = prev.filter(a => a !== accToDelete);
+      if (account === accToDelete) {
+        setAccount(updated.length > 0 ? updated[0] : 'Cash');
+      }
       return updated;
     });
-    setAccountsList(prev => {
-      if (!prev.includes(restoredAcc)) {
-        return [...prev, restoredAcc];
+    setWarehouseAccountsList(prev => {
+      if (!prev.includes(accToDelete)) {
+        return [...prev, accToDelete];
       }
       return prev;
     });
   };
+
+  // Handle Restore Account from Warehouse (Keluarkan Akun dari Gudang ke Tampilan Utama)
+  const handleRestoreAccountFromWarehouse = (accToRestore, e) => {
+    if (e) e.stopPropagation();
+    playPopSound('bubble_pop_2.wav');
+
+    setWarehouseAccountsList(prev => prev.filter(a => a !== accToRestore));
+    setAccountsList(prev => {
+      if (!prev.includes(accToRestore)) {
+        return [...prev, accToRestore];
+      }
+      return prev;
+    });
+  };
+
+  // Alias for backward compatibility
+  const handleDeleteAccount = handleMoveAccountToWarehouse;
 
   // Handle Penyesuaian Akun Generik Lama (misal: 'Bank' / 'E-Wallet' -> Bank Pilihan User seperti 'BRImo', 'BCA', dll)
   const handleMigrateLegacyAccount = (oldAccName, newAccName) => {
@@ -2186,6 +2636,22 @@ function App() {
     }, 80);
   };
 
+  // Seluruh kategori pengeluaran yang tersedia (aktif + gudang + default + custom) untuk Budget
+  const allBudgetCategories = useMemo(() => {
+    const combined = [...(expenseCategories || []), ...(warehouseExpenseCategories || []), ...DEFAULT_EXPENSE_CATEGORIES];
+    const seen = new Set();
+    const result = [];
+    combined.forEach(cat => {
+      if (!cat) return;
+      const key = (cat.id || cat.name || '').toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        result.push(cat);
+      }
+    });
+    return result;
+  }, [expenseCategories, warehouseExpenseCategories]);
+
   const getFilteredBudgetCategories = () => {
     const searchKeywords = {
       food: ['makan', 'makanan', 'kuliner', 'restoran', 'cafe', 'sarapan', 'malam', 'siang', 'jajan'],
@@ -2213,14 +2679,17 @@ function App() {
       jajanAdek: ['uang jajan', 'keluarga', 'anak', 'adek'],
       party: ['pesta', 'nongkrong', 'klub', 'party'],
       buah: ['buah', 'nanas', 'apel', 'jeruk', 'pisang', 'mangga', 'semangka', 'alpukat', 'durian', 'melon', 'anggur', 'pepaya', 'toko buah', 'buah buahan'],
-      minuman: ['minuman', 'es buah', 'es campur', 'es teler', 'coca cola', 'sprite', 'fanta', 'jus', 'susu', 'teh', 'boba', 'cendol', 'dawet', 'minuman segar', 'minuman dingin']
+      minuman: ['minuman', 'es buah', 'es campur', 'es teler', 'coca cola', 'sprite', 'fanta', 'jus', 'susu', 'teh', 'boba', 'cendol', 'dawet', 'minuman segar', 'minuman dingin'],
+      wifi: ['wifi', 'internet', 'indihome', 'biznet', 'myrepublic', 'firstmedia'],
+      biayaAdmin: ['admin', 'transfer', 'biaya admin', 'fee', 'pajak'],
+      accessories: ['aksesori', 'accessories', 'jam', 'kacamata', 'topi', 'gelang', 'kalung']
     };
 
     const q = (budgetSearchQuery || '').toLowerCase().trim();
     const currentMonthData = monthlyBudgetsMap[activeMonthKey] || { main: null, categories: {} };
     const monthCatLimits = currentMonthData.categories || {};
 
-    let list = (expenseCategories || []).map(cat => ({
+    let list = (allBudgetCategories || []).map(cat => ({
       ...cat,
       monthlyLimit: typeof monthCatLimits[cat.id] === 'number' && monthCatLimits[cat.id] > 0 
         ? monthCatLimits[cat.id] 
@@ -2258,29 +2727,27 @@ function App() {
         .map(item => item.cat);
     } else {
       // Dynamic Smart Ranking:
-      // 1. Kategori yang sering dipakai transaksi TAPI belum diatur budget-nya (paling atas, urut freq)
-      // 2. Kategori yang sudah ada transaksi dan sudah diatur budget-nya (urut freq)
-      // 3. Kategori yang belum pernah dipakai transaksi
+      // 1. Kategori yang SUDAH diatur budget-nya (hasLimit) paling atas (diurutkan berdasarkan freq/transaksi atau nama)
+      // 2. Kategori yang BELUM diatur budget-nya tapi pernah ada transaksi
+      // 3. Kategori yang BELUM diatur dan belum pernah ada transaksi
       list.sort((a, b) => {
         const countA = catFreqMap[a.name] || 0;
         const countB = catFreqMap[b.name] || 0;
-        const isUnsetA = !a.monthlyLimit || a.monthlyLimit <= 0;
-        const isUnsetB = !b.monthlyLimit || b.monthlyLimit <= 0;
+        const hasLimitA = typeof a.monthlyLimit === 'number' && a.monthlyLimit > 0;
+        const hasLimitB = typeof b.monthlyLimit === 'number' && b.monthlyLimit > 0;
 
-        // Grup 1: Belum diatur & pernah ada transaksi
-        const isGroup1A = isUnsetA && countA > 0;
-        const isGroup1B = isUnsetB && countB > 0;
-
-        if (isGroup1A && !isGroup1B) return -1;
-        if (!isGroup1A && isGroup1B) return 1;
-        if (isGroup1A && isGroup1B) {
+        // Prioritas 1: Kategori yang SUDAH diatur budget-nya paling atas
+        if (hasLimitA && !hasLimitB) return -1;
+        if (!hasLimitA && hasLimitB) return 1;
+        if (hasLimitA && hasLimitB) {
+          // Antara yang sama-sama sudah diatur, dahulukan yang ada transaksi terbanyak
           if (countB !== countA) return countB - countA;
           return (a.name || '').localeCompare(b.name || '');
         }
 
-        // Grup 2: Sudah diatur & pernah ada transaksi
-        const isGroup2A = !isUnsetA && countA > 0;
-        const isGroup2B = !isUnsetB && countB > 0;
+        // Prioritas 2: Belum diatur TAPI ada riwayat transaksi
+        const isGroup2A = !hasLimitA && countA > 0;
+        const isGroup2B = !hasLimitB && countB > 0;
 
         if (isGroup2A && !isGroup2B) return -1;
         if (!isGroup2A && isGroup2B) return 1;
@@ -2289,9 +2756,7 @@ function App() {
           return (a.name || '').localeCompare(b.name || '');
         }
 
-        // Grup 3: Kategori yang belum pernah ada transaksi sama sekali
-        if (isUnsetA && !isUnsetB) return -1;
-        if (!isUnsetA && isUnsetB) return 1;
+        // Prioritas 3: Belum diatur & belum ada transaksi (urut abjad)
         return (a.name || '').localeCompare(b.name || '');
       });
     }
@@ -2504,6 +2969,83 @@ function App() {
     }
   };
 
+  // Process Queued Notifications from Android NotificationListenerService
+  const processAutoTrackerQueue = useCallback(async () => {
+    if (!isAutoTrackerPreferenceEnabled()) return;
+    try {
+      const perm = await checkNotificationAccessPermission();
+      setHasNotifPermission(perm);
+      if (!perm) return;
+
+      await drainAndProcessQueuedNotifications({
+        accountsList,
+        warehouseAccountsList,
+        expenseCategories,
+        incomeCategories,
+        transactions,
+        onNewTransactions: (newTxs) => {
+          if (!newTxs || newTxs.length === 0) return;
+          playPositiveChime();
+          setTransactions(prev => [...newTxs, ...prev]);
+          for (const tx of newTxs) {
+            if (tx.type === 'expense') {
+              checkAndTriggerBudgetNotifications(tx, transactions, expenseCategories);
+            }
+            showVoiceToast(`⚡ Transaksi ${tx.account || 'Akun'} Berhasil Dicatat: Rp ${Number(tx.amount || 0).toLocaleString('id-ID')}`);
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[App] Error in processAutoTrackerQueue:', e);
+    }
+  }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions]);
+
+  // Sync Notification Access permission when Profile modal opens
+  React.useEffect(() => {
+    if (isProfileModalOpen) {
+      checkNotificationAccessPermission().then(setHasNotifPermission);
+    }
+  }, [isProfileModalOpen]);
+
+  // Auto-drain notification queue on mount and when app resumes from background
+  React.useEffect(() => {
+    // Proactively sync preferences and check permission on mount
+    checkNotificationAccessPermission().then(perm => {
+      setHasNotifPermission(perm);
+      if (perm && isAutoTrackerPreferenceEnabled()) {
+        NotificationTrackerNative.setTrackingEnabled({ enabled: true }).catch(() => {});
+      }
+      processAutoTrackerQueue();
+    }).catch(() => {
+      processAutoTrackerQueue();
+    });
+
+    let notifResumeListener;
+    import('@capacitor/app')
+      .then(({ App: CapApp }) => {
+        CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            processAutoTrackerQueue();
+          }
+        }).then(listener => {
+          notifResumeListener = listener;
+        });
+      })
+      .catch(() => {
+        const handleVisibility = () => {
+          if (document.visibilityState === 'visible') {
+            processAutoTrackerQueue();
+          }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        notifResumeListener = { remove: () => document.removeEventListener('visibilitychange', handleVisibility) };
+      });
+
+    return () => {
+      if (notifResumeListener) notifResumeListener.remove();
+    };
+  }, [processAutoTrackerQueue]);
+
   // Save / Delete Voice Transaction
   const handleSaveVoiceTransaction = (result) => {
     if (!result) return;
@@ -2664,10 +3206,7 @@ function App() {
     };
 
     if (result.type === 'Expense') {
-      const isConsumptive = isConsumptiveHybrid(newTx, transactions);
-      if (!isConsumptive) {
-        playPositiveChime();
-      }
+      playPositiveChime();
       checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
     }
 
@@ -2718,16 +3257,36 @@ function App() {
       inputMethod: 'manual'
     };
 
-    if (transType === 'Expense') {
-      const isConsumptive = isConsumptiveHybrid(newTx, transactions);
-      if (!isConsumptive) {
+    if (editingTransactionId) {
+      setTransactions(prev => prev.map(t => {
+        if (t.id === editingTransactionId) {
+          return {
+            ...t,
+            title: finalTitle,
+            category: catName,
+            categoryId: selectedCategory.id || null,
+            account: account,
+            amount: numericAmount,
+            type: transType.toLowerCase(),
+            iconClass: catIconClass,
+            date: selectedDateVal || t.date || getTodayISO(),
+            autoTracked: false,
+            inputMethod: 'manual'
+          };
+        }
+        return t;
+      }));
+      setEditingTransactionId(null);
+    } else {
+      if (transType === 'Expense') {
         playPositiveChime();
+        checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
       }
-      checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
+      setTransactions(prev => [newTx, ...prev]);
     }
 
-    setTransactions(prev => [newTx, ...prev]);
-    setAmountVal('');
+    setExpenseAmountVal('');
+    setIncomeAmountVal('');
     setNote('');
     setActivePanel('amount');
     setIsAddModalOpen(false);
@@ -2758,6 +3317,60 @@ function App() {
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [transactions, currentDate]);
 
+  // Target Expense Amount based on active quick filter (with Cash Counter animation)
+  const targetExpenseAmount = useMemo(() => {
+    if (!isCurrentMonth) return 0;
+    if (expenseDateFilter === 'month') {
+      return totalExpenses;
+    }
+
+    const now = new Date();
+    const toDateStr = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    if (expenseDateFilter === 'today') {
+      const todayStr = toDateStr(now);
+      return transactions
+        .filter(t => t.type === 'expense' && t.date === todayStr)
+        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    }
+
+    if (expenseDateFilter === 'yesterday') {
+      const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const yStr = toDateStr(yDate);
+      return transactions
+        .filter(t => t.type === 'expense' && t.date === yStr)
+        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    }
+
+    let daysBack = 2; // 3 days: today (0), yesterday (1), 2 days ago (2)
+    if (expenseDateFilter === '3days') daysBack = 2;
+    else if (expenseDateFilter === '1week') daysBack = 6; // 7 days: today + past 6 days
+    else if (expenseDateFilter === '2weeks') daysBack = 13; // 14 days: today + past 13 days
+
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    endDate.setHours(23, 59, 59, 999);
+
+    return transactions
+      .filter(t => {
+        if (t.type !== 'expense' || !t.date) return false;
+        const parts = t.date.split('-');
+        if (parts.length < 3) return false;
+        const txDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return txDate >= startDate && txDate <= endDate;
+      })
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions, isCurrentMonth, totalExpenses, expenseDateFilter]);
+
+  const animatedExpenseAmount = useCashCounter(targetExpenseAmount, 1200);
+
   // Monthly Expenses per Category for current navigated month
   const currentMonthExpensesByCategory = useMemo(() => {
     const targetYear = currentDate.getFullYear();
@@ -2769,7 +3382,7 @@ function App() {
       return Number(y) === targetYear && Number(m) - 1 === targetMonth;
     });
 
-    (expenseCategories || []).forEach(cat => {
+    (allBudgetCategories || []).forEach(cat => {
       const catTotal = monthExpenses
         .filter(t => (cat.id && t.categoryId === cat.id) || (cat.name && t.category === cat.name))
         .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -2779,7 +3392,7 @@ function App() {
     });
 
     return map;
-  }, [transactions, currentDate, expenseCategories]);
+  }, [transactions, currentDate, allBudgetCategories]);
 
   // Filter transactions according to period (monthly/weekly/yearly)
   const filteredTransactions = transactions.filter(t => {
@@ -2797,6 +3410,19 @@ function App() {
     // Default 'monthly': match selected month and year
     return tYear === currentDate.getFullYear() && tMonth === currentDate.getMonth();
   });
+
+  // Centralized Financial Insights Data (V1 Insight Engine)
+  const financialInsightsData = useMemo(() => {
+    return generateFinancialInsights({
+      transactions,
+      monthlyBudgetsMap,
+      currentDate,
+      allBudgetCategories,
+      appLanguage,
+      fmtMoney,
+      getCategoryName
+    });
+  }, [transactions, monthlyBudgetsMap, currentDate, allBudgetCategories, appLanguage, fmtMoney, getCategoryName]);
 
   // Calculate Category Totals & Percentages for Stats
   const selectedTypeTxs = filteredTransactions.filter(t => t.type === statsType);
@@ -3025,33 +3651,122 @@ function App() {
               </button>
             </div>
 
-            <div 
-              className="profile-info" 
-              onClick={handleOpenProfileModal} 
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleOpenProfileModal();
-                }
-              }}
-              style={{ cursor: 'pointer' }} 
-              title="Klik untuk atur profil"
-              aria-label="Profil Pengguna"
-            >
-              <div className="greeting">
-                <span className="greeting-text">
-                  {t('greeting')}
-                </span>
-                <span className="profile-name">{profileName || 'No Name'}</span>
-              </div>
-              <div className="profile-avatar">
-                {profileImage ? (
-                  <img src={profileImage} alt={profileName} className="profile-avatar-img" />
-                ) : (
-                  (profileName || 'N').trim().charAt(0).toUpperCase()
+            <div className="top-bar-right">
+              {/* Privacy Eye Toggle Button & ML-style Pointer Guide */}
+              <div className="privacy-eye-wrapper">
+                <button
+                  type="button"
+                  className={`privacy-toggle-btn ${isHomeAmountsHidden ? 'hidden-active' : ''}`}
+                  onClick={handleToggleHideHomeAmounts}
+                  title={isHomeAmountsHidden ? 'Tampilkan Nominal' : 'Sembunyikan Nominal'}
+                  aria-label={isHomeAmountsHidden ? 'Tampilkan Nominal' : 'Sembunyikan Nominal'}
+                >
+                  {isHomeAmountsHidden ? (
+                    /* Eye Closed / Slashed SVG */
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    /* Eye Open SVG */
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* First-Time User Pointer Guide (Premium Hand Tap Gesture - Zero Text) */}
+                {showPrivacyPointerHint && (
+                  <div className="privacy-pointer-guide-container" onClick={handleToggleHideHomeAmounts}>
+                    {/* Pulsing Target Ring */}
+                    <div className="privacy-target-pulse" />
+
+                    {/* Premium Flaticon/ML Style Hand Pointer (Clean Forehand 3D Gradient Glove) */}
+                    <div className="privacy-guide-hand">
+                      <svg width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          {/* Rich Drop Shadow */}
+                          <filter id="flaticonHandShadow" x="-20%" y="-15%" width="140%" height="145%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#1E293B" floodOpacity="0.28" />
+                          </filter>
+                          {/* Smooth Glove Gradient */}
+                          <linearGradient id="handGloveGrad" x1="16" y1="6" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#FFFFFF" />
+                            <stop offset="55%" stopColor="#F8FAFC" />
+                            <stop offset="100%" stopColor="#E2E8F0" />
+                          </linearGradient>
+                          {/* Fingertip Tap Accent Glow */}
+                          <radialGradient id="tapFingerGlow" cx="25" cy="11" r="9" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.35" />
+                            <stop offset="100%" stopColor="#60A5FA" stopOpacity="0" />
+                          </radialGradient>
+                          {/* Blue Accent Ring on Wrist */}
+                          <linearGradient id="cuffGrad" x1="20" y1="52" x2="44" y2="52" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#2D5284" />
+                            <stop offset="100%" stopColor="#1E3A5F" />
+                          </linearGradient>
+                        </defs>
+                        <g filter="url(#flaticonHandShadow)">
+                          {/* Main Smooth Hand Silhouette */}
+                          <path 
+                            d="M25 6 C22.2 6 20 8.2 20 11 L20 30 C18.2 28.8 15.6 28.6 13.6 29.8 C10.9 31.4 10 34.8 11.6 37.5 L19.8 51.2 C22 54.8 26.2 57 30.5 57 L37 57 C45.3 57 51 51 51 43 L51 28.5 C51 26 49 24 46.5 24 C45.8 24 45.1 24.2 44.5 24.5 C43.8 22.5 42 21 39.8 21 C39 21 38.3 21.2 37.6 21.6 C36.8 19.8 35 18.5 32.8 18.5 C32.2 18.5 31.6 18.6 31 18.9 L31 11 C31 8.2 28.8 6 25 6 Z" 
+                            fill="url(#handGloveGrad)" 
+                            stroke="#1E293B" 
+                            strokeWidth="2.8" 
+                            strokeLinecap="round"
+                            strokeLinejoin="round" 
+                          />
+
+                          {/* Index Finger Tap Light Glow */}
+                          <circle cx="25" cy="11" r="7.5" fill="url(#tapFingerGlow)" />
+
+                          {/* Finger Seams & Joint Creases */}
+                          <path d="M25.5 14 L25.5 32" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M31 23 L31 34" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+                          <path d="M37.5 25.5 L37.5 35" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+                          <path d="M44.5 28 L44.5 36" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+
+                          {/* Thumb Fold Detail */}
+                          <path d="M20 32 C18.5 35 18.5 39 22 43" stroke="#CBD5E1" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+
+                          {/* Stylish Wrist Cuff */}
+                          <path d="M24 55 L43 55" stroke="url(#cuffGrad)" strokeWidth="4.2" strokeLinecap="round" />
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              <div 
+                className="profile-info" 
+                onClick={handleOpenProfileModal} 
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenProfileModal();
+                  }
+                }}
+                style={{ cursor: 'pointer' }} 
+                title="Klik untuk atur profil"
+                aria-label="Profil Pengguna"
+              >
+                <div className="greeting">
+                  <span className="greeting-text">
+                    {t('greeting')}
+                  </span>
+                  <span className="profile-name">{profileName || 'No Name'}</span>
+                </div>
+                <div className="profile-avatar">
+                  {profileImage ? (
+                    <img src={profileImage} alt={profileName} className="profile-avatar-img" />
+                  ) : (
+                    (profileName || 'N').trim().charAt(0).toUpperCase()
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -3063,7 +3778,7 @@ function App() {
               onClick={() => setActiveBalanceDetail({
                 type: 'expense',
                 label: t('expenses'),
-                amount: isCurrentMonth ? totalExpenses : 0,
+                amount: isCurrentMonth ? animatedExpenseAmount : 0,
                 color: 'var(--card-expense-text)',
                 bgColor: 'var(--card-expense-bg)',
                 icon: '▼'
@@ -3071,10 +3786,12 @@ function App() {
               role="button"
               tabIndex={0}
             >
-              <span className="card-label">{t('expenses')}</span>
-              <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtMoney(totalExpenses) : fmtMoney(0)}</span>
+              <div className="card-label-row">
+                <span className="card-label">{t('expenses')}</span>
                 <span className="icon-down">▼</span>
+              </div>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? fmtHomeMoney(animatedExpenseAmount) : fmtHomeMoney(0)}</span>
               </div>
             </div>
             <div 
@@ -3090,10 +3807,12 @@ function App() {
               role="button"
               tabIndex={0}
             >
-              <span className="card-label">{t('income')}</span>
-              <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtMoney(totalIncome) : fmtMoney(0)}</span>
+              <div className="card-label-row">
+                <span className="card-label">{t('income')}</span>
                 <span className="icon-up">▲</span>
+              </div>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? fmtHomeMoney(totalIncome) : fmtHomeMoney(0)}</span>
               </div>
             </div>
             <div 
@@ -3102,58 +3821,295 @@ function App() {
                 type: 'total',
                 label: t('total'),
                 amount: isCurrentMonth ? totalBalance : 0,
-                color: '#2D5284',
+                color: 'var(--text-main, #333333)',
                 bgColor: '#E6EEFA',
                 icon: '💰'
               })}
               role="button"
               tabIndex={0}
             >
-              <span className="card-label">{t('total')}</span>
-              <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtMoney(totalBalance) : fmtMoney(0)}</span>
+              <div className="card-label-row">
+                <span className="card-label">{t('total')}</span>
                 <span className="icon-total font-bold">💰</span>
+              </div>
+              <div className="amount-container">
+                <span className="amount">{isCurrentMonth ? fmtHomeMoney(totalBalance) : fmtHomeMoney(0)}</span>
               </div>
             </div>
           </section>
 
-          {isCurrentMonth && (
-            <LossAversionBadge 
-              transactions={transactions} 
-              handleOpenAndaiModal={handleOpenAndaiModal} 
-              fmtMoney={fmtMoney}
-              t={t}
-            />
-          )}
+          {/* 🌟 V1 Intelligent Financial Insight Card (Home - First Insight) */}
+          {isCurrentMonth && financialInsightsData && financialInsightsData.highestPriorityInsight && financialInsightsData.totalCurrentExpense > 0 && dismissedInsightMap[financialInsightsData.periodKey] !== financialInsightsData.highestPriorityInsight.id && (
+            <div className="home-insight-card">
+              {/* 1. Header: Badge Sparkle & Date Range Pill + Dismiss Button */}
+              <div className="home-insight-top-badge-row">
+                <div className="home-insight-badge-left">
+                  <span className="home-insight-badge-icon">✨</span>
+                  <span>{t('insightThisMonth') || 'Insight Bulan Ini'}</span>
+                </div>
+                <div className="home-insight-top-right-group">
+                  <div className="home-insight-period-pill">
+                    {formatActivePeriodRange(currentDate, transactions, appLanguage)}
+                  </div>
+                  <button
+                    type="button"
+                    className="home-insight-dismiss-btn"
+                    onClick={() => handleDismissInsight(financialInsightsData.periodKey, financialInsightsData.highestPriorityInsight.id)}
+                    title={t('dismissInsight') || 'Tutup Insight / Sudah Dilihat'}
+                    aria-label="Tutup insight"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
-          {/* Home Transaction Filter Tabs (Income / Expense) */}
-          {isCurrentMonth && transactions.length > 0 && (
-            <div className="home-tx-filter-bar">
-              <div className={`home-tx-filter-indicator ${homeTxFilter === 'expense' ? 'to-expense' : 'to-income'}`} />
+              {/* 2. Content Row: Narrative Headline & Mini Donut Chart */}
+              <div className="home-insight-content-row">
+                <div className="home-insight-text-col">
+                  <h4 className="home-insight-headline">
+                    {financialInsightsData.highestPriorityInsight.headline}
+                  </h4>
+                  {financialInsightsData.highestPriorityInsight.subDescription && (
+                    <p className="home-insight-subdesc">
+                      {financialInsightsData.highestPriorityInsight.subDescription}
+                    </p>
+                  )}
+                </div>
+
+                {/* Mini Ring/Donut Chart */}
+                <div className="home-insight-donut-wrapper">
+                  <svg viewBox="0 0 36 36" className="home-insight-donut-svg">
+                    {/* Background Track */}
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#F3ECE4"
+                      strokeWidth="4.2"
+                    />
+                    {/* Slices */}
+                    {(() => {
+                      let accumulatedPct = 0;
+                      const donutColors = ['#FFD166', '#06D6A0', '#118AB2', '#EF476F', '#7209B7'];
+                      const slicesToRender = financialInsightsData.donutData.slices.slice(0, 4);
+
+                      return slicesToRender.map((slice, sIdx) => {
+                        const dashArray = `${slice.percentage} ${100 - slice.percentage}`;
+                        const dashOffset = -accumulatedPct;
+                        accumulatedPct += slice.percentage;
+
+                        return (
+                          <path
+                            key={slice.id || sIdx}
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke={donutColors[sIdx % donutColors.length]}
+                            strokeWidth="4.2"
+                            strokeDasharray={dashArray}
+                            strokeDashoffset={dashOffset}
+                            strokeLinecap="round"
+                          />
+                        );
+                      });
+                    })()}
+                  </svg>
+                  <div className="home-insight-donut-center">
+                    <span className="donut-center-pct">
+                      {isHomeAmountsHidden ? '••%' : `${financialInsightsData.donutData.topCategoryPercentage}%`}
+                    </span>
+                    <span className="donut-center-label">
+                      {financialInsightsData.donutData.topCategoryName}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Horizontal Scrollable Quick Metric Chips */}
+              {financialInsightsData.quickMetricChips && financialInsightsData.quickMetricChips.length > 0 && (
+                <div className="home-insight-chips-scroll">
+                  {financialInsightsData.quickMetricChips.map((chip, cIdx) => (
+                    <div 
+                      key={chip.id || cIdx} 
+                      className="home-insight-metric-chip"
+                      onClick={() => handleOpenCategoryInsight(chip)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div 
+                        className={`metric-chip-icon-box ${resolveIconClass(chip)}`}
+                      >
+                        {resolveIcon(chip) ? (
+                          <img src={resolveIcon(chip)} alt={chip.displayName} />
+                        ) : (
+                          <span>🏷️</span>
+                        )}
+                      </div>
+                      <div className="metric-chip-info">
+                        <span className="metric-chip-name">{chip.displayName}</span>
+                        <span className="metric-chip-amount">{fmtHomeMoney(chip.amount)}</span>
+                        <span className={`metric-chip-status ${chip.badgeType}`}>
+                          {chip.badgeText}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 4. Action Button: Navigasi ke Stats */}
               <button
                 type="button"
-                className={`home-tx-filter-btn ${homeTxFilter === 'income' ? 'active income-active' : ''}`}
-                onClick={() => setHomeTxFilter('income')}
+                className="home-insight-cta-btn"
+                onClick={() => setActiveTab('stats')}
               >
-                {t('filterIncome')}
-              </button>
-              <button
-                type="button"
-                className={`home-tx-filter-btn ${homeTxFilter === 'expense' ? 'active expense-active' : ''}`}
-                onClick={() => setHomeTxFilter('expense')}
-              >
-                {t('filterExpense')}
+                <div className="home-insight-cta-left">
+                  <span className="home-insight-cta-icon">📊</span>
+                  <span>{t('viewFullAnalysis') || 'Lihat analisis lengkap'}</span>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </button>
             </div>
           )}
 
+          {/* Home Transaction Filter Tabs (Income / Expense) */}
+          {isCurrentMonth && transactions.length > 0 && (
+            <div 
+              className="home-tx-filter-bar"
+              style={{ zIndex: isExpenseDropdownOpen && homeTxFilter === 'expense' ? 1150 : 5 }}
+            >
+              <div className={`home-tx-filter-indicator ${homeTxFilter === 'expense' ? 'to-expense' : 'to-income'}`} />
+              <button
+                type="button"
+                className={`home-tx-filter-btn ${homeTxFilter === 'income' ? 'active income-active' : ''}`}
+                onClick={() => {
+                  setHomeTxFilter('income');
+                  setIsExpenseDropdownOpen(false);
+                }}
+              >
+                <span className="home-tx-filter-btn-text">{t('filterIncome')}</span>
+              </button>
+              <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+                <button
+                  type="button"
+                  className={`home-tx-filter-btn ${homeTxFilter === 'expense' ? 'active expense-active' : ''}`}
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    if (homeTxFilter !== 'expense') {
+                      setHomeTxFilter('expense');
+                      setIsExpenseDropdownOpen(false);
+                    }
+                  }}
+                >
+                  <span className="home-tx-filter-btn-text">{t('filterExpense')}</span>
+                  <span 
+                    className={`capsule-dropdown-arrow ${isExpenseDropdownOpen && homeTxFilter === 'expense' ? 'open' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (homeTxFilter !== 'expense') {
+                        setHomeTxFilter('expense');
+                        setIsExpenseDropdownOpen(true);
+                      } else {
+                        setIsExpenseDropdownOpen(prev => !prev);
+                      }
+                    }}
+                  >
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor">
+                      <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    </svg>
+                  </span>
+                </button>
+
+                {/* Dropdown Menu Filter */}
+                {isExpenseDropdownOpen && homeTxFilter === 'expense' && (
+                  <>
+                    <div 
+                      className="dropdown-backdrop-transparent" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpenseDropdownOpen(false);
+                      }} 
+                    />
+                    <div 
+                      className="expense-filter-dropdown"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {[
+                        { id: 'month', label: 'Bulan Ini' },
+                        { id: 'today', label: 'Hari Ini' },
+                        { id: 'yesterday', label: 'Kemarin' },
+                        { id: '3days', label: '3 Hari Lalu' },
+                        { id: '1week', label: '1 Minggu Lalu' },
+                        { id: '2weeks', label: '2 Minggu Lalu' },
+                      ].map((opt) => {
+                        const isActive = expenseDateFilter === opt.id;
+                        return (
+                          <div
+                            key={opt.id}
+                            className={`expense-filter-option ${isActive ? 'active' : ''}`}
+                            onClick={() => {
+                              setExpenseDateFilter(opt.id);
+                              setIsExpenseDropdownOpen(false);
+                            }}
+                          >
+                            <span className="expense-filter-label">{opt.label}</span>
+                            {isActive && <span className="expense-filter-check">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Transactions List Grouped by Date */}
-          <section className="transactions-container transactions-container-animated" key={homeTxFilter}>
+          <section className="transactions-container transactions-container-animated" key={`${homeTxFilter}-${expenseDateFilter}`}>
             {isCurrentMonth ? (
               (() => {
                 const displayedHomeTransactions = transactions.filter(tx => {
                   if (homeTxFilter === 'income') return tx.type === 'income';
-                  if (homeTxFilter === 'expense') return tx.type === 'expense';
+                  if (homeTxFilter === 'expense') {
+                    if (tx.type !== 'expense') return false;
+                    if (expenseDateFilter === 'month') return true;
+
+                    const now = new Date();
+                    const toDateStr = (d) => {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                      const day = String(d.getDate()).padStart(2, '0');
+                      return `${y}-${m}-${day}`;
+                    };
+
+                    if (expenseDateFilter === 'today') {
+                      const todayStr = toDateStr(now);
+                      return tx.date === todayStr;
+                    }
+
+                    if (expenseDateFilter === 'yesterday') {
+                      const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                      return tx.date === toDateStr(yDate);
+                    }
+
+                    let daysBack = 2;
+                    if (expenseDateFilter === '3days') daysBack = 2;
+                    else if (expenseDateFilter === '1week') daysBack = 6;
+                    else if (expenseDateFilter === '2weeks') daysBack = 13;
+
+                    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+                    startDate.setHours(0, 0, 0, 0);
+                    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate.setHours(23, 59, 59, 999);
+
+                    if (!tx.date) return false;
+                    const parts = tx.date.split('-');
+                    if (parts.length < 3) return false;
+                    const txDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                    return txDate >= startDate && txDate <= endDate;
+                  }
                   return true;
                 });
 
@@ -3211,8 +4167,12 @@ function App() {
                           <span className="date-month-year">{monthStr}.{yearStr}</span>
                         </div>
                         <div className="date-group-right">
-                          <span className="day-income-amount">{fmtMoney(dayIncome)}</span>
-                          <span className="day-expense-amount">{fmtMoney(dayExpense)}</span>
+                          {homeTxFilter !== 'expense' && (
+                            <span className="day-income-amount">{fmtHomeMoney(dayIncome)}</span>
+                          )}
+                          {homeTxFilter !== 'income' && (
+                            <span className="day-expense-amount">{fmtHomeMoney(dayExpense)}</span>
+                          )}
                         </div>
                       </div>
 
@@ -3227,12 +4187,20 @@ function App() {
                                 resolveIcon={resolveIcon}
                                 isDeleting={deletingTxId === item.id}
                                 onAnimationComplete={handleVoiceAnimationComplete}
+                                onSelectTx={setActiveTxDetail}
+                                onEditTx={handleEditTransaction}
                               />
                             );
                           }
 
                           return (
-                            <div className={`transaction-item ${deletingTxId === item.id ? 'deleting-sink' : ''}`} key={item.id}>
+                            <div 
+                              className={`transaction-item ${resolveCardBgClass(item)} ${deletingTxId === item.id ? 'deleting-sink' : ''}`} 
+                              key={item.id}
+                              onClick={() => setActiveTxDetail(item)}
+                              role="button"
+                              tabIndex={0}
+                            >
                               <div className={`transaction-icon ${item.iconClass}`}>
                                 {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
                               </div>
@@ -3240,8 +4208,28 @@ function App() {
                                 <span className="transaction-title">{item.title}</span>
                                 <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'BRImo'}</span>
                               </div>
-                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                {item.type === 'expense' ? '-' : '+'}{fmtMoney(item.amount)}
+                              <div className="transaction-actions-right">
+                                {isAutoTrackedTx(item) && (
+                                  <button 
+                                    type="button" 
+                                    className="tx-edit-capsule-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTransaction(item);
+                                    }}
+                                    title="Edit Transaksi Otomatis"
+                                    aria-label="Edit Transaksi Otomatis"
+                                  >
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    <span>Edit</span>
+                                  </button>
+                                )}
+                                <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+                                  {item.type === 'expense' ? '-' : '+'}{fmtHomeMoney(item.amount)}
+                                </div>
                               </div>
                             </div>
                           );
@@ -3269,22 +4257,18 @@ function App() {
             // Kalkulasi metrik saldo per akun
             const getAccountStats = (accName) => {
               const rawInit = accountInitialBalances[accName];
-              const hasInitialBalance = typeof rawInit === 'number' && !isNaN(rawInit);
-              const initialBalance = hasInitialBalance ? rawInit : 0;
+              const hasRecordedBalance = typeof rawInit === 'number' && !isNaN(rawInit);
+              const initialBalance = hasRecordedBalance ? rawInit : 0;
 
               // Transaksi akun ini (sepanjang masa)
               const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (accName || '').toLowerCase().trim());
               const totalIncome = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
               const totalExpense = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
               
-              // Akun dianggap memiliki saldo tercatat jika:
-              // 1. User sudah mengatur saldo awal (hasInitialBalance), ATAU
-              // 2. Ada pemasukan uang (income) yang masuk ke akun ini
-              const hasRecordedBalance = hasInitialBalance || totalIncome > 0;
               const currentBalance = initialBalance + totalIncome - totalExpense;
 
               return {
-                hasInitialBalance,
+                hasInitialBalance: hasRecordedBalance,
                 hasRecordedBalance,
                 initialBalance,
                 totalIncome,
@@ -3295,20 +4279,88 @@ function App() {
               };
             };
 
-            // Hitung total saldo tercatat dari seluruh akun:
-            // Total saldo = penjumlahan currentBalance dari semua akun yang memiliki saldo tercatat (punya saldo awal atau punya income)
-            let totalRecordedBalance = 0;
+            // Kumpulkan seluruh akun unik dari accountsList, warehouse, initial balances, dan transaksi
+            const allPageAccountsMap = new Map();
+            (accountsList || []).forEach(a => {
+              if (a && a.trim()) {
+                const key = a.toLowerCase().trim();
+                if (!allPageAccountsMap.has(key)) allPageAccountsMap.set(key, a.trim());
+              }
+            });
+            (warehouseAccountsList || []).forEach(a => {
+              if (a && a.trim()) {
+                const key = a.toLowerCase().trim();
+                if (!allPageAccountsMap.has(key)) allPageAccountsMap.set(key, a.trim());
+              }
+            });
+            Object.keys(accountInitialBalances || {}).forEach(a => {
+              if (a && a.trim()) {
+                const key = a.toLowerCase().trim();
+                if (!allPageAccountsMap.has(key)) allPageAccountsMap.set(key, a.trim());
+              }
+            });
+            (transactions || []).forEach(t => {
+              if (t && t.account && t.account.trim()) {
+                const key = t.account.toLowerCase().trim();
+                if (!allPageAccountsMap.has(key)) allPageAccountsMap.set(key, t.account.trim());
+              }
+            });
+            const allPageAccounts = Array.from(allPageAccountsMap.values());
 
-            accountsList.forEach(acc => {
+            // Hitung total saldo tercatat dari seluruh akun dan pisahkan Rekening Bank vs E-Wallet vs Kartu Kredit (tanpa Cash)
+            let totalRecordedBalance = 0;
+            let totalBankBalance = 0;
+            let totalEwalletBalance = 0;
+            let totalCreditCardBalance = 0;
+
+            const isCreditCardAccount = (accName) => {
+              const norm = (accName || '').toLowerCase().trim();
+              const def = DEFAULT_ACCOUNTS.find(a => (a.name || '').toLowerCase() === norm || (a.id || '').toLowerCase() === norm);
+              if (def) {
+                return def.type === 'credit_card';
+              }
+              return norm.includes('card') || norm.includes('kartu kredit') || norm.includes('kredit') || 
+                     norm.includes(' cc') || norm.includes('credit') || norm.includes('visa') || 
+                     norm.includes('mastercard') || norm.includes('jcb') || norm.includes('amex');
+            };
+
+            const isBankAccount = (accName) => {
+              const norm = (accName || '').toLowerCase().trim();
+              const def = DEFAULT_ACCOUNTS.find(a => (a.name || '').toLowerCase() === norm || (a.id || '').toLowerCase() === norm);
+              if (def) {
+                return def.type === 'bank';
+              }
+              return (norm.includes('bank') || norm.includes('bca') || norm.includes('bri') || norm.includes('bni') || 
+                     norm.includes('mandiri') || norm.includes('bsi') || norm.includes('cimb') || norm.includes('btn') ||
+                     norm.includes('jago') || norm.includes('blu') || norm.includes('jenius') || norm.includes('seabank') ||
+                     norm.includes('permata') || norm.includes('maybank') || norm.includes('danamon')) &&
+                     !norm.includes('card') && !norm.includes('kredit') && !norm.includes(' cc');
+            };
+
+            const isEwalletAccount = (accName) => {
+              const norm = (accName || '').toLowerCase().trim();
+              const def = DEFAULT_ACCOUNTS.find(a => (a.name || '').toLowerCase() === norm || (a.id || '').toLowerCase() === norm);
+              if (def) {
+                return def.type === 'ewallet';
+              }
+              return norm.includes('gopay') || norm.includes('ovo') || norm.includes('dana') || 
+                     norm.includes('shopee') || norm.includes('linkaja') || norm.includes('qris') || 
+                     norm.includes('paypal') || norm.includes('wallet') || norm.includes('dompet digital');
+            };
+
+            allPageAccounts.forEach(acc => {
               const stats = getAccountStats(acc);
               if (stats.hasRecordedBalance) {
                 totalRecordedBalance += stats.currentBalance;
+                if (isCreditCardAccount(acc)) {
+                  totalCreditCardBalance += stats.currentBalance;
+                } else if (isBankAccount(acc)) {
+                  totalBankBalance += stats.currentBalance;
+                } else if (isEwalletAccount(acc)) {
+                  totalEwalletBalance += stats.currentBalance;
+                }
               }
             });
-
-            // Summary Pemasukan & Pengeluaran dari seluruh transaksi tercatat
-            const allRecordedIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-            const allRecordedExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
             return (
               <>
@@ -3335,15 +4387,15 @@ function App() {
 
                   <div className="account-hero-dotted-divider" />
 
-                  {/* Dual Stats Row (Pemasukan vs Pengeluaran) */}
+                  {/* Multi Stats Row (Rekening Bank vs E-Wallet vs Kartu Kredit) */}
                   <div className="account-hero-dual-stats">
                     <div className="account-dual-stat-col">
                       <div className="account-dual-stat-label-wrap">
-                        <span className="account-dual-stat-dot income" />
-                        <span className="account-dual-stat-label">{t('income') || 'Pemasukan'}</span>
+                        <span className="account-dual-stat-dot bank" />
+                        <span className="account-dual-stat-label">{t('bankAccounts') || 'Rekening Bank'}</span>
                       </div>
-                      <span className="account-dual-stat-val income">
-                        +{fmtMoney(allRecordedIncome)}
+                      <span className="account-dual-stat-val bank">
+                        {fmtMoney(totalBankBalance)}
                       </span>
                     </div>
 
@@ -3351,11 +4403,23 @@ function App() {
 
                     <div className="account-dual-stat-col">
                       <div className="account-dual-stat-label-wrap">
-                        <span className="account-dual-stat-dot expense" />
-                        <span className="account-dual-stat-label">{t('expenses') || 'Pengeluaran'}</span>
+                        <span className="account-dual-stat-dot ewallet" />
+                        <span className="account-dual-stat-label">{t('ewallet') || 'E-Wallet'}</span>
                       </div>
-                      <span className="account-dual-stat-val expense">
-                        -{fmtMoney(allRecordedExpense)}
+                      <span className="account-dual-stat-val ewallet">
+                        {fmtMoney(totalEwalletBalance)}
+                      </span>
+                    </div>
+
+                    <div className="account-dual-stat-divider" />
+
+                    <div className="account-dual-stat-col">
+                      <div className="account-dual-stat-label-wrap">
+                        <span className="account-dual-stat-dot credit" />
+                        <span className="account-dual-stat-label">{t('creditCard') || 'Kartu Kredit'}</span>
+                      </div>
+                      <span className="account-dual-stat-val credit">
+                        {fmtMoney(totalCreditCardBalance)}
                       </span>
                     </div>
                   </div>
@@ -3369,7 +4433,7 @@ function App() {
                 {/* 3. Daftar Akun Rows (Hanya yang sudah punya transaksi atau sudah diatur saldo awal) */}
                 <div className="accounts-card-list">
                   {(() => {
-                    const activeAccounts = accountsList.filter((accName) => {
+                    const activeAccounts = allPageAccounts.filter((accName) => {
                       const stats = getAccountStats(accName);
                       return stats.txCount > 0 || stats.hasInitialBalance;
                     });
@@ -3490,10 +4554,10 @@ function App() {
                     </div>
                     <div className="account-info-banner-text">
                       <div className="account-info-banner-header">
-                        <span className="account-info-banner-title">{t('accountManualInfoTitle') || 'Saldo di Cassiel bersifat manual'}</span>
+                        <span className="account-info-banner-title">{t('accountManualInfoTitle') || 'Pantau Seluruh Saldo di Satu Tempat'}</span>
                       </div>
                       <span className="account-info-banner-desc">
-                        {t('accountManualInfoDesc') || 'Masukkan saldo terkini akunmu. Cassiel akan menyesuaikannya berdasarkan transaksi yang kamu catat.'}
+                        {t('accountManualInfoDesc') || 'Tulis saldo akunmu (seperti BCA, GoPay, Tunai). Saldo di sini berupa pencatatan simulasi mandiri (tidak terhubung ke bank) yang otomatis menyesuaikan setiap transaksi yang kamu catat.'}
                       </span>
                       <div className="account-info-banner-actions">
                         <button
@@ -3572,6 +4636,24 @@ function App() {
               )}
             </div>
           </header>
+
+          {/* 🌟 V1 Stats Header Insight: "✨ Yang menarik dari pengeluaranmu" */}
+          {financialInsightsData && financialInsightsData.statsBehavioralInsight && financialInsightsData.totalCurrentExpense > 0 && (
+            <div className="stats-discovery-card">
+              <div className="stats-discovery-header">
+                <span className="sparkle">✨</span>
+                <span>{financialInsightsData.statsBehavioralInsight.title}</span>
+              </div>
+              <p className="stats-discovery-body">
+                {financialInsightsData.statsBehavioralInsight.body}
+              </p>
+              {financialInsightsData.statsBehavioralInsight.sub && (
+                <p className="stats-discovery-sub">
+                  {financialInsightsData.statsBehavioralInsight.sub}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Type Toggle Header Row: Income vs Expenses Total */}
           <div className="stats-type-tabs">
@@ -4100,13 +5182,31 @@ function App() {
                 className="budget-search-input"
                 placeholder={t('searchCategoryPlaceholder') || 'Cari kategori...'}
                 value={budgetSearchQuery}
+                onFocus={() => setIsSearchingBudget(true)}
+                onBlur={() => {
+                  if (!budgetSearchQuery.trim()) {
+                    setIsSearchingBudget(false);
+                  }
+                }}
                 onChange={(e) => setBudgetSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.currentTarget.blur();
+                    if (e.key === 'Escape') {
+                      setBudgetSearchQuery('');
+                      setIsSearchingBudget(false);
+                    }
+                  }
+                }}
               />
               {budgetSearchQuery && (
                 <button 
                   type="button" 
                   className="budget-search-clear"
-                  onClick={() => setBudgetSearchQuery('')}
+                  onClick={() => {
+                    setBudgetSearchQuery('');
+                    setIsSearchingBudget(false);
+                  }}
                 >
                   ✕
                 </button>
@@ -4118,8 +5218,8 @@ function App() {
           {(() => {
             const currentMonthData = monthlyBudgetsMap[activeMonthKey] || { main: null, categories: {} };
             const monthCatLimits = currentMonthData.categories || {};
-            const countAll = expenseCategories.length;
-            const countActive = expenseCategories.filter(c => {
+            const countAll = allBudgetCategories.length;
+            const countActive = allBudgetCategories.filter(c => {
               const monthLimit = monthCatLimits[c.id];
               return (typeof monthLimit === 'number' && monthLimit > 0);
             }).length;
@@ -4167,117 +5267,137 @@ function App() {
               }
 
               const isSearchActive = Boolean(budgetSearchQuery && budgetSearchQuery.trim());
-              const shouldShowAll = isSearchActive || isBudgetCategoriesExpanded || filtered.length <= 5;
-              const displayList = shouldShowAll ? filtered : filtered.slice(0, 5);
+              const firstThree = filtered.slice(0, 3);
+              const remaining = filtered.slice(3);
+              const hasMore = filtered.length > 3 && !isSearchActive;
+
+              const renderCategoryRow = (cat) => {
+                const iconPath = resolveIcon(cat);
+                const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
+                const catSpent = currentMonthExpensesByCategory[cat.id] ?? currentMonthExpensesByCategory[cat.name] ?? 0;
+                const catLimit = cat.monthlyLimit || 0;
+                const catPercent = hasLimit && catLimit > 0 ? (catSpent / catLimit) * 100 : 0;
+                const isCatOver = hasLimit && catSpent > catLimit;
+                const catStatus = isCatOver ? 'danger' : (catPercent >= 80 ? 'warning' : 'safe');
+
+                return (
+                  <div 
+                    key={cat.id} 
+                    className={`budget-row-item ${hasLimit ? 'has-limit' : 'unset-limit'}`}
+                    onClick={() => handleOpenCategoryBudgetModal(cat)}
+                  >
+                    {/* Left: Category Icon Box */}
+                    <div className={`budget-row-icon-box ${cat.iconClass}`}>
+                      <img src={iconPath} alt={cat.name} />
+                    </div>
+
+                    {/* Middle: Name + Spending Breakdown / Status + Mini Progress Bar */}
+                    <div className="budget-row-content">
+                      <div className="budget-row-title-line">
+                        <span className="budget-row-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
+                      </div>
+
+                      {hasLimit ? (
+                        <>
+                          <div className="budget-row-amount-line">
+                            <span className="budget-row-spent">{fmtMoney(catSpent)}</span>
+                            <span className="budget-row-sep">/</span>
+                            <span className="budget-row-limit">{fmtMoney(catLimit)}</span>
+                          </div>
+                          <div className="budget-row-mini-bar-frame">
+                            <div 
+                              className={`budget-row-mini-bar-fill ${catStatus}`} 
+                              style={{ width: `${Math.min(Math.max(catPercent, 4), 100)}%` }}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="budget-row-unset-desc">
+                          <span>{t('tapToSet') || 'Belum diatur'}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Percent Badge / "Atur" Button + Chevron Arrow */}
+                    <div className="budget-row-right">
+                      {hasLimit ? (
+                        <span className={`budget-row-pct-text ${catStatus}`}>
+                          {Math.round(catPercent)}%
+                        </span>
+                      ) : (
+                        <button 
+                          type="button" 
+                          className="budget-row-set-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenCategoryBudgetModal(cat);
+                          }}
+                        >
+                          {t('set') || 'Atur'}
+                        </button>
+                      )}
+
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8A494" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-row-chevron">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </div>
+                  </div>
+                );
+              };
 
               return (
                 <>
-                  <div className="budget-category-row-list">
-                    {displayList.map(cat => {
-                      const iconPath = resolveIcon(cat);
-                      const hasLimit = typeof cat.monthlyLimit === 'number' && cat.monthlyLimit > 0;
-                      const catSpent = currentMonthExpensesByCategory[cat.id] ?? currentMonthExpensesByCategory[cat.name] ?? 0;
-                      const catLimit = cat.monthlyLimit || 0;
-                      const catPercent = hasLimit && catLimit > 0 ? (catSpent / catLimit) * 100 : 0;
-                      const isCatOver = hasLimit && catSpent > catLimit;
-                      const catStatus = isCatOver ? 'danger' : (catPercent >= 80 ? 'warning' : 'safe');
+                  {!isSearchActive ? (
+                    <>
+                      <div className="budget-category-row-list">
+                        {firstThree.map(renderCategoryRow)}
+                      </div>
 
-                      return (
-                        <div 
-                          key={cat.id} 
-                          className={`budget-row-item ${hasLimit ? 'has-limit' : 'unset-limit'}`}
-                          onClick={() => handleOpenCategoryBudgetModal(cat)}
-                        >
-                          {/* Left: Category Icon Box */}
-                          <div className={`budget-row-icon-box ${cat.iconClass}`}>
-                            <img src={iconPath} alt={cat.name} />
-                          </div>
-
-                          {/* Middle: Name + Spending Breakdown / Status + Mini Progress Bar */}
-                          <div className="budget-row-content">
-                            <div className="budget-row-title-line">
-                              <span className="budget-row-cat-name">{getCategoryName(cat.name, appLanguage)}</span>
-                            </div>
-
-                            {hasLimit ? (
-                              <>
-                                <div className="budget-row-amount-line">
-                                  <span className="budget-row-spent">{fmtMoney(catSpent)}</span>
-                                  <span className="budget-row-sep">/</span>
-                                  <span className="budget-row-limit">{fmtMoney(catLimit)}</span>
-                                </div>
-                                <div className="budget-row-mini-bar-frame">
-                                  <div 
-                                    className={`budget-row-mini-bar-fill ${catStatus}`} 
-                                    style={{ width: `${Math.min(Math.max(catPercent, 4), 100)}%` }}
-                                  />
-                                </div>
-                              </>
-                            ) : (
-                              <div className="budget-row-unset-desc">
-                                <span>{t('tapToSet') || 'Belum diatur'}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Right: Percent Badge / "Atur" Button + Chevron Arrow */}
-                          <div className="budget-row-right">
-                            {hasLimit ? (
-                              <span className={`budget-row-pct-text ${catStatus}`}>
-                                {Math.round(catPercent)}%
-                              </span>
-                            ) : (
-                              <button 
-                                type="button" 
-                                className="budget-row-set-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenCategoryBudgetModal(cat);
-                                }}
-                              >
-                                {t('set') || 'Atur'}
-                              </button>
-                            )}
-
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8A494" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="budget-row-chevron">
-                              <polyline points="9 18 15 12 9 6"/>
+                      {hasMore && (
+                        <div className="budget-expand-btn-wrapper">
+                          <button
+                            type="button"
+                            className="budget-expand-toggle-btn"
+                            onClick={() => setIsBudgetCategoriesExpanded(prev => !prev)}
+                          >
+                            <span>
+                              {isBudgetCategoriesExpanded 
+                                ? (t('hide') || 'Sembunyikan') 
+                                : `${t('showAll') || 'Tampilkan Semua'} (${filtered.length})`}
+                            </span>
+                            <svg 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2.4" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round"
+                              style={{ 
+                                transform: isBudgetCategoriesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.25s ease'
+                              }}
+                            >
+                              <polyline points="6 9 12 15 18 9"/>
                             </svg>
+                          </button>
+                        </div>
+                      )}
+
+                      {hasMore && (
+                        <div className={`budget-expandable-section ${isBudgetCategoriesExpanded ? 'expanded' : 'collapsed'}`}>
+                          <div className="budget-expandable-inner">
+                            <div className="budget-category-row-list budget-category-row-list-expanded">
+                              {remaining.map(renderCategoryRow)}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Accordion Expand/Collapse Toggle Button */}
-                  {!isSearchActive && filtered.length > 5 && (
-                    <div className="budget-expand-btn-wrapper">
-                      <button
-                        type="button"
-                        className="budget-expand-toggle-btn"
-                        onClick={() => setIsBudgetCategoriesExpanded(prev => !prev)}
-                      >
-                        <span>
-                          {isBudgetCategoriesExpanded 
-                            ? (t('hide') || 'Sembunyikan') 
-                            : `${t('showAll') || 'Tampilkan Semua'} (${filtered.length})`}
-                        </span>
-                        <svg 
-                          width="16" 
-                          height="16" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2.4" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round"
-                          style={{ 
-                            transform: isBudgetCategoriesExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.25s ease'
-                          }}
-                        >
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                      </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="budget-category-row-list">
+                      {filtered.map(renderCategoryRow)}
                     </div>
                   )}
                 </>
@@ -4298,8 +5418,20 @@ function App() {
           setAccount={setAccount}
           setNote={setNote}
           handleSaveVoiceTransaction={handleSaveVoiceTransaction}
+          onOpenQuickText={() => setIsQuickTextModalOpen(true)}
         />
       )}
+
+      {/* Quick-Type Natural Language Modal */}
+      <QuickTextModal
+        isOpen={isQuickTextModalOpen}
+        onClose={() => setIsQuickTextModalOpen(false)}
+        expenseCategories={expenseCategories}
+        incomeCategories={incomeCategories}
+        accountsList={accountsList}
+        handleSaveVoiceTransaction={handleSaveVoiceTransaction}
+        showVoiceToast={showVoiceToast}
+      />
 
       {/* Voice Feedback Toast Notification */}
       {voiceToastMessage && (
@@ -4308,8 +5440,8 @@ function App() {
         </div>
       )}
 
-      {/* Bottom Nav (Hidden when editing main budget to prevent keyboard pushup) */}
-      {!isEditingMainBudget && (
+      {/* Bottom Nav (Hidden when editing main budget or searching budget to prevent keyboard pushup) */}
+      {!isEditingMainBudget && !isSearchingBudget && (
         <nav className="bottom-nav">
           <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
             <path
@@ -4390,25 +5522,26 @@ function App() {
         >
           {/* Top Header */}
           <div className="full-page-header">
-            <button type="button" className="back-btn" onClick={() => setIsAddModalOpen(false)} aria-label="Back">
+            <button type="button" className="back-btn" onClick={() => { setIsAddModalOpen(false); setEditingTransactionId(null); }} aria-label="Back">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 19l-7-7 7-7"/>
                 <path d="M7 12h13"/>
               </svg>
             </button>
             <span className="full-page-title">
-              {transType === 'Expense' 
-                ? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : 'Expense') 
-                : transType === 'Income' 
-                  ? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : 'Income') 
-                  : (appLanguage === 'jv' ? 'Menawi' : appLanguage === 'zh' ? 'Ruguo' : appLanguage === 'en' ? 'Simulate' : 'Andai')}
+              {editingTransactionId
+                ? (appLanguage === 'id_id' ? 'Edit Transaksi' : 'Edit Transaction')
+                : transType === 'Expense' 
+                  ? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : 'Expense') 
+                  : (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : 'Income')}
             </span>
           </div>
 
           {/* Type Switcher Tabs */}
           <div className="type-switcher-container">
             <div className="type-switcher">
-              {['Income', 'Expense', 'Andai'].map(type => (
+              <div className={`type-switcher-indicator ${transType === 'Expense' ? 'to-expense' : 'to-income'}`} />
+              {['Income', 'Expense'].map(type => (
                 <button
                   key={type}
                   type="button"
@@ -4427,27 +5560,14 @@ function App() {
                 >
                   {type === 'Expense' 
                     ? (appLanguage === 'id_id' ? 'Pengeluaran' : appLanguage === 'jv' ? 'Pangetrapan' : appLanguage === 'zh' ? 'Zhichu' : appLanguage === 'ko' ? 'Jichul' : 'Expense') 
-                    : type === 'Income' 
-                      ? (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : appLanguage === 'ko' ? 'Su-ip' : 'Income') 
-                      : (appLanguage === 'jv' ? 'Menawi' : appLanguage === 'zh' ? 'Ruguo' : appLanguage === 'ko' ? 'Gajeong' : appLanguage === 'en' ? 'Simulate' : 'Andai')}
+                    : (appLanguage === 'id_id' ? 'Pemasukan' : appLanguage === 'jv' ? 'Pamasukan' : appLanguage === 'zh' ? 'Shouru' : appLanguage === 'ko' ? 'Su-ip' : 'Income')}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Fitur 'Andai' — Opportunity Cost & Consumptive Investment Visualizer */}
-          {transType === 'Andai' ? (
-            <AndaiFeatureView 
-              transactions={transactions} 
-              resolveIcon={resolveIcon}
-              appLanguage={appLanguage}
-              t={t}
-              appCurrency={appCurrency}
-              liveExchangeRates={liveExchangeRates}
-            />
-          ) : (
-            /* Form Fields List for Expense & Income */
-            <div className="full-page-form">
+          {/* Form Fields List for Expense & Income */}
+          <div className="full-page-form">
               {/* Date Row (Split Date & Time Click Triggers for Native Android/iOS Pickers) */}
               <div className="form-row date-row-container">
                 <span className="field-label">{t('formDate')}</span>
@@ -4691,216 +5811,416 @@ function App() {
                   className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
                   onClick={handleSaveTransaction}
                 >
-                  {t('formSave')}
+                  {editingTransactionId
+                    ? (appLanguage === 'id_id' ? 'Simpan Perubahan' : 'Save Changes')
+                    : t('formSave')}
                 </button>
               </div>
             </div>
-          )}
 
               {/* Category Selector Sheet when Category is active */}
               {activePanel === 'category' && (
                 <div className="panel-category-full tour-target-form-category">
-                  <div className="panel-sub-header">
-                    <span className="panel-title">{t('formCategory')}</span>
-                    <div className="panel-header-actions">
-                      <button
-                        type="button"
-                        className={`header-action-btn ${isCustomCat ? 'active' : ''}`}
-                        onClick={() => setIsCustomCat(!isCustomCat)}
-                        title="Tulis Kategori Sendiri"
-                        aria-label="Edit custom category"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className="header-action-btn close-btn"
-                        onClick={() => setActivePanel('account')}
-                        title={t('close')}
-                        aria-label="Close category panel"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
+                  {isCategoryWarehouseOpen ? (
+                    /* Gudang Kategori View */
+                    <>
+                      <div className="panel-sub-header">
+                        <span className="panel-title">{t('categoryWarehouse')}</span>
+                        <div className="panel-header-actions">
+                          <button
+                            type="button"
+                            className="header-action-btn back-warehouse-btn"
+                            onClick={() => setIsCategoryWarehouseOpen(false)}
+                            title={t('back') || 'Kembali'}
+                            aria-label="Close category warehouse"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
 
-                  {isCustomCat && (
-                    <div className="custom-cat-wrapper">
-                      <input
-                        type="text"
-                        className="custom-cat-input"
-                        placeholder={t('formCustomCat')}
-                        value={customCatInput}
-                        onChange={(e) => setCustomCatInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddCustomCategory();
-                          }
-                        }}
-                        autoFocus
-                      />
-                      <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
-                        + {t('add')}
-                      </button>
-                    </div>
+                      <div className="category-grid">
+                        {(transType === 'Expense' ? warehouseExpenseCategories : warehouseIncomeCategories).length === 0 ? (
+                          <div className="warehouse-empty-state">
+                            <div className="warehouse-empty-icon">📦</div>
+                            <div className="warehouse-empty-text">{t('emptyWarehouse')}</div>
+                          </div>
+                        ) : (
+                          (transType === 'Expense' ? warehouseExpenseCategories : warehouseIncomeCategories).map((cat) => {
+                            const catIcon = resolveIcon(cat);
+                            return (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                className={`cat-grid-item ${!catIcon ? 'text-only' : ''}`}
+                                onClick={() => handleRestoreCategoryFromWarehouse(cat)}
+                              >
+                                <span
+                                  className="cat-add-pill"
+                                  onClick={(e) => handleRestoreCategoryFromWarehouse(cat, e)}
+                                  title={`Tambah ${getCategoryName(cat, appLanguage)}`}
+                                  aria-label={`Tambah ${getCategoryName(cat, appLanguage)}`}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                  </svg>
+                                </span>
+                                {catIcon ? (
+                                  <div className={`cat-grid-icon ${cat.iconClass}`}>
+                                    <img src={catIcon} alt={cat.name} />
+                                  </div>
+                                ) : null}
+                                <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* Active Category View */
+                    <>
+                      <div className="panel-sub-header">
+                        <span className="panel-title">{t('formCategory')}</span>
+                        <div className="panel-header-actions">
+                          <button
+                            type="button"
+                            className="header-action-btn warehouse-btn"
+                            onClick={() => {
+                              setIsCategoryWarehouseOpen(true);
+                              setIsCategoryDeleteMode(false);
+                              setIsCustomCat(false);
+                            }}
+                            title={t('categoryWarehouse')}
+                            aria-label="Open category warehouse"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="gemini-warehouse-svg">
+                              <defs>
+                                <linearGradient id="geminiWarehouseGradCat" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#1BA1E3" />
+                                  <stop offset="26%" stopColor="#5468FF" />
+                                  <stop offset="58%" stopColor="#9747FF" />
+                                  <stop offset="84%" stopColor="#E04FD5" />
+                                  <stop offset="100%" stopColor="#FF7643" />
+                                </linearGradient>
+                              </defs>
+                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" stroke="url(#geminiWarehouseGradCat)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="m3.3 7 8.7 5 8.7-5" stroke="url(#geminiWarehouseGradCat)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 22V12" stroke="url(#geminiWarehouseGradCat)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`header-action-btn minus-btn ${isCategoryDeleteMode ? 'active' : ''}`}
+                            onClick={() => {
+                              setIsCategoryDeleteMode(!isCategoryDeleteMode);
+                              if (isCustomCat) setIsCustomCat(false);
+                            }}
+                            title={isCategoryDeleteMode ? t('doneDeleting') : t('deleteCategoryMode')}
+                            aria-label="Toggle category delete mode"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`header-action-btn ${isCustomCat ? 'active' : ''}`}
+                            onClick={() => {
+                              setIsCustomCat(!isCustomCat);
+                              if (isCategoryDeleteMode) setIsCategoryDeleteMode(false);
+                            }}
+                            title={t('writeCustomCategory')}
+                            aria-label="Edit custom category"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            className="header-action-btn close-btn"
+                            onClick={() => {
+                              setIsCategoryDeleteMode(false);
+                              setActivePanel('account');
+                            }}
+                            title={t('close')}
+                            aria-label="Close category panel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {isCustomCat && (
+                        <div className="custom-cat-wrapper">
+                          <input
+                            type="text"
+                            className="custom-cat-input"
+                            placeholder={t('formCustomCat')}
+                            value={customCatInput}
+                            onChange={(e) => setCustomCatInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomCategory();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <button type="button" className="add-cat-btn" onClick={handleAddCustomCategory}>
+                            + {t('add')}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="category-grid">
+                        {(transType === 'Expense' ? sortedExpenseCategories : sortedIncomeCategories).map((cat, idx) => {
+                          const catIcon = resolveIcon(cat);
+                          const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              className={`cat-grid-item ${selectedCategory && selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''} ${showLastBadge ? 'has-last-badge' : ''} ${isCategoryDeleteMode ? 'in-delete-mode' : ''}`}
+                              onClick={() => {
+                                if (isCategoryDeleteMode) {
+                                  handleMoveCategoryToWarehouse(cat);
+                                } else {
+                                  handleSelectCategory(cat);
+                                }
+                              }}
+                            >
+                              {isCategoryDeleteMode && (
+                                <span
+                                  className="cat-delete-pill"
+                                  onClick={(e) => handleMoveCategoryToWarehouse(cat, e)}
+                                  title={`Simpan ke Gudang: ${getCategoryName(cat, appLanguage)}`}
+                                  aria-label={`Simpan ke Gudang: ${getCategoryName(cat, appLanguage)}`}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
+                                    <line x1="4" y1="12" x2="20" y2="12" />
+                                  </svg>
+                                </span>
+                              )}
+                              {!isCategoryDeleteMode && showLastBadge && (
+                                <span className="last-used-badge" title={t('recentCategoryTitle') || 'Kategori paling sering / terakhir digunakan'}>
+                                  {t('recentBadge') || 'Terakhir'}
+                                </span>
+                              )}
+                              {catIcon ? (
+                                <div className={`cat-grid-icon ${cat.iconClass}`}>
+                                  <img src={catIcon} alt={cat.name} />
+                                </div>
+                              ) : null}
+                              <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
-
-                  <div className="category-grid">
-                    {(transType === 'Expense' ? sortedExpenseCategories : sortedIncomeCategories).map((cat, idx) => {
-                      const catIcon = resolveIcon(cat);
-                      const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          className={`cat-grid-item ${selectedCategory.id === cat.id ? 'active' : ''} ${!catIcon ? 'text-only' : ''} ${showLastBadge ? 'has-last-badge' : ''}`}
-                          onClick={() => handleSelectCategory(cat)}
-                        >
-                          {showLastBadge && (
-                            <span className="last-used-badge" title={t('recentCategoryTitle') || 'Kategori paling sering / terakhir digunakan'}>
-                              {t('recentBadge') || 'Terakhir'}
-                            </span>
-                          )}
-                          {catIcon ? (
-                            <div className={`cat-grid-icon ${cat.iconClass}`}>
-                              <img src={catIcon} alt={cat.name} />
-                            </div>
-                          ) : null}
-                          <span className="cat-grid-label">{getCategoryName(cat, appLanguage)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
               {/* Account Selector Sheet when Account is active */}
               {activePanel === 'account' && (
                 <div className="panel-category-full tour-target-form-account">
-                  <div className="panel-sub-header">
-                    <span className="panel-title">{t('formAccount')}</span>
-                    <div className="panel-header-actions">
-                      <button
-                        type="button"
-                        className={`header-action-btn undo-btn ${deletedAccountsHistory.length > 0 ? 'enabled' : 'disabled'}`}
-                        onClick={handleUndoDeleteAccount}
-                        disabled={deletedAccountsHistory.length === 0}
-                        title={t('undoDeleteAccount') || 'Batalkan Hapus Akun'}
-                        aria-label="Undo delete account"
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                          <path d="M3 3v5h5" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className={`header-action-btn minus-btn tour-target-form-minus ${isAccountDeleteMode ? 'active' : ''}`}
-                        onClick={() => {
-                          setIsAccountDeleteMode(!isAccountDeleteMode);
-                          if (isCustomAccount) setIsCustomAccount(false);
-                        }}
-                        title={isAccountDeleteMode ? (t('doneDeleting') || 'Selesai Hapus') : (t('deleteAccountMode') || 'Mode Hapus Akun')}
-                        aria-label="Toggle delete mode"
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                      </button>
-                  <button
-                    type="button"
-                    className={`header-action-btn ${isCustomAccount ? 'active' : ''}`}
-                    onClick={() => {
-                      setIsCustomAccount(!isCustomAccount);
-                      if (isAccountDeleteMode) setIsAccountDeleteMode(false);
-                    }}
-                    title={t('writeCustomAccount') || 'Tulis Akun Sendiri'}
-                    aria-label="Edit custom account"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    type="button"
-                    className="header-action-btn close-btn"
-                    onClick={() => {
-                      setIsAccountDeleteMode(false);
-                      setActivePanel('note');
-                    }}
-                    title={t('close')}
-                    aria-label="Close account panel"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
+                  {isAccountWarehouseOpen ? (
+                    /* Gudang Akun View */
+                    <>
+                      <div className="panel-sub-header">
+                        <span className="panel-title">{t('accountWarehouse')}</span>
+                        <div className="panel-header-actions">
+                          <button
+                            type="button"
+                            className="header-action-btn back-warehouse-btn"
+                            onClick={() => setIsAccountWarehouseOpen(false)}
+                            title={t('back') || 'Kembali'}
+                            aria-label="Close account warehouse"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 12H5M12 19l-7-7 7-7"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
 
-              {isCustomAccount && (
-                <div className="custom-cat-wrapper">
-                  <input
-                    type="text"
-                    className="custom-cat-input"
-                    placeholder={t('formCustomAcc')}
-                    value={customAccountInput}
-                    onChange={(e) => setCustomAccountInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomAccount();
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button type="button" className="add-cat-btn" onClick={handleAddCustomAccount}>
-                    + {t('add')}
-                  </button>
+                      <div className="category-grid">
+                        {warehouseAccountsList.length === 0 ? (
+                          <div className="warehouse-empty-state">
+                            <div className="warehouse-empty-icon">📦</div>
+                            <div className="warehouse-empty-text">{t('emptyWarehouse')}</div>
+                          </div>
+                        ) : (
+                          warehouseAccountsList.map((acc) => (
+                            <button
+                              key={acc}
+                              type="button"
+                              className="cat-grid-item account-grid-item"
+                              onClick={() => handleRestoreAccountFromWarehouse(acc)}
+                            >
+                              <span
+                                className="account-add-pill"
+                                onClick={(e) => handleRestoreAccountFromWarehouse(acc, e)}
+                                title={`Tambah ${acc}`}
+                                aria-label={`Tambah ${acc}`}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
+                                  <line x1="12" y1="5" x2="12" y2="19" />
+                                  <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                              </span>
+                              <div className="cat-grid-icon account-badge-icon">
+                                <AccountIconBadge accountName={acc} size={36} />
+                              </div>
+                              <span className="cat-grid-label">{acc}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    /* Active Account View */
+                    <>
+                      <div className="panel-sub-header">
+                        <span className="panel-title">{t('formAccount')}</span>
+                        <div className="panel-header-actions">
+                          <button
+                            type="button"
+                            className="header-action-btn warehouse-btn"
+                            onClick={() => {
+                              setIsAccountWarehouseOpen(true);
+                              setIsAccountDeleteMode(false);
+                              setIsCustomAccount(false);
+                            }}
+                            title={t('accountWarehouse')}
+                            aria-label="Open account warehouse"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="gemini-warehouse-svg">
+                              <defs>
+                                <linearGradient id="geminiWarehouseGradAcc" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#1BA1E3" />
+                                  <stop offset="26%" stopColor="#5468FF" />
+                                  <stop offset="58%" stopColor="#9747FF" />
+                                  <stop offset="84%" stopColor="#E04FD5" />
+                                  <stop offset="100%" stopColor="#FF7643" />
+                                </linearGradient>
+                              </defs>
+                              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" stroke="url(#geminiWarehouseGradAcc)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="m3.3 7 8.7 5 8.7-5" stroke="url(#geminiWarehouseGradAcc)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 22V12" stroke="url(#geminiWarehouseGradAcc)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`header-action-btn minus-btn tour-target-form-minus ${isAccountDeleteMode ? 'active' : ''}`}
+                            onClick={() => {
+                              setIsAccountDeleteMode(!isAccountDeleteMode);
+                              if (isCustomAccount) setIsCustomAccount(false);
+                            }}
+                            title={isAccountDeleteMode ? t('doneDeleting') : t('deleteAccountMode')}
+                            aria-label="Toggle delete mode"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className={`header-action-btn ${isCustomAccount ? 'active' : ''}`}
+                            onClick={() => {
+                              setIsCustomAccount(!isCustomAccount);
+                              if (isAccountDeleteMode) setIsAccountDeleteMode(false);
+                            }}
+                            title={t('writeCustomAccount')}
+                            aria-label="Edit custom account"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            className="header-action-btn close-btn"
+                            onClick={() => {
+                              setIsAccountDeleteMode(false);
+                              setActivePanel('note');
+                            }}
+                            title={t('close')}
+                            aria-label="Close account panel"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {isCustomAccount && (
+                        <div className="custom-cat-wrapper">
+                          <input
+                            type="text"
+                            className="custom-cat-input"
+                            placeholder={t('formCustomAcc')}
+                            value={customAccountInput}
+                            onChange={(e) => setCustomAccountInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomAccount();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <button type="button" className="add-cat-btn" onClick={handleAddCustomAccount}>
+                            + {t('add')}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="category-grid">
+                        {sortedAccountsList.map((acc, idx) => {
+                          const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
+                          return (
+                            <button
+                              key={acc}
+                              type="button"
+                              className={`cat-grid-item account-grid-item ${account === acc ? 'active' : ''} ${showLastBadge ? 'has-last-badge' : ''} ${isAccountDeleteMode ? 'in-delete-mode' : ''}`}
+                              onClick={() => {
+                                if (isAccountDeleteMode) {
+                                  handleMoveAccountToWarehouse(acc);
+                                } else {
+                                  handleSelectAccount(acc);
+                                }
+                              }}
+                            >
+                              {isAccountDeleteMode && (
+                                <span 
+                                  className="account-delete-pill"
+                                  onClick={(e) => handleMoveAccountToWarehouse(acc, e)}
+                                  title={`Simpan ke Gudang: ${acc}`}
+                                  aria-label={`Simpan ke Gudang: ${acc}`}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
+                                    <line x1="4" y1="12" x2="20" y2="12" />
+                                  </svg>
+                                </span>
+                              )}
+                              {!isAccountDeleteMode && showLastBadge && (
+                                <span className="last-used-badge" title={t('recentAccountTitle') || 'Akun paling sering / terakhir digunakan'}>
+                                  {t('recentBadge') || 'Terakhir'}
+                                </span>
+                              )}
+                              <div className="cat-grid-icon account-badge-icon">
+                                <AccountIconBadge accountName={acc} size={36} />
+                              </div>
+                              <span className="cat-grid-label">{acc}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
-
-              <div className="category-grid">
-                {sortedAccountsList.map((acc, idx) => {
-                  const showLastBadge = !dismissedLastBadge && idx === 0 && transactions && transactions.length > 0;
-                  const isCash = acc.toLowerCase() === 'cash';
-                  return (
-                    <button
-                      key={acc}
-                      type="button"
-                      className={`cat-grid-item account-grid-item ${account === acc ? 'active' : ''} ${showLastBadge ? 'has-last-badge' : ''} ${isAccountDeleteMode && !isCash ? 'in-delete-mode' : ''}`}
-                      onClick={() => {
-                        if (isAccountDeleteMode && !isCash) {
-                          handleDeleteAccount(acc);
-                        } else {
-                          handleSelectAccount(acc);
-                        }
-                      }}
-                    >
-                      {isAccountDeleteMode && !isCash && (
-                        <span 
-                          className="account-delete-pill"
-                          onClick={(e) => handleDeleteAccount(acc, e)}
-                          title={`Hapus ${acc}`}
-                          aria-label={`Hapus ${acc}`}
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round">
-                            <line x1="4" y1="12" x2="20" y2="12" />
-                          </svg>
-                        </span>
-                      )}
-                      {!isAccountDeleteMode && showLastBadge && (
-                        <span className="last-used-badge" title={t('recentAccountTitle') || 'Akun paling sering / terakhir digunakan'}>
-                          {t('recentBadge') || 'Terakhir'}
-                        </span>
-                      )}
-                      <div className="cat-grid-icon account-badge-icon">
-                        <AccountIconBadge accountName={acc} size={36} />
-                      </div>
-                      <span className="cat-grid-label">{acc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -4963,7 +6283,7 @@ function App() {
 
               {/* Name Input Field */}
               <div className="profile-field-group">
-                <label className="profile-field-label">{t('fullNameOrNickname') || 'Nama Lengkap / Panggilan'}</label>
+                <label className="profile-field-label">{t('fullNameOrNickname') || 'Nama Lengkap / Panggilan (Opsional)'}</label>
                 <input
                   type="text"
                   className="profile-name-input"
@@ -5163,47 +6483,47 @@ function App() {
                   </div>
                 </div>
 
-                {/* Notifikasi Auto-Tracker (M-Banking & E-Wallet) */}
+                {/* 1b. Notification Auto Tracker */}
                 <div 
-                  className="wa-menu-item tour-target-auto-tracker"
+                  className="wa-menu-item"
                   onClick={async () => {
-                    if (!isAutoTrackerActive) {
-                      // Cek izin akses notifikasi
-                      try {
-                        const { granted } = await NotificationTracker.checkPermission();
-                        if (!granted) {
-                          showVoiceToast('Buka izin akses notifikasi untuk mengaktifkan');
-                          await NotificationTracker.requestPermission();
-                          return;
-                        }
-                      } catch (err) {
-                        console.warn('Native notification check failed:', err);
+                    const nextPref = !isAutoTrackerPref;
+                    setIsAutoTrackerPref(nextPref);
+                    await setAutoTrackerPreference(nextPref);
+                    if (nextPref) {
+                      // Request POST_NOTIFICATIONS for native confirmation popups
+                      await requestNotificationPermission(); 
+                      
+                      const hasPerm = await checkNotificationAccessPermission();
+                      setHasNotifPermission(hasPerm);
+                      if (!hasPerm) {
+                        await openNotificationAccessSettings();
+                      } else {
+                        processAutoTrackerQueue();
                       }
-                      safeStorageSet('user_auto_tracker_active', true);
-                      setIsAutoTrackerActive(true);
-                      await NotificationTracker.setAutoTrackerEnabled({ enabled: true }).catch(() => {});
-                      showVoiceToast('✨ Pelacak otomatis aktif');
-                    } else {
-                      safeStorageSet('user_auto_tracker_active', false);
-                      setIsAutoTrackerActive(false);
-                      await NotificationTracker.setAutoTrackerEnabled({ enabled: false }).catch(() => {});
-                      showVoiceToast('Pelacak otomatis dinonaktifkan');
                     }
                   }}
                 >
-                  <div className="wa-menu-icon-box" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                  <div className="wa-menu-icon-box auto-tracker-icon">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                      <line x1="1" y1="10" x2="23" y2="10"/>
+                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                      <circle cx="18" cy="4" r="3" fill="#F59E0B" stroke="#F59E0B" />
                     </svg>
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('notifAutoTrackerTitle') || 'Notifikasi Auto-Tracker'}</span>
+                      <span className="wa-menu-title">{t('notifAutoTrackerTitle') || 'Notification Auto Tracker'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('notifAutoTrackerSubtitle') || 'Pelacak transaksi M-Banking & E-Wallet'}</span>
+                    <span className="wa-menu-subtitle">
+                      {!isAutoTrackerPref
+                        ? (t('notifAutoTrackerDescOff') || 'Cassiel will not track transactions from notifications.')
+                        : hasNotifPermission
+                          ? (t('notifAutoTrackerDescOn') || 'Automatic transaction tracking is active.')
+                          : (t('notifAutoTrackerDescReq') || 'Notification access is required.')}
+                    </span>
                   </div>
-                  <div className={`wa-custom-toggle-track ${isAutoTrackerActive ? 'active' : ''}`}>
+                  <div className={`wa-custom-toggle-track ${isAutoTrackerPref ? 'active' : ''}`}>
                     <div className="wa-custom-toggle-thumb" />
                   </div>
                 </div>
@@ -5231,56 +6551,6 @@ function App() {
                     </div>
                     <span className="wa-menu-subtitle">
                       {LANGUAGES.find(l => l.code === appLanguage)?.name || 'Bahasa Indonesia'}
-                    </span>
-                  </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-
-                {/* Gaya Tulisan */}
-                <div className="wa-menu-item" onClick={handleOpenFontModal}>
-                  <div className="wa-menu-icon-box font-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="4 7 4 4 20 4 20 7"/>
-                      <line x1="9" y1="20" x2="15" y2="20"/>
-                      <line x1="12" y1="4" x2="12" y2="20"/>
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('fontSettingTitle') || 'Gaya Tulisan'}</span>
-                    </div>
-                    <span className="wa-menu-subtitle">
-                      {FONTS.find(f => f.id === appFont)?.name || 'Lora'}
-                    </span>
-                  </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-
-                {/* Ukuran Font */}
-                <div className="wa-menu-item" onClick={handleOpenFontSizeModal}>
-                  <div className="wa-menu-icon-box font-size-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 7V5h10v2" />
-                      <path d="M8 5v14" />
-                      <path d="M6 19h4" />
-                      <path d="M15 12v-1h6v1" />
-                      <path d="M18 11v8" />
-                      <path d="M16 19h4" />
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('fontSizeSettingTitle') || 'Ukuran Font'}</span>
-                    </div>
-                    <span className="wa-menu-subtitle">
-                      {(() => {
-                        const currentSize = FONT_SIZES.find(s => s.id === appFontSize);
-                        return currentSize ? (currentSize.id === 'default' ? 'Default' : currentSize.name) : 'Default';
-                      })()}
                     </span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
@@ -5377,9 +6647,9 @@ function App() {
                    ======================================================== */}
                 <h4 className="wa-profile-section-title">{t('sectionDataSupport') || 'DATA & DUKUNGAN'}</h4>
 
-                {/* Panduan Aplikasi */}
-                <div className="wa-menu-item" onClick={handleOpenFullGuide}>
-                  <div className="wa-menu-icon-box" style={{ background: '#EEF2FF', color: '#4F46E5' }}>
+                {/* Bantuan (Full on page khusus bantuan) */}
+                <div className="wa-menu-item" onClick={() => setIsHelpCenterOpen(true)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
                       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
@@ -5388,9 +6658,30 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('tourAppGuideTitle') || 'Panduan Aplikasi'}</span>
+                      <span className="wa-menu-title">{t('helpCenterTitle') || 'Bantuan'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('tourAppGuideSubtitle') || 'Pelajari alur dan fitur-fitur utama Cassiel'}</span>
+                    <span className="wa-menu-subtitle">{t('helpCenterSubtitle') || 'Pusat bantuan, FAQ, dan panduan'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Groups (Kelola Kas & Uang Bersama) */}
+                <div className="wa-menu-item" onClick={() => setIsGroupsModalOpen(true)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">Groups</span>
+                    </div>
+                    <span className="wa-menu-subtitle">Kelola kas & uang bersama secara transparan</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -5410,7 +6701,7 @@ function App() {
                     <div className="wa-menu-title-row">
                       <span className="wa-menu-title">{t('backupSettingTitle') || 'Data & Cadangan'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">{t('backupSettingSubtitle') || 'Simpan dan pulihkan catatan transaksi'}</span>
+                    <span className="wa-menu-subtitle">{t('backupSettingSubtitle') || 'Cadangkan atau pulihkan seluruh data'}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -5440,28 +6731,8 @@ function App() {
                   </svg>
                 </div>
 
-                {/* FAQ */}
-                <div className="wa-menu-item" onClick={() => showVoiceToast(t('faqComingSoon') || 'Fitur FAQ akan segera hadir!')}>
-                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                      <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">FAQ</span>
-                    </div>
-                    <span className="wa-menu-subtitle">{t('faqSubtitle') || 'Pertanyaan umum seputar penggunaan aplikasi'}</span>
-                  </div>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-
                 {/* Tentang Cassiel */}
-                <div className="wa-menu-item" onClick={() => showVoiceToast(`Cassiel v${CURRENT_VERSION_NAME}`)}>
+                <div className="wa-menu-item" onClick={() => setIsAboutModalOpen(true)}>
                   <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -5469,9 +6740,50 @@ function App() {
                   </div>
                   <div className="wa-menu-content">
                     <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('aboutTitle') || 'Tentang'}</span>
+                      <span className="wa-menu-title">{t('aboutTitle') || 'Tentang Kami'}</span>
                     </div>
-                    <span className="wa-menu-subtitle">Cassiel Finance Tracker</span>
+                    <span className="wa-menu-subtitle">{t('aboutSubtitle') || 'Informasi aplikasi dan pengembang'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Kebijakan Privasi */}
+                <div className="wa-menu-item" onClick={() => setIsPrivacyModalOpen(true)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('privacyPolicyTitle') || 'Kebijakan Privasi'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('privacyPolicySubtitle') || 'Komitmen keamanan & privasi data lokal'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Ketentuan Layanan */}
+                <div className="wa-menu-item" onClick={() => setIsTermsModalOpen(true)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                      <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('termsOfServiceTitle') || 'Ketentuan Layanan'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('termsOfServiceSubtitle') || 'Syarat dan ketentuan penggunaan aplikasi'}</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -5509,123 +6821,7 @@ function App() {
         </div>
       )}
 
-      {/* Full-Page Screen: Pilihan Custom Font */}
-      {isFontModalOpen && (
-        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
-          <div className="wa-profile-screen-container">
-            {/* Top Bar Header */}
-            <div className="wa-profile-top-header">
-              <button
-                type="button"
-                className="back-btn"
-                onClick={() => setIsFontModalOpen(false)}
-                aria-label="Kembali"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-              </button>
-              <h3 className="profile-modal-title">{t('selectFontTitle')}</h3>
-              <button
-                type="button"
-                className="header-confirm-btn"
-                onClick={() => {
-                  handleSelectFont(tempFont);
-                  setIsFontModalOpen(false);
-                }}
-                title="Konfirmasi Pilihan Font"
-                aria-label="Konfirmasi"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </button>
-            </div>
 
-            <div className="full-page-sub-body">
-              <div className="full-page-settings-group">
-                {FONTS.map(f => (
-                  <div
-                    key={f.id}
-                    className={`full-page-option-row ${tempFont === f.id ? 'selected' : ''}`}
-                    onClick={() => setTempFont(f.id)}
-                  >
-                    <span className="full-page-option-title" style={{ fontFamily: f.fontFamily, fontSize: f.id === 'amoresa' ? '24px' : '16px' }}>
-                      {f.name}
-                    </span>
-                    {tempFont === f.id && (
-                      <div className="full-page-option-check">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Full-Page Screen: Pilihan Ukuran Font */}
-      {isFontSizeModalOpen && (
-        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
-          <div className="wa-profile-screen-container">
-            {/* Top Bar Header */}
-            <div className="wa-profile-top-header">
-              <button
-                type="button"
-                className="back-btn"
-                onClick={() => setIsFontSizeModalOpen(false)}
-                aria-label="Kembali"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
-                </svg>
-              </button>
-              <h3 className="profile-modal-title">{t('selectFontSizeTitle')}</h3>
-              <button
-                type="button"
-                className="header-confirm-btn"
-                onClick={() => {
-                  handleSelectFontSize(tempFontSize);
-                  setIsFontSizeModalOpen(false);
-                }}
-                title="Konfirmasi Pilihan Ukuran Font"
-                aria-label="Konfirmasi"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </button>
-            </div>
-
-            <div className="full-page-sub-body">
-              <div className="full-page-settings-group">
-                {FONT_SIZES.map(s => (
-                  <div
-                    key={s.id}
-                    className={`full-page-option-row ${tempFontSize === s.id ? 'selected' : ''}`}
-                    onClick={() => setTempFontSize(s.id)}
-                  >
-                    <span className="full-page-option-title" style={{ fontSize: s.sizePt }}>
-                      {s.name}
-                    </span>
-                    {tempFontSize === s.id && (
-                      <div className="full-page-option-check">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Full-Page Screen: Pilihan Multi Bahasa */}
       {isLangModalOpen && (
@@ -5923,6 +7119,1134 @@ function App() {
         </div>
       )}
 
+      {/* Full-Page Screen: Pusat Bantuan */}
+      {isHelpCenterOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Bar Header */}
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsHelpCenterOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">{t('helpCenterHeader') || 'Bantuan'}</h3>
+            </div>
+
+            <div className="full-page-sub-body">
+              <div className="full-page-settings-group">
+                {/* 1. Panduan Aplikasi */}
+                <div 
+                  className="wa-menu-item" 
+                  onClick={() => {
+                    setIsHelpCenterOpen(false);
+                    handleOpenFullGuide();
+                  }}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('tourAppGuideTitle') || 'Panduan Aplikasi'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('tourAppGuideSubtitle') || 'Pelajari alur dan fitur-fitur utama Cassiel'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 2. FAQ */}
+                <div 
+                  className="wa-menu-item" 
+                  onClick={() => setIsFaqModalOpen(true)}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('faqTitle') || 'FAQ'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('faqSubtitle') || 'Pertanyaan seputar penggunaan aplikasi'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 3. Laporkan Masalah */}
+                <div 
+                  className="wa-menu-item" 
+                  onClick={() => setIsReportIssueModalOpen(true)}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('reportIssueTitle') || 'Laporkan Masalah'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('reportIssueSubtitle') || 'Laporkan kendala, galat, atau bug di aplikasi'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 4. Hubungi Kami */}
+                <div 
+                  className="wa-menu-item" 
+                  onClick={() => setIsContactUsModalOpen(true)}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('contactUsTitle') || 'Hubungi Kami'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">{t('contactUsSubtitle') || 'Hubungi pengembang melalui email atau media sosial'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: FAQ */}
+      {isFaqModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Navigation Bar with Back Arrow */}
+            <div className="wa-profile-top-header" style={{ borderBottom: 'none', padding: '16px 20px 8px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsFaqModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body" style={{ padding: '0 24px 48px' }}>
+              <div className="faq-screen-editorial-wrapper">
+
+                {/* FLOQ-Style Brand Header Bar */}
+                <div className="about-floq-brand-bar">
+                  <div className="about-floq-brand-left">
+                    <img src="./Cassiel logo.png" alt="Cassiel" className="about-floq-logo-img" />
+                    <span className="about-floq-brand-name">CASSIEL</span>
+                  </div>
+                  <div className="about-floq-brand-menu">
+                    <span className="about-floq-menu-line"></span>
+                    <span className="about-floq-menu-line"></span>
+                  </div>
+                </div>
+
+                {/* Giant FLOQ-Style 2-Line Hero Title */}
+                <div className="about-floq-hero">
+                  <h1 className="about-floq-hero-title">
+                    Tanya &<br />Jawab
+                  </h1>
+                </div>
+
+                {/* Lead Headline Editorial Paragraph */}
+                <div className="about-floq-lead-editorial">
+                  <p className="about-floq-lead-text">
+                    Temukan jawaban lengkap dan panduan cepat seputar penggunaan <strong className="about-floq-highlight">CASSIEL</strong>, mulai dari pencatatan suara, keamanan privasi, hingga sinkronisasi data lokal.
+                  </p>
+                </div>
+
+                {/* FAQ List */}
+                <div className="faq-list-container">
+                  {FAQ_ITEMS.map((item, idx) => {
+                    const isOpen = expandedFaqId === item.id;
+                    const paragraphs = item.answer.split('\n\n');
+                    const numStr = String(idx + 1).padStart(2, '0');
+                    return (
+                      <div key={item.id} className={`faq-item-editorial ${isOpen ? 'expanded' : ''}`}>
+                        <button
+                          type="button"
+                          className="faq-question-btn-editorial"
+                          onClick={() => setExpandedFaqId(isOpen ? null : item.id)}
+                        >
+                          <span className="faq-num-editorial">{numStr}</span>
+                          <span className="faq-question-text-editorial">{item.question}</span>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="faq-toggle-icon-editorial">
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+                        {isOpen && (
+                          <div className="faq-answer-box-editorial">
+                            {paragraphs.map((para, pIdx) => {
+                              if (para.startsWith('Contoh:')) {
+                                const lines = para.split('\n');
+                                return (
+                                  <div key={pIdx} className="faq-answer-paragraph-editorial">
+                                    <p style={{ margin: '0 0 4px 0', fontWeight: '700', color: '#2D2520' }}>{lines[0]}</p>
+                                    {lines.slice(1).map((line, lIdx) => (
+                                      <div key={lIdx} className="faq-quote-box-editorial">
+                                        {line.replace(/^>\s*/, '')}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <p key={pIdx} className="faq-answer-paragraph-editorial">
+                                  {para}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer Tagline */}
+                <div className="about-floq-footer" style={{ marginTop: '36px' }}>
+                  <p className="about-floq-footer-tagline">Catat. Analisis. Bijak Berbelanja.</p>
+                  <p className="about-floq-footer-sub">Cassiel Finance App</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Laporkan Masalah */}
+      {isReportIssueModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            <div className="wa-profile-top-header">
+              <button
+                type="button"
+                className="back-btn"
+                onClick={handleCloseReportIssue}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 className="profile-modal-title">Laporkan Masalah</h3>
+            </div>
+
+            <div className="full-page-sub-body">
+              {isReportSubmittedSuccess ? (
+                /* Sukses View */
+                <div className="report-success-view">
+                  <div className="report-success-icon-box">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <h3 className="report-success-title">Laporan Terkirim</h3>
+                  <p className="report-success-desc">
+                    Terima kasih. Laporanmu sudah diterima dan akan kami periksa.
+                  </p>
+                  <button
+                    type="button"
+                    className="report-return-btn"
+                    onClick={handleCloseReportIssue}
+                  >
+                    Kembali ke Bantuan
+                  </button>
+                </div>
+              ) : (
+                /* Form View */
+                <div className="report-issue-container">
+                  <p className="report-intro-text">
+                    Menemukan sesuatu yang tidak bekerja sebagaimana mestinya? Beri tahu kami agar dapat memperbaikinya.
+                  </p>
+
+                  {/* 1. Jenis Masalah (Custom Dropdown Selector) */}
+                  <div className="report-form-group" style={{ position: 'relative', zIndex: 20 }}>
+                    <label className="report-section-label">
+                      1. Jenis Masalah <span className="report-required-mark">*</span>
+                    </label>
+                    <div className="report-dropdown-wrapper">
+                      <button
+                        type="button"
+                        className={`report-dropdown-trigger ${isReportCatDropdownOpen ? 'active' : ''} ${reportIssueCat ? 'has-value' : ''}`}
+                        onClick={() => setIsReportCatDropdownOpen(!isReportCatDropdownOpen)}
+                      >
+                        <span className="report-dropdown-selected-text">
+                          {reportIssueCat || 'Pilih jenis masalah yang kamu alami...'}
+                        </span>
+                        <svg
+                          className={`report-dropdown-chevron ${isReportCatDropdownOpen ? 'open' : ''}`}
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+
+                      {isReportCatDropdownOpen && (
+                        <div className="report-dropdown-menu">
+                          {[
+                            { id: 'Transaksi', icon: '💸', desc: 'Gagal catat, salah hitung, atau edit transaksi' },
+                            { id: 'Voice AI', icon: '🎙️', desc: 'Asisten suara salah mengenali kata / angka' },
+                            { id: 'Akun', icon: '💳', desc: 'Saldo tidak sesuai atau kendala akun bank/e-wallet' },
+                            { id: 'Budget', icon: '🎯', desc: 'Batas anggaran bulanan atau progress bar' },
+                            { id: 'Statistik & Insight', icon: '📊', desc: 'Grafik pengeluaran atau ringkasan bulanan' },
+                            { id: 'Backup & Restore', icon: '💾', desc: 'Ekspor berkas cadangan atau impor data' },
+                            { id: 'Tampilan', icon: '✨', desc: 'Tata letak berantakan atau tombol tidak pas' },
+                            { id: 'Performa', icon: '⚡', desc: 'Aplikasi terasa lambat, lag, atau freeze' },
+                            { id: 'Lainnya', icon: '💬', desc: 'Kendala atau pertanyaan teknis lainnya' }
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className={`report-dropdown-item ${reportIssueCat === item.id ? 'selected' : ''}`}
+                              onClick={() => {
+                                setReportIssueCat(item.id);
+                                setIsReportCatDropdownOpen(false);
+                              }}
+                            >
+                              <span className="report-dropdown-item-icon">{item.icon}</span>
+                              <div className="report-dropdown-item-info">
+                                <span className="report-dropdown-item-title">{item.id}</span>
+                                <span className="report-dropdown-item-desc">{item.desc}</span>
+                              </div>
+                              {reportIssueCat === item.id && (
+                                <svg className="report-dropdown-item-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BC6C25" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Jelaskan Masalah */}
+                  <div className="report-form-group">
+                    <label className="report-section-label">
+                      2. Jelaskan Masalah <span className="report-required-mark">*</span>
+                    </label>
+                    <p className="report-hint-text">
+                      Ceritakan apa yang kamu lakukan dan apa yang terjadi setelahnya.
+                    </p>
+                    <div className="report-textarea-container">
+                      <textarea
+                        className="report-textarea"
+                        placeholder={'Jelaskan apa yang terjadi...\n\nContoh: Saya mengucapkan "beli kopi 20 ribu", tetapi nominal yang muncul menjadi Rp200.000.'}
+                        value={reportIssueText}
+                        onChange={(e) => setReportIssueText(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3. Tambahkan Screenshot (Opsional) */}
+                  <div className="report-form-group report-screenshot-container">
+                    <label className="report-section-label">
+                      3. Tambahkan Screenshot (Opsional)
+                    </label>
+                    
+                    {/* Hidden Native File Input */}
+                    <input
+                      ref={reportFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleScreenshotChange}
+                    />
+
+                    {reportIssueScreenshot ? (
+                      <div className="report-screenshot-preview-box">
+                        <img 
+                          src={reportIssueScreenshot} 
+                          alt="Screenshot Masalah" 
+                          className="report-screenshot-img" 
+                        />
+                        <button
+                          type="button"
+                          className="report-screenshot-remove-btn"
+                          onClick={handleRemoveScreenshot}
+                          title="Hapus Screenshot"
+                          aria-label="Hapus Screenshot"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="report-upload-btn-box">
+                        <button
+                          type="button"
+                          className="report-upload-trigger-btn"
+                          onClick={() => reportFileInputRef.current && reportFileInputRef.current.click()}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                          <span>Pilih Gambar / Screenshot</span>
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="report-privacy-note">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                      </svg>
+                      <span>Pastikan screenshot tidak berisi informasi sensitif yang tidak ingin kamu bagikan.</span>
+                    </p>
+                  </div>
+
+                  {/* Tombol Kirim Laporan */}
+                  <button
+                    type="button"
+                    className="report-submit-btn"
+                    disabled={isSubmittingReport || !reportIssueCat || !reportIssueText.trim()}
+                    onClick={handleSubmitReportIssue}
+                  >
+                    {isSubmittingReport ? (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="spin-animate">
+                          <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12"/>
+                        </svg>
+                        <span>Mengirim...</span>
+                      </>
+                    ) : (
+                      <span>Kirim Laporan</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Hubungi Kami */}
+      {isContactUsModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Navigation Bar */}
+            <div className="wa-profile-top-header" style={{ borderBottom: 'none', padding: '16px 20px 8px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsContactUsModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body" style={{ padding: '0 24px 56px' }}>
+              <div className="privacy-screen-editorial-wrapper">
+
+                {/* FLOQ Brand Bar */}
+                <div className="about-floq-brand-bar">
+                  <div className="about-floq-brand-left">
+                    <img src="./Cassiel logo.png" alt="Cassiel" className="about-floq-logo-img" />
+                    <span className="about-floq-brand-name">CASSIEL</span>
+                  </div>
+                  <div className="about-floq-brand-menu">
+                    <span className="about-floq-menu-line"></span>
+                    <span className="about-floq-menu-line"></span>
+                  </div>
+                </div>
+
+                {/* Giant Hero Title */}
+                <div className="about-floq-hero">
+                  <h1 className="about-floq-hero-title">
+                    Hubungi<br />Kami
+                  </h1>
+                </div>
+
+                {/* Lead */}
+                <div className="about-floq-lead-editorial">
+                  <p className="about-floq-lead-text">
+                    Ada pertanyaan, masukan, atau keperluan kerja sama untuk <strong className="about-floq-highlight">CASSIEL</strong>? Hubungi kami langsung melalui kanal di bawah.
+                  </p>
+                </div>
+
+                {/* ── KANAL KONTAK ── */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Kanal Kontak Resmi</h3>
+                  <div className="contact-floq-list">
+
+                    {/* Email */}
+                    <a
+                      href="mailto:stevanusredi199@gmail.com?subject=Pesan%20dari%20Cassiel%20App"
+                      className="contact-floq-row"
+                    >
+                      <div className="contact-floq-icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BC6C25" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                          <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                      </div>
+                      <div className="contact-floq-text">
+                        <span className="contact-floq-label">Email</span>
+                        <span className="contact-floq-value">stevanusredi199@gmail.com</span>
+                      </div>
+                      <svg className="contact-floq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </a>
+
+                    {/* Instagram */}
+                    <a
+                      href="https://www.instagram.com/redii_rm/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="contact-floq-row"
+                    >
+                      <div className="contact-floq-icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#BC6C25" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                        </svg>
+                      </div>
+                      <div className="contact-floq-text">
+                        <span className="contact-floq-label">Instagram</span>
+                        <span className="contact-floq-value">@redii_rm</span>
+                      </div>
+                      <svg className="contact-floq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </a>
+
+                  </div>
+                </div>
+
+                {/* ── DIVIDER ── */}
+                <div style={{ height: '1px', background: 'rgba(188,108,37,0.12)', margin: '8px 0 28px' }} />
+
+                {/* ── LAPORAN MASALAH ── */}
+                <div className="about-floq-section" style={{ marginBottom: '0' }}>
+                  <h3 className="about-floq-section-heading">Ada Masalah di Aplikasi?</h3>
+                  <div className="about-floq-narrative">
+                    <p>Untuk bug, error, atau kendala teknis, gunakan fitur <strong>Laporkan Masalah</strong> yang tersedia di menu Saran &amp; Masukan agar dapat ditangani lebih cepat.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="contact-floq-report-btn"
+                    onClick={() => {
+                      setIsContactUsModalOpen(false);
+                      setTimeout(() => setIsFeedbackModalOpen(true), 200);
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Laporkan Masalah
+                  </button>
+                </div>
+
+                {/* Footer */}
+                <div className="about-floq-footer" style={{ marginTop: '48px' }}>
+                  <p className="about-floq-footer-tagline">Catat. Analisis. Bijak Berbelanja.</p>
+                  <p className="about-floq-footer-sub">Cassiel Finance App</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Tentang Kami */}
+      {/* Full-Page Screen: Tentang Kami */}
+      {isAboutModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Navigation Bar with Back Arrow */}
+            <div className="wa-profile-top-header" style={{ borderBottom: 'none', padding: '16px 20px 8px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsAboutModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body" style={{ padding: '0 24px 48px' }}>
+              <div className="about-screen-wrapper aboutkami-wrapper">
+
+                {/* FLOQ-Style Brand Header Bar */}
+                <div className="about-floq-brand-bar">
+                  <div className="about-floq-brand-left">
+                    <img src="./Cassiel logo.png" alt="Cassiel" className="about-floq-logo-img" />
+                    <span className="about-floq-brand-name">CASSIEL</span>
+                  </div>
+                  <div className="about-floq-brand-menu">
+                    <span className="about-floq-menu-line"></span>
+                    <span className="about-floq-menu-line"></span>
+                  </div>
+                </div>
+
+                {/* Giant FLOQ-Style 2-Line Hero Title */}
+                <div className="about-floq-hero">
+                  <h1 className="about-floq-hero-title">
+                    Tentang<br />Kami
+                  </h1>
+                </div>
+
+                {/* Lead Headline Editorial Paragraphs */}
+                <div className="about-floq-lead-editorial">
+                  <p className="about-floq-lead-text">
+                    <strong className="about-floq-highlight">CASSIEL</strong> adalah aplikasi pencatat keuangan pribadi yang dirancang dengan prinsip <em>offline-first & zero-data-leakage</em>. Kami menghadirkan pengalaman pencatatan yang tenang, cepat, dan aman tanpa gangguan iklan maupun pop-up yang tidak diperlukan.
+                  </p>
+                  <p className="about-floq-lead-text" style={{ marginTop: '18px' }}>
+                    Lebih dari sekadar alat pencatat, <strong className="about-floq-highlight">CASSIEL</strong> berkomitmen membantu setiap individu memahami pola pengeluaran hariannya dengan jujur dan penuh kesadaran.
+                  </p>
+                </div>
+
+                {/* Section: Kenapa Cassiel Dibuat */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Kenapa Cassiel dibuat?</h3>
+                  <div className="about-floq-narrative">
+                    <p>Saya percaya mencatat keuangan seharusnya sederhana dan menenangkan.</p>
+                    <p>Sebelum membuat Cassiel, saya pernah menggunakan berbagai aplikasi keuangan lain. Saya hanya ingin mencatat pengeluaran harian dengan cepat, tetapi iklan, pop-up promosi, dan antarmuka yang membingungkan sering kali menjadi distraksi besar.</p>
+                    <p>Dari keresahan itu, lahir <strong>Cassiel</strong>, sebuah ruang privat yang hening dan nyaman untuk merefleksikan ke mana uang kita pergi setiap hari.</p>
+                  </div>
+                </div>
+
+                {/* Section: Visi & Misi */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Visi & Misi</h3>
+                  <div className="about-floq-visi-editorial">
+                    <p>“Membuat pengelolaan keuangan pribadi menjadi lebih sederhana, tenang, dan transparan bagi semua orang.”</p>
+                  </div>
+                  <div className="about-floq-misi-list">
+                    <div className="about-floq-misi-row">
+                      <span className="about-floq-misi-num">01</span>
+                      <div className="about-floq-misi-body">
+                        <h4 className="about-floq-misi-title">Sederhanakan</h4>
+                        <p className="about-floq-misi-desc">Pencatatan instan hanya dalam hitungan detik tanpa langkah berbelit.</p>
+                      </div>
+                    </div>
+                    <div className="about-floq-misi-row">
+                      <span className="about-floq-misi-num">02</span>
+                      <div className="about-floq-misi-body">
+                        <h4 className="about-floq-misi-title">Berikan Pemahaman</h4>
+                        <p className="about-floq-misi-desc">Visualisasi statistik dan insight cerdas yang mudah dicerna secara langsung.</p>
+                      </div>
+                    </div>
+                    <div className="about-floq-misi-row">
+                      <span className="about-floq-misi-num">03</span>
+                      <div className="about-floq-misi-body">
+                        <h4 className="about-floq-misi-title">Hilangkan Gangguan</h4>
+                        <p className="about-floq-misi-desc">100% bebas iklan dan privasi lokal tanpa kebocoran data pengguna.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Makna Nama Cassiel */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Mengapa Cassiel?</h3>
+                  <div className="about-floq-narrative">
+                    <p>Nama <strong>Cassiel</strong> terinspirasi dari sosok pelindung waktu dan ketenangan. Bagi kami, waktu dan keuangan adalah dua hal yang tak terpisahkan, di mana setiap keputusan hari ini membentuk ketenangan masa depan.</p>
+                  </div>
+                </div>
+
+                {/* Section: Nilai Utama */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Nilai yang Kami Pegang</h3>
+                  <div className="about-floq-values-list">
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Sederhana</h4>
+                      <p className="about-floq-val-desc">Mudah digunakan tanpa kerumitan fitur berlebih.</p>
+                    </div>
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Privasi</h4>
+                      <p className="about-floq-val-desc">Data tersimpan privat di perangkat lokal Anda.</p>
+                    </div>
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Bebas Gangguan</h4>
+                      <p className="about-floq-val-desc">Ruang tenang mencatat tanpa distraksi iklan.</p>
+                    </div>
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Jujur</h4>
+                      <p className="about-floq-val-desc">Melihat kondisi keuangan apa adanya secara akurat.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Dibuat Oleh */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Dibuat oleh</h3>
+                  <div className="about-floq-narrative">
+                    <h4 className="about-floq-author-name">Redi Mariyono</h4>
+                    <p>
+                      Cassiel dibangun dengan dedikasi penuh untuk menghadirkan pengalaman finansial yang lebih personal, manusiawi, dan memberdayakan.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer Tagline */}
+                <div className="about-floq-footer">
+                  <p className="about-floq-footer-tagline">Catat. Analisis. Bijak Berbelanja.</p>
+                  <p className="about-floq-footer-sub">Cassiel Finance App</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Kebijakan Privasi */}
+      {isPrivacyModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Navigation Bar with Back Arrow */}
+            <div className="wa-profile-top-header" style={{ borderBottom: 'none', padding: '16px 20px 8px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsPrivacyModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body" style={{ padding: '0 24px 48px' }}>
+              <div className="privacy-screen-editorial-wrapper">
+
+                {/* FLOQ-Style Brand Header Bar */}
+                <div className="about-floq-brand-bar">
+                  <div className="about-floq-brand-left">
+                    <img src="./Cassiel logo.png" alt="Cassiel" className="about-floq-logo-img" />
+                    <span className="about-floq-brand-name">CASSIEL</span>
+                  </div>
+                  <div className="about-floq-brand-menu">
+                    <span className="about-floq-menu-line"></span>
+                    <span className="about-floq-menu-line"></span>
+                  </div>
+                </div>
+
+                {/* Giant FLOQ-Style 2-Line Hero Title */}
+                <div className="about-floq-hero">
+                  <h1 className="about-floq-hero-title">
+                    Kebijakan<br />Privasi
+                  </h1>
+                </div>
+
+                {/* Lead Headline Editorial Paragraph */}
+                <div className="about-floq-lead-editorial">
+                  <p className="about-floq-lead-text">
+                    Privasi Anda adalah komitmen utama <strong className="about-floq-highlight">CASSIEL</strong>. Kami menyusun kebijakan ini secara transparan dan jujur berdasarkan cara kerja teknis aplikasi yang sebenarnya, tanpa menyembunyikan pemrosesan data apa pun.
+                  </p>
+                </div>
+
+                {/* 1. Data yang Disimpan di Perangkat (Lokal) */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Data yang Disimpan di Perangkat</h3>
+                  <div className="about-floq-narrative">
+                    <p>Hampir seluruh data operasional Anda disimpan secara lokal di perangkat Anda menggunakan penyimpanan lokal (<em>localStorage</em> / <em>secureStorage</em>). Data ini meliputi:</p>
+                    <div className="about-floq-values-list" style={{ marginTop: '8px' }}>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Catatan Transaksi</h4>
+                        <p className="about-floq-val-desc">Nominal uang, tanggal, kategori belanja/pemasukan, catatan pribadi, dan akun dompet yang dipilih.</p>
+                      </div>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Akun & Saldo</h4>
+                        <p className="about-floq-val-desc">Daftar nama akun (bank/e-wallet), saldo awal, dan riwayat mutasi.</p>
+                      </div>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Anggaran & Preferensi</h4>
+                        <p className="about-floq-val-desc">Batas budget bulanan, preferensi bahasa, gaya font, mata uang aktif, nama profil, dan foto profil.</p>
+                      </div>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Keamanan Lokal</h4>
+                        <p className="about-floq-val-desc">Kode hash PIN keamanan untuk mengunci aplikasi di perangkat Anda.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Data yang Dikirim ke Layanan Luar */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Data yang Terkirim ke Layanan Luar</h3>
+                  <div className="about-floq-narrative">
+                    <p>Cassiel menggunakan beberapa layanan pihak ketiga untuk kebutuhan teknis tertentu saat perangkat Anda terhubung ke internet:</p>
+                    <div className="about-floq-misi-list" style={{ marginTop: '12px' }}>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">01</span>
+                        <div className="about-floq-misi-body">
+                          <h4 className="about-floq-misi-title">Telemetri Teknis & Agregat (Firebase Firestore)</h4>
+                          <p className="about-floq-misi-desc">
+                            Untuk memantau stabilitas dan penggunaan fitur, aplikasi mengirimkan ID perangkat acak (misal: <code>dev_xxxx</code>), nama profil, tipe perangkat/OS, versi aplikasi, durasi aktif, jumlah transaksi, serta agregat statistik kategori bulan berjalan. Rincian deskripsi transaksi pribadi Anda tidak dikirim.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">02</span>
+                        <div className="about-floq-misi-body">
+                          <h4 className="about-floq-misi-title">Saran & Laporan Masalah (Firebase Firestore)</h4>
+                          <p className="about-floq-misi-desc">
+                            Saat Anda mengirim masukan atau laporan bug melalui menu Saran & Masukan, data pesan, kategori, ID perangkat, dan tangkapan layar opsional akan disimpan di database Firebase pengembang agar masalah dapat diperbaiki.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">03</span>
+                        <div className="about-floq-misi-body">
+                          <h4 className="about-floq-misi-title">Kurs Mata Uang Real-Time (Open Exchange Rates)</h4>
+                          <p className="about-floq-misi-desc">
+                            Aplikasi memanggil API publik kurs mata uang (open.er-api.com) dan mengunduh bendera negara (flagcdn.com). Tidak ada data pengguna yang dikirim saat permintaan ini berlangsung.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">04</span>
+                        <div className="about-floq-misi-body">
+                          <h4 className="about-floq-misi-title">Pemeriksaan Pembaruan Aplikasi (GitHub API)</h4>
+                          <p className="about-floq-misi-desc">
+                            Aplikasi memeriksa repositori GitHub publik untuk mendeteksi apakah tersedia versi APK terbaru. Tidak ada data pribadi yang dikirim.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Cara Kerja Voice AI */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Pemrosesan Suara (Voice AI)</h3>
+                  <div className="about-floq-narrative">
+                    <p>
+                      Fitur input suara menggunakan mesin Speech Recognition bawaan sistem perangkat Anda (Android Speech / Web Speech). 
+                    </p>
+                    <p>
+                      Setelah suara diubah menjadi teks, seluruh logika pengenalan angka, kategori, nominal belanja, dan koreksi kata diproses secara lokal langsung di dalam kode aplikasi tanpa dikirim ke server AI eksternal. Rekaman audio Anda tidak disimpan oleh Cassiel.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 4. Cadangan Data & Berbagi Berkas */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Cadangan Data (Backup & Restore)</h3>
+                  <div className="about-floq-narrative">
+                    <p>
+                      Fitur cadangan mengekspor seluruh data lokal Anda ke dalam berkas teks mandiri (<code>.txt</code> / JSON).
+                    </p>
+                    <p>
+                      Ketika Anda memilih opsi simpan ke Google Drive, iCloud, atau WhatsApp, aplikasi memanfaatkan menu Share bawaan sistem operasi. Berkas cadangan tersebut dikelola langsung oleh Anda dan akun penyimpanan pribadi Anda.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 5. Iklan & Pelacakan Pihak Ketiga */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Iklan & Pelacakan Komersial</h3>
+                  <div className="about-floq-narrative">
+                    <p>
+                      Cassiel 100% bebas dari SDK periklanan pihak ketiga (seperti Google AdMob, Unity Ads, atau Facebook Audience Network). Kami tidak menjual atau menyewakan data Anda kepada pengiklan atau broker data mana pun.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6. Keamanan Data & Akses Perangkat */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Keamanan & Kontrol Pengguna</h3>
+                  <div className="about-floq-values-list">
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Kunci PIN & Biometrik</h4>
+                      <p className="about-floq-val-desc">Anda dapat mengaktifkan proteksi PIN 6-digit dan autentikasi sidik jari untuk mencegah akses fisik tidak sah ke aplikasi.</p>
+                    </div>
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Edit & Hapus Kapan Saja</h4>
+                      <p className="about-floq-val-desc">Anda memiliki kendali penuh untuk menambah, mengedit, atau menghapus setiap data transaksi, kategori, dan akun secara langsung.</p>
+                    </div>
+                    <div className="about-floq-val-row">
+                      <h4 className="about-floq-val-name">Hapus Seluruh Data</h4>
+                      <p className="about-floq-val-desc">Menghapus data aplikasi melalui pengaturan ponsel atau menghapus instalan aplikasi akan membersihkan seluruh data lokal secara permanen.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 7. Perubahan Kebijakan & Kontak */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">Perubahan Kebijakan & Pertanyaan</h3>
+                  <div className="about-floq-narrative">
+                    <p>
+                      Kebijakan privasi ini dapat diperbarui seiring penambahan fitur baru di aplikasi. Setiap perubahan akan selalu tercantum di halaman ini dan disinkronkan dengan rilis versi aplikasi terbaru.
+                    </p>
+                    <p>
+                      Jika Anda memiliki pertanyaan mengenai privasi data, Anda dapat menyampaikan saran melalui menu <strong>Saran & Masukan</strong> di dalam aplikasi atau menghubungi pengembang melalui Instagram di <strong>@redii_rm</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer Tagline */}
+                <div className="about-floq-footer" style={{ marginTop: '36px' }}>
+                  <p className="about-floq-footer-tagline">Catat. Analisis. Bijak Berbelanja.</p>
+                  <p className="about-floq-footer-sub">Cassiel Finance App</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Page Screen: Ketentuan Layanan */}
+      {isTermsModalOpen && (
+        <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
+          <div className="wa-profile-screen-container">
+            {/* Top Navigation Bar with Back Arrow */}
+            <div className="wa-profile-top-header" style={{ borderBottom: 'none', padding: '16px 20px 8px' }}>
+              <button
+                type="button"
+                className="back-btn"
+                onClick={() => setIsTermsModalOpen(false)}
+                aria-label="Kembali"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="full-page-sub-body" style={{ padding: '0 24px 48px' }}>
+              <div className="privacy-screen-editorial-wrapper">
+
+                {/* FLOQ-Style Brand Header Bar */}
+                <div className="about-floq-brand-bar">
+                  <div className="about-floq-brand-left">
+                    <img src="./Cassiel logo.png" alt="Cassiel" className="about-floq-logo-img" />
+                    <span className="about-floq-brand-name">CASSIEL</span>
+                  </div>
+                  <div className="about-floq-brand-menu">
+                    <span className="about-floq-menu-line"></span>
+                    <span className="about-floq-menu-line"></span>
+                  </div>
+                </div>
+
+                {/* Giant FLOQ-Style 2-Line Hero Title */}
+                <div className="about-floq-hero">
+                  <h1 className="about-floq-hero-title">
+                    Ketentuan<br />Layanan
+                  </h1>
+                </div>
+
+                {/* Lead Paragraph */}
+                <div className="about-floq-lead-editorial">
+                  <p className="about-floq-lead-text">
+                    Dengan menggunakan <strong className="about-floq-highlight">CASSIEL</strong>, kamu menyetujui ketentuan penggunaan yang dijelaskan di halaman ini. Ketentuan ini dibuat untuk menjelaskan bagaimana Cassiel dapat digunakan serta tanggung jawab pengguna dan Cassiel.
+                  </p>
+                  <p className="about-floq-lead-text" style={{ marginTop: '8px', fontSize: '13px', color: '#8C7B6E' }}>
+                    Terakhir diperbarui: Agustus 2026
+                  </p>
+                </div>
+
+                {/* 1. Penggunaan Cassiel */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">1. Penggunaan Cassiel</h3>
+                  <div className="about-floq-narrative">
+                    <p>Cassiel adalah aplikasi pencatatan dan pengelolaan keuangan pribadi. Kamu dapat menggunakannya untuk mencatat transaksi harian, mengelola saldo akun bank dan e-wallet, melihat statistik keuangan, membuat budget bulanan, serta menggunakan fitur Voice AI dan analitik yang tersedia.</p>
+                    <p>Kamu bertanggung jawab menggunakan Cassiel sesuai dengan hukum yang berlaku dan tidak menggunakannya untuk tujuan yang merugikan pihak lain.</p>
+                  </div>
+                </div>
+
+                {/* 2. Data yang Kamu Masukkan */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">2. Data yang Kamu Masukkan</h3>
+                  <div className="about-floq-narrative">
+                    <p>Kamu bertanggung jawab atas informasi yang dimasukkan ke dalam Cassiel, termasuk nominal transaksi, saldo akun, kategori, budget, dan catatan pribadi.</p>
+                    <p>Pastikan data yang kamu masukkan benar dan sesuai kebutuhanmu, karena statistik dan insight Cassiel sepenuhnya bergantung pada data tersebut.</p>
+                  </div>
+                </div>
+
+                {/* 3. Voice AI dan Fitur Otomatis */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">3. Voice AI dan Fitur Otomatis</h3>
+                  <div className="about-floq-narrative">
+                    <p>Cassiel menyediakan fitur Voice AI untuk membantu pencatatan transaksi melalui perintah suara. Hasil pengenalan suara dapat mengandung kesalahan karena bergantung pada kualitas suara, pengucapan, dan teknologi speech recognition bawaan perangkat yang digunakan.</p>
+                    <p>Kamu bertanggung jawab memeriksa kembali hasil yang diberikan sebelum menyimpannya sebagai catatan transaksi.</p>
+                  </div>
+                </div>
+
+                {/* 4. Statistik dan Insight */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">4. Statistik dan Insight</h3>
+                  <div className="about-floq-narrative">
+                    <p>Statistik, grafik, dan insight Cassiel dibuat berdasarkan data yang tersedia di aplikasi dan ditujukan untuk membantu kamu memahami pola keuangan pribadi.</p>
+                    <p>Informasi tersebut bukan merupakan nasihat keuangan, investasi, pajak, atau profesional lainnya. Keputusan yang kamu ambil berdasarkan informasi dari Cassiel sepenuhnya merupakan tanggung jawabmu sendiri.</p>
+                  </div>
+                </div>
+
+                {/* 5. Backup dan Restore */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">5. Backup dan Restore</h3>
+                  <div className="about-floq-narrative">
+                    <p>Cassiel menyediakan fitur backup dan restore agar kamu dapat mengamankan dan memindahkan data aplikasi. File backup diekspor ke perangkat dan dapat disimpan ke layanan penyimpanan pilihanmu seperti Google Drive atau iCloud.</p>
+                    <p>Kamu bertanggung jawab menyimpan file backup di tempat yang aman. Cassiel tidak bertanggung jawab atas kehilangan atau kerusakan file backup yang dikelola melalui layanan pihak ketiga.</p>
+                  </div>
+                </div>
+
+                {/* 6. Keamanan Aplikasi */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">6. Keamanan Aplikasi</h3>
+                  <div className="about-floq-narrative">
+                    <p>Cassiel menyediakan fitur PIN dan autentikasi biometrik (sidik jari) untuk membantu melindungi akses ke aplikasi di perangkatmu.</p>
+                    <p>Kamu bertanggung jawab menjaga PIN dan tidak memberikan akses perangkat kepada orang lain jika ingin menjaga privasi data di dalam aplikasi.</p>
+                  </div>
+                </div>
+
+                {/* 7. Layanan Pihak Ketiga */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">7. Layanan Pihak Ketiga</h3>
+                  <div className="about-floq-narrative">
+                    <p>Beberapa fungsi Cassiel menggunakan layanan pihak ketiga, antara lain:</p>
+                    <div className="about-floq-values-list" style={{ marginTop: '8px' }}>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Firebase (Google)</h4>
+                        <p className="about-floq-val-desc">Untuk menerima laporan masalah dan saran dari pengguna, serta telemetri teknis agregat.</p>
+                      </div>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">Open Exchange Rates & FlagCDN</h4>
+                        <p className="about-floq-val-desc">Untuk menampilkan kurs mata uang real-time dan ikon bendera negara.</p>
+                      </div>
+                      <div className="about-floq-val-row">
+                        <h4 className="about-floq-val-name">GitHub</h4>
+                        <p className="about-floq-val-desc">Untuk memeriksa ketersediaan pembaruan versi aplikasi terbaru.</p>
+                      </div>
+                    </div>
+                    <p style={{ marginTop: '12px' }}>Penggunaan layanan tersebut tunduk pada ketentuan dan kebijakan privasi masing-masing penyedia layanan.</p>
+                  </div>
+                </div>
+
+                {/* 8. Penggunaan yang Dilarang */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">8. Penggunaan yang Dilarang</h3>
+                  <div className="about-floq-narrative">
+                    <p>Kamu tidak boleh menggunakan Cassiel untuk:</p>
+                    <div className="about-floq-misi-list" style={{ marginTop: '10px' }}>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">—</span>
+                        <div className="about-floq-misi-body">
+                          <p className="about-floq-misi-desc">Aktivitas ilegal atau yang melanggar hukum yang berlaku.</p>
+                        </div>
+                      </div>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">—</span>
+                        <div className="about-floq-misi-body">
+                          <p className="about-floq-misi-desc">Mencoba mendapatkan akses tidak sah ke sistem atau infrastruktur Cassiel.</p>
+                        </div>
+                      </div>
+                      <div className="about-floq-misi-row">
+                        <span className="about-floq-misi-num">—</span>
+                        <div className="about-floq-misi-body">
+                          <p className="about-floq-misi-desc">Tujuan yang merugikan atau menipu pihak lain.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 9. Kekayaan Intelektual */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">9. Kekayaan Intelektual</h3>
+                  <div className="about-floq-narrative">
+                    <p>Nama Cassiel, logo, desain tampilan, kode, dan elemen aplikasi lainnya merupakan bagian dari produk Cassiel. Menggunakan aplikasi tidak memberikanmu hak kepemilikan atas elemen-elemen tersebut.</p>
+                  </div>
+                </div>
+
+                {/* 10. Ketersediaan & Batas Tanggung Jawab */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">10. Ketersediaan & Batas Tanggung Jawab</h3>
+                  <div className="about-floq-narrative">
+                    <p>Kami berusaha menjaga Cassiel agar dapat digunakan dengan baik, tetapi tidak menjamin aplikasi akan selalu tersedia, bebas dari bug, atau bebas dari gangguan teknis.</p>
+                    <p>Cassiel disediakan sebagai alat bantu pencatatan keuangan pribadi. Sejauh diizinkan hukum yang berlaku, Cassiel tidak bertanggung jawab atas kerugian yang timbul dari keputusan finansial yang dibuat berdasarkan informasi atau insight yang ditampilkan aplikasi.</p>
+                  </div>
+                </div>
+
+                {/* 11. Penghentian Penggunaan */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">11. Penghentian Penggunaan</h3>
+                  <div className="about-floq-narrative">
+                    <p>Kamu dapat berhenti menggunakan Cassiel kapan saja. Untuk menghapus data yang tersimpan di perangkat, gunakan fitur penghapusan data aplikasi di pengaturan ponselmu.</p>
+                  </div>
+                </div>
+
+                {/* 12. Perubahan Ketentuan & Hubungi Kami */}
+                <div className="about-floq-section">
+                  <h3 className="about-floq-section-heading">12. Perubahan Ketentuan & Hubungi Kami</h3>
+                  <div className="about-floq-narrative">
+                    <p>Ketentuan ini dapat diperbarui seiring perubahan pada fitur atau kebutuhan operasional Cassiel. Versi terbaru selalu ditampilkan di halaman ini.</p>
+                    <p>Jika kamu memiliki pertanyaan mengenai ketentuan ini, sampaikan melalui menu <strong>Saran & Masukan</strong> di dalam aplikasi atau hubungi pengembang melalui Instagram <strong>@redii_rm</strong>.</p>
+                  </div>
+                </div>
+
+                {/* Footer Tagline */}
+                <div className="about-floq-footer" style={{ marginTop: '36px' }}>
+                  <p className="about-floq-footer-tagline">Catat. Analisis. Bijak Berbelanja.</p>
+                  <p className="about-floq-footer-sub">Cassiel Finance App</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Full-Page Screen: Backup & Restore */}
       {isBackupModalOpen && (
         <div className="modal-overlay profile-setup-overlay full-page-profile-screen">
@@ -6182,7 +8506,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="budget-sheet-title">{activeBudgetCategory.name}</h3>
-                  <p className="budget-sheet-subtitle">{t('setCategoryLimitSubtitle') || 'Atur batas maksimal pengeluaran per bulan'}</p>
+                  <p className="budget-sheet-subtitle">{t('setCategoryLimitSubtitle') || 'Batas belanja bulanan kategori ini'}</p>
                 </div>
               </div>
               <button 
@@ -6567,7 +8891,110 @@ function App() {
         </div>
       )}
 
-      {/* Modal: Atur Saldo Awal / Tambah Saldo Akun */}
+      {/* Pop-up Zoom Detail Transaksi (Naik ke Depan Muka untuk Lihat Detail Transaksi) */}
+      {activeTxDetail && (() => {
+        const catName = getCategoryName(activeTxDetail.category, appLanguage);
+        const hasCustomTitle = activeTxDetail.title && 
+          activeTxDetail.title.trim().toLowerCase() !== (activeTxDetail.category || '').trim().toLowerCase() && 
+          activeTxDetail.title.trim().toLowerCase() !== (catName || '').trim().toLowerCase();
+        const bgColor = resolveCardBgColor(activeTxDetail);
+        
+        return (
+          <div 
+            className="modal-overlay balance-pop-overlay"
+            onClick={() => setActiveTxDetail(null)}
+          >
+            <div 
+              className="balance-pop-card tx-pop-card"
+              style={{ backgroundColor: bgColor }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="tx-pop-header">
+                <div className="tx-pop-badge-container">
+                  <div className={`tx-pop-icon-circle ${activeTxDetail.iconClass || ''}`}>
+                    {resolveIcon(activeTxDetail) && (
+                      <img src={resolveIcon(activeTxDetail)} alt={activeTxDetail.category} />
+                    )}
+                  </div>
+                  <div className="tx-pop-category-info">
+                    <span className="tx-pop-category-name">
+                      {catName}
+                    </span>
+                    <span className="tx-pop-account-tag">
+                      {activeTxDetail.account || 'Cash'}
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  className="balance-pop-close-btn"
+                  onClick={() => setActiveTxDetail(null)}
+                  aria-label="Tutup"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="balance-pop-amount-row">
+                <span 
+                  className="balance-pop-amount"
+                  style={{ 
+                    color: activeTxDetail.type === 'expense' 
+                      ? 'var(--card-expense-text, #BC6C25)' 
+                      : 'var(--card-income-text, #2D6A43)' 
+                  }}
+                >
+                  {activeTxDetail.type === 'expense' ? '-' : '+'}{fmtMoney(activeTxDetail.amount)}
+                </span>
+              </div>
+
+              <div className="tx-pop-body">
+                {hasCustomTitle && (
+                  <div className="tx-pop-title">
+                    "{activeTxDetail.title}"
+                  </div>
+                )}
+                {activeTxDetail.note && (
+                  <div className="tx-pop-note">
+                    📝 {activeTxDetail.note}
+                  </div>
+                )}
+                <div className="tx-pop-meta-row">
+                  <span>📅 {activeTxDetail.date || 'Hari Ini'}</span>
+                  <span>•</span>
+                  <span>{activeTxDetail.type === 'expense' ? t('expenses') : t('income')}</span>
+                  {isAutoTrackedTx(activeTxDetail) && (
+                    <>
+                      <span>•</span>
+                      <span style={{ color: 'var(--card-expense-text, #BC6C25)', fontWeight: 700 }}>⚡ Auto-Tracker</span>
+                    </>
+                  )}
+                </div>
+                {isAutoTrackedTx(activeTxDetail) && (
+                  <button 
+                    type="button" 
+                    className="tx-pop-edit-action-btn"
+                    onClick={() => {
+                      const txToEdit = activeTxDetail;
+                      setActiveTxDetail(null);
+                      handleEditTransaction(txToEdit);
+                    }}
+                    aria-label="Edit Transaksi"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    <span>Edit Transaksi</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Modal: Atur Saldo Akun / Tambah Saldo / Edit Saldo Tercatat */}
       {accountToSetBalance && (() => {
         const rawInit = accountInitialBalances[accountToSetBalance];
         const hasInitial = typeof rawInit === 'number' && !isNaN(rawInit);
@@ -6577,20 +9004,34 @@ function App() {
         const totalInc = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         const totalExp = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         const currBal = initVal + totalInc - totalExp;
+        const hasRecorded = hasInitial;
 
-        const isAddMode = hasInitial ? balanceModalMode === 'add' : false;
+        const isAddMode = hasRecorded ? balanceModalMode === 'add' : false;
 
         const handleSave = () => {
-          const raw = parseInt(balanceModalInputValue.replace(/\./g, '').replace(/[^0-9]/g, '') || '0', 10);
-          if (raw <= 0) {
+          const rawStr = balanceModalInputValue.replace(/\./g, '').replace(/[^0-9]/g, '');
+          if (rawStr === '') {
+            showVoiceToast(t('enterValidAmount') || 'Masukkan nominal yang valid!');
+            return;
+          }
+          const raw = parseInt(rawStr, 10);
+          if (isNaN(raw) || raw < 0) {
             showVoiceToast(t('enterValidAmount') || 'Masukkan nominal yang valid!');
             return;
           }
 
-          if (!hasInitial || balanceModalMode === 'edit_initial') {
-            // Catat atau koreksi Saldo Awal
-            setAccountInitialBalances(prev => ({ ...prev, [accountToSetBalance]: raw }));
-            showVoiceToast(t('balanceSavedSuccess', { name: accountToSetBalance }) || `Saldo awal ${accountToSetBalance} berhasil disimpan!`);
+          if (isAddMode && raw <= 0) {
+            showVoiceToast(t('enterValidAmount') || 'Nominal penambahan harus lebih dari 0!');
+            return;
+          }
+
+          if (!hasRecorded || !isAddMode) {
+            // Edit / Atur Saldo Tercatat:
+            // Saldo Tercatat = Saldo Awal + totalInc - totalExp
+            // Maka: Saldo Awal = raw - totalInc + totalExp
+            const adjustedInitial = raw - totalInc + totalExp;
+            setAccountInitialBalances(prev => ({ ...prev, [accountToSetBalance]: adjustedInitial }));
+            showVoiceToast(`✨ Saldo tercatat ${accountToSetBalance} berhasil diperbarui: ${fmtMoney(raw)}`);
           } else {
             // Tambah Saldo (Top-up / Pemasukan)
             const newIncomeTx = {
@@ -6635,18 +9076,18 @@ function App() {
                 <AccountIconBadge accountName={accountToSetBalance} size={40} />
                 <div className="set-balance-title-wrap">
                   <h3 className="set-balance-title">
-                    {!hasInitial 
-                      ? (t('setInitialBalanceTitle') || 'Atur Saldo Awal') 
-                      : (isAddMode ? (t('addBalanceTitle') || 'Tambah Saldo') : (t('editInitialBalanceTitle') || 'Koreksi Saldo Awal'))}
+                    {!hasRecorded 
+                      ? (t('setBalanceTitle') || 'Atur Saldo Akun') 
+                      : (isAddMode ? (t('addBalanceTitle') || 'Tambah Saldo') : (t('editRecordedBalanceTitle') || 'Edit Saldo Tercatat'))}
                   </h3>
                   <span className="set-balance-sub">
-                    {accountToSetBalance} {hasInitial && `• Sisa: ${fmtMoney(currBal)}`}
+                    {accountToSetBalance} {hasRecorded && `• Sisa: ${fmtMoney(currBal)}`}
                   </span>
                 </div>
               </div>
 
-              {/* Opsi Tab jika akun sudah memiliki saldo awal */}
-              {hasInitial && (
+              {/* Opsi Tab jika akun sudah memiliki saldo tercatat */}
+              {hasRecorded && (
                 <div className="set-balance-tabs">
                   <button
                     type="button"
@@ -6662,11 +9103,11 @@ function App() {
                     type="button"
                     className={`set-balance-tab-btn ${!isAddMode ? 'active' : ''}`}
                     onClick={() => {
-                      setBalanceModalMode('edit_initial');
-                      setBalanceModalInputValue(new Intl.NumberFormat('id-ID').format(initVal));
+                      setBalanceModalMode('edit_recorded');
+                      setBalanceModalInputValue(new Intl.NumberFormat('id-ID').format(Math.max(0, currBal)));
                     }}
                   >
-                    ✏️ {t('editInitialTab') || 'Edit Saldo Awal'}
+                    ✏️ {t('editRecordedTab') || 'Edit Saldo'}
                   </button>
                 </div>
               )}
@@ -6694,7 +9135,7 @@ function App() {
               </div>
 
               {/* Input Catatan Opsional jika mode Tambah Saldo */}
-              {hasInitial && isAddMode && (
+              {hasRecorded && isAddMode && (
                 <div className="set-balance-note-box">
                   <input
                     type="text"
@@ -6708,11 +9149,11 @@ function App() {
               )}
 
               <p className="set-balance-prompt-text">
-                {!hasInitial 
-                  ? (t('setInitialBalancePrompt') || 'Masukkan saldo awal saat pertama kali menggunakan akun ini. Cassiel akan menghitung sisa saldo otomatis dari transaksi.') 
+                {!hasRecorded 
+                  ? (t('setBalancePrompt') || 'Masukkan saldo terkini yang ada di akun ini. Cassiel akan menghitung sisa saldo otomatis dari transaksi.') 
                   : (isAddMode 
                       ? (t('addBalancePrompt') || 'Nominal ini akan langsung ditambahkan ke saldo akun dan dicatat ke histori pemasukan.')
-                      : (t('editInitialBalancePrompt') || 'Mengubah saldo awal akan menyesuaikan nilai dasar tanpa menghapus histori transaksimu.'))}
+                      : (t('editRecordedBalancePrompt') || 'Ubah saldo tercatat saat ini secara langsung. Nilai saldo awal akan disesuaikan otomatis tanpa mengubah riwayat transaksimu.'))}
               </p>
 
               <div className="set-balance-actions">
@@ -6732,9 +9173,9 @@ function App() {
                   className="set-balance-btn-save"
                   onClick={handleSave}
                 >
-                  {!hasInitial 
-                    ? (t('saveInitialBalanceBtn') || 'Simpan Saldo Awal') 
-                    : (isAddMode ? (t('submitAddBalanceBtn') || 'Tambah ke Saldo') : (t('saveBalanceBtn') || 'Simpan Perubahan'))}
+                  {!hasRecorded 
+                    ? (t('saveBalanceBtn') || 'Simpan Saldo') 
+                    : (isAddMode ? (t('submitAddBalanceBtn') || 'Tambah ke Saldo') : (t('saveRecordedBalanceBtn') || 'Simpan Saldo Tercatat'))}
                 </button>
               </div>
             </div>
@@ -6780,6 +9221,20 @@ function App() {
           { id: 'paypal', name: 'PayPal' }
         ];
 
+        const creditCardList = [
+          { id: 'bca_card', name: 'BCA Card' },
+          { id: 'tokopedia_card', name: 'Tokopedia Card' },
+          { id: 'jenius_cc', name: 'Jenius CC' },
+          { id: 'mandiri_card', name: 'Mandiri Card' },
+          { id: 'bni_card', name: 'BNI Card' },
+          { id: 'bri_touch', name: 'BRI Touch' },
+          { id: 'cimb_card', name: 'CIMB OCTO Card' },
+          { id: 'jcb', name: 'JCB' },
+          { id: 'amex', name: 'American Express' },
+          { id: 'visa', name: 'Visa' },
+          { id: 'mastercard', name: 'Mastercard' }
+        ];
+
         // Helper: Cek apakah akun sudah pernah ditulis/diatur saldonya (termasuk Cash / Tunai)
         const isAccountAlreadyConfigured = (accName) => {
           const norm = (accName || '').trim().toLowerCase();
@@ -6801,6 +9256,7 @@ function App() {
         const activePopularList = popularList.filter(item => !isAccountAlreadyConfigured(item.name));
         const activeBankList = bankList.filter(item => !isAccountAlreadyConfigured(item.name));
         const activeEwalletList = ewalletList.filter(item => !isAccountAlreadyConfigured(item.name));
+        const activeCreditCardList = creditCardList.filter(item => !isAccountAlreadyConfigured(item.name));
 
         const searchTrim = addAccountSearchQuery.trim().toLowerCase();
 
@@ -6813,14 +9269,17 @@ function App() {
         const filteredPopular = filterBySearch(activePopularList);
         const filteredBank = filterBySearch(activeBankList);
         const filteredEwallet = filterBySearch(activeEwalletList);
+        const filteredCreditCard = filterBySearch(activeCreditCardList);
 
         const showPopular = addAccountCategoryTab === 'all' && !searchTrim;
         const showBank = (addAccountCategoryTab === 'all' || addAccountCategoryTab === 'bank') && (filteredBank.length > 0 || searchTrim);
         const showEwallet = (addAccountCategoryTab === 'all' || addAccountCategoryTab === 'ewallet') && (filteredEwallet.length > 0 || searchTrim);
+        const showCreditCard = (addAccountCategoryTab === 'all' || addAccountCategoryTab === 'credit_card') && (filteredCreditCard.length > 0 || searchTrim);
 
         const hasAnyResult = (showPopular && filteredPopular.length > 0) || 
                              (showBank && filteredBank.length > 0) || 
-                             (showEwallet && filteredEwallet.length > 0);
+                             (showEwallet && filteredEwallet.length > 0) ||
+                             (showCreditCard && filteredCreditCard.length > 0);
 
         return (
           <div 
@@ -6861,7 +9320,7 @@ function App() {
                     <input
                       type="text"
                       className="add-acc-search-input"
-                      placeholder={t('searchAccountPlaceholder') || 'Cari bank atau e-wallet...'}
+                      placeholder={t('searchAccountPlaceholder') || 'Cari...'}
                       value={addAccountSearchQuery}
                       onChange={(e) => setAddAccountSearchQuery(e.target.value)}
                     />
@@ -6903,6 +9362,13 @@ function App() {
                     >
                       E-Wallet
                     </button>
+                    <button
+                      type="button"
+                      className={`add-acc-tab-pill ${addAccountCategoryTab === 'credit_card' ? 'active' : ''}`}
+                      onClick={() => setAddAccountCategoryTab('credit_card')}
+                    >
+                      {t('creditCard') || 'Kartu Kredit'}
+                    </button>
                   </div>
 
                   {/* 3. Empty Search State */}
@@ -6928,7 +9394,7 @@ function App() {
                             onClick={() => handleSelectOrAddAccount(acc.name)}
                           >
                             <div className="add-acc-card-logo-wrap">
-                              <AccountIconBadge accountName={acc.name} size={42} />
+                              <AccountIconBadge accountName={acc.name} size={35} />
                             </div>
                             <span className="add-acc-card-name">{acc.name}</span>
                           </button>
@@ -6964,7 +9430,7 @@ function App() {
                             onClick={() => handleSelectOrAddAccount(acc.name)}
                           >
                             <div className="add-acc-card-logo-wrap">
-                              <AccountIconBadge accountName={acc.name} size={42} />
+                              <AccountIconBadge accountName={acc.name} size={35} />
                             </div>
                             <span className="add-acc-card-name">{acc.name}</span>
                           </button>
@@ -7000,7 +9466,7 @@ function App() {
                             onClick={() => handleSelectOrAddAccount(acc.name)}
                           >
                             <div className="add-acc-card-logo-wrap">
-                              <AccountIconBadge accountName={acc.name} size={42} />
+                              <AccountIconBadge accountName={acc.name} size={35} />
                             </div>
                             <span className="add-acc-card-name">{acc.name}</span>
                           </button>
@@ -7009,17 +9475,55 @@ function App() {
                     </div>
                   )}
 
-                  {/* 7. Bottom Card: Tidak Menemukan Akunmu? */}
-                  <div className="add-acc-custom-banner">
-                    <div className="add-acc-custom-plus-box">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                      </svg>
+                  {/* 7. Section: Kartu Kredit */}
+                  {showCreditCard && filteredCreditCard.length > 0 && (
+                    <div className="add-acc-section">
+                      <div className="add-acc-section-header">
+                        <h4 className="add-acc-section-title">{t('creditCard') || 'Kartu Kredit'}</h4>
+                        {addAccountCategoryTab === 'all' && !searchTrim && (
+                          <button
+                            type="button"
+                            className="add-acc-section-link"
+                            onClick={() => setAddAccountCategoryTab('credit_card')}
+                          >
+                            <span>Lihat semua</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="add-acc-cards-grid">
+                        {filteredCreditCard.map((acc) => (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            className="add-acc-card-item"
+                            onClick={() => handleSelectOrAddAccount(acc.name)}
+                          >
+                            <div className="add-acc-card-logo-wrap">
+                              <AccountIconBadge accountName={acc.name} size={35} />
+                            </div>
+                            <span className="add-acc-card-name">{acc.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="add-acc-custom-info">
-                      <span className="add-acc-custom-title">Tidak menemukan akunmu?</span>
-                      <span className="add-acc-custom-desc">Buat akun secara manual sesuai kebutuhanmu.</span>
+                  )}
+
+                  {/* 8. Bottom Card: Tidak Menemukan Akunmu? */}
+                  <div className="add-acc-custom-banner">
+                    <div className="add-acc-custom-header">
+                      <div className="add-acc-custom-plus-box">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                      </div>
+                      <div className="add-acc-custom-info">
+                        <span className="add-acc-custom-title">Tidak menemukan akunmu?</span>
+                        <span className="add-acc-custom-desc">Buat akun secara manual sesuai kebutuhanmu.</span>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -7074,7 +9578,7 @@ function App() {
           className="modal-overlay profile-setup-overlay full-page-profile-screen account-detail-screen"
           style={{ zIndex: 99999 }}
         >
-          <div className="wa-profile-screen-container account-detail-container">
+          <div className="account-detail-container">
             {/* Top Bar */}
             <div className="account-detail-top-bar">
               <div className="account-detail-top-left">
@@ -7121,7 +9625,7 @@ function App() {
               const accTxs = transactions.filter(t => (t.account || 'Cash').toLowerCase().trim() === (selectedAccountDetail.name || '').toLowerCase().trim());
               const totalInc = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
               const totalExp = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-              const hasRecorded = hasInitial || totalInc > 0;
+              const hasRecorded = hasInitial;
               const currBal = initVal + totalInc - totalExp;
 
               return (
@@ -7136,10 +9640,6 @@ function App() {
                   </div>
 
                   <div className="account-detail-grid-stats">
-                    <div className="account-detail-stat-item">
-                      <span className="account-detail-stat-item-label">{t('initialBalance') || 'Saldo awal'}</span>
-                      <span className="account-detail-stat-item-val">{hasInitial ? fmtMoney(initVal) : fmtMoney(0)}</span>
-                    </div>
                     <div className="account-detail-stat-item">
                       <span className="account-detail-stat-item-label">{t('income') || 'Pemasukan'}</span>
                       <span className="account-detail-stat-item-val income">+{fmtMoney(totalInc)}</span>
@@ -7235,6 +9735,14 @@ function App() {
         setTransType={setTransType}
         onComplete={handleCompleteTour}
         onClose={() => setIsTourOpen(false)}
+      />
+
+      {/* Cassiel Groups Hub Modal */}
+      <GroupsHubModal
+        isOpen={isGroupsModalOpen}
+        onClose={() => setIsGroupsModalOpen(false)}
+        currentUserName={profileName || 'Pengguna Cassiel'}
+        currentUserAvatar={profileImage}
       />
     </div>
   );

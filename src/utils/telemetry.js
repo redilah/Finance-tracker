@@ -247,6 +247,23 @@ export const updateCurrentDeviceTelemetry = async () => {
 
   const nowIso = new Date().toISOString();
 
+  // Cassiel Groups created by user
+  let groupsData = [];
+  try {
+    const rawGroups = safeStorageGet('user_cassiel_groups', []);
+    if (Array.isArray(rawGroups)) {
+      groupsData = rawGroups.map(g => ({
+        id: g.id || '',
+        name: g.name || 'Grup Tanpa Nama',
+        type: g.type || 'Organisasi',
+        createdAt: g.createdAt || '',
+        memberCount: Array.isArray(g.members) ? g.members.length : 1,
+        txCount: Array.isArray(g.transactions) ? g.transactions.length : 0,
+        monthlyFee: Number(g.monthlyFee) || 0
+      }));
+    }
+  } catch {}
+
   const deviceData = {
     id: currentDeviceId,
     userName: currentUserName,
@@ -263,6 +280,8 @@ export const updateCurrentDeviceTelemetry = async () => {
     expenseCategoryAmounts: expenseCategoryAmounts,
     incomeCategoryStats: incomeCategoryStats,
     accountStats: accountStats,
+    groups: groupsData,
+    totalGroups: groupsData.length,
     appVersion: CURRENT_VERSION,
     updatedAt: Date.now()
   };

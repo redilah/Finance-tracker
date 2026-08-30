@@ -10,33 +10,6 @@ import './GuidedTour.css';
 
 export const NEW_USER_STEPS = [
   {
-    id: 'account',
-    targetSelector: '.tour-target-account',
-    tab: 'accounts',
-    screen: 'main',
-    titleKey: 'tourAccountTitle',
-    descKey: 'tourAccountDesc',
-    isCircle: true
-  },
-  {
-    id: 'budget',
-    targetSelector: '.tour-target-budget',
-    tab: 'budget',
-    screen: 'main',
-    titleKey: 'tourBudgetTitle',
-    descKey: 'tourBudgetDesc',
-    isCircle: true
-  },
-  {
-    id: 'language',
-    targetSelector: '.tour-target-language',
-    tab: 'home',
-    screen: 'profile',
-    titleKey: 'tourLangTitle',
-    descKey: 'tourLangDesc',
-    isCircle: false
-  },
-  {
     id: 'backup',
     targetSelector: '.tour-target-backup',
     tab: 'home',
@@ -44,18 +17,6 @@ export const NEW_USER_STEPS = [
     titleKey: 'tourBackupTitle',
     descKey: 'tourBackupDesc',
     isCircle: false
-  }
-];
-
-export const FULL_GUIDE_STEPS = [
-  {
-    id: 'home',
-    targetSelector: '.tour-target-home',
-    tab: 'home',
-    screen: 'main',
-    titleKey: 'tourFullHomeTitle',
-    descKey: 'tourFullHomeDesc',
-    isCircle: true
   },
   {
     id: 'voice_ai',
@@ -67,15 +28,6 @@ export const FULL_GUIDE_STEPS = [
     isCircle: true
   },
   {
-    id: 'account',
-    targetSelector: '.tour-target-account',
-    tab: 'accounts',
-    screen: 'main',
-    titleKey: 'tourAccountTitle',
-    descKey: 'tourAccountDesc',
-    isCircle: true
-  },
-  {
     id: 'add',
     targetSelector: '.tour-target-add',
     tab: 'home',
@@ -83,49 +35,6 @@ export const FULL_GUIDE_STEPS = [
     titleKey: 'tourFullAddTitle',
     descKey: 'tourFullAddDesc',
     isCircle: true
-  },
-  {
-    id: 'form_category',
-    targetSelector: '.tour-target-form-category',
-    tab: 'home',
-    screen: 'add_modal',
-    transType: 'Expense',
-    panel: 'category',
-    titleKey: 'tourFormCatTitle',
-    descKey: 'tourFormCatDesc',
-    isCircle: false
-  },
-  {
-    id: 'form_account',
-    targetSelector: '.tour-target-form-account',
-    tab: 'home',
-    screen: 'add_modal',
-    transType: 'Expense',
-    panel: 'account',
-    titleKey: 'tourFormAccTitle',
-    descKey: 'tourFormAccDesc',
-    isCircle: false
-  },
-  {
-    id: 'form_minus',
-    targetSelector: '.tour-target-form-minus',
-    tab: 'home',
-    screen: 'add_modal',
-    transType: 'Expense',
-    panel: 'account',
-    titleKey: 'tourFormMinusTitle',
-    descKey: 'tourFormMinusDesc',
-    isCircle: true
-  },
-  {
-    id: 'form_andai',
-    targetSelector: '.tour-target-tab-andai',
-    tab: 'home',
-    screen: 'add_modal',
-    transType: 'Andai',
-    titleKey: 'tourAndaiTitle',
-    descKey: 'tourAndaiDesc',
-    isCircle: false
   },
   {
     id: 'budget',
@@ -144,25 +53,10 @@ export const FULL_GUIDE_STEPS = [
     titleKey: 'tourFullStatsTitle',
     descKey: 'tourFullStatsDesc',
     isCircle: true
-  },
-  {
-    id: 'language',
-    targetSelector: '.tour-target-language',
-    tab: 'home',
-    screen: 'profile',
-    titleKey: 'tourLangTitle',
-    descKey: 'tourLangDesc',
-    isCircle: false
-  },
-  {
-    id: 'auto_tracker',
-    targetSelector: '.tour-target-auto-tracker',
-    tab: 'home',
-    screen: 'profile',
-    titleKey: 'tourAutoTrackerTitle',
-    descKey: 'tourAutoTrackerDesc',
-    isCircle: false
-  },
+  }
+];
+
+export const FULL_GUIDE_STEPS = [
   {
     id: 'backup',
     targetSelector: '.tour-target-backup',
@@ -171,6 +65,42 @@ export const FULL_GUIDE_STEPS = [
     titleKey: 'tourBackupTitle',
     descKey: 'tourBackupDesc',
     isCircle: false
+  },
+  {
+    id: 'voice_ai',
+    targetSelector: '.tour-target-voice',
+    tab: 'home',
+    screen: 'main',
+    titleKey: 'tourFullVoiceTitle',
+    descKey: 'tourFullVoiceDesc',
+    isCircle: true
+  },
+  {
+    id: 'add',
+    targetSelector: '.tour-target-add',
+    tab: 'home',
+    screen: 'main',
+    titleKey: 'tourFullAddTitle',
+    descKey: 'tourFullAddDesc',
+    isCircle: true
+  },
+  {
+    id: 'budget',
+    targetSelector: '.tour-target-budget',
+    tab: 'budget',
+    screen: 'main',
+    titleKey: 'tourBudgetTitle',
+    descKey: 'tourBudgetDesc',
+    isCircle: true
+  },
+  {
+    id: 'stats',
+    targetSelector: '.tour-target-stats',
+    tab: 'stats',
+    screen: 'main',
+    titleKey: 'tourFullStatsTitle',
+    descKey: 'tourFullStatsDesc',
+    isCircle: true
   }
 ];
 
@@ -348,8 +278,8 @@ export default function GuidedTourModal({
       spotW = targetRect.width + (pad * 2);
       spotH = targetRect.height + (pad * 2);
       spotRadius = Math.max(spotW, spotH) / 2;
-    } else if (currentStep.id === 'form_andai' || currentStep.targetSelector?.includes('tour-target-tab-')) {
-      // Type pill tab (Income / Expense / Andai)
+    } else if (currentStep.targetSelector?.includes('tour-target-tab-')) {
+      // Type pill tab (Income / Expense)
       const padX = 3;
       const padY = 2;
       spotX = targetRect.left - padX;

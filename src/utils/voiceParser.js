@@ -340,6 +340,20 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'wedang ronde', 'wedang jahe', 'bajigur', 'bandrek', 'sekoteng', 'jamu', 'beras kencur', 'kunyit asam', 'temulawak',
     'susu jahe', 'susu coklat', 'susu murni', 'susu sapi', 'susu kambing', 'susu',
     'minuman dingin', 'minuman segar', 'minuman kemasan', 'beli minuman', 'botol minum', 'kedai minuman', 'aneka minuman', 'minuman'
+  ],
+  accessories: [
+    'casing hp', 'case hp', 'casing handphone', 'case handphone', 'softcase', 'hardcase', 'silikon hp', 'casing', 'case',
+    'tempered glass', 'anti gores', 'antigores', 'pelindung layar', 'screen protector', 'hydrogel', 'skin hp',
+    'charger hp', 'kabel data', 'kabel charger', 'kepala charger', 'fast charging', 'adapter charger', 'charger',
+    'powerbank', 'power bank', 'kabel type c', 'kabel lightning', 'kabel micro usb',
+    'tws', 'airpods', 'headset', 'earphone', 'headphone', 'earbuds', 'in-ear', 'handsfree',
+    'holder hp', 'stand hp', 'ring hp', 'popsocket', 'tripod hp', 'tongsis', 'lanyard hp', 'tali hp',
+    'mouse', 'keyboard', 'mousepad', 'flashdisk', 'memory card', 'sd card', 'otg', 'hub usb',
+    'gantungan kunci', 'gelang', 'kalung', 'cincin', 'anting', 'kacamata', 'jam tangan', 'strap watch',
+    'dompet kartu', 'card holder', 'aksesoris hp', 'aksesoris', 'accessories'
+  ],
+  biayaAdmin: [
+    'biaya admin', 'admin bank', 'biaya transfer', 'admin transfer', 'biaya transaksi', 'potongan admin', 'biaya bulanan bank', 'admin bulanan', 'admin topup', 'biaya penanganan'
   ]
 };
 
@@ -859,6 +873,14 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'skincare';
     latestExpenseIdx = 9700;
     expenseMatchedWord = 'skincare';
+  } else if (/\b(casing hp|case hp|casing handphone|case handphone|softcase|hardcase|silikon hp|casing|case|tempered glass|anti gores|antigores|pelindung layar|screen protector|hydrogel|skin hp|charger hp|kabel data|kabel charger|kepala charger|fast charging|adapter charger|charger|powerbank|power bank|kabel type c|kabel lightning|kabel micro usb|tws|airpods|headset|earphone|headphone|earbuds|handsfree|holder hp|stand hp|ring hp|popsocket|tripod hp|tongsis|lanyard hp|tali hp|mousepad|flashdisk|memory card|sd card|otg|gantungan kunci|gelang|kalung|cincin|anting|kacamata|jam tangan|strap watch|dompet kartu|card holder|aksesoris hp|aksesoris|accessories)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'accessories';
+    latestExpenseIdx = 9750;
+    expenseMatchedWord = 'accessories';
+  } else if (/\b(biaya admin|admin bank|biaya transfer|admin transfer|biaya transaksi|potongan admin|biaya bulanan bank|admin bulanan|admin topup|biaya penanganan)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'biayaAdmin';
+    latestExpenseIdx = 9720;
+    expenseMatchedWord = 'biayaAdmin';
   } else if (/\b(nonton film|tiket bioskop|popcorn bioskop|cinepolis|premiere|bioskop|nonton|cinema|xxi|cgv|imax|film|movie|spiderman|spider-man|marvel|avatar|batman|avengers|disney|anime|cinema 21)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'bioskop';
     latestExpenseIdx = 9650;
@@ -941,7 +963,7 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     });
   }
 
-  if (matchedIncomeCatId && (!matchedExpenseCatId || latestIncomeIdx >= latestExpenseIdx || isIncome)) {
+  if (matchedIncomeCatId && (!matchedExpenseCatId || latestIncomeIdx >= latestExpenseIdx || isIncome || !hasExpenseVerb)) {
     isIncome = true;
   } else if (matchedExpenseCatId && !isIncome) {
     isIncome = false;

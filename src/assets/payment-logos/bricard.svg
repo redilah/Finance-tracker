@@ -1,0 +1,9 @@
+<svg width="48" height="36" viewBox="0 0 48 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="36" rx="6" fill="#00529C"/>
+  <path d="M30 0H48V36H24L30 0Z" fill="#003B70"/>
+  <!-- Chip -->
+  <rect x="6" y="8" width="7" height="5.5" rx="1.2" fill="#D4AF37"/>
+  <!-- Text -->
+  <text x="42" y="13" font-family="Arial, sans-serif" font-size="5.8" font-weight="900" fill="#FFFFFF" text-anchor="end">BRI</text>
+  <text x="42" y="19" font-family="Arial, sans-serif" font-size="4" font-weight="800" fill="#F37023" text-anchor="end">TOUCH</text>
+</svg>
