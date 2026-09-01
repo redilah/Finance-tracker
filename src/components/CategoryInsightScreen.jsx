@@ -129,6 +129,8 @@ export default function CategoryInsightScreen({
   const insight = useMemo(() => {
     return generateCategoryInsight({
       categoryName: category.name || category.category || 'Kategori',
+      categoryId: category.id || category.categoryId || '',
+      category,
       year,
       monthIndex,
       allTransactions,
@@ -299,33 +301,10 @@ export default function CategoryInsightScreen({
 
               {/* Key Highlights Grid */}
               <div className="category-insight-highlights-grid">
-                
-                {/* 0. Rata-rata Pengeluaran Per Hari (Featured) */}
-                <div className="category-insight-highlight-item featured">
-                  <div className="highlight-item-header">
-                    <span className="highlight-icon">📊</span>
-                    <span className="highlight-title">{tr('categoryInsightDailyAverage')}</span>
-                  </div>
-                  <div className="highlight-item-content">
-                    {insight.currentCount > 0 ? (
-                      <>
-                        <span className="highlight-main-val">
-                          {formatAmount(insight.averagePerDay)} <span className="highlight-unit-label">/ {tr('timeDays').toLowerCase()}</span>
-                        </span>
-                        <span className="highlight-sub-val">
-                          {tr('categoryInsightPerDayDesc')}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="highlight-empty-val">-</span>
-                    )}
-                  </div>
-                </div>
-
                 {/* 1. Item Paling Sering */}
                 <div className="category-insight-highlight-item">
                   <div className="highlight-item-header">
-                    <span className="highlight-icon">🍜</span>
+                    <span className="highlight-icon">🛍️</span>
                     <span className="highlight-title">{tr('categoryInsightTopBought')}</span>
                   </div>
                   <div className="highlight-item-content">

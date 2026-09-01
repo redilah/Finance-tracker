@@ -259,18 +259,10 @@ export default function HomeGroupTabContent({
           {/* WA Members Section */}
           <div className="wa-members-section">
             <div className="wa-members-header">
-              Members: {initialMembers.length > 0 ? `${initialMembers.length + 1}` : 'None'}
+              Anggota Tambahan: {initialMembers.length > 0 ? `${initialMembers.length} orang` : 'Belum ada'}
             </div>
 
             <div className="wa-members-grid">
-              {/* Current User Chip */}
-              <div className="wa-member-item-chip">
-                <div className="wa-member-item-avatar">
-                  👑
-                </div>
-                <span className="wa-member-item-name">{currentUserName}</span>
-              </div>
-
               {/* Added Members Chips */}
               {initialMembers.map((mName, idx) => (
                 <div key={idx} className="wa-member-item-chip">

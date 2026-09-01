@@ -50,6 +50,7 @@ import { checkForAppUpdates, CURRENT_VERSION_NAME, CURRENT_VERSION_CODE } from '
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
 import QuickTextModal from './components/QuickTextModal';
+import VoiceQueryResultModal from './components/VoiceQueryResultModal';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 import { generateFinancialInsights, formatActivePeriodRange } from './utils/financialInsightEngine';
@@ -64,6 +65,10 @@ import PinLockScreen from './components/PinLockScreen';
 import GuidedTourModal from './components/GuidedTourModal';
 import GroupsHubModal from './components/groups/GroupsHubModal';
 import HomeGroupTabContent from './components/HomeGroupTabContent';
+import ProUpgradeModal from './components/ProUpgradeModal';
+import { exportTransactionsToSpreadsheet } from './utils/excelExport';
+import { isProUser, setProUser } from './utils/proManager';
+import { initRevenueCat } from './utils/revenueCatManager';
 import { syncWidgetData } from './utils/widgetSync';
 import { FAQ_ITEMS } from './utils/faqData';
 
@@ -350,7 +355,7 @@ const isAutoTrackedTx = (tx) => Boolean(
  * 1. Pop Timbul dari Belakang (3D Elevation Depth)
  * 2. Animasi Ketik (Typewriter) Mengalir Alami dari Kiri ke Kanan (Single Unified Timer - Anti-Stuck)
  */
-function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete, onSelectTx, onEditTx }) {
+function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete, onSelectTx, onEditTx, className = '' }) {
   const fullTitle = item.title || item.category || 'Transaksi';
   const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
   const prefix = item.type === 'expense' ? '-' : '+';
@@ -416,7 +421,7 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimati
 
   return (
     <div 
-      className={`transaction-item ${resolveCardBgClass(item)} voice-card-timbul ${isDeleting ? 'deleting-sink' : ''}`} 
+      className={`transaction-item ${resolveCardBgClass(item)} voice-card-timbul ${isDeleting ? 'deleting-sink' : ''} ${className}`} 
       key={item.id}
       onClick={() => onSelectTx && onSelectTx(item)}
       role="button"
@@ -957,6 +962,8 @@ function App() {
   // Auto-open modal on first time setup
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(isFirstTimeUser);
   const [isBudgetCapModalOpen, setIsBudgetCapModalOpen] = useState(false);
+  const [isVoiceQueryResultOpen, setIsVoiceQueryResultOpen] = useState(false);
+  const [voiceQueryData, setVoiceQueryData] = useState(null);
 
   // Monthly Budgets Map: { 'YYYY-MM': { main: number | null, categories: { [catId]: number } } }
   const [monthlyBudgetsMap, setMonthlyBudgetsMap] = useState(() => {
@@ -1144,6 +1151,16 @@ function App() {
   // Groups State
   const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
+  // Pro Upgrade Modal State
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [proTriggerReason, setProTriggerReason] = useState('general');
+  const [isPro, setIsPro] = useState(() => isProUser());
+
+  const handleOpenProModal = (reason = 'general') => {
+    setProTriggerReason(reason);
+    setIsProModalOpen(true);
+  };
+
   // Feedback for Developer State
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('Saran Fitur');
@@ -1180,21 +1197,21 @@ function App() {
   const [isAppLocked, setIsAppLocked] = useState(() => hasUserPin() && isAppLockEnabled());
 
   // Interactive Guided Tour State
-  // Rule: 
-  // 1. User Baru (setelah onboarding profile selesai): Wajib panduan aplikasi penuh (mode: 'full_guide')
-  // 2. User Lama (yang update ke versi ini): Wajib 4-fitur utama tour (mode: 'new_user_v20')
-  const [isTourOpen, setIsTourOpen] = useState(() => {
-    const isSetupDone = safeStorageGet('user_profile_setup_done');
-    if (!isSetupDone) {
-      // User baru belum selesai setup profil, jangan buka tour dulu sampai profil disimpan
-      return false;
-    }
-    const updateTourCompleted = safeStorageGet('cassiel_guided_tour_v20_completed');
-    return updateTourCompleted !== 'true' && updateTourCompleted !== true;
-  });
+  // Interactive Guided Tour State
+  // Tour HANYA dibuka 1x setelah user baru selesai onboarding setup profil,
+  // atau saat user secara manual menekan menu "Panduan Aplikasi" di Profil.
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [tourMode, setTourMode] = useState('full_guide'); // 'full_guide' (5 essential steps)
 
   const handleCompleteTour = () => {
+    try {
+      safeStorageSet('cassiel_guided_tour_v20_completed', 'true');
+      safeStorageSet('cassiel_guided_tour_full_completed', 'true');
+    } catch {}
+    setIsTourOpen(false);
+  };
+
+  const handleCloseTour = () => {
     try {
       safeStorageSet('cassiel_guided_tour_v20_completed', 'true');
       safeStorageSet('cassiel_guided_tour_full_completed', 'true');
@@ -1316,6 +1333,7 @@ function App() {
 
   // Voice-Command Deletion & Feedback Toast State
   const [deletingTxId, setDeletingTxId] = useState(null);
+  const [deletingTxIds, setDeletingTxIds] = useState([]);
   const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
   const toastTimerRef = useRef(null);
@@ -1595,7 +1613,10 @@ function App() {
 
     // 1. Cek langsung saat mount aplikasi
     setTimeout(() => {
-      if (active) checkUpdate();
+      if (active) {
+        checkUpdate();
+        initRevenueCat();
+      }
 
       // Deteksi jika aplikasi dibuka melalui Link Undangan Grup (?g= atau ?joinGroup=)
       try {
@@ -1702,7 +1723,18 @@ function App() {
   // Note Suggestions & Modal state
   const [isNoteSuggestionsOpen, setIsNoteSuggestionsOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalClosing, setIsAddModalClosing] = useState(false);
   const [isQuickTextModalOpen, setIsQuickTextModalOpen] = useState(false);
+
+  const handleCloseAddModal = useCallback(() => {
+    if (isAddModalClosing) return;
+    setIsAddModalClosing(true);
+    setTimeout(() => {
+      setIsAddModalOpen(false);
+      setIsAddModalClosing(false);
+      setEditingTransactionId(null);
+    }, 190);
+  }, [isAddModalClosing]);
 
   const [tempName, setTempName] = useState(profileName);
   const [tempProfileImage, setTempProfileImage] = useState(profileImage);
@@ -2075,6 +2107,7 @@ function App() {
     setIsAccountDeleteMode,
     isAddModalOpen,
     setIsAddModalOpen,
+    handleCloseAddModal,
     isProfileModalOpen,
     setIsProfileModalOpen,
     isEditingName,
@@ -2217,6 +2250,12 @@ function App() {
       return;
     }
 
+    // 3b. Modal Tanya AI Finansial
+    if (s.isVoiceQueryResultOpen) {
+      s.setIsVoiceQueryResultOpen(false);
+      return;
+    }
+
     // 4. Modal Peringatan Keamanan Transaksi
     if (s.safetyWarning && s.safetyWarning.isOpen) {
       s.setSafetyWarning({ isOpen: false, categoryLabel: '', reason: '' });
@@ -2247,8 +2286,12 @@ function App() {
         s.setIsAccountDeleteMode(false);
         return;
       }
-      s.setIsAddModalOpen(false);
-      setEditingTransactionId(null);
+      if (s.handleCloseAddModal) {
+        s.handleCloseAddModal();
+      } else {
+        s.setIsAddModalOpen(false);
+        setEditingTransactionId(null);
+      }
       return;
     }
 
@@ -3067,6 +3110,61 @@ function App() {
         return;
       }
 
+      // A1. Multi-Hapus (Lebih dari 1 transaksi berdasarkan jumlah / filter / waktu)
+      if (result.isMultipleDelete) {
+        let targetTxs = [];
+
+        if (result.deleteAllMatching) {
+          const now = new Date();
+          const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayISO = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+          targetTxs = (transactions || []).filter(t => {
+            if (result.timeRange === 'today' && t.date !== todayISO) return false;
+            if (result.timeRange === 'yesterday' && t.date !== yesterdayISO) return false;
+            if (result.targetCategory) {
+              const tc = (result.targetCategory || '').toLowerCase();
+              const matchCat = (t.category || '').toLowerCase() === tc || (t.categoryId || '').toLowerCase() === tc;
+              if (!matchCat) return false;
+            }
+            if (result.targetQuery) {
+              const tq = (result.targetQuery || '').toLowerCase();
+              const matchTitle = (t.title || '').toLowerCase().includes(tq);
+              const matchAcc = (t.account || '').toLowerCase().includes(tq);
+              if (!matchTitle && !matchAcc) return false;
+            }
+            return true;
+          });
+        } else if (result.deleteCount) {
+          const count = result.deleteCount === 'all' ? transactions.length : Math.min(transactions.length, Number(result.deleteCount) || 1);
+          targetTxs = transactions.slice(0, count);
+        }
+
+        if (targetTxs.length === 0) {
+          showVoiceToast('Tidak ditemukan transaksi yang cocok untuk dihapus');
+          return;
+        }
+
+        const targetIds = new Set(targetTxs.map(t => t.id));
+        setDeletingTxIds(Array.from(targetIds));
+        playPopSound();
+        showVoiceToast(`🗑️ Menghapus ${targetTxs.length} transaksi...`);
+
+        setTimeout(() => {
+          setTransactions(prev => prev.filter(t => !targetIds.has(t.id)));
+          setDeletingTxIds([]);
+          const labelDesc = result.deleteAllMatching
+            ? (result.targetCategory || result.targetQuery || (result.timeRange === 'today' ? 'Hari Ini' : result.timeRange === 'yesterday' ? 'Kemarin' : 'semua'))
+            : `${targetTxs.length} transaksi terakhir`;
+          showVoiceToast(`✅ ${targetTxs.length} transaksi (${labelDesc}) berhasil dihapus`);
+        }, 450);
+
+        return;
+      }
+
+      // A2. Hapus Tunggal (Single Target Deletion)
       let targetTx = null;
 
       // Robust Multi-Stage Voice Deletion Matcher
@@ -3171,6 +3269,315 @@ function App() {
       return;
     }
 
+    // A2. Perintah Ubah / Edit Transaksi Terakhir via Suara (Voice-Command EDIT)
+    if (result.action === 'EDIT_LAST' || result.action === 'EDIT') {
+      if (!transactions || transactions.length === 0) {
+        showVoiceToast('Belum ada transaksi untuk diubah');
+        return;
+      }
+
+      const targetTx = transactions[0];
+      const updatedTx = { ...targetTx };
+      const changeDescriptions = [];
+
+      if (result.changes?.amount) {
+        updatedTx.amount = parseFloat(result.changes.amount);
+        changeDescriptions.push(`Rp ${updatedTx.amount.toLocaleString('id-ID')}`);
+      }
+      if (result.changes?.account) {
+        updatedTx.account = result.changes.account;
+        changeDescriptions.push(`Akun: ${updatedTx.account}`);
+      }
+      if (result.changes?.category) {
+        updatedTx.category = result.changes.category.name;
+        updatedTx.categoryId = result.changes.category.id || null;
+        if (result.changes.category.iconClass) {
+          updatedTx.iconClass = result.changes.category.iconClass;
+        }
+        changeDescriptions.push(`Kategori: ${updatedTx.category}`);
+      }
+      if (result.changes?.title) {
+        updatedTx.title = result.changes.title;
+        changeDescriptions.push(`"${updatedTx.title}"`);
+      }
+
+      setTransactions(prev => prev.map(t => t.id === targetTx.id ? updatedTx : t));
+      playPositiveChime();
+      showVoiceToast(`✏️ Transaksi terakhir diubah (${changeDescriptions.join(', ') || 'Berhasil'})`);
+      return;
+    }
+
+    // A3. Perintah Transfer / Pindah Saldo Antar Akun via Suara (Voice-Command TRANSFER)
+    if (result.action === 'TRANSFER') {
+      const numericAmount = parseFloat(result.amount) || 0;
+      if (numericAmount <= 0) return;
+
+      const fromAcc = result.fromAccount || 'BCA';
+      const toAcc = result.toAccount || 'Cash';
+      const transferDate = result.date || getTodayISO();
+
+      const txExpenseId = Date.now() + Math.floor(Math.random() * 500);
+      const txExpense = {
+        id: txExpenseId,
+        title: result.note || `Transfer ke ${toAcc}`,
+        category: 'Biaya Admin',
+        categoryId: 'biayaAdmin',
+        account: fromAcc,
+        amount: numericAmount,
+        type: 'expense',
+        iconClass: 'bank-icon',
+        date: transferDate,
+        inputMethod: 'voice'
+      };
+
+      const txIncomeId = Date.now() + 500 + Math.floor(Math.random() * 500);
+      const txIncome = {
+        id: txIncomeId,
+        title: `Transfer dari ${fromAcc}`,
+        category: 'Bonus & Hadiah',
+        categoryId: 'bonus',
+        account: toAcc,
+        amount: numericAmount,
+        type: 'income',
+        iconClass: 'bank-icon',
+        date: transferDate,
+        inputMethod: 'voice'
+      };
+
+      setTransactions(prev => [txIncome, txExpense, ...prev]);
+      playPositiveChime();
+      showVoiceToast(`🔄 Transfer Rp ${numericAmount.toLocaleString('id-ID')} (${fromAcc} ➔ ${toAcc}) tersimpan`);
+      return;
+    }
+
+    // A4. Pertanyaan Finansial / Asisten Suara Interaktif AI (Voice Query AI)
+    if (result.action === 'QUERY') {
+      const now = new Date();
+      const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayISO = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+      
+      const curMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Filter transaksi berdasarkan rentang waktu
+      const filterTxsByTime = (range) => {
+        return (transactions || []).filter(t => {
+          if (!t.date) return false;
+          if (range === 'today') return t.date === todayISO;
+          if (range === 'yesterday') return t.date === yesterdayISO;
+          return t.date.startsWith(curMonthPrefix);
+        });
+      };
+
+      const timeRange = result.timeRange || 'month';
+      const timeLabel = timeRange === 'today' ? 'Hari Ini' : timeRange === 'yesterday' ? 'Kemarin' : 'Bulan Ini';
+      const targetTxs = filterTxsByTime(timeRange);
+
+      let queryModalData = null;
+
+      if (result.queryType === 'BUDGET') {
+        // Query Sisa Budget
+        const monthExpenses = (transactions || []).filter(t => t.date && t.date.startsWith(curMonthPrefix) && t.type === 'expense');
+        const totalSpent = monthExpenses.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const budgetLimit = mainMonthlyBudget || 0;
+        const remainingBudget = Math.max(0, budgetLimit - totalSpent);
+        const spentPercent = budgetLimit > 0 ? Math.round((totalSpent / budgetLimit) * 100) : 0;
+        const isOver = budgetLimit > 0 && totalSpent > budgetLimit;
+
+        const formattedRemaining = remainingBudget.toLocaleString('id-ID');
+        const formattedTotalSpent = totalSpent.toLocaleString('id-ID');
+        const formattedLimit = budgetLimit.toLocaleString('id-ID');
+
+        queryModalData = {
+          icon: '🎯',
+          title: 'Sisa Budget Bulanan',
+          subtitle: `Periode ${MONTH_NAMES_I18N['id'] ? MONTH_NAMES_I18N['id'][now.getMonth()] : 'Bulan Ini'} ${now.getFullYear()}`,
+          rawSpokenText: result.rawText,
+          primaryLabel: isOver ? 'Budget Terlewati' : 'Sisa Budget Anda',
+          primaryAmount: budgetLimit > 0 ? (isOver ? totalSpent - budgetLimit : remainingBudget) : 'Belum Diatur',
+          badge: budgetLimit > 0 ? {
+            type: isOver ? 'danger' : spentPercent >= 80 ? 'warning' : 'success',
+            text: isOver ? `Lebih ${spentPercent}%` : `${spentPercent}% terpakai`
+          } : { type: 'neutral', text: 'Tanpa Limit' },
+          details: [
+            { icon: '🏷️', label: 'Batas Limit Budget', value: budgetLimit > 0 ? budgetLimit : 'Belum diatur' },
+            { icon: '📤', label: 'Total Pengeluaran', value: totalSpent, highlight: true },
+            { icon: '📊', label: 'Status Penggunaan', value: `${spentPercent}% dari total limit` }
+          ],
+          ttsMessage: budgetLimit > 0
+            ? (isOver
+                ? `Pengeluaran Anda bulan ini sudah mencapai Rp ${formattedTotalSpent}, melewati batas budget sebesar Rp ${formattedLimit}.`
+                : `Sisa budget Anda bulan ini adalah Rp ${formattedRemaining} dari total batas Rp ${formattedLimit}.`)
+            : `Anda belum mengatur batas budget untuk bulan ini. Total pengeluaran saat ini Rp ${formattedTotalSpent}.`
+        };
+      } else if (result.queryType === 'BALANCE') {
+        // Query Saldo Akun / Total Saldo
+        const getAccountStats = (accName) => {
+          const rawInit = accountInitialBalances[accName];
+          const initialBalance = typeof rawInit === 'number' && !isNaN(rawInit) ? rawInit : 0;
+          const accTxs = (transactions || []).filter(t => (t.account || 'Cash').toLowerCase().trim() === (accName || '').toLowerCase().trim());
+          const totalInc = accTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+          const totalExp = accTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+          return initialBalance + totalInc - totalExp;
+        };
+
+        if (result.targetAccount) {
+          // Saldo spesifik 1 akun
+          const accBalance = getAccountStats(result.targetAccount);
+          const formattedBal = accBalance.toLocaleString('id-ID');
+
+          queryModalData = {
+            icon: '💳',
+            title: `Saldo ${result.targetAccount}`,
+            subtitle: 'Informasi Saldo Terkini',
+            rawSpokenText: result.rawText,
+            primaryLabel: `Total Saldo di ${result.targetAccount}`,
+            primaryAmount: accBalance,
+            badge: { type: accBalance >= 0 ? 'success' : 'danger', text: result.targetAccount },
+            details: [
+              { icon: '🏦', label: 'Nama Akun / Rekening', value: result.targetAccount },
+              { icon: '💰', label: 'Saldo Aktif', value: accBalance, highlight: true }
+            ],
+            ttsMessage: `Saldo Anda di ${result.targetAccount} saat ini adalah Rp ${formattedBal}.`
+          };
+        } else {
+          // Total seluruh saldo dari seluruh akun
+          const allAccs = Array.from(new Set([
+            ...(accountsList || []),
+            ...(warehouseAccountsList || []),
+            ...Object.keys(accountInitialBalances || {}),
+            ...(transactions || []).map(t => t.account || 'Cash')
+          ])).filter(Boolean);
+
+          let grandTotalBalance = 0;
+          const accBreakdown = [];
+
+          allAccs.forEach(acc => {
+            const bal = getAccountStats(acc);
+            grandTotalBalance += bal;
+            if (bal !== 0) {
+              accBreakdown.push({ icon: '💳', label: acc, value: bal });
+            }
+          });
+
+          const formattedGrand = grandTotalBalance.toLocaleString('id-ID');
+
+          queryModalData = {
+            icon: '💰',
+            title: 'Total Saldo Keuangan',
+            subtitle: `Akumulasi dari ${allAccs.length} Akun & Dompet`,
+            rawSpokenText: result.rawText,
+            primaryLabel: 'Total Saldo Keseluruhan',
+            primaryAmount: grandTotalBalance,
+            badge: { type: 'success', text: `${allAccs.length} Akun` },
+            details: accBreakdown.slice(0, 5),
+            ttsMessage: `Total seluruh saldo Anda saat ini adalah Rp ${formattedGrand}.`
+          };
+        }
+      } else if (result.queryType === 'INCOME') {
+        // Query Pemasukan
+        const incTxs = targetTxs.filter(t => t.type === 'income');
+        const totalIncome = incTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const formattedIncome = totalIncome.toLocaleString('id-ID');
+
+        // Kategori pemasukan teratas
+        const catMap = {};
+        incTxs.forEach(t => {
+          const k = t.category || 'Lainnya';
+          catMap[k] = (catMap[k] || 0) + (Number(t.amount) || 0);
+        });
+        const topCats = Object.entries(catMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([k, v]) => ({ icon: '📥', label: k, value: v }));
+
+        queryModalData = {
+          icon: '📈',
+          title: `Pemasukan (${timeLabel})`,
+          subtitle: `${incTxs.length} Transaksi Tercatat`,
+          rawSpokenText: result.rawText,
+          primaryLabel: `Total Pemasukan ${timeLabel}`,
+          primaryAmount: totalIncome,
+          badge: { type: 'success', text: `${incTxs.length} Pemasukan` },
+          details: topCats.length > 0 ? topCats : [
+            { icon: '📝', label: 'Jumlah Transaksi', value: `${incTxs.length} kali` }
+          ],
+          ttsMessage: totalIncome > 0
+            ? `Total pemasukan Anda ${timeLabel.toLowerCase()} adalah Rp ${formattedIncome} dari ${incTxs.length} transaksi.`
+            : `Belum ada catatan pemasukan untuk ${timeLabel.toLowerCase()}.`
+        };
+      } else if (result.queryType === 'CATEGORY' && result.targetCategory) {
+        // Query Kategori Tertentu (misal Kopi, Bensin, Makanan)
+        const catQuery = (result.targetCategory || '').toLowerCase();
+        const catTxs = targetTxs.filter(t => {
+          const cName = (t.category || '').toLowerCase();
+          const cId = (t.categoryId || '').toLowerCase();
+          const cTitle = (t.title || '').toLowerCase();
+          return cName.includes(catQuery) || cId.includes(catQuery) || cTitle.includes(catQuery);
+        });
+
+        const totalCatSpent = catTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const formattedCatSpent = totalCatSpent.toLocaleString('id-ID');
+
+        queryModalData = {
+          icon: '🏷️',
+          title: `Pengeluaran ${result.targetCategory}`,
+          subtitle: `Periode ${timeLabel} • ${catTxs.length} Transaksi`,
+          rawSpokenText: result.rawText,
+          primaryLabel: `Total Pengeluaran ${result.targetCategory}`,
+          primaryAmount: totalCatSpent,
+          badge: { type: totalCatSpent > 0 ? 'warning' : 'neutral', text: `${catTxs.length}x Beli` },
+          details: catTxs.slice(0, 4).map(t => ({
+            icon: '☕',
+            label: t.title || t.category,
+            value: Number(t.amount) || 0
+          })),
+          ttsMessage: totalCatSpent > 0
+            ? `Pengeluaran untuk ${result.targetCategory} ${timeLabel.toLowerCase()} adalah Rp ${formattedCatSpent} dari ${catTxs.length} transaksi.`
+            : `Belum ada pengeluaran untuk ${result.targetCategory} ${timeLabel.toLowerCase()}.`
+        };
+      } else {
+        // Default: Query Pengeluaran (Today / Month / Yesterday)
+        const expTxs = targetTxs.filter(t => t.type === 'expense');
+        const totalExpense = expTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const formattedExpense = totalExpense.toLocaleString('id-ID');
+
+        // Kategori pengeluaran teratas
+        const catMap = {};
+        expTxs.forEach(t => {
+          const k = t.category || 'Lainnya';
+          catMap[k] = (catMap[k] || 0) + (Number(t.amount) || 0);
+        });
+        const topCats = Object.entries(catMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([k, v]) => ({ icon: '🏷️', label: k, value: v }));
+
+        queryModalData = {
+          icon: '📉',
+          title: `Pengeluaran (${timeLabel})`,
+          subtitle: `${expTxs.length} Transaksi Pengeluaran`,
+          rawSpokenText: result.rawText,
+          primaryLabel: `Total Pengeluaran ${timeLabel}`,
+          primaryAmount: totalExpense,
+          badge: { type: 'danger', text: `${expTxs.length} Transaksi` },
+          details: topCats.length > 0 ? topCats : [
+            { icon: '📝', label: 'Jumlah Transaksi', value: `${expTxs.length} kali` }
+          ],
+          ttsMessage: totalExpense > 0
+            ? `Total pengeluaran Anda ${timeLabel.toLowerCase()} adalah Rp ${formattedExpense} dari ${expTxs.length} transaksi.`
+            : `Belum ada catatan pengeluaran untuk ${timeLabel.toLowerCase()}.`
+        };
+      }
+
+      setVoiceQueryData(queryModalData);
+      setIsVoiceQueryResultOpen(true);
+      playPositiveChime();
+      return;
+    }
+
     // B. Simpan Transaksi Baru
     const catName = result.category.name;
     const catIconClass = result.category.iconClass || 'food-icon';
@@ -3191,6 +3598,7 @@ function App() {
     const numericAmount = parseFloat(result.amount) || 0;
     if (numericAmount <= 0) return;
 
+    const txDate = result.date || getTodayISO();
     const newTxId = Date.now() + Math.floor(Math.random() * 1000);
     const newTx = {
       id: newTxId,
@@ -3201,7 +3609,7 @@ function App() {
       amount: numericAmount,
       type: result.type.toLowerCase(),
       iconClass: catIconClass,
-      date: getTodayISO(),
+      date: txDate,
       inputMethod: 'voice'
     };
 
@@ -3213,7 +3621,15 @@ function App() {
     // Aktifkan efek animasi ketik & timbul dari belakang
     setVoiceAnimatingTxIds(prev => new Set(prev).add(newTxId));
     setTransactions(prev => [newTx, ...prev]);
-    showVoiceToast(`✅ "${finalTitle}" Rp ${numericAmount.toLocaleString('id-ID')} tersimpan`);
+    
+    const splitLabel = result.isSplitBill ? ` (Split ${result.splitPersonCount} org)` : '';
+    const timeLabel = result.detectedTimePhrase ? ` (${result.detectedTimePhrase})` : (result.date && result.date !== getTodayISO() ? ` (${result.date})` : '');
+    showVoiceToast(`✅ "${finalTitle}" Rp ${numericAmount.toLocaleString('id-ID')}${splitLabel}${timeLabel} tersimpan`);
+
+    // Sinyal sukses ke Guided Tour jika sedang aktif
+    window.dispatchEvent(new CustomEvent('cassiel_tour_voice_success', {
+      detail: { result: newTx }
+    }));
   };
 
   // Save Transaction
@@ -3293,7 +3709,7 @@ function App() {
     setIsNoteSuggestionsOpen(false);
   };
 
-  // Compute Balances
+  // Compute Balances (All Time)
   const totalExpenses = transactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -3317,11 +3733,26 @@ function App() {
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [transactions, currentDate]);
 
+  // Monthly Income for current navigated month
+  const currentMonthIncome = useMemo(() => {
+    const targetYear = currentDate.getFullYear();
+    const targetMonth = currentDate.getMonth();
+    return transactions
+      .filter(t => {
+        if (t.type !== 'income' || !t.date) return false;
+        const [y, m] = t.date.split('-');
+        return Number(y) === targetYear && Number(m) - 1 === targetMonth;
+      })
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions, currentDate]);
+
+  // Net Balance for current navigated month
+  const currentMonthBalance = currentMonthIncome - currentMonthExpenses;
+
   // Target Expense Amount based on active quick filter (with Cash Counter animation)
   const targetExpenseAmount = useMemo(() => {
-    if (!isCurrentMonth) return 0;
     if (expenseDateFilter === 'month') {
-      return totalExpenses;
+      return currentMonthExpenses;
     }
 
     const now = new Date();
@@ -3367,7 +3798,7 @@ function App() {
         return txDate >= startDate && txDate <= endDate;
       })
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  }, [transactions, isCurrentMonth, totalExpenses, expenseDateFilter]);
+  }, [transactions, currentMonthExpenses, expenseDateFilter]);
 
   const animatedExpenseAmount = useCashCounter(targetExpenseAmount, 1200);
 
@@ -3778,7 +4209,7 @@ function App() {
               onClick={() => setActiveBalanceDetail({
                 type: 'expense',
                 label: t('expenses'),
-                amount: isCurrentMonth ? animatedExpenseAmount : 0,
+                amount: animatedExpenseAmount,
                 color: 'var(--card-expense-text)',
                 bgColor: 'var(--card-expense-bg)',
                 icon: '▼'
@@ -3791,7 +4222,7 @@ function App() {
                 <span className="icon-down">▼</span>
               </div>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtHomeMoney(animatedExpenseAmount) : fmtHomeMoney(0)}</span>
+                <span className="amount">{fmtHomeMoney(animatedExpenseAmount)}</span>
               </div>
             </div>
             <div 
@@ -3799,7 +4230,7 @@ function App() {
               onClick={() => setActiveBalanceDetail({
                 type: 'income',
                 label: t('income'),
-                amount: isCurrentMonth ? totalIncome : 0,
+                amount: currentMonthIncome,
                 color: 'var(--card-income-text)',
                 bgColor: 'var(--card-income-bg)',
                 icon: '▲'
@@ -3812,7 +4243,7 @@ function App() {
                 <span className="icon-up">▲</span>
               </div>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtHomeMoney(totalIncome) : fmtHomeMoney(0)}</span>
+                <span className="amount">{fmtHomeMoney(currentMonthIncome)}</span>
               </div>
             </div>
             <div 
@@ -3820,7 +4251,7 @@ function App() {
               onClick={() => setActiveBalanceDetail({
                 type: 'total',
                 label: t('total'),
-                amount: isCurrentMonth ? totalBalance : 0,
+                amount: currentMonthBalance,
                 color: 'var(--text-main, #333333)',
                 bgColor: '#E6EEFA',
                 icon: '💰'
@@ -3833,7 +4264,7 @@ function App() {
                 <span className="icon-total font-bold">💰</span>
               </div>
               <div className="amount-container">
-                <span className="amount">{isCurrentMonth ? fmtHomeMoney(totalBalance) : fmtHomeMoney(0)}</span>
+                <span className="amount">{fmtHomeMoney(currentMonthBalance)}</span>
               </div>
             </div>
           </section>
@@ -3975,7 +4406,7 @@ function App() {
           )}
 
           {/* Home Transaction Filter Tabs (Income / Expense) */}
-          {isCurrentMonth && transactions.length > 0 && (
+          {transactions.length > 0 && (
             <div 
               className="home-tx-filter-bar"
               style={{ zIndex: isExpenseDropdownOpen && homeTxFilter === 'expense' ? 1150 : 5 }}
@@ -4067,185 +4498,197 @@ function App() {
           )}
 
           {/* Transactions List Grouped by Date */}
-          <section className="transactions-container transactions-container-animated" key={`${homeTxFilter}-${expenseDateFilter}`}>
-            {isCurrentMonth ? (
-              (() => {
-                const displayedHomeTransactions = transactions.filter(tx => {
-                  if (homeTxFilter === 'income') return tx.type === 'income';
-                  if (homeTxFilter === 'expense') {
-                    if (tx.type !== 'expense') return false;
-                    if (expenseDateFilter === 'month') return true;
+          <section className="transactions-container transactions-container-animated" key={`${formatMonthYear(currentDate)}-${homeTxFilter}-${expenseDateFilter}`}>
+            {(() => {
+              const targetYear = currentDate.getFullYear();
+              const targetMonth = currentDate.getMonth();
 
-                    const now = new Date();
-                    const toDateStr = (d) => {
-                      const y = d.getFullYear();
-                      const m = String(d.getMonth() + 1).padStart(2, '0');
-                      const day = String(d.getDate()).padStart(2, '0');
-                      return `${y}-${m}-${day}`;
-                    };
+              const displayedHomeTransactions = transactions.filter(tx => {
+                if (!tx.date) return false;
+                const [y, m] = tx.date.split('-');
+                const txYear = Number(y);
+                const txMonth = Number(m) - 1;
 
-                    if (expenseDateFilter === 'today') {
-                      const todayStr = toDateStr(now);
-                      return tx.date === todayStr;
-                    }
-
-                    if (expenseDateFilter === 'yesterday') {
-                      const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-                      return tx.date === toDateStr(yDate);
-                    }
-
-                    let daysBack = 2;
-                    if (expenseDateFilter === '3days') daysBack = 2;
-                    else if (expenseDateFilter === '1week') daysBack = 6;
-                    else if (expenseDateFilter === '2weeks') daysBack = 13;
-
-                    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
-                    startDate.setHours(0, 0, 0, 0);
-                    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    endDate.setHours(23, 59, 59, 999);
-
-                    if (!tx.date) return false;
-                    const parts = tx.date.split('-');
-                    if (parts.length < 3) return false;
-                    const txDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-                    return txDate >= startDate && txDate <= endDate;
-                  }
-                  return true;
-                });
-
-                if (displayedHomeTransactions.length === 0) {
-                  return (
-                    <div className="empty-transactions">
-                      <span className="empty-icon">📂</span>
-                      <span className="empty-title">{t('noTransactions')}</span>
-                      <span className="empty-subtitle">
-                        {homeTxFilter === 'income' 
-                          ? t('noIncomeDesc') 
-                          : homeTxFilter === 'expense' 
-                          ? t('noExpenseDesc') 
-                          : t('noTransactionsDesc')}
-                      </span>
-                    </div>
-                  );
+                if (homeTxFilter === 'income') {
+                  if (tx.type !== 'income') return false;
+                  return txYear === targetYear && txMonth === targetMonth;
                 }
 
-                // Group transactions by date
-                const groupedMap = {};
-                displayedHomeTransactions.forEach(tx => {
-                  const txDate = tx.date || '2026-08-09';
-                  if (!groupedMap[txDate]) {
-                    groupedMap[txDate] = [];
+                if (homeTxFilter === 'expense') {
+                  if (tx.type !== 'expense') return false;
+                  if (expenseDateFilter === 'month') {
+                    return txYear === targetYear && txMonth === targetMonth;
                   }
-                  groupedMap[txDate].push(tx);
-                });
 
-                // Sort dates descending
-                const sortedDates = Object.keys(groupedMap).sort((a, b) => b.localeCompare(a));
+                  const now = new Date();
+                  const toDateStr = (d) => {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
+                  };
 
-                return sortedDates.map(dateKey => {
-                  const groupTxs = groupedMap[dateKey];
-                  const [yearStr, monthStr, dayStr] = dateKey.split('-');
-                  const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
-                  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                  const dayName = days[dateObj.getDay()];
+                  if (expenseDateFilter === 'today') {
+                    const todayStr = toDateStr(now);
+                    return tx.date === todayStr;
+                  }
 
-                  // Compute totals for this date
-                  const dayIncome = groupTxs
-                    .filter(t => t.type === 'income')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                  const dayExpense = groupTxs
-                    .filter(t => t.type === 'expense')
-                    .reduce((sum, t) => sum + t.amount, 0);
+                  if (expenseDateFilter === 'yesterday') {
+                    const yDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                    return tx.date === toDateStr(yDate);
+                  }
 
-                  return (
-                    <div className="date-transaction-group" key={dateKey}>
-                      {/* Date Group Header Row */}
-                      <div className="date-group-header">
-                        <div className="date-group-left">
-                          <span className="date-day-number">{dayStr}</span>
-                          <span className={`date-day-badge day-${dayName.toLowerCase()}`}>{dayName}</span>
-                          <span className="date-month-year">{monthStr}.{yearStr}</span>
-                        </div>
-                        <div className="date-group-right">
-                          {homeTxFilter !== 'expense' && (
-                            <span className="day-income-amount">{fmtHomeMoney(dayIncome)}</span>
-                          )}
-                          {homeTxFilter !== 'income' && (
-                            <span className="day-expense-amount">{fmtHomeMoney(dayExpense)}</span>
-                          )}
-                        </div>
+                  let daysBack = 2;
+                  if (expenseDateFilter === '3days') daysBack = 2;
+                  else if (expenseDateFilter === '1week') daysBack = 6;
+                  else if (expenseDateFilter === '2weeks') daysBack = 13;
+
+                  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+                  startDate.setHours(0, 0, 0, 0);
+                  const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  endDate.setHours(23, 59, 59, 999);
+
+                  const parts = tx.date.split('-');
+                  if (parts.length < 3) return false;
+                  const txDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                  return txDate >= startDate && txDate <= endDate;
+                }
+
+                return txYear === targetYear && txMonth === targetMonth;
+              });
+
+              if (displayedHomeTransactions.length === 0) {
+                return (
+                  <div className="empty-transactions">
+                    <span className="empty-icon">📂</span>
+                    <span className="empty-title">{t('noTransactions')}</span>
+                    <span className="empty-subtitle">
+                      {homeTxFilter === 'income' 
+                        ? t('noIncomeDesc') 
+                        : homeTxFilter === 'expense' 
+                        ? t('noExpenseDesc') 
+                        : t('noTransactionsDesc')}
+                    </span>
+                  </div>
+                );
+              }
+
+              // Group transactions by date
+              const groupedMap = {};
+              displayedHomeTransactions.forEach(tx => {
+                const txDate = tx.date || getTodayISO();
+                if (!groupedMap[txDate]) {
+                  groupedMap[txDate] = [];
+                }
+                groupedMap[txDate].push(tx);
+              });
+
+              // Sort dates descending
+              const sortedDates = Object.keys(groupedMap).sort((a, b) => b.localeCompare(a));
+
+              return sortedDates.map((dateKey, dateIdx) => {
+                const groupTxs = groupedMap[dateKey];
+                const [yearStr, monthStr, dayStr] = dateKey.split('-');
+                const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const dayName = days[dateObj.getDay()];
+
+                // Compute totals for this date
+                const dayIncome = groupTxs
+                  .filter(t => t.type === 'income')
+                  .reduce((sum, t) => sum + t.amount, 0);
+                const dayExpense = groupTxs
+                  .filter(t => t.type === 'expense')
+                  .reduce((sum, t) => sum + t.amount, 0);
+
+                return (
+                  <div className="date-transaction-group" key={dateKey}>
+                    {/* Date Group Header Row */}
+                    <div className="date-group-header">
+                      <div className="date-group-left">
+                        <span className="date-day-number">{dayStr}</span>
+                        <span className={`date-day-badge day-${dayName.toLowerCase()}`}>{dayName}</span>
+                        <span className="date-month-year">{monthStr}.{yearStr}</span>
                       </div>
-
-                      {/* Transaction Items under this date */}
-                      <div className="date-group-items">
-                        {groupTxs.map(item => {
-                          if (voiceAnimatingTxIds.has(item.id)) {
-                            return (
-                              <VoiceAnimatedTransactionItem
-                                key={item.id}
-                                item={item}
-                                resolveIcon={resolveIcon}
-                                isDeleting={deletingTxId === item.id}
-                                onAnimationComplete={handleVoiceAnimationComplete}
-                                onSelectTx={setActiveTxDetail}
-                                onEditTx={handleEditTransaction}
-                              />
-                            );
-                          }
-
-                          return (
-                            <div 
-                              className={`transaction-item ${resolveCardBgClass(item)} ${deletingTxId === item.id ? 'deleting-sink' : ''}`} 
-                              key={item.id}
-                              onClick={() => setActiveTxDetail(item)}
-                              role="button"
-                              tabIndex={0}
-                            >
-                              <div className={`transaction-icon ${item.iconClass}`}>
-                                {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
-                              </div>
-                              <div className="transaction-details">
-                                <span className="transaction-title">{item.title}</span>
-                                <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'BRImo'}</span>
-                              </div>
-                              <div className="transaction-actions-right">
-                                {isAutoTrackedTx(item) && (
-                                  <button 
-                                    type="button" 
-                                    className="tx-edit-capsule-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTransaction(item);
-                                    }}
-                                    title="Edit Transaksi Otomatis"
-                                    aria-label="Edit Transaksi Otomatis"
-                                  >
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    <span>Edit</span>
-                                  </button>
-                                )}
-                                <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                  {item.type === 'expense' ? '-' : '+'}{fmtHomeMoney(item.amount)}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="date-group-right">
+                        {homeTxFilter !== 'expense' && (
+                          <span className="day-income-amount">{fmtHomeMoney(dayIncome)}</span>
+                        )}
+                        {homeTxFilter !== 'income' && (
+                          <span className="day-expense-amount">{fmtHomeMoney(dayExpense)}</span>
+                        )}
                       </div>
                     </div>
-                  );
-                });
-              })()
-            ) : (
-              <div className="empty-transactions">
-                <span className="empty-icon">📂</span>
-                <span className="empty-title">{t('noTransactions')}</span>
-                <span className="empty-subtitle">{t('noTransactionsDesc')}</span>
-              </div>
-            )}
+
+                    {/* Transaction Items under this date */}
+                    <div className="date-group-items">
+                      {groupTxs.map((item, itemIdx) => {
+                        const isFirstTx = dateIdx === 0 && itemIdx === 0;
+                        const firstTxClass = isFirstTx ? 'tour-target-first-tx' : '';
+
+                        const isTxDeleting = deletingTxId === item.id || deletingTxIds.includes(item.id);
+
+                        if (voiceAnimatingTxIds.has(item.id)) {
+                          return (
+                            <VoiceAnimatedTransactionItem
+                              key={item.id}
+                              item={item}
+                              resolveIcon={resolveIcon}
+                              isDeleting={isTxDeleting}
+                              onAnimationComplete={handleVoiceAnimationComplete}
+                              onSelectTx={setActiveTxDetail}
+                              onEditTx={handleEditTransaction}
+                              className={firstTxClass}
+                            />
+                          );
+                        }
+
+                        return (
+                          <div 
+                            className={`transaction-item ${resolveCardBgClass(item)} ${isTxDeleting ? 'deleting-sink' : ''} ${firstTxClass}`} 
+                            key={item.id}
+                            onClick={() => setActiveTxDetail(item)}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <div className={`transaction-icon ${item.iconClass}`}>
+                              {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
+                            </div>
+                            <div className="transaction-details">
+                              <span className="transaction-title">{item.title}</span>
+                              <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'BRImo'}</span>
+                            </div>
+                            <div className="transaction-actions-right">
+                              {isAutoTrackedTx(item) && (
+                                <button 
+                                  type="button" 
+                                  className="tx-edit-capsule-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTransaction(item);
+                                  }}
+                                  title="Edit Transaksi Otomatis"
+                                  aria-label="Edit Transaksi Otomatis"
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                  <span>Edit</span>
+                                </button>
+                              )}
+                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
+                                {item.type === 'expense' ? '-' : '+'}{fmtHomeMoney(item.amount)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </section>
         </div>
       )}
@@ -4598,19 +5041,66 @@ function App() {
               </button>
             </div>
 
-            <div className="stats-dropdown-wrapper" ref={dropdownRef}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
-                className="stats-period-btn"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="stats-export-btn"
+                onClick={async () => {
+                  if (!isPro) {
+                    handleOpenProModal('export');
+                    return;
+                  }
+                  showVoiceToast('Sedang menyiapkan berkas laporan...');
+                  const res = await exportTransactionsToSpreadsheet({
+                    transactions: filteredTransactions,
+                    currency: appCurrency,
+                    profileName
+                  });
+                  if (res.success) {
+                    showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
+                  } else {
+                    showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '6px 10px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)'
+                }}
+                title="Ekspor Laporan Excel (.xlsx / CSV)"
               >
-                <span>{periodFilter === 'monthly' ? 'Monthly' : periodFilter === 'weekly' ? 'Weekly' : 'Yearly'}</span>
-                <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="8" y1="13" x2="16" y2="13"></line>
+                  <line x1="8" y1="17" x2="16" y2="17"></line>
+                </svg>
+                <span>Excel</span>
+                {!isPro && <span style={{ fontSize: '9px' }}>👑</span>}
               </button>
+
+              <div className="stats-dropdown-wrapper" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="stats-period-btn"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  <span>{periodFilter === 'monthly' ? 'Monthly' : periodFilter === 'weekly' ? 'Weekly' : 'Yearly'}</span>
+                  <span className={`stats-select-arrow ${isDropdownOpen ? 'open' : ''}`}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                  </span>
+                </button>
 
               {isDropdownOpen && (
                 <div className="custom-dropdown-menu">
@@ -4634,6 +5124,7 @@ function App() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
           </header>
 
@@ -5419,6 +5910,7 @@ function App() {
           setNote={setNote}
           handleSaveVoiceTransaction={handleSaveVoiceTransaction}
           onOpenQuickText={() => setIsQuickTextModalOpen(true)}
+          onOpenProModal={handleOpenProModal}
         />
       )}
 
@@ -5431,6 +5923,14 @@ function App() {
         accountsList={accountsList}
         handleSaveVoiceTransaction={handleSaveVoiceTransaction}
         showVoiceToast={showVoiceToast}
+      />
+
+      {/* Interactive AI Financial Voice Query Result Modal */}
+      <VoiceQueryResultModal
+        isOpen={isVoiceQueryResultOpen}
+        onClose={() => setIsVoiceQueryResultOpen(false)}
+        queryData={voiceQueryData}
+        appCurrency={appCurrency}
       />
 
       {/* Voice Feedback Toast Notification */}
@@ -5515,14 +6015,14 @@ function App() {
       {/* Full Page Add Transaction Screen (Triggered by Plus button) */}
       {isAddModalOpen && (
         <div
-          className="full-page-add-screen"
+          className={`full-page-add-screen ${isAddModalClosing ? 'closing' : ''}`}
           onScroll={() => {
             if (isNoteSuggestionsOpen) setIsNoteSuggestionsOpen(false);
           }}
         >
           {/* Top Header */}
           <div className="full-page-header">
-            <button type="button" className="back-btn" onClick={() => { setIsAddModalOpen(false); setEditingTransactionId(null); }} aria-label="Back">
+            <button type="button" className="back-btn" onClick={handleCloseAddModal} aria-label="Back">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 19l-7-7 7-7"/>
                 <path d="M7 12h13"/>
@@ -6326,7 +6826,7 @@ function App() {
                         >
                           <span className="onboarding-lang-opt-name">{l.nativeName}</span>
                           {tempLanguage === l.code && (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D5284" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="onboarding-lang-check">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="onboarding-lang-check">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
                           )}
@@ -6394,7 +6894,7 @@ function App() {
                     </span>
                   )}
                   <div className="wa-avatar-camera-btn">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D2520" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                       <circle cx="12" cy="13" r="4"/>
                     </svg>
@@ -6445,6 +6945,86 @@ function App() {
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* ⚖️ JUSTICE CASSIEL VIP CARD */}
+                <div 
+                  className="justice-cassiel-profile-card"
+                  onClick={() => handleOpenProModal('general')}
+                  style={{
+                    margin: '12px auto 0',
+                    width: 'calc(100% - 16px)',
+                    maxWidth: '360px',
+                    borderRadius: '16px',
+                    padding: '12px 16px',
+                    background: isPro 
+                      ? '#F59E0B' 
+                      : '#FFFFFF',
+                    border: isPro ? 'none' : '1px solid #FDE68A',
+                    boxShadow: isPro 
+                      ? '0 4px 14px rgba(245, 158, 11, 0.28)' 
+                      : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '800',
+                      color: isPro ? '#FFFFFF' : '#92400E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                        <span style={{
+                          color: isPro ? '#FFFFFF' : '#92400E',
+                          fontFamily: "'Cinzel', 'Playfair Display', 'Times New Roman', serif",
+                          letterSpacing: '0.8px',
+                          fontWeight: '800',
+                          fontSize: '14.5px'
+                        }}>
+                          Justice Cassiel
+                        </span>
+                        <span style={{
+                          fontSize: '9px',
+                          fontWeight: '800',
+                          padding: '1.5px 6px',
+                          borderRadius: '6px',
+                          background: isPro ? 'rgba(255, 255, 255, 0.95)' : 'linear-gradient(135deg, #F59E0B, #D97706)',
+                          color: isPro ? '#B45309' : '#FFFFFF',
+                          boxShadow: isPro ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
+                        }}>
+                          {isPro ? 'PRO AKTIF' : 'UPGRADE'}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: isPro ? 'rgba(255, 255, 255, 0.95)' : '#B45309',
+                        marginTop: '2px',
+                        fontWeight: isPro ? '600' : 'normal'
+                      }}>
+                        {isPro 
+                          ? 'Akses Penuh Tanpa Batas Seluruh Fitur' 
+                          : 'Buka Voice AI, Multi-Grup & Ekspor Excel'}
+                      </div>
+                  </div>
+
+                  <svg 
+                    width="18" 
+                    height="18" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke={isPro ? '#FFFFFF' : '#B45309'} 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
               </div>
 
@@ -6505,10 +7085,12 @@ function App() {
                   }}
                 >
                   <div className="wa-menu-icon-box auto-tracker-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-                      <circle cx="18" cy="4" r="3" fill="#F59E0B" stroke="#F59E0B" />
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                      <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                      <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                      <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                      <path d="M13 7L9 12.5h4.5L11 17.5" />
                     </svg>
                   </div>
                   <div className="wa-menu-content">
@@ -6668,7 +7250,7 @@ function App() {
                 </div>
 
                 {/* Groups (Kelola Kas & Uang Bersama) */}
-                <div className="wa-menu-item" onClick={() => setIsGroupsModalOpen(true)}>
+                <div className="wa-menu-item tour-target-groups" onClick={() => setIsGroupsModalOpen(true)}>
                   <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -6702,6 +7284,60 @@ function App() {
                       <span className="wa-menu-title">{t('backupSettingTitle') || 'Data & Cadangan'}</span>
                     </div>
                     <span className="wa-menu-subtitle">{t('backupSettingSubtitle') || 'Cadangkan atau pulihkan seluruh data'}</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* Ekspor Laporan Excel (.xlsx) */}
+                <div 
+                  className="wa-menu-item" 
+                  onClick={async () => {
+                    if (!isPro) {
+                      handleOpenProModal('export');
+                      return;
+                    }
+                    showVoiceToast('Sedang menyiapkan berkas laporan...');
+                    const res = await exportTransactionsToSpreadsheet({
+                      transactions,
+                      currency: appCurrency,
+                      profileName
+                    });
+                    if (res.success) {
+                      showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
+                    } else {
+                      showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
+                    }
+                  }}
+                >
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#D97706' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="8" y1="13" x2="16" y2="13"></line>
+                      <line x1="8" y1="17" x2="16" y2="17"></line>
+                      <line x1="10" y1="9" x2="8" y2="9"></line>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="wa-menu-title">Ekspor Laporan Excel</span>
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                        color: '#FFFFFF',
+                        padding: '1px 6px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        👑 PRO
+                      </span>
+                    </div>
+                    <span className="wa-menu-subtitle">Unduh seluruh rekapan transaksi ke format Excel (.xlsx)</span>
                   </div>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
                     <polyline points="9 18 15 12 9 6"/>
@@ -8310,6 +8946,58 @@ function App() {
                   </svg>
                 </button>
 
+                {/* Export Excel (.xlsx / CSV) Card */}
+                <button
+                  type="button"
+                  className="backup-action-card"
+                  onClick={async () => {
+                    if (!isPro) {
+                      handleOpenProModal('export');
+                      return;
+                    }
+                    showVoiceToast('Sedang menyiapkan berkas laporan...');
+                    const res = await exportTransactionsToSpreadsheet({
+                      transactions,
+                      currency: appCurrency,
+                      profileName
+                    });
+                    if (res.success) {
+                      showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
+                    } else {
+                      showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
+                    }
+                  }}
+                >
+                  <div className="backup-action-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="8" y1="13" x2="16" y2="13"></line>
+                      <line x1="8" y1="17" x2="16" y2="17"></line>
+                      <line x1="10" y1="9" x2="8" y2="9"></line>
+                    </svg>
+                  </div>
+                  <div className="backup-action-content">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="backup-action-title">Ekspor Excel (.xlsx / CSV)</span>
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                        color: '#FFFFFF',
+                        padding: '1px 5px',
+                        borderRadius: '5px'
+                      }}>
+                        👑 PRO
+                      </span>
+                    </div>
+                    <span className="backup-action-desc">Unduh seluruh riwayat transaksi ke format Excel (.xlsx)</span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
+
                 {/* Import / Restore Card */}
                 <button
                   type="button"
@@ -8757,13 +9445,28 @@ function App() {
                 type="button"
                 className="update-now-btn"
                 onClick={() => {
-                  const targetApk = updateInfo?.apkName || (updateInfo?.isUdinApp ? 'udin.apk' : 'Cassiel.apk');
-                  const rawUrl = updateInfo?.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/${targetApk}`;
-                  const cleanUrl = rawUrl.includes('?') ? `${rawUrl}&t=${Date.now()}` : `${rawUrl}?t=${Date.now()}`;
-                  console.log('[UpdateModal] Navigating to download URL:', cleanUrl);
-                  const opened = window.open(cleanUrl, '_system');
-                  if (!opened) {
-                    window.location.href = cleanUrl;
+                  if (updateInfo?.isUdinApp || updateInfo?.isDebugApp) {
+                    const targetApk = updateInfo?.apkName || (updateInfo?.isUdinApp ? 'udin.apk' : 'cassielll1.apk');
+                    const rawUrl = updateInfo?.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/${targetApk}`;
+                    const cleanUrl = rawUrl.includes('?') ? `${rawUrl}&t=${Date.now()}` : `${rawUrl}?t=${Date.now()}`;
+                    console.log('[UpdateModal] Navigating to sideload APK URL:', cleanUrl);
+                    const opened = window.open(cleanUrl, '_system');
+                    if (!opened) {
+                      window.location.href = cleanUrl;
+                    }
+                  } else {
+                    // Official Cassiel Release -> Buka halaman Google Play Store resmi
+                    const playStoreWebUrl = updateInfo?.playStoreUrl || 'https://play.google.com/store/apps/details?id=com.redilah.financetracker';
+                    const playStoreMarketUrl = updateInfo?.playStoreMarketUrl || 'market://details?id=com.redilah.financetracker';
+                    console.log('[UpdateModal] Opening Play Store listing:', playStoreMarketUrl);
+                    try {
+                      const opened = window.open(playStoreMarketUrl, '_system');
+                      if (!opened) {
+                        window.open(playStoreWebUrl, '_blank') || (window.location.href = playStoreWebUrl);
+                      }
+                    } catch {
+                      window.open(playStoreWebUrl, '_blank') || (window.location.href = playStoreWebUrl);
+                    }
                   }
                 }}
               >
@@ -9734,7 +10437,7 @@ function App() {
         setActivePanel={setActivePanel}
         setTransType={setTransType}
         onComplete={handleCompleteTour}
-        onClose={() => setIsTourOpen(false)}
+        onClose={handleCloseTour}
       />
 
       {/* Cassiel Groups Hub Modal */}
@@ -9743,6 +10446,18 @@ function App() {
         onClose={() => setIsGroupsModalOpen(false)}
         currentUserName={profileName || 'Pengguna Cassiel'}
         currentUserAvatar={profileImage}
+        onOpenProModal={handleOpenProModal}
+      />
+
+      {/* Cassiel Pro Upgrade Modal */}
+      <ProUpgradeModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+        triggerReason={proTriggerReason}
+        onProStatusChanged={(newProStatus) => {
+          setIsPro(newProStatus);
+          showVoiceToast(newProStatus ? '👑 Mode Cassiel Pro Aktif!' : 'Mode Gratis (Free) Aktif');
+        }}
       />
     </div>
   );

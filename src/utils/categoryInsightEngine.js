@@ -38,6 +38,8 @@ export const getLastDayOfMonth = (year, monthIndex) => {
  */
 export const generateCategoryInsight = ({
   categoryName,
+  categoryId = '',
+  category = null,
   year,
   monthIndex, // 0-indexed (0 = Jan, 7 = Agu, 11 = Des)
   allTransactions = [],
@@ -54,22 +56,63 @@ export const generateCategoryInsight = ({
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  const localizedCatName = getCategoryName ? getCategoryName(categoryName, appLanguage) : categoryName;
+  const localizedCatName = getCategoryName ? getCategoryName(category || categoryName, appLanguage) : categoryName;
   const formatAmt = (amt) => (fmtMoney ? fmtMoney(amt) : formatRupiah(amt));
+
+  // Helper pencocokan kategori (id, nama, atau alias)
+  const isMatchCategory = (t) => {
+    if (!t) return false;
+    const targetName = (categoryName || '').toLowerCase().trim();
+    const targetId = (categoryId || (category && category.id) || '').toLowerCase().trim();
+    
+    const tCat = (t.category || '').toLowerCase().trim();
+    const tCatId = (t.categoryId || '').toLowerCase().trim();
+
+    if (targetId && (tCatId === targetId || tCat === targetId)) return true;
+    if (targetName && (tCat === targetName || tCatId === targetName)) return true;
+    
+    return false;
+  };
+
+  // Helper ekstraksi tahun, bulan (1-12), dan tanggal (1-31) dari t.date
+  const parseTxDate = (t) => {
+    if (!t || !t.date) return null;
+    let y, m, d;
+    if (typeof t.date === 'string') {
+      const parts = t.date.split('-');
+      if (parts.length >= 3) {
+        y = Number(parts[0]);
+        m = Number(parts[1]);
+        d = parseInt(parts[2], 10);
+      }
+    }
+    if (!y || !m || isNaN(d)) {
+      const dt = new Date(t.date);
+      if (!isNaN(dt.getTime())) {
+        y = dt.getFullYear();
+        m = dt.getMonth() + 1;
+        d = dt.getDate();
+      }
+    }
+    if (y && m && !isNaN(d)) {
+      return { year: y, month: m, day: d };
+    }
+    return null;
+  };
 
   // 1. Filter transaksi bulan terpilih
   let currentMonthTxs = allTransactions.filter(t => {
-    if (!t.date) return false;
-    const [y, m] = t.date.split('-');
-    return Number(y) === year && Number(m) === (monthIndex + 1);
+    const parsed = parseTxDate(t);
+    if (!parsed) return false;
+    return parsed.year === year && parsed.month === (monthIndex + 1);
   });
 
   // Jika di bulan depan (demo preview) belum ada data, gunakan data riil bulan berjalan (terbaru)
   if (currentMonthTxs.length === 0 && (year > currentYear || (year === currentYear && monthIndex > currentMonth))) {
     currentMonthTxs = allTransactions.filter(t => {
-      if (!t.date) return false;
-      const [y, m] = t.date.split('-');
-      return Number(y) === currentYear && Number(m) === (currentMonth + 1);
+      const parsed = parseTxDate(t);
+      if (!parsed) return false;
+      return parsed.year === currentYear && parsed.month === (currentMonth + 1);
     });
     if (currentMonthTxs.length === 0) {
       currentMonthTxs = allTransactions;
@@ -78,14 +121,11 @@ export const generateCategoryInsight = ({
 
   const totalAllExpensesInMonth = currentMonthTxs
     .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   // Transaksi kategori spesifik bulan ini
   const catTxs = currentMonthTxs.filter(t => {
-    return t.type === 'expense' && (
-      (t.category && t.category.toLowerCase() === categoryName.toLowerCase()) ||
-      (t.categoryId && t.categoryId.toLowerCase() === categoryName.toLowerCase())
-    );
+    return t.type === 'expense' && isMatchCategory(t);
   });
 
   // 2. Filter transaksi bulan sebelumnya untuk perbandingan
@@ -94,34 +134,26 @@ export const generateCategoryInsight = ({
   const prevMonthIndex = prevMonthDate.getMonth();
 
   let prevMonthCatTxs = allTransactions.filter(t => {
-    if (!t.date) return false;
-    const [y, m] = t.date.split('-');
-    const matchesMonth = Number(y) === prevYear && Number(m) === (prevMonthIndex + 1);
-    const matchesCategory = (
-      (t.category && t.category.toLowerCase() === categoryName.toLowerCase()) ||
-      (t.categoryId && t.categoryId.toLowerCase() === categoryName.toLowerCase())
-    );
-    return t.type === 'expense' && matchesMonth && matchesCategory;
+    const parsed = parseTxDate(t);
+    if (!parsed) return false;
+    const matchesMonth = parsed.year === prevYear && parsed.month === (prevMonthIndex + 1);
+    return t.type === 'expense' && matchesMonth && isMatchCategory(t);
   });
 
   if (prevMonthCatTxs.length === 0 && (year > currentYear || (year === currentYear && monthIndex > currentMonth))) {
     const prevToCurrent = new Date(currentYear, currentMonth - 1, 1);
     prevMonthCatTxs = allTransactions.filter(t => {
-      if (!t.date) return false;
-      const [y, m] = t.date.split('-');
-      const matchesMonth = Number(y) === prevToCurrent.getFullYear() && Number(m) === (prevToCurrent.getMonth() + 1);
-      const matchesCat = t.type === 'expense' && (
-        (t.category && t.category.toLowerCase() === categoryName.toLowerCase()) ||
-        (t.categoryId && t.categoryId.toLowerCase() === categoryName.toLowerCase())
-      );
-      return matchesMonth && matchesCat;
+      const parsed = parseTxDate(t);
+      if (!parsed) return false;
+      const matchesMonth = parsed.year === prevToCurrent.getFullYear() && parsed.month === (prevToCurrent.getMonth() + 1);
+      return t.type === 'expense' && matchesMonth && isMatchCategory(t);
     });
   }
 
   // Metrik Utama
-  const currentTotalAmount = catTxs.reduce((sum, t) => sum + t.amount, 0);
+  const currentTotalAmount = catTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const currentCount = catTxs.length;
-  const prevTotalAmount = prevMonthCatTxs.reduce((sum, t) => sum + t.amount, 0);
+  const prevTotalAmount = prevMonthCatTxs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const prevCount = prevMonthCatTxs.length;
 
   // Persentase dari total pengeluaran
@@ -143,7 +175,7 @@ export const generateCategoryInsight = ({
     if (rawNote) {
       noteFrequency[rawNote] = (noteFrequency[rawNote] || { count: 0, totalAmount: 0 });
       noteFrequency[rawNote].count += 1;
-      noteFrequency[rawNote].totalAmount += t.amount;
+      noteFrequency[rawNote].totalAmount += (Number(t.amount) || 0);
     }
   });
 
@@ -152,7 +184,7 @@ export const generateCategoryInsight = ({
       note: key,
       count: noteFrequency[key].count,
       totalAmount: noteFrequency[key].totalAmount,
-      isGeneric: key.toLowerCase() === categoryName.toLowerCase()
+      isGeneric: key.toLowerCase() === (categoryName || '').toLowerCase()
     }))
     .sort((a, b) => b.count - a.count || b.totalAmount - a.totalAmount);
 
@@ -161,16 +193,15 @@ export const generateCategoryInsight = ({
   // 4. Hari tersibuk & Pengeluaran terbesar per hari
   const dayFrequency = {};
   catTxs.forEach(t => {
-    if (t.date) {
-      const dayNum = parseInt(t.date.split('-')[2], 10);
-      if (!isNaN(dayNum)) {
-        if (!dayFrequency[dayNum]) {
-          dayFrequency[dayNum] = { count: 0, amount: 0, txs: [] };
-        }
-        dayFrequency[dayNum].count += 1;
-        dayFrequency[dayNum].amount += t.amount;
-        dayFrequency[dayNum].txs.push(t);
+    const parsed = parseTxDate(t);
+    if (parsed && !isNaN(parsed.day)) {
+      const dayNum = parsed.day;
+      if (!dayFrequency[dayNum]) {
+        dayFrequency[dayNum] = { count: 0, amount: 0, txs: [] };
       }
+      dayFrequency[dayNum].count += 1;
+      dayFrequency[dayNum].amount += (Number(t.amount) || 0);
+      dayFrequency[dayNum].txs.push(t);
     }
   });
 

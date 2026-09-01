@@ -19,7 +19,27 @@ import {
 } from '@firebase/firestore';
 
 const GROUPS_STORAGE_KEY = 'user_cassiel_groups';
+const USER_ID_STORAGE_KEY = 'cassiel_user_id';
 const SHARED_GROUPS_COLLECTION = 'cassiel_shared_groups';
+
+/**
+ * Get or create unique persistent userId for this device/account
+ */
+export function getCurrentUserId() {
+  if (typeof localStorage === 'undefined') return 'usr_server_' + Date.now();
+  let uid = localStorage.getItem(USER_ID_STORAGE_KEY);
+  if (!uid) {
+    // Try fallback from deviceId if available
+    const existingDevId = localStorage.getItem('cassiel_device_id');
+    if (existingDevId) {
+      uid = 'usr_' + existingDevId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+    } else {
+      uid = 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8);
+    }
+    localStorage.setItem(USER_ID_STORAGE_KEY, uid);
+  }
+  return uid;
+}
 
 // Helper to push group to Firestore in real-time
 export async function syncGroupToCloud(group) {
@@ -27,6 +47,13 @@ export async function syncGroupToCloud(group) {
   try {
     const docRef = doc(db, SHARED_GROUPS_COLLECTION, group.id);
     const cleanGroup = JSON.parse(JSON.stringify(group));
+    // Clean members: never store relative isCurrentUser in cloud
+    if (Array.isArray(cleanGroup.members)) {
+      cleanGroup.members = cleanGroup.members.map(m => {
+        const { isCurrentUser, ...rest } = m;
+        return rest;
+      });
+    }
     await setDoc(docRef, cleanGroup, { merge: true });
   } catch (err) {
     console.warn('[Firestore Group Sync] Gagal sinkronisasi grup ke cloud:', err?.message || err);
@@ -82,6 +109,7 @@ export async function joinGroupByInviteCode({ inviteCode, currentUserName = 'Red
 
   const cleanCode = inviteCode.trim().toUpperCase();
   const currentList = getStoredGroups(currentUserName);
+  const myUserId = getCurrentUserId();
 
   // Cek apakah sudah ada di grup lokal
   const existingLocal = currentList.find(g => (g.inviteCode || '').toUpperCase() === cleanCode);
@@ -101,17 +129,17 @@ export async function joinGroupByInviteCode({ inviteCode, currentUserName = 'Red
     const docSnap = snapshot.docs[0];
     const groupData = docSnap.data();
 
-    // Tambahkan diri kita sebagai anggota jika belum ada
+    // Tambahkan diri kita sebagai anggota jika belum ada (berdasarkan userId)
     const members = Array.isArray(groupData.members) ? [...groupData.members] : [];
-    const alreadyMember = members.some(m => m.name === currentUserName || m.isCurrentUser);
+    const memberIndex = members.findIndex(m => (m.userId && m.userId === myUserId) || m.id === myUserId);
 
-    if (!alreadyMember) {
+    if (memberIndex === -1) {
       const newMember = {
-        id: `mem_${Date.now()}`,
+        id: myUserId,
+        userId: myUserId,
         name: currentUserName || 'Anggota',
         avatar: currentUserAvatar || null,
         role: 'member',
-        isCurrentUser: true,
         joinedAt: new Date().toISOString()
       };
       members.push(newMember);
@@ -128,15 +156,25 @@ export async function joinGroupByInviteCode({ inviteCode, currentUserName = 'Red
       };
       groupData.messages = [...(groupData.messages || []), joinMsg];
 
-      // Update di Firestore
-      await setDoc(doc(db, SHARED_GROUPS_COLLECTION, groupData.id), groupData, { merge: true });
+      // Update di Firestore (bersihkan isCurrentUser jika ada)
+      await syncGroupToCloud(groupData);
+    } else {
+      // Perbarui nama / avatar terbaru kita jika sudah pernah join
+      members[memberIndex] = {
+        ...members[memberIndex],
+        userId: myUserId,
+        name: currentUserName || members[memberIndex].name,
+        avatar: currentUserAvatar || members[memberIndex].avatar
+      };
+      groupData.members = members;
+      await syncGroupToCloud(groupData);
     }
 
     // Simpan ke storage lokal
     const updatedList = [groupData, ...currentList.filter(g => g.id !== groupData.id)];
     saveStoredGroups(updatedList);
 
-    return { success: true, group: groupData, isNew: true };
+    return { success: true, group: groupData, isNew: memberIndex === -1 };
   } catch (err) {
     console.error('Error joining group by invite code:', err);
     throw err;
@@ -177,18 +215,23 @@ export function createNewGroup({
   const code = Math.random().toString(36).substring(2, 8).toUpperCase();
   const newGroupId = `grp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
   const nowStr = new Date().toISOString();
+  const myUserId = getCurrentUserId();
 
   const currentMember = {
-    id: `mem_${Date.now()}`,
+    id: myUserId,
+    userId: myUserId,
     name: currentUserName || 'Pengguna Cassiel',
     role: 'admin',
-    isCurrentUser: true
+    avatar: avatar || null,
+    joinedAt: nowStr
   };
 
   const parsedExtraMembers = (initialMembers || []).map((mName, idx) => ({
     id: `mem_${Date.now()}_${idx + 1}`,
+    userId: `usr_dummy_${idx + 1}_${Date.now()}`,
     name: typeof mName === 'string' ? mName.trim() : mName.name || 'Anggota',
-    role: 'member'
+    role: 'member',
+    joinedAt: nowStr
   }));
 
   const initialTx = [];
@@ -258,16 +301,18 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
   const groupIndex = currentList.findIndex(g => g.id === groupId);
   if (groupIndex === -1) return null;
 
+  const myUserId = getCurrentUserId();
   const group = { ...currentList[groupIndex] };
   const txId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
   const nowStr = new Date().toISOString();
   const numAmount = Number(amount) || group.monthlyFee || 0;
+  const activeMemberId = memberId || myUserId;
 
   const newTx = {
     id: txId,
     type: 'kas_in',
     amount: numAmount,
-    memberId: memberId || 'mem_cur',
+    memberId: activeMemberId,
     memberName: memberName || currentUserName,
     month: monthKey,
     title: `Iuran Kas ${formatMonthLabel(monthKey)}`,
@@ -278,7 +323,7 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
 
   const newMsg = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-    senderId: memberId || 'mem_cur',
+    senderId: activeMemberId,
     senderName: memberName || currentUserName,
     type: 'financial_in',
     txId,
@@ -295,7 +340,7 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
     ...currentTracking,
     [monthKey]: {
       ...monthTracking,
-      [memberId]: {
+      [activeMemberId]: {
         paid: true,
         amount: numAmount,
         paidAt: nowStr,
@@ -311,7 +356,7 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
   saveStoredGroups(currentList);
   syncGroupToCloud(group);
 
-  const isMe = (memberName || currentUserName) === currentUserName && memberId === 'mem_cur';
+  const isMe = activeMemberId === myUserId || (memberName || currentUserName) === currentUserName;
   sendGroupChatNotification({
     groupName: group.name,
     senderName: memberName || currentUserName,
@@ -329,6 +374,7 @@ export function recordGroupExpense({ groupId, title, amount, paidBy, purpose, ca
   const groupIndex = currentList.findIndex(g => g.id === groupId);
   if (groupIndex === -1) return null;
 
+  const myUserId = getCurrentUserId();
   const group = { ...currentList[groupIndex] };
   const txId = `tx_exp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
   const nowStr = new Date().toISOString();
@@ -349,7 +395,7 @@ export function recordGroupExpense({ groupId, title, amount, paidBy, purpose, ca
 
   const newMsg = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-    senderId: 'mem_cur',
+    senderId: myUserId,
     senderName: paidBy || currentUserName,
     type: 'financial_out',
     txId,
@@ -382,16 +428,18 @@ export function recordGroupExpense({ groupId, title, amount, paidBy, purpose, ca
   return { updatedGroup: group, newTx, newMsg };
 }
 
-export function sendGroupTextMessage({ groupId, text, senderName = 'Redilah', senderId = 'mem_cur' }) {
+export function sendGroupTextMessage({ groupId, text, senderName = 'Redilah', senderId = null }) {
   if (!text || !text.trim()) return null;
   const currentList = getStoredGroups(senderName);
   const groupIndex = currentList.findIndex(g => g.id === groupId);
   if (groupIndex === -1) return null;
 
+  const myUserId = getCurrentUserId();
+  const effectiveSenderId = senderId || myUserId;
   const group = { ...currentList[groupIndex] };
   const newMsg = {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-    senderId: senderId || 'mem_cur',
+    senderId: effectiveSenderId,
     senderName: senderName || 'Pengguna Cassiel',
     type: 'text',
     text: text.trim(),
@@ -403,7 +451,7 @@ export function sendGroupTextMessage({ groupId, text, senderName = 'Redilah', se
   saveStoredGroups(currentList);
   syncGroupToCloud(group);
 
-  const isMe = senderId === 'mem_cur';
+  const isMe = effectiveSenderId === myUserId;
   sendGroupChatNotification({
     groupName: group.name,
     senderName: senderName || 'Pengguna Cassiel',
@@ -584,6 +632,54 @@ export function removeMemberFromGroup({ groupId, memberId, currentUserName = 'Re
   saveStoredGroups(currentList);
   syncGroupToCloud(group);
   return group;
+}
+
+export function leaveGroup({ groupId, currentUserName = 'Redilah' }) {
+  const currentList = getStoredGroups(currentUserName);
+  const groupIndex = currentList.findIndex(g => g.id === groupId);
+  if (groupIndex === -1) return currentList;
+
+  const myUserId = getCurrentUserId();
+  const group = { ...currentList[groupIndex] };
+  const currentMembers = Array.isArray(group.members) ? [...group.members] : [];
+
+  const remainingMembers = currentMembers.filter(m => {
+    const isMe = (m.userId && m.userId === myUserId) || m.id === myUserId || m.isCurrentUser || m.name === currentUserName;
+    return !isMe;
+  });
+
+  const leavingWasAdmin = currentMembers.some(m => ((m.userId && m.userId === myUserId) || m.id === myUserId || m.isCurrentUser || m.name === currentUserName) && m.role === 'admin');
+  if (leavingWasAdmin && remainingMembers.length > 0) {
+    const hasAdmin = remainingMembers.some(m => m.role === 'admin');
+    if (!hasAdmin) {
+      remainingMembers[0] = { ...remainingMembers[0], role: 'admin' };
+    }
+  }
+
+  group.members = remainingMembers;
+
+  const exitMsg = {
+    id: `msg_${Date.now()}_exit`,
+    senderId: myUserId,
+    senderName: currentUserName,
+    type: 'text',
+    text: `👋 ${currentUserName} telah keluar dari grup.`,
+    timestamp: new Date().toISOString()
+  };
+  group.messages = [...(group.messages || []), exitMsg];
+
+  if (remainingMembers.length === 0) {
+    try {
+      const docRef = doc(db, SHARED_GROUPS_COLLECTION, groupId);
+      deleteDoc(docRef).catch(() => {});
+    } catch {}
+  } else {
+    syncGroupToCloud(group);
+  }
+
+  const updatedList = currentList.filter(g => g.id !== groupId);
+  saveStoredGroups(updatedList);
+  return updatedList;
 }
 
 export function deleteGroup({ groupId, currentUserName = 'Redilah' }) {

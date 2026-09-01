@@ -3,7 +3,8 @@ import './AdminDashboard.css';
 import { 
   getTelemetryData, 
   updateCurrentDeviceTelemetry, 
-  subscribeToTelemetry 
+  subscribeToTelemetry,
+  deleteTelemetryDevice
 } from '../../utils/telemetry';
 import { 
   getLearnedInsights, 
@@ -1064,6 +1065,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                         <th>TERAKHIR AKTIF</th>
                         <th>TRANSAKSI</th>
                         <th>STATUS</th>
+                        <th style={{ textAlign: 'center', width: '56px' }}>AKSI</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1148,6 +1150,29 @@ export default function AdminDashboard({ onNavigateToApp }) {
                                 <span className="status-dot"></span>
                                 {statusInfo.text}
                               </span>
+                            </td>
+
+                            {/* Tombol Hapus dari Firebase */}
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-telemetry-delete"
+                                title={`Hapus perangkat ${realName} dari database Firebase`}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Hapus data perangkat "${realName}" (${item.deviceName || item.id}) dari database Firebase?`)) {
+                                    try {
+                                      await deleteTelemetryDevice(item.id);
+                                      setTelemetryList(prev => prev.filter(p => p.id !== item.id));
+                                    } catch (err) {
+                                      console.error('Gagal menghapus perangkat dari Firebase:', err);
+                                      alert('Gagal menghapus data perangkat dari Firebase.');
+                                    }
+                                  }
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </td>
                           </tr>
                         );

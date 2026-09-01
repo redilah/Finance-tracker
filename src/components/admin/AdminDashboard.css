@@ -713,6 +713,31 @@
   letter-spacing: 0.4px;
 }
 
+.btn-telemetry-delete {
+  border: none;
+  background: #FEF2F2;
+  color: #EF4444;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-telemetry-delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.btn-telemetry-delete:active {
+  transform: scale(0.95);
+}
+
 /* ==========================================================================
    CUSTOM LUXURY DROPDOWN DESIGN SYSTEM
    ========================================================================== */

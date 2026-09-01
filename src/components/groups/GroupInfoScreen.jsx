@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, formatMonthLabel } from '../../utils/groupStorage';
+import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, formatMonthLabel, getCurrentUserId } from '../../utils/groupStorage';
 import { safeStorageGet } from '../../utils/secureStorage';
 
 export default function GroupInfoScreen({
@@ -10,6 +10,7 @@ export default function GroupInfoScreen({
   onUpdateGroup,
   onAddMember,
   onRemoveMember,
+  onLeaveGroup,
   onDeleteGroup,
   onOpenKasStatus,
   onOpenAddMember
@@ -135,8 +136,25 @@ export default function GroupInfoScreen({
     }
   };
 
+  const handleLeaveGroup = () => {
+    if (window.confirm(`Apakah Anda yakin ingin keluar dari grup "${group.name}"?`)) {
+      if (onLeaveGroup) {
+        onLeaveGroup(group.id);
+      }
+    }
+  };
+
+  const handleDeleteGroup = () => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus grup "${group.name}"? Seluruh data kas dan riwayat pesan akan dihapus secara permanen.`)) {
+      if (onDeleteGroup) {
+        onDeleteGroup(group.id);
+      }
+    }
+  };
+
+  const myUserId = getCurrentUserId();
   const members = group?.members || [];
-  const currentUserObj = members.find(m => m.isCurrentUser || m.name === currentUserName);
+  const currentUserObj = members.find(m => (m.userId && m.userId === myUserId) || m.id === myUserId || m.isCurrentUser || m.name === currentUserName);
   const isCurrentUserAdmin = currentUserObj?.role === 'admin';
 
   return (
@@ -402,7 +420,7 @@ export default function GroupInfoScreen({
 
           {/* Member Rows */}
           {members.map((member) => {
-            const isMe = member.isCurrentUser || member.name === currentUserName;
+            const isMe = (member.userId && member.userId === myUserId) || member.id === myUserId || member.isCurrentUser || member.name === currentUserName;
             const isPaid = paymentStatus.paidMembers.some(p => p.id === member.id);
             const memberAvatar = member.avatar || (isMe ? localUserAvatar : null);
 
@@ -446,6 +464,43 @@ export default function GroupInfoScreen({
               </div>
             );
           })}
+        </div>
+
+        {/* Section Divider */}
+        <div className="wa-info-divider" />
+
+        {/* Danger Actions: Keluar dan Hapus Group (Warna Merah di Bawah) */}
+        <div className="wa-info-danger-section">
+          <button
+            type="button"
+            className="wa-info-danger-item"
+            onClick={handleLeaveGroup}
+          >
+            <div className="wa-info-danger-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </div>
+            <span className="wa-info-danger-text">Keluar dari grup</span>
+          </button>
+
+          <button
+            type="button"
+            className="wa-info-danger-item"
+            onClick={handleDeleteGroup}
+          >
+            <div className="wa-info-danger-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </div>
+            <span className="wa-info-danger-text">Hapus group</span>
+          </button>
         </div>
       </div>
 

@@ -1,13 +1,14 @@
 {
-  "versionCode": 31,
-  "versionName": "1.0.30",
-  "version": "1.0.30",
-  "changelog": "New in this update:\n[NEW] Optimasi Sistem Notifikasi & Pembaruan Stabilitas Kategori\n[NEW] Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.30",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.30",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.30",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.30",
-  "sha256": "c7c8b776777f61aab72c414073c7b474e808f12d6688f5bf9145ccaf5d3bc40b",
+  "versionCode": 32,
+  "versionName": "1.0.31",
+  "version": "1.0.31",
+  "changelog": "New in this update:\n[NEW] Fitur Voice Assistant Pintar & Natural Language Query\n[NEW] Mode Dompet Grup / Finansial Bersama\n[NEW] Optimasi Sistem Notifikasi & Pembaruan Kategori",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.31",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.31",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.31",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.31",
+  "playStoreUrl": "https://play.google.com/store/apps/details?id=com.redilah.financetracker",
+  "sha256": "fc753e2044bf86263a302b85b011169dea5cf9d8f6fbb811cda1604e91fbd0c1",
   "minSdkVersion": 22
 }
 

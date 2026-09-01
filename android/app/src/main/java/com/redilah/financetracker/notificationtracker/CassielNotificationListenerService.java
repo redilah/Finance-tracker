@@ -276,7 +276,10 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 boolean isBalance = (rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance") || rawBefore.contains("limit"))
                         && !rawBefore.contains("bertambah") && !rawBefore.contains("ditambahkan");
 
-                String rawNum = matcher.group(1).replaceAll("[^0-9]", "");
+                String numStr = matcher.group(1).trim();
+                // Strip trailing 1-2 decimal places (cents/sen, e.g. .00 or ,00 or .0)
+                String cleanedNum = numStr.replaceAll("[,.]\\d{1,2}$", "");
+                String rawNum = cleanedNum.replaceAll("[^0-9]", "");
                 if (!rawNum.isEmpty()) {
                     long amount = Long.parseLong(rawNum);
                     if (amount > 0) {
@@ -292,14 +295,16 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             // Fallback for standalone large numbers if no Rp/IDR prefix found
             if (candidateAmount <= 0) {
-                Pattern rawNumPattern = Pattern.compile("\\b([0-9]{1,3}(?:\\.[0-9]{3})+|[0-9]{4,})\\b");
+                Pattern rawNumPattern = Pattern.compile("\\b([0-9]{1,3}(?:[\\.,][0-9]{3})+(?:[\\.,][0-9]{1,2})?|[0-9]{4,}(?:[\\.,][0-9]{1,2})?)\\b");
                 Matcher rawMatcher = rawNumPattern.matcher(fullText);
                 while (rawMatcher.find()) {
                     int matchIndex = rawMatcher.start();
                     String rawBefore = fullText.substring(Math.max(0, matchIndex - 40), matchIndex).toLowerCase();
                     boolean isBalance = rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance");
                     if (!isBalance) {
-                        String digits = rawMatcher.group(1).replaceAll("[^0-9]", "");
+                        String numStr = rawMatcher.group(1).trim();
+                        String cleanedNum = numStr.replaceAll("[,.]\\d{1,2}$", "");
+                        String digits = cleanedNum.replaceAll("[^0-9]", "");
                         if (!digits.isEmpty()) {
                             long amt = Long.parseLong(digits);
                             if (amt >= 1000) {

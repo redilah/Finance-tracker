@@ -72,9 +72,10 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - URI wajib diawali dengan skema `file://` agar valid di `SharePlugin.java`.
 
 ## 5. UI Invariants & Design Standards
-* **Warna & Theme (Strict Ban on Dark/Black Containers)**: 
+* **Warna & Theme (Strict Ban on Dark/Black Containers & Cold Blue Buttons)**: 
   - **DILARANG KERAS** menggunakan container, card, hero header, atau elemen utama dengan warna hitam, abu-abu gelap, cokelat tua pekat, atau gradien gelap kaku (`#000000`, `#27221F`, `#333333`, dll.). 
-  - Seluruh komponen wajib menggunakan palet cerah, hangat, bersih, dan mewah yang menyatu mulus dengan latar krim `#F8EFE6` (seperti *warm cream*, *soft peach/coral tint*, *clean white luxury*, atau pastel hangat).
+  - **DILARANG KERAS** menggunakan warna biru, navy, cold dark blue (`#2D5284`, `#1D4ED8`, `#3B82F6`, dll.) untuk tombol aksi utama, tombol konfirmasi/selesai modal ("Selesai", "Simpan", "Kirim", "Terapkan", CTA actions), badge toggle, dan highlight elemen baru.
+  - Seluruh komponen dan tombol aksi utama wajib menggunakan palet cerah, hangat, bersih, dan mewah khas Cassiel (**Warm Orange / Amber** seperti toggle notifikasi: `linear-gradient(135deg, #F59E0B, #D97706)` atau `#D97706` / `#F59E0B` dengan bayangan lembut `rgba(217, 119, 6, 0.28)`) dan teks/ikon putih bersih `color: #FFFFFF !important;`.
 * **Budget Hero Card & Gaming Progress Bar**:
   - Hero card budget wajib menggunakan latar terang/krim cerah elegan dengan border halus dan bayangan lembut.
   - Jangan sertakan avatar atau nama profil di dalam kartu hero budget.
@@ -488,3 +489,23 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
 > 4. Perubahan visual/UI pada fitur lain **WAJIB** diimplementasikan tanpa menyentuh kode Menu ADD jika memungkinkan.
 > 5. Aturan ini berlaku di **semua percakapan baru** — tidak hanya pada sesi percakapan saat aturan ini dibuat.
 > 6. Kunci ini hanya bisa dibuka jika user secara eksplisit mengatakan ingin mengubah bagian tertentu dari Menu ADD.
+
+## 39. Privacy Page & Public Web Invariants (/kebijakanprivacy)
+* **Clean URL Routing Without .html**:
+  - Halaman kebijakan privasi resmi wajib disajikan melalui rute bersih `/kebijakanprivacy` (folder `public/kebijakanprivacy/index.html` dan rewrite dev server di `vite.config.js`).
+  - URL `privacy.html` atau `/privacy` wajib dialihkan (*302 redirect*) otomatis ke `/kebijakanprivacy`.
+* **Header Color & Luxury Palette**:
+  - Background hero header wajib menggunakan gradien Golden Amber Orange yang identik dengan tombol toggle switch aktif aplikasi (`linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #FBBF24 100%)`).
+  - Garis tepi tombol kapsul aksi (*"Download Sekarang"*) dan *Language Switcher* (**ID | EN**) wajib menggunakan warna krem hangat (`border: 1.5px solid #FDE68A` / `#FEF3C7`) dengan latar semi-transparan.
+* **Clean Logo Asset Presentation**:
+  - Logo brand di header wajib menggunakan `app-icon-clean.png` langsung dengan `border-radius: 11px` tanpa pembungkus kotak putih ganda (`div.brand-logo-frame`) agar tidak menimbulkan artefak garis putus-putus hitam.
+* **Apple Fluid Motion & Spring Transitions**:
+  - Seluruh tombol interaktif wajib memiliki feedback fisik sentuh (`:active { transform: scale(0.93); }`) dengan kurva pegas alami Apple (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
+  - Pergantian bahasa (**ID $\leftrightarrow$ EN**) wajib menggunakan transisi memudar halus (*fluid cross-fade* + elevasi `translateY(4px)`), dilarang berganti secara instan/kaku.
+* **Ultra-Responsive iPhone SE Bounds**:
+  - Tata letak wajib teruji responsif pada layar kecil (320px – 375px) dengan padding adaptif (`14px`), teks adaptif, dan judul yang sejajar presisi dengan tombol switch bahasa tanpa tumpang tindih.
+* **Pure Social Icon Buttons**:
+  - Kontak pengembang (Instagram & GitHub) wajib berupa tombol ikon bulat murni (*pure icon buttons*) tanpa deretan teks panjang.
+* **Formal & Professional Phrasing**:
+  - Menggunakan frasa legal yang tenang dan elegan seperti *"Privacy-First (Privasi Utama)"* (menghindari kata berlebihan seperti *"Privasi Mutlak"*).
+

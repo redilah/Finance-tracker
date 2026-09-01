@@ -6,7 +6,8 @@ import {
   formatMonthLabel,
   subscribeToGroupRealtime,
   getStoredGroups,
-  saveStoredGroups
+  saveStoredGroups,
+  getCurrentUserId
 } from '../../utils/groupStorage';
 import { clearAppBadgeCount } from '../../utils/notifications';
 import GroupKasStatusModal from './GroupKasStatusModal';
@@ -25,9 +26,11 @@ export default function GroupDetailScreen({
   onAddMember,
   onUpdateGroup,
   onRemoveMember,
+  onLeaveGroup,
   onDeleteGroup
 }) {
   const [activeGroup, setActiveGroup] = useState(group);
+  const myUserId = getCurrentUserId();
 
   // Real-time Firestore sync whenever group data changes from another device
   useEffect(() => {
@@ -236,8 +239,8 @@ export default function GroupDetailScreen({
 
   // Helper to get real avatar for any member (by id or by name)
   const getMemberAvatar = (memberId, memberName) => {
-    const memberObj = safeMembers.find(m => (memberId && m.id === memberId) || (memberName && m.name === memberName));
-    const isMe = (memberObj && (memberObj.isCurrentUser || memberObj.name === currentUserName)) || memberName === currentUserName || memberId === 'mem_cur';
+    const memberObj = safeMembers.find(m => (memberId && (m.userId === memberId || m.id === memberId)) || (memberName && m.name === memberName));
+    const isMe = (memberObj && ((memberObj.userId && memberObj.userId === myUserId) || memberObj.id === myUserId || memberObj.isCurrentUser || memberObj.name === currentUserName)) || memberName === currentUserName || memberId === myUserId || memberId === 'mem_cur';
     if (memberObj && memberObj.avatar) return memberObj.avatar;
     if (isMe && localUserAvatar) return localUserAvatar;
     return null;
@@ -245,7 +248,7 @@ export default function GroupDetailScreen({
 
   // Generate real member names string for subtitle (e.g. "Redilah, Rian, Sarah")
   const memberNamesSubtext = (group?.members || [])
-    .map(m => m.name || (m.isCurrentUser ? currentUserName : 'Anggota'))
+    .map(m => m.name || (((m.userId && m.userId === myUserId) || m.id === myUserId || m.isCurrentUser) ? currentUserName : 'Anggota'))
     .join(', ');
 
   const handleSendMessage = (e) => {
@@ -255,7 +258,7 @@ export default function GroupDetailScreen({
       groupId: group.id,
       text: chatInputText,
       senderName: currentUserName,
-      senderId: 'mem_cur'
+      senderId: myUserId
     });
     setChatInputText('');
   };
@@ -295,6 +298,7 @@ export default function GroupDetailScreen({
         onUpdateGroup={onUpdateGroup}
         onAddMember={onAddMember}
         onRemoveMember={onRemoveMember}
+        onLeaveGroup={onLeaveGroup}
         onDeleteGroup={onDeleteGroup}
         onOpenKasStatus={() => {
           setIsGroupInfoOpen(false);
@@ -715,7 +719,7 @@ export default function GroupDetailScreen({
               </div>
             ) : (
               safeMessages.map(msg => {
-                const isMe = msg.senderName === currentUserName || msg.senderId === 'mem_cur';
+                const isMe = (msg.senderId && (msg.senderId === myUserId || msg.senderId === 'mem_cur')) || msg.senderName === currentUserName;
                 const hasOtherMembers = (group?.members?.length || 1) > 1;
                 const msgDate = new Date(msg.timestamp);
                 const hours = String(msgDate.getHours()).padStart(2, '0');

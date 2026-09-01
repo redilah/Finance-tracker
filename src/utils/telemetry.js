@@ -416,3 +416,27 @@ export const resetTelemetryData = async () => {
   await updateCurrentDeviceTelemetry();
   return getTelemetryData();
 };
+
+// Delete single device record from Firebase
+export const deleteTelemetryDevice = async (deviceId) => {
+  if (!deviceId) return;
+  try {
+    const docRef = doc(db, TELEMETRY_COLLECTION, deviceId);
+    await withTimeout(deleteDoc(docRef), 2500);
+  } catch (e) {
+    console.warn('Failed to delete telemetry record on Firebase:', e);
+    throw e;
+  }
+
+  // Update local cache
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(LOCAL_CACHE_KEY);
+      if (cached) {
+        let list = JSON.parse(cached);
+        list = list.filter(item => item.id !== deviceId);
+        localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
+      }
+    } catch {}
+  }
+};

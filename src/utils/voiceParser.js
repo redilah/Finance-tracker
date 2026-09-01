@@ -5,6 +5,16 @@ import { checkProhibitedContent } from './safetyGuard.js';
 
 // 1. Kamus Konversi Nominal Gaul & Slang Indonesia (Urutan dari yang paling panjang ke pendek)
 const SLANG_NUMBER_MAP = [
+  // Regional / Bahasa Jawa & Sunda Juta
+  { pattern: /\b(sepuluh\s*yuta|10\s*yuta)\b/gi, value: 10000000 },
+  { pattern: /\b(limang\s*yuta|5\s*yuta)\b/gi, value: 5000000 },
+  { pattern: /\b(patang\s*yuta|4\s*yuta)\b/gi, value: 4000000 },
+  { pattern: /\b(telung\s*yuta|3\s*yuta)\b/gi, value: 3000000 },
+  { pattern: /\b(rong\s*yuta|ro\s*yuta|2\s*yuta)\b/gi, value: 2000000 },
+  { pattern: /\b(sak\s*yuta|se\s*yuta|sajuta|1\s*yuta)\b/gi, value: 1000000 },
+  { pattern: /\b(satengah\s*yuta|setengah\s*yuta|satengah\s*juta)\b/gi, value: 500000 },
+
+  // Konversi Juta Standar & Desimal
   { pattern: /\b(satu\s*setengah\s*juta|1\s*,\s*5\s*juta|1\.5\s*juta|1\s*,\s*5\s*jt|1\.5\s*jt|1\s*setengah\s*jt|1\s*setengah\s*juta)\b/gi, value: 1500000 },
   { pattern: /\b(dua\s*setengah\s*juta|2\s*,\s*5\s*juta|2\.5\s*juta|2\s*,\s*5\s*jt|2\.5\s*jt|2\s*setengah\s*jt|2\s*setengah\s*juta)\b/gi, value: 2500000 },
   { pattern: /\b(tiga\s*setengah\s*juta|3\s*,\s*5\s*juta|3\.5\s*juta|3\s*,\s*5\s*jt|3\.5\s*jt|3\s*setengah\s*jt|3\s*setengah\s*juta)\b/gi, value: 3500000 },
@@ -25,19 +35,49 @@ const SLANG_NUMBER_MAP = [
   { pattern: /\b(tiga\s*juta|3\s*juta|3\s*jt)\b/gi, value: 3000000 },
   { pattern: /\b(dua\s*juta|2\s*juta|2\s*jt)\b/gi, value: 2000000 },
   { pattern: /\b(satu\s*juta|se\s*juta|sejuta|1\s*juta|1\s*jt)\b/gi, value: 1000000 },
+
+  // Regional Ratus Ribu (Jawa, Sunda, Hokkien Slang)
+  { pattern: /\b(sangangatus\s*ewu|sangangatus\s*rebu|900\s*ewu)\b/gi, value: 900000 },
+  { pattern: /\b(wulungatus\s*ewu|wolungatus\s*ewu|800\s*ewu)\b/gi, value: 800000 },
+  { pattern: /\b(pitungatus\s*ewu|pitungatus\s*rebu|700\s*ewu)\b/gi, value: 700000 },
+  { pattern: /\b(nematus\s*ewu|nematus\s*rebu|600\s*ewu)\b/gi, value: 600000 },
+  { pattern: /\b(limangatus\s*ewu|limangatus\s*rebu|500\s*ewu|lima\s*ratus\s*rebu|gopek\s*ceng)\b/gi, value: 500000 },
+  { pattern: /\b(patangatus\s*ewu|patangatus\s*rebu|400\s*ewu|empat\s*ratus\s*rebu)\b/gi, value: 400000 },
+  { pattern: /\b(telungatus\s*ewu|telungatus\s*rebu|300\s*ewu|tiga\s*ratus\s*rebu)\b/gi, value: 300000 },
+  { pattern: /\b(rongatus\s*ewu|rongatus\s*rebu|200\s*ewu|dua\s*ratus\s*rebu)\b/gi, value: 200000 },
+  { pattern: /\b(satus\s*ewu|satus\s*rebu|saratus\s*rebu|saratus\s*ribu|100\s*ewu|seratus\s*rebu|cepek\s*ceng)\b/gi, value: 100000 },
+  { pattern: /\b(pekgo\s*ceng)\b/gi, value: 150000 },
+
+  // Standar Ratus Ribu
   { pattern: /\b(lima\s*ratus\s*ribu|500\s*ribu|500\s*rb|500k)\b/gi, value: 500000 },
   { pattern: /\b(dua\s*ratus\s*ribu|200\s*ribu|200\s*rb|200k)\b/gi, value: 200000 },
-  { pattern: /\b(seratus\s*ribu|100\s*ribu|100\s*rb|100k|cepek\s*ceng)\b/gi, value: 100000 },
+  { pattern: /\b(seratus\s*ribu|100\s*ribu|100\s*rb|100k)\b/gi, value: 100000 },
   { pattern: /\b(pego|pe\s*go|pekgo)\b/gi, value: 150000 },
-  { pattern: /\b(goban|go\s*ban)\b/gi, value: 50000 },
-  { pattern: /\b(gocap|go\s*cap)\b/gi, value: 50000 },
-  { pattern: /\b(noban|no\s*ban)\b/gi, value: 20000 },
-  { pattern: /\b(ceban|seban|ce\s*ban)\b/gi, value: 10000 },
-  { pattern: /\b(goceng|go\s*ceng)\b/gi, value: 5000 },
-  { pattern: /\b(noceng|no\s*ceng)\b/gi, value: 2000 },
-  { pattern: /\b(seceng|sceng|se\s*ceng)\b/gi, value: 1000 },
-  { pattern: /\b(gopek|go\s*pek|gope\s*perak|gopek\s*perak|500\s*perak)\b/gi, value: 500 },
-  { pattern: /\b(cepek|sepek|ce\s*pek)\b/gi, value: 100 }
+
+  // Puluhan Ribu (Jawa & Sunda & Slang)
+  { pattern: /\b(sawidak\s*ewu|sawidak\s*rebu|sawidak)\b/gi, value: 60000 },
+  { pattern: /\b(seket\s*ewu|seket\s*rebu|seket|lima\s*puluh\s*rebu)\b/gi, value: 50000 },
+  { pattern: /\b(goban|go\s*ban|gocap|go\s*cap)\b/gi, value: 50000 },
+  { pattern: /\b(patang\s*puluh\s*ewu|patang\s*puluh\s*rebu|empat\s*puluh\s*rebu)\b/gi, value: 40000 },
+  { pattern: /\b(telung\s*puluh\s*ewu|telung\s*puluh\s*rebu|tiga\s*puluh\s*rebu)\b/gi, value: 30000 },
+  { pattern: /\b(selawe\s*ewu|selawe\s*rebu|selawe|dua\s*lima\s*ribu|dua\s*lima\s*rebu|dua\s*lima\s*k)\b/gi, value: 25000 },
+  { pattern: /\b(rong\s*puluh\s*ewu|rong\s*puluh\s*rebu|dua\s*puluh\s*rebu|noban|no\s*ban)\b/gi, value: 20000 },
+  { pattern: /\b(sepuluh\s*ewu|sepuluh\s*rebu|sapuluh\s*rebu|ceban|seban|ce\s*ban)\b/gi, value: 10000 },
+
+  // Satuan Ribu (Jawa, Sunda & Slang)
+  { pattern: /\b(sangang\s*ewu|sangang\s*rebu|salapan\s*rebu)\b/gi, value: 9000 },
+  { pattern: /\b(wolung\s*ewu|wulung\s*ewu|dalapan\s*rebu)\b/gi, value: 8000 },
+  { pattern: /\b(pitung\s*ewu|pitung\s*rebu|tujuh\s*rebu)\b/gi, value: 7000 },
+  { pattern: /\b(nem\s*ewu|nem\s*rebu|genep\s*rebu)\b/gi, value: 6000 },
+  { pattern: /\b(limang\s*ewu|limang\s*rebu|lima\s*rebu|goceng|go\s*ceng)\b/gi, value: 5000 },
+  { pattern: /\b(patang\s*ewu|patang\s*rebu|opat\s*rebu|empat\s*rebu)\b/gi, value: 4000 },
+  { pattern: /\b(telung\s*ewu|telung\s*rebu|tilu\s*rebu|tiga\s*rebu)\b/gi, value: 3000 },
+  { pattern: /\b(rong\s*ewu|ro\s*ewu|rong\s*rebu|dua\s*rebu|noceng|no\s*ceng)\b/gi, value: 2000 },
+  { pattern: /\b(sak\s*ewu|se\s*ewu|sa\s*ewu|sarebu|satu\s*rebu|seceng|sceng|se\s*ceng)\b/gi, value: 1000 },
+
+  // Perak / Ratusan
+  { pattern: /\b(limangatus\s*perak|limangatus\s*rupiah|gopek|go\s*pek|gope\s*perak|gopek\s*perak|500\s*perak)\b/gi, value: 500 },
+  { pattern: /\b(cepek|sepek|ce\s*pek|100\s*perak)\b/gi, value: 100 }
 ];
 
 // 2. Kamus Penanda Koreksi / Ralat Spontan (Diurutkan dari frasa terpanjang)
@@ -108,7 +148,8 @@ export const ENGLISH_PHONETIC_AND_BOOK_MAP = [
   { pattern: /\b(?:mousepad|mauspad|maus\s*ped)\b/gi, replacement: 'Mousepad' },
   { pattern: /\b(?:t-shirt|t\s*shirt|tisort|tisyet)\b/gi, replacement: 'T-Shirt' },
   { pattern: /\b(?:skincare|skin\s*ker|sekin\s*ker)\b/gi, replacement: 'Skincare' },
-  { pattern: /\b(?:wi-fi|wi\s*fi|waifai|wai\s*fai|wai\s*pay|waipay)\b/gi, replacement: 'WiFi' }
+  { pattern: /\b(?:wi-fi|wi\s*fi|waifai|wai\s*fai|wai\s*pay|waipay)\b/gi, replacement: 'WiFi' },
+  { pattern: /\b(?:ke\s*toprak|kethoprak|ketoprak)\b/gi, replacement: 'Ketoprak' }
 ];
 
 // 3. Kamus Kategori Komprehensif (25 Expense + 6 Income)
@@ -118,6 +159,7 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'pesan antar makanan', 'pesan antar', 'delivery makanan', 'pesen gofood', 'order gofood', 'pesen grabfood', 'order grabfood'
   ],
   food: [
+    'ketoprak', 'ke toprak', 'ketoprak telur', 'ketoprak telor',
     'nasi padang', 'ayam geprek', 'ayam goreng', 'ayam bakar', 'nasi goreng', 'mie ayam', 'mie instan', 'bakmie',
     'bubur ayam', 'pecel lele', 'ikan bakar', 'mie gacoan', 'rujak buah', 'rujak pepaya', 'rujak mentimun', 'rujak',
     'es kacang hijau', 'es kacang ijo', 'kacang hijau', 'kacang ijo', 'bubur kacang ijo', 'burjo',
@@ -517,6 +559,82 @@ export const CONNECTING_WORDS = [
 ];
 
 /**
+ * Ekstraksi Tanggal & Waktu Lampau dari Ucapan Suara (Backdated parsing)
+ */
+export function extractVoiceDate(rawText) {
+  if (!rawText || typeof rawText !== 'string') {
+    return { date: null, cleanedText: rawText || '', phrase: null };
+  }
+
+  const now = new Date();
+  let targetDate = new Date(now);
+  let matchedPhrase = null;
+  let hasCustomDate = false;
+
+  // 1. Relatif Hari Khusus
+  if (/\b(kemarin\s+lusa|2\s*hari\s*(?:yang\s*)?lalu|dua\s*hari\s*(?:yang\s*)?lalu)\b/i.test(rawText)) {
+    targetDate.setDate(targetDate.getDate() - 2);
+    matchedPhrase = rawText.match(/\b(kemarin\s+lusa|2\s*hari\s*(?:yang\s*)?lalu|dua\s*hari\s*(?:yang\s*)?lalu)\b/i)[0];
+    hasCustomDate = true;
+  } else if (/\b(3\s*hari\s*(?:yang\s*)?lalu|tiga\s*hari\s*(?:yang\s*)?lalu)\b/i.test(rawText)) {
+    targetDate.setDate(targetDate.getDate() - 3);
+    matchedPhrase = rawText.match(/\b(3\s*hari\s*(?:yang\s*)?lalu|tiga\s*hari\s*(?:yang\s*)?lalu)\b/i)[0];
+    hasCustomDate = true;
+  } else if (/\b(kemarin\s*(?:pagi|siang|sore|malam)?|semalam|tadi\s*malam)\b/i.test(rawText)) {
+    targetDate.setDate(targetDate.getDate() - 1);
+    matchedPhrase = rawText.match(/\b(kemarin\s*(?:pagi|siang|sore|malam)?|semalam|tadi\s*malam)\b/i)[0];
+    hasCustomDate = true;
+  } else if (/\b(senin|selasa|rabu|kamis|jumat|sabtu|minggu)\s+lalu\b/i.test(rawText)) {
+    const dayMatch = rawText.match(/\b(senin|selasa|rabu|kamis|jumat|sabtu|minggu)\s+lalu\b/i);
+    if (dayMatch) {
+      matchedPhrase = dayMatch[0];
+      const dayNames = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+      const targetDayIndex = dayNames.indexOf(dayMatch[1].toLowerCase());
+      if (targetDayIndex !== -1) {
+        const currentDay = now.getDay();
+        let diff = currentDay - targetDayIndex;
+        if (diff <= 0) diff += 7;
+        targetDate.setDate(targetDate.getDate() - diff);
+        hasCustomDate = true;
+      }
+    }
+  } else if (/\b(?:tanggal|tgl)\s+(\d{1,2})\b/i.test(rawText)) {
+    const tglMatch = rawText.match(/\b(?:tanggal|tgl)\s+(\d{1,2})\b/i);
+    if (tglMatch) {
+      const dayNum = parseInt(tglMatch[1], 10);
+      if (dayNum >= 1 && dayNum <= 31) {
+        matchedPhrase = tglMatch[0];
+        targetDate.setDate(dayNum);
+        if (dayNum > now.getDate()) {
+          targetDate.setMonth(targetDate.getMonth() - 1);
+        }
+        hasCustomDate = true;
+      }
+    }
+  } else if (/\b(tadi\s*(?:pagi|siang|sore|subuh)|barusan|hari\s*ini)\b/i.test(rawText)) {
+    matchedPhrase = rawText.match(/\b(tadi\s*(?:pagi|siang|sore|subuh)|barusan|hari\s*ini)\b/i)[0];
+    hasCustomDate = false;
+  }
+
+  let cleaned = rawText;
+  if (matchedPhrase) {
+    cleaned = cleaned.replace(new RegExp(`\\b${matchedPhrase}\\b`, 'gi'), ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  const y = targetDate.getFullYear();
+  const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const d = String(targetDate.getDate()).padStart(2, '0');
+  const isoDate = `${y}-${m}-${d}`;
+
+  return {
+    date: hasCustomDate ? isoDate : null,
+    isoDate,
+    phrase: matchedPhrase,
+    cleanedText: cleaned
+  };
+}
+
+/**
  * Parser untuk 1 klausa tunggal transaksi atau perintah suara
  */
 export function parseSingleVoiceTransaction(rawText, { expenseCategories, incomeCategories, accountsList } = {}) {
@@ -530,6 +648,12 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     .replace(/(?<!\d)[.,!?:;"'“”’/]+|[.,!?:;"'“”’/]+(?!\d)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Ekstraksi Tanggal & Waktu Lampau (Backdated)
+  const dateExtraction = extractVoiceDate(text);
+  const detectedDate = dateExtraction.date;
+  const detectedTimePhrase = dateExtraction.phrase;
+  text = dateExtraction.cleanedText;
 
   const preRalatText = text;
 
@@ -561,10 +685,90 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     }
   }
 
+    // 0. Deteksi Pertanyaan Finansial / Voice Query AI
+    const QUERY_KEYWORDS = [
+      'berapa pengeluaran', 'berapa pengeluaranku', 'berapa belanja', 'berapa belanjaku', 'berapa biaya',
+      'berapa pemasukan', 'berapa pemasukanku', 'berapa uang masuk', 'berapa dapat uang',
+      'berapa sisa budget', 'berapa sisa saldo budget', 'berapa sisa limit', 'berapa limit budget', 'berapa budget',
+      'berapa sisa uang', 'berapa saldo', 'berapa saldoku', 'cek saldo', 'lihat saldo', 'total saldo',
+      'berapa uang saya', 'berapa uangku', 'sisa uang saya', 'sisa uangku', 'sisa saldo', 'saldo saya',
+      'pengeluaran saya', 'pengeluaranku', 'pemasukan saya', 'pemasukanku', 'budget saya', 'budgetku',
+      'total pengeluaran', 'total pemasukan', 'total uang'
+    ];
+
+    const isQuestionMarker = /\b(berapa|cek|lihat|tampilkan|info|gimana|bagaimana|spill|total)\b/i.test(text) ||
+      /\b(pengeluaran|pemasukan|saldo|budget|uang)\b/i.test(text) && /\b(saya|aku|ku|hari\s*ini|bulan\s*ini|kemarin|bca|gopay|cash|brimo|dana|ovo|shopeepay)\b/i.test(text);
+
+    const isExplicitQuery = QUERY_KEYWORDS.some(kw => text.includes(kw));
+
+    if (isExplicitQuery || (isQuestionMarker && !/\b(beli|membeli|bayar|membayar|terbayar|tambah|tambahkan|masukkan|masukin|input|simpan|hapus|delete|batalin|batalkan|transfer)\b/i.test(text))) {
+      // Tentukan timeRange ('today' | 'month' | 'yesterday')
+      let timeRange = 'month'; // default bulanan
+      if (/\b(hari\s*ini|tadi|sekarang|tadi\s*pagi|tadi\s*siang|tadi\s*sore|tadi\s*malam)\b/i.test(rawText) || detectedDate === new Date().toISOString().split('T')[0]) {
+        timeRange = 'today';
+      } else if (/\b(kemarin|semalam|kemarin\s*lusa)\b/i.test(rawText)) {
+        timeRange = 'yesterday';
+      } else if (/\b(bulan\s*ini|sebulan\s*ini|bulan\s*sekarang)\b/i.test(rawText)) {
+        timeRange = 'month';
+      }
+
+      // Deteksi Target Akun (misal: "Berapa saldo di BCA?")
+      let targetAccount = null;
+      for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+        if (new RegExp(`\\b${syn}\\b`, 'i').test(text)) {
+          targetAccount = mappedAcc;
+          break;
+        }
+      }
+
+      // Deteksi Target Kategori (misal: "Berapa pengeluaran kopi bulan ini?", "Berapa jajan bensin?")
+      let targetCategory = null;
+      let targetCategoryObj = null;
+      const allCatDict = { ...EXPENSE_CATEGORY_KEYWORDS, ...INCOME_CATEGORY_KEYWORDS };
+      for (const catId of Object.keys(allCatDict)) {
+        const keywords = allCatDict[catId];
+        for (const kw of keywords) {
+          if (new RegExp(`\\b${kw}\\b`, 'i').test(text)) {
+            const allCats = [...(expenseCategories || []), ...(incomeCategories || [])];
+            targetCategoryObj = allCats.find(c => c.id === catId) || { id: catId, name: catId };
+            targetCategory = targetCategoryObj.name || catId;
+            break;
+          }
+        }
+        if (targetCategory) break;
+      }
+
+      // Tentukan queryType: 'EXPENSE' | 'INCOME' | 'BUDGET' | 'BALANCE' | 'CATEGORY'
+      let queryType = 'EXPENSE';
+      if (/\b(budget|limit|sisa\s*budget|sisa\s*limit)\b/i.test(text)) {
+        queryType = 'BUDGET';
+      } else if (/\b(saldo|uang\s*saya|uangku|sisa\s*uang|tabungan|di\s*bca|di\s*gopay|di\s*cash|di\s*dana|di\s*ovo|di\s*brimo)\b/i.test(text)) {
+        queryType = 'BALANCE';
+      } else if (/\b(pemasukan|uang\s*masuk|gaji|dapat\s*uang|income)\b/i.test(text)) {
+        queryType = 'INCOME';
+      } else if (targetCategory && /\b(kopi|bensin|makan|food|gofood|nonton|bioskop|belanja|transport|pulsa|wifi|skincare|buku|donasi)\b/i.test(text)) {
+        queryType = 'CATEGORY';
+      } else {
+        queryType = 'EXPENSE';
+      }
+
+      return {
+        success: true,
+        action: 'QUERY',
+        queryType,
+        timeRange,
+        targetAccount,
+        targetCategory,
+        targetCategoryObj,
+        rawText
+      };
+    }
+
+  // 0. Deteksi Perintah Hapus (Voice-Command Delete)
   // 0. Deteksi Perintah Hapus (Voice-Command Delete)
   const DELETE_KEYWORDS = [
     'tolong hapus', 'bantu hapus', 'coba hapus', 'hapusin', 'hapus dong', 'hapus deh',
-    'hapus', 'delete', 'batalin', 'batalkan', 'cancel', 'buang', 'hilangkan', 'hapus transaksi'
+    'hapus', 'delete', 'batalin', 'batalkan', 'cancel', 'buang', 'hilangkan', 'hapus transaksi', 'bersihkan'
   ];
   const LAST_KEYWORDS = [
     'terakhir dibuat', 'paling terakhir', 'yang terakhir', 'yg terakhir',
@@ -574,6 +778,83 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
 
   const isDeleteIntent = DELETE_KEYWORDS.some(kw => text.includes(kw));
   if (isDeleteIntent) {
+    // 0A. Deteksi Hapus Banyak Transaksi Berdasarkan Jumlah (misal: "hapus 3 transaksi terakhir", "hapus dua transaksi barusan", "hapus 5 data")
+    const NUMBER_WORDS_MAP = {
+      'satu': 1, 'semua': 'all', 'seluruh': 'all', 'semuanya': 'all', 'dua': 2, 'tiga': 3, 'empat': 4, 'lima': 5,
+      'enam': 6, 'tujuh': 7, 'delapan': 8, 'sembilan': 9, 'sepuluh': 10,
+      'sebelas': 11, 'dua belas': 12, 'tiga belas': 13, 'empat belas': 14, 'lima belas': 15,
+      'dua puluh': 20
+    };
+
+    const multiCountRegex = /\b(?:hapus|delete|batalin|batalkan|buang|hilangkan|bersihkan)\s+(?:sebanyak\s+)?(\d+|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh|sebelas|dua\s*belas|semua|seluruh|semuanya)\s+(?:transaksi|catatan|data|item|nota)?\s*(?:terakhir|barusan|tadi|terbaru)?\b/i;
+    const multiCountMatch = text.match(multiCountRegex);
+
+    if (multiCountMatch) {
+      const countToken = multiCountMatch[1].toLowerCase().replace(/\s+/g, ' ').trim();
+      let deleteCount = 1;
+      if (/^\d+$/.test(countToken)) {
+        deleteCount = parseInt(countToken, 10);
+      } else if (NUMBER_WORDS_MAP[countToken] !== undefined) {
+        deleteCount = NUMBER_WORDS_MAP[countToken];
+      }
+
+      if (deleteCount === 'all' || deleteCount > 1) {
+        return {
+          success: true,
+          action: 'DELETE',
+          isMultipleDelete: true,
+          deleteCount,
+          isLast: true,
+          rawText
+        };
+      }
+    }
+
+    // 0B. Deteksi Hapus Semua Transaksi Berdasarkan Kategori / Waktu / Merchant (misal: "hapus semua transaksi kopi", "hapus semua transaksi hari ini", "hapus seluruh pengeluaran indomaret")
+    const isAllMatchIntent = /\b(?:hapus|delete|batalin|batalkan|bersihkan)\s+(?:semua|seluruh|semuanya)\b/i.test(text);
+    if (isAllMatchIntent) {
+      let filterText = text.replace(/\b(?:tolong|bantu|coba|hapus|delete|batalin|batalkan|bersihkan|semua|seluruh|semuanya|transaksi|pengeluaran|pemasukan|catatan|data|nota|item)\b/gi, ' ').trim();
+
+      let timeRange = null;
+      if (/\b(hari\s*ini|tadi|sekarang)\b/i.test(text) || detectedDate === new Date().toISOString().split('T')[0]) {
+        timeRange = 'today';
+        filterText = filterText.replace(/\b(hari\s*ini|tadi|sekarang)\b/gi, ' ').trim();
+      } else if (/\b(kemarin|semalam)\b/i.test(text)) {
+        timeRange = 'yesterday';
+        filterText = filterText.replace(/\b(kemarin|semalam)\b/gi, ' ').trim();
+      }
+
+      let targetCategory = null;
+      const allCatDict = { ...EXPENSE_CATEGORY_KEYWORDS, ...INCOME_CATEGORY_KEYWORDS };
+      for (const catId of Object.keys(allCatDict)) {
+        const keywords = allCatDict[catId];
+        for (const kw of keywords) {
+          if (new RegExp(`\\b${kw}\\b`, 'i').test(text)) {
+            const allCats = [...(expenseCategories || []), ...(incomeCategories || [])];
+            const foundCat = allCats.find(c => c.id === catId);
+            targetCategory = foundCat ? foundCat.name : catId;
+            break;
+          }
+        }
+        if (targetCategory) break;
+      }
+
+      const targetQuery = filterText.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      return {
+        success: true,
+        action: 'DELETE',
+        isMultipleDelete: true,
+        deleteAllMatching: true,
+        deleteCount: 'all',
+        targetCategory,
+        targetQuery,
+        timeRange,
+        rawText
+      };
+    }
+
+    // 0C. Hapus Tunggal (Single Target Deletion)
     const isLast = LAST_KEYWORDS.some(kw => text.includes(kw));
 
     let deleteText = text;
@@ -631,6 +912,179 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
       targetAmount: targetAmount || null,
       rawText
     };
+  }
+
+  // 0c. Deteksi Perintah Edit / Ubah Transaksi Terakhir (Voice-Command EDIT)
+  const EDIT_KEYWORDS = [
+    'ubah transaksi', 'ganti transaksi', 'edit transaksi', 'ralat transaksi',
+    'ubah nominal', 'ganti nominal', 'ralat nominal',
+    'ubah akun', 'ganti akun', 'ubah rekening', 'ganti rekening', 'ubah pembayaran', 'ganti pembayaran',
+    'ubah kategori', 'ganti kategori',
+    'ubah catatan', 'ganti catatan', 'ubah judul', 'ganti judul', 'ubah nama', 'ganti nama'
+  ];
+
+  const isEditIntent = EDIT_KEYWORDS.some(kw => text.includes(kw)) ||
+    (/\b(ubah|ganti|ralat)\b/i.test(text) && /\b(terakhir|barusan|tadi|jadi|ke)\b/i.test(text));
+
+  if (isEditIntent) {
+    let editText = text;
+    for (const item of SLANG_NUMBER_MAP) {
+      editText = editText.replace(item.pattern, ` ${item.value} `);
+    }
+
+    const editChanges = {};
+
+    // 1. Ekstraksi Nominal Baru
+    const editAmountRegex = /(?:rp\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|rebu|k|juta|jt|miliar|milyar)?(?!\w)/gi;
+    const editAmountMatches = [...editText.matchAll(editAmountRegex)].filter(m => m[0].trim().length > 0);
+    if (editAmountMatches.length > 0) {
+      const lastMatch = editAmountMatches[editAmountMatches.length - 1];
+      let numStr = lastMatch[1];
+      let rawNumber = 0;
+      if (numStr.includes('.')) {
+        rawNumber = parseFloat(numStr.replace(/\./g, ''));
+      } else {
+        rawNumber = parseFloat(numStr.replace(',', '.'));
+      }
+      const unit = (lastMatch[2] || '').toLowerCase();
+      if (unit === 'ribu' || unit === 'rb' || unit === 'rebu' || unit === 'k') {
+        rawNumber *= 1000;
+      } else if (unit === 'juta' || unit === 'jt') {
+        rawNumber *= 1000000;
+      } else if (unit === 'miliar' || unit === 'milyar') {
+        rawNumber *= 1000000000;
+      }
+      if (rawNumber > 0) {
+        editChanges.amount = Math.round(rawNumber);
+      }
+    }
+
+    // 2. Ekstraksi Akun Baru
+    for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+      const regex = new RegExp(`\\b${syn}\\b`, 'i');
+      if (regex.test(editText)) {
+        editChanges.account = mappedAcc;
+        break;
+      }
+    }
+
+    // 3. Ekstraksi Kategori Baru
+    const allCatDict = { ...EXPENSE_CATEGORY_KEYWORDS, ...INCOME_CATEGORY_KEYWORDS };
+    for (const catId of Object.keys(allCatDict)) {
+      const keywords = allCatDict[catId];
+      for (const kw of keywords) {
+        const regex = new RegExp(`\\b${kw}\\b`, 'i');
+        if (regex.test(editText)) {
+          const allCats = [...(expenseCategories || []), ...(incomeCategories || [])];
+          const foundCat = allCats.find(c => c.id === catId) || { id: catId, name: catId };
+          editChanges.category = foundCat;
+          break;
+        }
+      }
+      if (editChanges.category) break;
+    }
+
+    if (Object.keys(editChanges).length > 0) {
+      return {
+        success: true,
+        action: 'EDIT_LAST',
+        isLast: true,
+        changes: editChanges,
+        rawText
+      };
+    }
+  }
+
+  // 0d. Deteksi Perintah Transfer / Pindah Saldo Antar Akun
+  const isTransferIntent = /\b(transfer|kirim\s+uang|pindah\s+saldo|pindahin\s+saldo|pindahin\s+uang|tarik\s+tunai|top\s*up|topup)\b/i.test(text);
+  if (isTransferIntent) {
+    let transferText = text;
+    for (const item of SLANG_NUMBER_MAP) {
+      transferText = transferText.replace(item.pattern, ` ${item.value} `);
+    }
+
+    const transferAmountRegex = /(?:rp\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|rebu|k|juta|jt|miliar|milyar)?(?!\w)/gi;
+    const transferAmountMatches = [...transferText.matchAll(transferAmountRegex)].filter(m => m[0].trim().length > 0);
+
+    if (transferAmountMatches.length > 0) {
+      const lastMatch = transferAmountMatches[transferAmountMatches.length - 1];
+      let numStr = lastMatch[1];
+      let rawNumber = 0;
+      if (numStr.includes('.')) {
+        rawNumber = parseFloat(numStr.replace(/\./g, ''));
+      } else {
+        rawNumber = parseFloat(numStr.replace(',', '.'));
+      }
+      const unit = (lastMatch[2] || '').toLowerCase();
+      if (unit === 'ribu' || unit === 'rb' || unit === 'rebu' || unit === 'k') {
+        rawNumber *= 1000;
+      } else if (unit === 'juta' || unit === 'jt') {
+        rawNumber *= 1000000;
+      }
+      const amount = Math.round(rawNumber);
+
+      let fromAccount = 'BCA';
+      let toAccount = 'Cash';
+
+      if (/\btarik\s*tunai\b/i.test(transferText)) {
+        toAccount = 'Cash';
+        for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+          if (new RegExp(`(?:dari|pake|pakai)\\s+${syn}`, 'i').test(transferText) || new RegExp(`\\b${syn}\\b`, 'i').test(transferText)) {
+            if (mappedAcc !== 'Cash') {
+              fromAccount = mappedAcc;
+              break;
+            }
+          }
+        }
+      } else if (/\b(?:top\s*up|topup)\b/i.test(transferText)) {
+        for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+          if (['GoPay', 'DANA', 'OVO', 'ShopeePay', 'LinkAja'].includes(mappedAcc) && new RegExp(`\\b${syn}\\b`, 'i').test(transferText)) {
+            toAccount = mappedAcc;
+            break;
+          }
+        }
+        for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+          if (['BCA', 'BRImo', 'Livin', 'Wondr', 'BSI', 'Bank Jago', 'CIMB Niaga'].includes(mappedAcc) && new RegExp(`\\b${syn}\\b`, 'i').test(transferText)) {
+            fromAccount = mappedAcc;
+            break;
+          }
+        }
+      } else {
+        const fromMatch = transferText.match(/dari\s+([a-z0-9\s]+?)(?=\s+ke\b|\s+buat\b|$)/i);
+        const toMatch = transferText.match(/ke\s+([a-z0-9\s]+?)(?=\s+dari\b|\s+buat\b|$)/i);
+
+        if (fromMatch) {
+          const fromQuery = fromMatch[1].trim();
+          for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+            if (new RegExp(`\\b${syn}\\b`, 'i').test(fromQuery)) {
+              fromAccount = mappedAcc;
+              break;
+            }
+          }
+        }
+        if (toMatch) {
+          const toQuery = toMatch[1].trim();
+          for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+            if (new RegExp(`\\b${syn}\\b`, 'i').test(toQuery)) {
+              toAccount = mappedAcc;
+              break;
+            }
+          }
+        }
+      }
+
+      return {
+        success: true,
+        action: 'TRANSFER',
+        amount,
+        fromAccount,
+        toAccount,
+        note: `Transfer ${fromAccount} ke ${toAccount}`,
+        date: detectedDate || null,
+        detectedTimePhrase: detectedTimePhrase || null,
+        rawText
+      };
+    }
   }
 
   // 0b. Deteksi Koreksi / Ralat Spontan
@@ -885,7 +1339,7 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'bioskop';
     latestExpenseIdx = 9650;
     expenseMatchedWord = 'bioskop';
-  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|bakwan|telur dadar|telur goreng|telur ceplok|telur gulung|telur balado|telor dadar|telor goreng|telor ceplok)\b/i.test(primaryText)) {
+  } else if (/\b(nasi padang|ayam geprek|ayam goreng|nasi goreng|mie ayam|mie gacoan|bakmie|bakso|soto|sate|rawon|seblak|rujak|ketoprak|ke\s*toprak|bakwan|telur dadar|telur goreng|telur ceplok|telur gulung|telur balado|telor dadar|telor goreng|telor ceplok)\b/i.test(primaryText)) {
     matchedExpenseCatId = 'food';
     latestExpenseIdx = 9500;
     expenseMatchedWord = 'food';
@@ -1109,6 +1563,8 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     category: categoryObj,
     account,
     note,
+    date: detectedDate || null,
+    detectedTimePhrase: detectedTimePhrase || null,
     rawText
   };
 }
@@ -1135,9 +1591,156 @@ function clauseHasActionOrAmount(clause) {
 }
 
 /**
+ * Deteksi & Parser Split Bill / Patungan Bareng
+ * (Contoh: "Makan bareng 120 ribu patungan berempat pake BCA")
+ */
+export function detectAndParseSplitBill(text, options = {}) {
+  const lower = (text || '').toLowerCase();
+
+  const splitKeywords = /\b(patungan|split\s*bill|bagi\s*rata|dibagi|patungan\s*bareng|bagi\s*dua|bagi\s*tiga|bagi\s*empat|bagi\s*lima|berdua|bertiga|berempat|berlima|berenam|bertujuh|berdelapan)\b/i;
+  if (!splitKeywords.test(lower)) return null;
+
+  let count = null;
+  const countWordMap = {
+    'berdua': 2, 'bagi dua': 2, 'dibagi dua': 2, '2 orang': 2, 'dua orang': 2,
+    'bertiga': 3, 'bagi tiga': 3, 'dibagi tiga': 3, '3 orang': 3, 'tiga orang': 3,
+    'berempat': 4, 'bagi empat': 4, 'dibagi empat': 4, '4 orang': 4, 'empat orang': 4,
+    'berlima': 5, 'bagi lima': 5, 'dibagi lima': 5, '5 orang': 5, 'lima orang': 5,
+    'berenam': 6, 'bagi enam': 6, 'dibagi enam': 6, '6 orang': 6, 'enam orang': 6,
+    'bertujuh': 7, 'bagi tujuh': 7, 'dibagi tujuh': 7, '7 orang': 7, 'tujuh orang': 7,
+    'berdelapan': 8, 'bagi delapan': 8, 'dibagi delapan': 8, '8 orang': 8, 'delapan orang': 8
+  };
+
+  for (const [phrase, num] of Object.entries(countWordMap)) {
+    if (lower.includes(phrase)) {
+      count = num;
+      break;
+    }
+  }
+
+  if (!count) {
+    const numMatch = lower.match(/(?:patungan|dibagi|bagi|split\s*bill)\s*(?:sama|dengan|untuk)?\s*(\d{1,2})\s*(?:orang)?/i);
+    if (numMatch) {
+      count = parseInt(numMatch[1], 10);
+    }
+  }
+
+  if (!count || count <= 1) return null;
+
+  let cleaned = text
+    .replace(/\b(?:patungan|split\s*bill|bagi\s*rata|dibagi|patungan\s*bareng)\b/gi, ' ')
+    .replace(/\b(?:berdua|bertiga|berempat|berlima|berenam|bertujuh|berdelapan)\b/gi, ' ')
+    .replace(/\b(?:\d+|dua|tiga|empat|lima|enam|tujuh|delapan)\s*orang\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const singleRes = parseSingleVoiceTransaction(cleaned, options);
+  if (!singleRes || !singleRes.success || !singleRes.amount) return null;
+
+  const totalAmount = singleRes.amount;
+  const userAmount = Math.round(totalAmount / count);
+  const baseTitle = singleRes.note || singleRes.category?.name || 'Makan Bareng';
+  const finalNote = `${baseTitle} (Split ${count} org • Total Rp ${totalAmount.toLocaleString('id-ID')})`;
+
+  return {
+    ...singleRes,
+    amount: userAmount,
+    note: finalNote,
+    isSplitBill: true,
+    totalBillAmount: totalAmount,
+    splitPersonCount: count,
+    rawText: text
+  };
+}
+
+/**
+ * Deteksi & Parser Keranjang Belanja Multi-Item
+ * (Contoh: "Beli sabun 15 ribu odol 12 ribu dan beras 70 ribu di Indomaret pake Cash")
+ */
+export function parseShoppingBasket(rawText, options = {}) {
+  if (!rawText || typeof rawText !== 'string') return null;
+
+  let normalized = rawText.toLowerCase();
+  for (const item of SLANG_NUMBER_MAP) {
+    normalized = normalized.replace(item.pattern, ` ${item.value} `);
+  }
+
+  // 1. Deteksi apakah ada global payment method atau lokasi di akhir kalimat
+  let globalAccount = null;
+  for (const [syn, mappedAcc] of Object.entries(ACCOUNT_SYNONYMS)) {
+    const regex = new RegExp(`(?:pake|pakai|lewat|via|dengan)\\s+${syn}\\b`, 'i');
+    if (regex.test(normalized)) {
+      globalAccount = mappedAcc;
+      break;
+    }
+  }
+
+  // 2. Temukan semua kemunculan nominal beserta posisinya
+  const amountRegex = /(?:rp\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)\s*(ribu|rb|rebu|k|juta|jt|miliar|milyar)?(?!\w)/gi;
+  const matches = [...normalized.matchAll(amountRegex)].filter(m => m[0].trim().length > 0);
+
+  if (matches.length < 2) return null;
+
+  // 3. Pecah teks menjadi pasangan [Item, Nominal]
+  const extractedItems = [];
+  let lastEnd = 0;
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const matchStart = match.index;
+    const matchEnd = match.index + match[0].length;
+
+    let itemChunk = normalized.substring(lastEnd, matchStart).trim();
+    lastEnd = matchEnd;
+
+    itemChunk = itemChunk
+      .replace(/^(?:beli|membeli|belanja|jajan|pesan|pesen|order|dan\s+juga|dan|lalu|sama|terus|plus)\s+/gi, '')
+      .replace(/\b(?:di\s+(?:indomaret|alfamart|superindo|hypermart|warung|toko|pasar))\b/gi, '')
+      .trim();
+
+    let numStr = match[1];
+    let rawNumber = numStr.includes('.') ? parseFloat(numStr.replace(/\./g, '')) : parseFloat(numStr.replace(',', '.'));
+    const unit = (match[2] || '').toLowerCase();
+    if (unit === 'ribu' || unit === 'rb' || unit === 'rebu' || unit === 'k') rawNumber *= 1000;
+    else if (unit === 'juta' || unit === 'jt') rawNumber *= 1000000;
+    const amountVal = Math.round(rawNumber);
+
+    if (itemChunk && amountVal > 0) {
+      extractedItems.push({
+        rawItemName: itemChunk,
+        amount: amountVal
+      });
+    }
+  }
+
+  if (extractedItems.length < 2) return null;
+
+  // 4. Parse setiap item menjadi transaksi valid
+  const parsedCommands = [];
+  for (const item of extractedItems) {
+    const phrase = `${item.rawItemName} ${item.amount} ${globalAccount ? 'pake ' + globalAccount : ''}`;
+    const single = parseSingleVoiceTransaction(phrase, options);
+    if (single && single.success && single.amount) {
+      parsedCommands.push(single);
+    }
+  }
+
+  if (parsedCommands.length >= 2) {
+    return {
+      success: true,
+      isMultiple: true,
+      isShoppingBasket: true,
+      commands: parsedCommands,
+      rawText
+    };
+  }
+
+  return null;
+}
+
+/**
  * Multi-Intent Voice Parser:
- * Mampu mengeksekusi multi-transaksi dalam 1 kalimat ucapan sekaligus
- * (misal: "hapus bakwan tambahkan bakmie 13 ribu" atau "beli bakso 15rb dan es teh 5rb")
+ * Mampu mengeksekusi multi-transaksi, keranjang belanja, split bill, dan klausa berantai dalam 1 kalimat ucapan
  */
 export function parseVoiceTransaction(rawText, options = {}) {
   if (!rawText || typeof rawText !== 'string') {
@@ -1178,14 +1781,24 @@ export function parseVoiceTransaction(rawText, options = {}) {
     return parseSingleVoiceTransaction(rawText, options);
   }
 
-  // Pola pembatas multi-klausa (Conjunctions & Secondary Action Openers)
-  // Contoh: "... dan ...", "... lalu ...", "... kemudian ...", "... terus ...", "... sama beli ...", "... tambahkan ...", "... masukkan ..."
+  // 1. Cek Split Bill / Patungan
+  const splitBillRes = detectAndParseSplitBill(rawText, options);
+  if (splitBillRes) {
+    return splitBillRes;
+  }
+
+  // 2. Cek Keranjang Belanja Multi-Item (contoh: "sabun 15rb odol 12rb beras 70rb")
+  const basketRes = parseShoppingBasket(rawText, options);
+  if (basketRes) {
+    return basketRes;
+  }
+
+  // 3. Pola pembatas multi-klausa (Conjunctions & Secondary Action Openers)
   const splitRegex = /\b(?:dan\s+juga|dan\s+lagi|dan|lalu|kemudian|terus|serta|sekaligus|plus|sama\s+beli|sama\s+tambah|sama\s+masuk|sama\s+isi|sama\s+catat)\b|(?<=\S)\s+(?=(?:tolong\s+|bantu\s+|coba\s+)?(?:tambahkan|tambah|masukkan|masukin|catat|catatkan|input|tulis|beli|dapat|gajian|cair|hapus|hapusin|delete|batalin|batalkan)\b)/gi;
 
   const rawClauses = rawText.split(splitRegex).map(c => c.trim()).filter(Boolean);
 
   if (rawClauses.length >= 2) {
-    // Verifikasi bahwa SETIAP klausa memiliki aksi (Hapus) atau memiliki nominal transaksi
     const allClausesValid = rawClauses.every(clauseHasActionOrAmount);
 
     if (allClausesValid) {

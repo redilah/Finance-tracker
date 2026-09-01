@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getCurrentMonthKey, formatMonthLabel } from '../../utils/groupStorage';
+import { getCurrentMonthKey, formatMonthLabel, getCurrentUserId } from '../../utils/groupStorage';
 
 export default function GroupAddTxModal({
   group,
@@ -11,8 +11,9 @@ export default function GroupAddTxModal({
 }) {
   const [txType, setTxType] = useState(mode); // 'kas_in' | 'expense'
 
+  const myUserId = getCurrentUserId();
   const members = Array.isArray(group?.members) ? group.members : [];
-  const currentUserMember = members.find(m => m.isCurrentUser) || members[0] || { id: 'mem_cur', name: 'Saya' };
+  const currentUserMember = members.find(m => (m.userId && m.userId === myUserId) || m.id === myUserId || m.isCurrentUser) || members[0] || { id: myUserId, name: 'Saya' };
 
   // Helper format nominal ribuan dengan titik (contoh 8000 -> 8.000)
   const formatAmountInput = (val) => {

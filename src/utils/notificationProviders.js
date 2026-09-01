@@ -249,7 +249,7 @@ function parseRupiahAmount(text) {
   for (const match of matches) {
     const numStr = match.replace(/(?:Rp\.?|IDR)\s*/i, '').trim();
     let cleaned = numStr;
-    cleaned = cleaned.replace(/[,.]0{1,2}$/, '');
+    cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
     if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
       cleaned = cleaned.replace(/\./g, '');
     } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
@@ -271,16 +271,18 @@ function parseRupiahAmount(text) {
  */
 function parseRawAmount(text) {
   if (!text) return null;
-  const matches = text.match(/\b(\d{1,3}(?:[.,]\d{3})+|\d{4,})\b/g);
+  const matches = text.match(/\b(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d{4,}(?:[.,]\d{1,2})?)\b/g);
   if (!matches) return null;
   const results = [];
   for (const match of matches) {
     let cleaned = match;
+    cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
     if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
       cleaned = cleaned.replace(/\./g, '');
     } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
       cleaned = cleaned.replace(/,/g, '');
     }
+    cleaned = cleaned.replace(/[^\d]/g, '');
     const amount = parseInt(cleaned, 10);
     if (!isNaN(amount) && amount >= 1000) {
       results.push(amount);
@@ -309,7 +311,7 @@ export function extractTransactionAmount(fullText) {
   while ((match = amountRegex.exec(fullText)) !== null) {
     const numStr = match[1].trim();
     let cleaned = numStr;
-    cleaned = cleaned.replace(/[,.]0{1,2}$/, '');
+    cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
     if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
       cleaned = cleaned.replace(/\./g, '');
     } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
@@ -830,6 +832,19 @@ export function runParserTests() {
       passed: amount === 500000 && type === 'income',
       expected: '500000 / income',
       actual: `${amount} / ${type}`,
+    };
+  });
+
+  // Test 2b: Amount with 2 decimal zeros (51.000.00 -> 51000)
+  test('Amount with 2 trailing zero decimals (sen) — should be 51000 not 5100000', () => {
+    const text1 = 'BRImo: Pembayaran berhasil Rp51.000.00 ke Toko';
+    const text2 = 'BRImo: Debet sebesar Rp 51.000,00 pada 31/08';
+    const amt1 = extractTransactionAmount(text1);
+    const amt2 = extractTransactionAmount(text2);
+    return {
+      passed: amt1 === 51000 && amt2 === 51000,
+      expected: '51000 & 51000',
+      actual: `${amt1} & ${amt2}`,
     };
   });
 

@@ -32,6 +32,7 @@ import {
   isNonTransactional,
   hasTransactionSignal
 } from './notificationProviders';
+import { canAutoTrack, incrementDailyAutoTrack } from './proManager';
 
 // Register native Capacitor plugin
 export const NotificationTrackerNative = registerPlugin('NotificationTracker');
@@ -518,6 +519,11 @@ export async function drainAndProcessQueuedNotifications({
 
     for (const rawNotif of rawQueue) {
       try {
+        if (!canAutoTrack()) {
+          console.log('[NotifTracker] Daily limit reached for free user');
+          break;
+        }
+
         const newTx = processSingleNotification(rawNotif, {
           accountsList,
           warehouseAccountsList,
@@ -527,6 +533,7 @@ export async function drainAndProcessQueuedNotifications({
         });
 
         if (newTx) {
+          incrementDailyAutoTrack();
           createdTransactions.push(newTx);
           currentTxs = [newTx, ...currentTxs]; // Update memory copy to prevent batch duplicates
         }

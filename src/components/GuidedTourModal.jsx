@@ -19,13 +19,31 @@ export const NEW_USER_STEPS = [
     isCircle: false
   },
   {
+    id: 'groups',
+    targetSelector: '.tour-target-groups',
+    tab: 'home',
+    screen: 'profile',
+    titleKey: 'tourGroupsTitle',
+    descKey: 'tourGroupsDesc',
+    isCircle: false
+  },
+  {
     id: 'voice_ai',
-    targetSelector: '.tour-target-voice',
+    targetSelector: '.tour-target-voice-btn',
     tab: 'home',
     screen: 'main',
     titleKey: 'tourFullVoiceTitle',
     descKey: 'tourFullVoiceDesc',
     isCircle: true
+  },
+  {
+    id: 'voice_recorded_result',
+    targetSelector: '.tour-target-first-tx, .transaction-item:first-child, .date-group-items .transaction-item:first-of-type',
+    tab: 'home',
+    screen: 'main',
+    titleKey: 'tourVoiceRecordedTitle',
+    descKey: 'tourVoiceRecordedDesc',
+    isCircle: false
   },
   {
     id: 'add',
@@ -67,13 +85,31 @@ export const FULL_GUIDE_STEPS = [
     isCircle: false
   },
   {
+    id: 'groups',
+    targetSelector: '.tour-target-groups',
+    tab: 'home',
+    screen: 'profile',
+    titleKey: 'tourGroupsTitle',
+    descKey: 'tourGroupsDesc',
+    isCircle: false
+  },
+  {
     id: 'voice_ai',
-    targetSelector: '.tour-target-voice',
+    targetSelector: '.tour-target-voice-btn',
     tab: 'home',
     screen: 'main',
     titleKey: 'tourFullVoiceTitle',
     descKey: 'tourFullVoiceDesc',
     isCircle: true
+  },
+  {
+    id: 'voice_recorded_result',
+    targetSelector: '.tour-target-first-tx, .transaction-item:first-child, .date-group-items .transaction-item:first-of-type',
+    tab: 'home',
+    screen: 'main',
+    titleKey: 'tourVoiceRecordedTitle',
+    descKey: 'tourVoiceRecordedDesc',
+    isCircle: false
   },
   {
     id: 'add',
@@ -119,11 +155,72 @@ export default function GuidedTourModal({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
   const [cardContentVisible, setCardContentVisible] = useState(true);
+  const [tourVoiceError, setTourVoiceError] = useState('');
+  const [isTourVoiceSuccess, setIsTourVoiceSuccess] = useState(false);
+  const [recordedVoiceTx, setRecordedVoiceTx] = useState(null);
   const cardRef = useRef(null);
   const animFrameRef = useRef(null);
 
   const steps = mode === 'full_guide' ? FULL_GUIDE_STEPS : NEW_USER_STEPS;
   const currentStep = steps[currentStepIndex];
+
+  // Broadcast current tour step to the whole app (e.g. VoiceMicButton)
+  useEffect(() => {
+    if (isOpen && currentStep) {
+      window.dispatchEvent(new CustomEvent('cassiel_tour_step_changed', {
+        detail: { stepId: currentStep.id }
+      }));
+    } else {
+      window.dispatchEvent(new CustomEvent('cassiel_tour_step_changed', {
+        detail: { stepId: null }
+      }));
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent('cassiel_tour_step_changed', {
+        detail: { stepId: null }
+      }));
+    };
+  }, [isOpen, currentStepIndex, currentStep?.id]);
+
+  // Listen for voice test errors or success when on voice_ai step
+  useEffect(() => {
+    if (!isOpen || currentStep?.id !== 'voice_ai') {
+      setTourVoiceError('');
+      setIsTourVoiceSuccess(false);
+      return;
+    }
+
+    let errorTimer = null;
+    let successTimer = null;
+
+    const handleError = (e) => {
+      setTourVoiceError(e.detail?.message || 'Teks salah, coba lagi');
+      if (errorTimer) clearTimeout(errorTimer);
+      errorTimer = setTimeout(() => {
+        setTourVoiceError('');
+      }, 3500);
+    };
+
+    const handleSuccess = () => {
+      setTourVoiceError('');
+      setIsTourVoiceSuccess(true);
+      if (successTimer) clearTimeout(successTimer);
+      successTimer = setTimeout(() => {
+        setIsTourVoiceSuccess(false);
+        setCurrentStepIndex(prev => prev + 1);
+      }, 350);
+    };
+
+    window.addEventListener('cassiel_tour_voice_error', handleError);
+    window.addEventListener('cassiel_tour_voice_success', handleSuccess);
+
+    return () => {
+      if (errorTimer) clearTimeout(errorTimer);
+      if (successTimer) clearTimeout(successTimer);
+      window.removeEventListener('cassiel_tour_voice_error', handleError);
+      window.removeEventListener('cassiel_tour_voice_success', handleSuccess);
+    };
+  }, [isOpen, currentStepIndex, currentStep?.id]);
 
   const measureTarget = () => {
     if (!currentStep) return;
@@ -186,6 +283,10 @@ export default function GuidedTourModal({
             behavior: 'smooth'
           });
         }
+      } else if (el && (currentStep.id === 'voice_recorded_result' || currentStep.targetSelector?.includes('tour-target-first-tx'))) {
+        try {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {}
       }
 
       // Continuous tracking during slide-in and scroll animation (0ms - 450ms)
@@ -258,6 +359,7 @@ export default function GuidedTourModal({
     if (setIsAddModalOpen) setIsAddModalOpen(false);
     setActiveTab('home');
     setCurrentStepIndex(0);
+    if (onComplete) onComplete();
     if (onClose) onClose();
   };
 
@@ -448,6 +550,39 @@ export default function GuidedTourModal({
             <p className="guided-tour-desc">
               {t(currentStep.descKey)}
             </p>
+
+            {/* Special Interactive Prompt for Voice AI step */}
+            {currentStep.id === 'voice_ai' && (
+              <div className="tour-voice-trial-wrapper">
+                <div className="tour-voice-trial-box">
+                  <span className="tour-voice-trial-prompt">🎙️ Wajib ucapkan contoh ini:</span>
+                  <div className="tour-voice-trial-pill">
+                    "Ketoprak 11.000 pakai BRI"
+                  </div>
+                </div>
+
+                {tourVoiceError && (
+                  <div className="tour-voice-error-banner">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{tourVoiceError}</span>
+                  </div>
+                )}
+
+                {isTourVoiceSuccess && (
+                  <div className="tour-voice-success-banner">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span>✅ Transaksi berhasil dicatat!</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Card Footer Actions */}
@@ -470,13 +605,29 @@ export default function GuidedTourModal({
               </button>
             )}
 
-            <button
-              type="button"
-              className="guided-tour-btn-primary"
-              onClick={handleNext}
-            >
-              {isLastStep ? (t('tourBtnFinish') || 'Selesai 🎉') : (t('tourBtnNext') || 'Lanjut →')}
-            </button>
+            {currentStep.id === 'voice_ai' && !isTourVoiceSuccess ? (
+              <button
+                type="button"
+                className="guided-tour-btn-primary tour-mic-action-btn"
+                style={{ color: '#FFFFFF !important' }}
+                onClick={() => {
+                  const micBtn = document.querySelector('.tour-target-voice-btn');
+                  if (micBtn) micBtn.click();
+                }}
+                title="Tekan tombol mic untuk mulai bicara"
+              >
+                🎙️ Tekan Mic & Bicara
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="guided-tour-btn-primary"
+                style={{ color: '#FFFFFF !important' }}
+                onClick={handleNext}
+              >
+                {isLastStep ? (t('tourBtnFinish') || 'Selesai 🎉') : (t('tourBtnNext') || 'Lanjut →')}
+              </button>
+            )}
           </div>
         </div>
       </div>

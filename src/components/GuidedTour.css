@@ -209,7 +209,7 @@
 
 .guided-tour-btn-primary {
   background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
-  color: #FFFFFF;
+  color: #FFFFFF !important;
   border: none;
   font-size: 12.5px;
   font-weight: 700;
@@ -223,7 +223,161 @@
   justify-content: center;
 }
 
+.guided-tour-btn-primary,
+.guided-tour-btn-primary *,
+.tour-mic-action-btn,
+.tour-mic-action-btn * {
+  color: #FFFFFF !important;
+}
+
 .guided-tour-btn-primary:active {
   transform: scale(0.94);
   opacity: 0.9;
 }
+
+/* =========================================
+   VOICE TRIAL STEP IN GUIDED TOUR
+   ========================================= */
+
+.tour-voice-trial-wrapper {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tour-voice-trial-box {
+  background: #FFF8F1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tour-voice-trial-prompt {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #BC6C25;
+}
+
+.tour-voice-trial-pill {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2D2727;
+  letter-spacing: 0.2px;
+}
+
+.tour-voice-recorded-preview {
+  background: #FAF7F2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: tourSuccessPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tour-voice-recorded-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.tour-voice-recorded-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #DCFCE7;
+  color: #15803D;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tour-voice-recorded-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tour-voice-recorded-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tour-voice-recorded-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #FEF3C7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.tour-voice-recorded-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.tour-voice-recorded-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #2D2727;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tour-voice-recorded-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7E7B78;
+}
+
+.tour-voice-recorded-amount {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #BC6C25;
+  flex-shrink: 0;
+}
+
+.tour-voice-error-banner {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: tourShakeError 0.35s ease-in-out;
+}
+
+@keyframes tourShakeError {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+@keyframes tourSuccessPop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.tour-mic-action-btn {
+  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%) !important;
+  color: #FFFFFF !important;
+}
+

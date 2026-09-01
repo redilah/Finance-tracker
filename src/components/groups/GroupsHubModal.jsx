@@ -9,17 +9,21 @@ import {
   sendGroupTextMessage,
   deleteGroupMessage,
   addMemberToGroup,
+  leaveGroup,
+  deleteGroup,
   calculateGroupLedger,
   getMonthPaymentStatus,
   getCurrentMonthKey
 } from '../../utils/groupStorage';
+import { canCreateGroup } from '../../utils/proManager';
 import GroupDetailScreen from './GroupDetailScreen';
 
 export default function GroupsHubModal({
   isOpen,
   onClose,
   currentUserName = 'Redilah',
-  currentUserAvatar = null
+  currentUserAvatar = null,
+  onOpenProModal
 }) {
   const [groups, setGroups] = useState(() => getStoredGroups(currentUserName));
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -81,6 +85,18 @@ export default function GroupsHubModal({
 
   const handleRemoveInitialMember = (indexToRemove) => {
     setInitialMembers(initialMembers.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleStartCreateGroup = () => {
+    if (!canCreateGroup(groups.length)) {
+      if (onOpenProModal) {
+        onOpenProModal('group');
+      } else {
+        alert('Batas maksimal 3 grup untuk akun gratis telah tercapai. Upgrade ke Cassiel Pro untuk membuat grup tanpa batas!');
+      }
+      return;
+    }
+    setIsCreatingGroup(true);
   };
 
   const handleCreateGroupSubmit = (e) => {
@@ -178,6 +194,12 @@ export default function GroupsHubModal({
     refreshGroups();
   };
 
+  const handleLeaveGroup = (groupId) => {
+    leaveGroup({ groupId, currentUserName });
+    setSelectedGroup(null);
+    refreshGroups();
+  };
+
   const handleDeleteGroup = (groupId) => {
     deleteGroup({ groupId, currentUserName });
     setSelectedGroup(null);
@@ -200,6 +222,7 @@ export default function GroupsHubModal({
             onAddMember={handleAddMember}
             onUpdateGroup={handleUpdateGroup}
             onRemoveMember={handleRemoveMember}
+            onLeaveGroup={handleLeaveGroup}
             onDeleteGroup={handleDeleteGroup}
           />
         ) : isCreatingGroup ? (
@@ -307,18 +330,10 @@ export default function GroupsHubModal({
               {/* WA Members Section */}
               <div className="wa-members-section">
                 <div className="wa-members-header">
-                  Members: {initialMembers.length > 0 ? `${initialMembers.length + 1}` : 'None'}
+                  Anggota Tambahan: {initialMembers.length > 0 ? `${initialMembers.length} orang` : 'Belum ada'}
                 </div>
 
                 <div className="wa-members-grid">
-                  {/* Current User Chip */}
-                  <div className="wa-member-item-chip">
-                    <div className="wa-member-item-avatar">
-                      👑
-                    </div>
-                    <span className="wa-member-item-name">{currentUserName}</span>
-                  </div>
-
                   {/* Added Members Chips */}
                   {initialMembers.map((mName, idx) => (
                     <div key={idx} className="wa-member-item-chip">
@@ -438,7 +453,7 @@ export default function GroupsHubModal({
                   <button
                     type="button"
                     className="groups-new-group-btn"
-                    onClick={() => setIsCreatingGroup(true)}
+                    onClick={handleStartCreateGroup}
                   >
                     <span>New Group</span>
                   </button>
@@ -541,7 +556,7 @@ export default function GroupsHubModal({
                 <button
                   type="button"
                   className="groups-floating-capsule-btn"
-                  onClick={() => setIsCreatingGroup(true)}
+                  onClick={handleStartCreateGroup}
                   title="Buat Grup"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -556,28 +571,42 @@ export default function GroupsHubModal({
             {/* Modal: Gabung Grup via Link / Kode */}
             {isJoiningGroup && (
               <div className="group-submodal-overlay" onClick={() => setIsJoiningGroup(false)}>
-                <div className="group-submodal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '340px' }}>
+                <div className="group-submodal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '360px' }}>
                   <div className="submodal-header">
-                    <h3 className="submodal-title">Gabung ke Grup</h3>
-                    <button type="button" className="submodal-close-btn" onClick={() => setIsJoiningGroup(false)}>✕</button>
+                    <div>
+                      <h3 className="submodal-title">Gabung ke Grup</h3>
+                      <p className="submodal-subtitle">Masukkan kode undangan 6 digit atau link</p>
+                    </div>
+                    <button type="button" className="submodal-close-btn" onClick={() => setIsJoiningGroup(false)} aria-label="Tutup">✕</button>
                   </div>
                   <form onSubmit={handleJoinGroupSubmit}>
                     <div className="form-group-item">
                       <label className="form-group-label">Kode Undangan / Link Grup</label>
-                      <input
-                        type="text"
-                        className="form-group-input"
-                        placeholder="Contoh: K9X2QA atau https://..."
-                        value={inviteCodeInput}
-                        onChange={e => setInviteCodeInput(e.target.value)}
-                        autoFocus
-                        required
-                      />
+                      <div className="form-group-input-wrapper">
+                        <svg className="form-group-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                        </svg>
+                        <input
+                          type="text"
+                          className="form-group-input"
+                          placeholder="Contoh: K9X2QA atau https://..."
+                          value={inviteCodeInput}
+                          onChange={e => setInviteCodeInput(e.target.value)}
+                          autoFocus
+                          required
+                        />
+                      </div>
                     </div>
 
                     {joinError && (
-                      <div style={{ color: '#DC2626', fontSize: '12px', marginBottom: '10px', fontWeight: 600 }}>
-                        ⚠️ {joinError}
+                      <div className="form-group-error-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <span>{joinError}</span>
                       </div>
                     )}
 
@@ -585,9 +614,22 @@ export default function GroupsHubModal({
                       type="submit"
                       className="form-group-submit-btn"
                       disabled={isSubmittingJoin || !inviteCodeInput.trim()}
-                      style={{ opacity: isSubmittingJoin || !inviteCodeInput.trim() ? 0.6 : 1 }}
                     >
-                      {isSubmittingJoin ? 'Menghubungkan ke Server...' : '🚀 Gabung Sekarang'}
+                      {isSubmittingJoin ? (
+                        <>
+                          <div className="btn-spinner" />
+                          <span>Menghubungkan ke Server...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                          </svg>
+                          <span>Gabung Sekarang</span>
+                        </>
+                      )}
                     </button>
                   </form>
                 </div>

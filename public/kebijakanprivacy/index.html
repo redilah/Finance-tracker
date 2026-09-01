@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kebijakan Privasi • Cassiel Finance Tracker</title>
+  <link rel="icon" type="image/png" href="/app-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-hero: #F59E0B;
+      --bg-hero-deep: #D97706;
+      --bg-hero-bright: #FBBF24;
+      --bg-body: #F8EFE6;
+      --card-bg: #FFFFFF;
+      --card-subtle: #FAF4ED;
+      --text-hero-main: #FFFFFF;
+      --text-hero-muted: #FEF3C7;
+      --text-main: #1E293B;
+      --text-muted: #475569;
+      --text-soft: #94A3B8;
+      --primary: #D97706;
+      --primary-dark: #B45309;
+      --accent: #FDE68A;
+      --accent-light: #FEF3C7;
+      --emerald: #10B981;
+      --emerald-dark: #059669;
+      --border-subtle: rgba(226, 232, 240, 0.8);
+      --border-strong: #E2E8F0;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 32px;
+      --radius-pill: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-hero-deep);
+      color: var(--text-main);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* === HERO HEADER (Golden Amber Orange Palette from App Toggle) === */
+    .hero-wrapper {
+      background: linear-gradient(135deg, #D97706 0%, #F59E0B 50%, #FBBF24 100%);
+      color: var(--text-hero-main);
+      padding-bottom: 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-wrapper::after {
+      content: "";
+      position: absolute;
+      right: 5%;
+      top: 80px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(200, 138, 88, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 22px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #FFFFFF;
+      transition: opacity 0.2s ease;
+    }
+
+    .brand-logo-link:hover {
+      opacity: 0.9;
+    }
+
+    .brand-logo-img {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      display: block;
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .brand-name-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      line-height: 1.1;
+      color: #FFFFFF;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: #FEF3C7;
+      letter-spacing: 0.4px;
+    }
+
+    .nav-menu-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .nav-item-link {
+      color: var(--text-hero-muted);
+      text-decoration: none;
+      font-size: 14.5px;
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+
+    .nav-item-link:hover {
+      color: #FFFFFF;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Apple-style Instant Response & Spring Transitions */
+    .brand-logo-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #FFFFFF;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    }
+
+    .brand-logo-link:active {
+      transform: scale(0.95);
+      opacity: 0.85;
+    }
+
+    .nav-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1.5px solid #FDE68A;
+      background: rgba(254, 243, 199, 0.12);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 9px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 13.5px;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .nav-cta-btn:hover {
+      background: #FFFFFF;
+      color: var(--bg-hero-deep);
+      border-color: #FFFFFF;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Hero Heading Area */
+    .hero-content-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 24px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-main-title {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: #FFFFFF;
+      line-height: 1.15;
+    }
+
+    /* Apple-Style Fluid Segmented Language Switcher */
+    .lang-switcher-pill {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      background: rgba(180, 83, 9, 0.45);
+      border: 1.5px solid #FDE68A;
+      border-radius: var(--radius-pill);
+      padding: 4px;
+      gap: 2px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: #FEF3C7;
+      padding: 6px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease, background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    }
+
+    .lang-btn:active {
+      transform: scale(0.9);
+      transition: transform 0.08s ease-out;
+    }
+
+    .lang-btn.active {
+      background: #FFFFFF;
+      color: var(--bg-hero-deep);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+      transform: scale(1);
+    }
+
+    /* Apple-Style Text Content Fluid Fade Transition */
+    .fade-content-transition {
+      transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1), transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .fade-content-transition.fade-out {
+      opacity: 0;
+      transform: translateY(4px) scale(0.995);
+    }
+
+    /* === MAIN CONTAINER (Large Rounded Top Card entering Hero) === */
+    .main-sheet {
+      background: #FFFFFF;
+      border-radius: 40px 40px 0 0;
+      position: relative;
+      margin-top: -30px;
+      z-index: 10;
+      box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.08);
+      padding: 56px 24px 80px;
+      min-height: 100vh;
+    }
+
+    .sheet-inner-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Section Typography & Spacing */
+    .privacy-article-section {
+      margin-bottom: 44px;
+    }
+
+    .privacy-article-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title-lead {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .section-title-question {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.4px;
+      margin-bottom: 14px;
+      line-height: 1.35;
+    }
+
+    .section-p-text {
+      font-size: 15.5px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .section-p-text:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-p-text strong {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    /* Clean Key Points & Features */
+    .points-clean-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .point-clean-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--card-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      border: 1px solid rgba(226, 232, 240, 0.6);
+    }
+
+    .point-clean-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: #F1F5F9;
+      color: #64748B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .point-clean-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .point-clean-content h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 3px;
+      word-break: break-word;
+    }
+
+    .point-clean-content p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    /* Highlight Notice Box (Permission Declaration) */
+    .notice-card {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      margin: 20px 0;
+    }
+
+    .notice-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--emerald-dark);
+      font-size: 14.5px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .notice-card-body {
+      font-size: 13.5px;
+      color: #166534;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    /* Social Icon Buttons Row */
+    .social-icons-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .social-icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #F1F5F9;
+      border: 1px solid #E2E8F0;
+      color: #64748B;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .social-icon-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .social-icon-btn.instagram-btn:hover {
+      color: #E1306C;
+      background: #FFF1F2;
+      border-color: #FECDD3;
+    }
+
+    .social-icon-btn.github-btn:hover {
+      color: #0F172A;
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+    }
+
+    /* Footer Clean */
+    .footer-section {
+      text-align: center;
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border-strong);
+    }
+
+    .footer-logo-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .footer-logo-img {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+
+    /* Responsive (Tablet & Standard Mobile) */
+    @media (max-width: 768px) {
+      .nav-menu-links {
+        display: none;
+      }
+      .top-nav {
+        padding: 16px 18px;
+      }
+      .hero-content-inner {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 24px 18px 16px;
+      }
+      .hero-main-title {
+        font-size: 28px;
+      }
+      .main-sheet {
+        border-radius: 26px 26px 0 0;
+        padding: 34px 16px 50px;
+      }
+      .section-title-question {
+        font-size: 18.5px;
+      }
+      .section-title-lead {
+        font-size: 18px;
+      }
+      .section-p-text {
+        font-size: 14.5px;
+      }
+      .point-clean-row {
+        padding: 14px 16px;
+        gap: 12px;
+      }
+    }
+
+    /* Ultra Responsive for Small Devices (iPhone SE, 375px and down to 320px) */
+    @media (max-width: 480px) {
+      .hero-wrapper {
+        padding-bottom: 50px;
+      }
+      .top-nav {
+        padding: 14px 14px;
+      }
+      .brand-title {
+        font-size: 16.5px;
+      }
+      .brand-sub {
+        font-size: 10px;
+      }
+      .brand-logo-img {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+      }
+      .nav-cta-btn {
+        padding: 7px 14px;
+        font-size: 12px;
+        gap: 5px;
+      }
+      .hero-content-inner {
+        padding: 18px 14px 12px;
+      }
+      .hero-main-title {
+        font-size: 24px;
+      }
+      .lang-btn {
+        padding: 4px 10px;
+        font-size: 11.5px;
+      }
+      .main-sheet {
+        border-radius: 22px 22px 0 0;
+        padding: 28px 14px 44px;
+        margin-top: -24px;
+      }
+      .privacy-article-section {
+        margin-bottom: 34px;
+      }
+      .section-title-lead {
+        font-size: 16.5px;
+        margin-bottom: 10px;
+      }
+      .section-title-question {
+        font-size: 17px;
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+      .section-p-text {
+        font-size: 13.8px;
+        line-height: 1.65;
+        margin-bottom: 12px;
+      }
+      .point-clean-row {
+        padding: 12px 14px;
+        gap: 10px;
+        border-radius: var(--radius-sm);
+      }
+      .point-clean-icon {
+        width: 28px;
+        height: 28px;
+      }
+      .point-clean-content h4 {
+        font-size: 14px;
+      }
+      .point-clean-content p {
+        font-size: 12.8px;
+      }
+      .notice-card {
+        padding: 16px 16px;
+        border-radius: var(--radius-sm);
+      }
+      .notice-card-header {
+        font-size: 13px;
+      }
+      .notice-card-body {
+        font-size: 12.5px;
+      }
+      .social-icon-btn {
+        width: 40px;
+        height: 40px;
+      }
+      .social-icon-btn svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Hero Header (Floq Inspired, Cassiel Luxury Palette) -->
+  <header class="hero-wrapper">
+    <nav class="top-nav">
+      <a href="/" class="brand-logo-link">
+        <img src="/app-icon-clean.png" alt="Cassiel Logo" class="brand-logo-img">
+        <div class="brand-name-group">
+          <span class="brand-title">CASSIEL</span>
+          <span class="brand-sub">Finance Tracker</span>
+        </div>
+      </a>
+
+      <div class="nav-menu-links">
+        <a href="#pengantar" class="nav-item-link">Kebijakan</a>
+        <a href="#kontak" class="nav-item-link">Tentang Kami</a>
+      </div>
+
+      <a href="/version.json" class="nav-cta-btn">
+        <span>Download Sekarang</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+    </nav>
+
+    <div class="hero-content-inner">
+      <h1 class="hero-main-title fade-content-transition" id="page-title">Kebijakan Privasi</h1>
+
+      <div class="lang-switcher-pill">
+        <button class="lang-btn active" id="btn-id" onclick="setLanguage('id')">ID</button>
+        <button class="lang-btn" id="btn-en" onclick="setLanguage('en')">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Sheet (Floq Content Style) -->
+  <main class="main-sheet">
+    <div class="sheet-inner-container fade-content-transition" id="content-container">
+
+      <!-- Section: Pengantar -->
+      <section class="privacy-article-section" id="pengantar">
+        <h2 class="section-title-lead" id="sec1-title">PENGANTAR</h2>
+        <p class="section-p-text" id="sec1-text">
+          Pemberitahuan Privasi berikut ini menjelaskan bagaimana kami, <strong>Cassiel Finance Tracker</strong> ("Aplikasi", "Kami"), mengelola, memproses, dan melindungi informasi Anda. Pemberitahuan Privasi ini berlaku bagi seluruh pengguna layanan aplikasi Cassiel baik yang diakses melalui perangkat seluler maupun fitur-fitur terkait lainnya.
+        </p>
+        <p class="section-p-text" id="sec1-subtext">
+          Cassiel dirancang dengan filosofi <strong>Privacy-First (Privasi Utama)</strong>. Seluruh pencatatan transaksi keuangan, saldo rekening, dan anggaran bulanan Anda diproses dan disimpan secara 100% lokal langsung di dalam memori perangkat fisik Anda (<em>On-Device Storage</em>) tanpa pernah dijual atau dibagikan kepada pihak mana pun.
+        </p>
+      </section>
+
+      <!-- Section: Informasi yang Kami Kumpulkan -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec2-title">Informasi apa yang disimpan di perangkat Anda?</h3>
+        <p class="section-p-text" id="sec2-text">
+          Seluruh data berikut hanya tersimpan di dalam penyimpanan lokal (<em>Local Storage</em>) ponsel Anda dan tidak pernah dikirim ke server pusat:
+        </p>
+
+        <div class="points-clean-list">
+          <div class="point-clean-row">
+            <div class="point-clean-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div class="point-clean-content">
+              <h4 id="cat1-title">Catatan Riwayat Transaksi</h4>
+              <p id="cat1-desc">Nominal uang, tanggal transaksi, kategori pemasukan/pengeluaran, catatan keterangan belanja, serta akun dompet terkait.</p>
+            </div>
+          </div>
+
+          <div class="point-clean-row">
+            <div class="point-clean-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            </div>
+            <div class="point-clean-content">
+              <h4 id="cat2-title">Akun Rekening & Dompet Digital</h4>
+              <p id="cat2-desc">Daftar nama akun (Bank Resmi, Dompet Digital / E-Wallet, Uang Tunai), saldo awal, serta mutasi perpindahan dana antar-akun.</p>
+            </div>
+          </div>
+
+          <div class="point-clean-row">
+            <div class="point-clean-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <div class="point-clean-content">
+              <h4 id="cat3-title">Anggaran & Preferensi Pribadi</h4>
+              <p id="cat3-desc">Batas limit anggaran per kategori, preferensi mata uang, bahasa aplikasi, serta foto profil lokal yang Anda pilih.</p>
+            </div>
+          </div>
+
+          <div class="point-clean-row">
+            <div class="point-clean-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="point-clean-content">
+              <h4 id="cat4-title">Proteksi PIN & Sidik Jari</h4>
+              <p id="cat4-desc">Hash kode keamanan PIN 6-digit untuk mengunci antarmuka aplikasi di perangkat fisik Anda.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Bagaimana Kami Menggunakan Informasi -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec3-title">Bagaimana kami menggunakan informasi Anda?</h3>
+        <p class="section-p-text" id="sec3-text">
+          Kami menggunakan informasi lokal tersebut murni untuk menyajikan visualisasi grafik keuangan, menghitung sisa anggaran bulanan, mengelompokkan kategori pengeluaran, dan memberikan analisis kesehatan finansial langsung di layar Anda. Informasi Anda tidak digunakan untuk keperluan lain di luar fungsi aplikasi.
+        </p>
+      </section>
+
+      <!-- Section: Pembaca Notifikasi Finansial (Notification Tracker) -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec4-title">Bagaimana cara kerja fitur Pelacak Notifikasi Otomatis?</h3>
+        <p class="section-p-text" id="sec4-text">
+          Cassiel menyediakan fitur opsional untuk menangkap notifikasi mutasi pengeluaran secara instan dari aplikasi bank atau e-wallet resmi (seperti BRImo, BCA, GoPay, OVO, ShopeePay, dll.).
+        </p>
+
+        <div class="notice-card">
+          <div class="notice-card-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span id="notice-header">Deklarasi Izin BIND_NOTIFICATION_LISTENER_SERVICE</span>
+          </div>
+          <div class="notice-card-body" id="notice-body">
+            Izin pembaca notifikasi ini berjalan <strong>100% di dalam memori RAM lokal perangkat Anda</strong>. Teks pesan notifikasi mutasi diproses secara instan untuk mencatat nominal dan merchant belanja Anda, kemudian langsung dibersihkan dari memori. Pesan notifikasi tidak pernah diunggah ke server mana pun.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Asisten Suara -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec5-title">Bagaimana privasi fitur Input Suara (Voice AI)?</h3>
+        <p class="section-p-text" id="sec5-text">
+          Fitur input transaksi via suara memanfaatkan modul pengenal suara bawaan sistem operasi ponsel Anda. Suara diubah menjadi teks secara lokal dan algoritma pencocokan nominal bekerja di dalam aplikasi. Rekaman suara Anda <strong>tidak pernah disimpan ataupun dikirim ke server AI eksternal</strong>.
+        </p>
+      </section>
+
+      <!-- Section: Dengan Siapa Kami Membagi Informasi -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec6-title">Dengan siapa kami membagi informasi Anda?</h3>
+        <p class="section-p-text" id="sec6-text">
+          <strong>Kami tidak membagi, tidak menyewakan, dan tidak menjual informasi keuangan Anda kepada siapa pun.</strong> Aplikasi Cassiel sepenuhnya bebas dari SDK jaringan periklanan pihak ketiga (seperti AdMob, Unity, Facebook Ads) dan bebas dari pelacak perilaku komersial.
+        </p>
+      </section>
+
+      <!-- Section: Berapa Lama Kami Menyimpan Informasi -->
+      <section class="privacy-article-section">
+        <h3 class="section-title-question" id="sec7-title">Berapa lama kami menyimpan informasi Anda?</h3>
+        <p class="section-p-text" id="sec7-text">
+          Selama aplikasi terpasang di perangkat Anda atau sampai Anda sendiri memilih untuk menghapusnya. Anda memiliki kendali penuh 100% untuk mengekspor cadangan data (ke Google Drive atau berkas lokal) maupun menghapus basis data aplikasi kapan saja melalui menu Pengaturan Data & Cadangan.
+        </p>
+      </section>
+
+      <!-- Section: Kontak & Pengembang -->
+      <section class="privacy-article-section" id="kontak">
+        <h3 class="section-title-question" id="sec8-title">Bagaimana cara menghubungi kami?</h3>
+        <p class="section-p-text" id="sec8-text">
+          Apabila Anda memiliki pertanyaan, saran, atau masukan mengenai kebijakan privasi dan keamanan aplikasi Cassiel, silakan hubungi kami melalui saluran resmi berikut:
+        </p>
+
+        <div class="social-icons-row">
+          <a href="https://www.instagram.com/redii_rm/" target="_blank" class="social-icon-btn instagram-btn" title="Instagram @redii_rm" aria-label="Instagram">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </a>
+          <a href="https://github.com/redilah/Finance-tracker" target="_blank" class="social-icon-btn github-btn" title="GitHub Repository" aria-label="GitHub">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer-section">
+        <div class="footer-logo-row">
+          <img src="/app-icon.png" alt="Cassiel Logo" class="footer-logo-img">
+          <span>CASSIEL FINANCE TRACKER</span>
+        </div>
+        <p class="footer-meta">
+          Versi Dokumen 1.2 • Terakhir diperbarui: 31 Agustus 2026<br>
+          &copy; 2026 Redilah RM. Hak Cipta Dilindungi Undang-Undang.
+        </p>
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- Interactive Language Switcher Script -->
+  <script>
+    const i18nData = {
+      id: {
+        pageTitle: "Kebijakan Privasi",
+        sec1Title: "PENGANTAR",
+        sec1Text: 'Pemberitahuan Privasi berikut ini menjelaskan bagaimana kami, <strong>Cassiel Finance Tracker</strong> ("Aplikasi", "Kami"), mengelola, memproses, dan melindungi informasi Anda. Pemberitahuan Privasi ini berlaku bagi seluruh pengguna layanan aplikasi Cassiel baik yang diakses melalui perangkat seluler maupun fitur-fitur terkait lainnya.',
+        sec1Subtext: 'Cassiel dirancang dengan filosofi <strong>Privacy-First (Privasi Utama)</strong>. Seluruh pencatatan transaksi keuangan, saldo rekening, dan anggaran bulanan Anda diproses dan disimpan secara 100% lokal langsung di dalam memori perangkat fisik Anda (<em>On-Device Storage</em>) tanpa pernah dijual atau dibagikan kepada pihak mana pun.',
+        sec2Title: "Informasi apa yang disimpan di perangkat Anda?",
+        sec2Text: "Seluruh data berikut hanya tersimpan di dalam penyimpanan lokal (<em>Local Storage</em>) ponsel Anda dan tidak pernah dikirim ke server pusat:",
+        cat1Title: "Catatan Riwayat Transaksi",
+        cat1Desc: "Nominal uang, tanggal transaksi, kategori pemasukan/pengeluaran, catatan keterangan belanja, serta akun dompet terkait.",
+        cat2Title: "Akun Rekening & Dompet Digital",
+        cat2Desc: "Daftar nama akun (Bank Resmi, Dompet Digital / E-Wallet, Uang Tunai), saldo awal, serta mutasi perpindahan dana antar-akun.",
+        cat3Title: "Anggaran & Preferensi Pribadi",
+        cat3Desc: "Batas limit anggaran per kategori, preferensi mata uang, bahasa aplikasi, serta foto profil lokal yang Anda pilih.",
+        cat4Title: "Proteksi PIN & Sidik Jari",
+        cat4Desc: "Hash kode keamanan PIN 6-digit untuk mengunci antarmuka aplikasi di perangkat fisik Anda.",
+        sec3Title: "Bagaimana kami menggunakan informasi Anda?",
+        sec3Text: "Kami menggunakan informasi lokal tersebut murni untuk menyajikan visualisasi grafik keuangan, menghitung sisa anggaran bulanan, mengelompokkan kategori pengeluaran, dan memberikan analisis kesehatan finansial langsung di layar Anda. Informasi Anda tidak digunakan untuk keperluan lain di luar fungsi aplikasi.",
+        sec4Title: "Bagaimana cara kerja fitur Pelacak Notifikasi Otomatis?",
+        sec4Text: "Cassiel menyediakan fitur opsional untuk menangkap notifikasi mutasi pengeluaran secara instan dari aplikasi bank atau e-wallet resmi (seperti BRImo, BCA, GoPay, OVO, ShopeePay, dll.).",
+        noticeHeader: "Deklarasi Izin BIND_NOTIFICATION_LISTENER_SERVICE",
+        noticeBody: "Izin pembaca notifikasi ini berjalan <strong>100% di dalam memori RAM lokal perangkat Anda</strong>. Teks pesan notifikasi mutasi diproses secara instan untuk mencatat nominal dan merchant belanja Anda, kemudian langsung dibersihkan dari memori. Pesan notifikasi tidak pernah diunggah ke server mana pun.",
+        sec5Title: "Bagaimana privasi fitur Input Suara (Voice AI)?",
+        sec5Text: "Fitur input transaksi via suara memanfaatkan modul pengenal suara bawaan sistem operasi ponsel Anda. Suara diubah menjadi teks secara lokal dan algoritma pencocokan nominal bekerja di dalam aplikasi. Rekaman suara Anda <strong>tidak pernah disimpan ataupun dikirim ke server AI eksternal</strong>.",
+        sec6Title: "Dengan siapa kami membagi informasi Anda?",
+        sec6Text: "<strong>Kami tidak membagi, tidak menyewakan, dan tidak menjual informasi keuangan Anda kepada siapa pun.</strong> Aplikasi Cassiel sepenuhnya bebas dari SDK jaringan periklanan pihak ketiga (seperti AdMob, Unity, Facebook Ads) dan bebas dari pelacak perilaku komersial.",
+        sec7Title: "Berapa lama kami menyimpan informasi Anda?",
+        sec7Text: "Selama aplikasi terpasang di perangkat Anda atau sampai Anda sendiri memilih untuk menghapusnya. Anda memiliki kendali penuh 100% untuk mengekspor cadangan data (ke Google Drive atau berkas lokal) maupun menghapus basis data aplikasi kapan saja melalui menu Pengaturan Data & Cadangan.",
+        sec8Title: "Bagaimana cara menghubungi kami?",
+        sec8Text: "Apabila Anda memiliki pertanyaan, saran, atau masukan mengenai kebijakan privasi dan keamanan aplikasi Cassiel, silakan hubungi kami melalui saluran resmi berikut:"
+      },
+      en: {
+        pageTitle: "Privacy Policy",
+        sec1Title: "INTRODUCTION",
+        sec1Text: 'This Privacy Notice explains how we, <strong>Cassiel Finance Tracker</strong> ("Application", "We"), manage, process, and protect your information. This notice applies to all users of the Cassiel mobile app and related features.',
+        sec1Subtext: 'Cassiel is built with a strict <strong>Privacy-First philosophy</strong>. All your financial records, bank account balances, and monthly budget allocations are processed and stored 100% locally on your physical device memory (<em>On-Device Storage</em>) without ever being sold or shared with any third party.',
+        sec2Title: "What information is stored on your device?",
+        sec2Text: "All of the following data resides strictly in your device's <em>Local Storage</em> and is never uploaded to any remote server:",
+        cat1Title: "Transaction History Records",
+        cat1Desc: "Transaction amounts, dates, income/expense categories, custom notes, and associated account wallets.",
+        cat2Title: "Bank Accounts & E-Wallets",
+        cat2Desc: "Account names (Official Banks, Digital Wallets, Cash), starting balances, and transfer transaction records.",
+        cat3Title: "Budgets & Personal Preferences",
+        cat3Desc: "Category budget caps, currency preferences, app language, and locally chosen profile avatars.",
+        cat4Title: "PIN & Fingerprint Security",
+        cat4Desc: "6-digit security PIN hash to lock the app interface on your physical device.",
+        sec3Title: "How do we use your information?",
+        sec3Text: "We use this local data purely to render financial visual charts, calculate remaining monthly budgets, group expense categories, and present real-time financial health analytics directly on your screen. Your data is never used outside core app functions.",
+        sec4Title: "How does the Automatic Notification Tracker work?",
+        sec4Text: "Cassiel offers an optional feature to instantly capture transaction notifications from official banking and e-wallet applications (such as BRImo, BCA, GoPay, OVO, ShopeePay, etc.).",
+        noticeHeader: "BIND_NOTIFICATION_LISTENER_SERVICE Declaration",
+        noticeBody: "This notification listener service runs <strong>100% within your local device RAM</strong>. The notification message text is parsed instantly to record the transaction amount and merchant name, then immediately purged from memory. Notification messages are never uploaded to any external server.",
+        sec5Title: "What about Voice AI Input privacy?",
+        sec5Text: "The voice input feature utilizes your phone's built-in operating system Speech Recognition engine. Voice is converted to text on-device and mapped locally. Your audio recordings are <strong>never stored or transmitted to external AI servers</strong>.",
+        sec6Title: "Who do we share your information with?",
+        sec6Text: "<strong>We do not share, rent, or sell your financial data to anyone.</strong> Cassiel is 100% free of third-party advertising SDKs (such as AdMob, Unity, Facebook Ads) and free of commercial tracking brokers.",
+        sec7Title: "How long do we retain your information?",
+        sec7Text: "For as long as the application remains installed on your device, or until you choose to delete it. You have 100% full control to export data backups (to Google Drive or local files) or erase the database anytime via Data & Backup Settings.",
+        sec8Title: "How can you contact us?",
+        sec8Text: "If you have questions, feedback, or inquiries regarding this privacy policy or Cassiel's data security architecture, please reach out through our official channels:"
+      }
+    };
+
+    let isTransitioning = false;
+
+    function setLanguage(lang) {
+      if (isTransitioning) return;
+      const data = i18nData[lang];
+      if (!data) return;
+
+      const titleEl = document.getElementById('page-title');
+      const contentEl = document.getElementById('content-container');
+
+      // Apple-style tactile active toggle state
+      document.getElementById('btn-id').classList.toggle('active', lang === 'id');
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+
+      // Apple-style Fluid Physical Cross-Fade
+      isTransitioning = true;
+      titleEl.classList.add('fade-out');
+      contentEl.classList.add('fade-out');
+
+      setTimeout(() => {
+        titleEl.textContent = data.pageTitle;
+        document.getElementById('sec1-title').textContent = data.sec1Title;
+        document.getElementById('sec1-text').innerHTML = data.sec1Text;
+        document.getElementById('sec1-subtext').innerHTML = data.sec1Subtext;
+        document.getElementById('sec2-title').textContent = data.sec2Title;
+        document.getElementById('sec2-text').innerHTML = data.sec2Text;
+        document.getElementById('cat1-title').textContent = data.cat1Title;
+        document.getElementById('cat1-desc').textContent = data.cat1Desc;
+        document.getElementById('cat2-title').textContent = data.cat2Title;
+        document.getElementById('cat2-desc').textContent = data.cat2Desc;
+        document.getElementById('cat3-title').textContent = data.cat3Title;
+        document.getElementById('cat3-desc').textContent = data.cat3Desc;
+        document.getElementById('cat4-title').textContent = data.cat4Title;
+        document.getElementById('cat4-desc').textContent = data.cat4Desc;
+        document.getElementById('sec3-title').textContent = data.sec3Title;
+        document.getElementById('sec3-text').textContent = data.sec3Text;
+        document.getElementById('sec4-title').textContent = data.sec4Title;
+        document.getElementById('sec4-text').textContent = data.sec4Text;
+        document.getElementById('notice-header').textContent = data.noticeHeader;
+        document.getElementById('notice-body').innerHTML = data.noticeBody;
+        document.getElementById('sec5-title').textContent = data.sec5Title;
+        document.getElementById('sec5-text').innerHTML = data.sec5Text;
+        document.getElementById('sec6-title').textContent = data.sec6Title;
+        document.getElementById('sec6-text').innerHTML = data.sec6Text;
+        document.getElementById('sec7-title').textContent = data.sec7Title;
+        document.getElementById('sec7-text').textContent = data.sec7Text;
+        document.getElementById('sec8-title').textContent = data.sec8Title;
+        document.getElementById('sec8-text').textContent = data.sec8Text;
+
+        // Fluid spring reveal
+        requestAnimationFrame(() => {
+          titleEl.classList.remove('fade-out');
+          contentEl.classList.remove('fade-out');
+          setTimeout(() => {
+            isTransitioning = false;
+          }, 220);
+        });
+      }, 150);
+    }
+  </script>
+</body>
+</html>

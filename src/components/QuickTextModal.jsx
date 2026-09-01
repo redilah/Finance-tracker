@@ -143,7 +143,15 @@ export default function QuickTextModal({
               <div className="quick-text-chips-row">
                 {parsedPreview.action === 'DELETE' ? (
                   <span className="quick-chip chip-delete">
-                    🗑️ Hapus {parsedPreview.isLast ? 'Terakhir' : parsedPreview.targetQuery || (parsedPreview.targetAmount ? formatMoney(parsedPreview.targetAmount) : '')}
+                    🗑️ Hapus {parsedPreview.isMultipleDelete
+                      ? (parsedPreview.deleteAllMatching
+                          ? `Semua ${parsedPreview.targetCategory || parsedPreview.targetQuery || (parsedPreview.timeRange === 'today' ? 'Hari Ini' : 'Transaksi')}`
+                          : `${parsedPreview.deleteCount} Transaksi Terakhir`)
+                      : (parsedPreview.isLast ? 'Terakhir' : parsedPreview.targetQuery || (parsedPreview.targetAmount ? formatMoney(parsedPreview.targetAmount) : ''))}
+                  </span>
+                ) : parsedPreview.action === 'QUERY' ? (
+                  <span className="quick-chip chip-type expense" style={{ background: '#EDE4FF', color: '#6B21A8' }}>
+                    ✨ Tanya AI: {parsedPreview.queryType} ({parsedPreview.timeRange})
                   </span>
                 ) : (
                   <>

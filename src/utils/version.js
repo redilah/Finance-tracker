@@ -1,7 +1,7 @@
 import { App } from '@capacitor/app';
 
-export const CURRENT_VERSION_CODE = 31;
-export const CURRENT_VERSION_NAME = '1.0.30';
+export const CURRENT_VERSION_CODE = 32;
+export const CURRENT_VERSION_NAME = '1.0.31';
 
 /**
  * Rebuilt In-App Update Checker with Integrity Verification
@@ -111,6 +111,8 @@ const formatUpdateResult = async (data) => {
 
     let baseApkName = 'Cassiel.apk';
     let downloadUrl = data.downloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=${latestVersionCode}&t=${Date.now()}`;
+    const playStoreUrl = data.playStoreUrl || 'https://play.google.com/store/apps/details?id=com.redilah.financetracker';
+    const playStoreMarketUrl = 'market://details?id=com.redilah.financetracker';
     
     if (isUdinApp) {
       baseApkName = 'Udin.apk';
@@ -133,6 +135,9 @@ const formatUpdateResult = async (data) => {
       version: data.versionName || data.version || '1.0.0',
       changelog: data.changelog || 'Pembaruan aplikasi terbaru telah tersedia.',
       downloadUrl: downloadUrl,
+      playStoreUrl: playStoreUrl,
+      playStoreMarketUrl: playStoreMarketUrl,
+      isPlayStoreEligible: !isUdinApp && !isDebugOrTestApp,
       sha256: data.sha256 || null,
       isUdinApp: isUdinApp,
       isDebugApp: isDebugOrTestApp,

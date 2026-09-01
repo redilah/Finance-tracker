@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { parseVoiceTransaction } from '../utils/voiceParser';
+import { isProUser, getVoiceQuota, decrementVoiceQuota, hasVoiceQuota } from '../utils/proManager';
 
 export default function VoiceMicButton({ 
   expenseCategories, 
@@ -13,14 +14,45 @@ export default function VoiceMicButton({
   setAccount,
   setNote,
   handleSaveVoiceTransaction,
-  onOpenQuickText
+  onOpenQuickText,
+  onOpenProModal
 }) {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'success' | 'error'
+  const [isPro, setIsPro] = useState(() => isProUser());
+  const [voiceQuota, setVoiceQuota] = useState(() => getVoiceQuota());
+  const [isTourVoiceActive, setIsTourVoiceActive] = useState(false);
+  const isTourVoiceActiveRef = useRef(false);
+
   const webRecognitionRef = useRef(null);
   const silenceTimerRef = useRef(null);
   const accumulatedTranscriptRef = useRef('');
   const isProcessingRef = useRef(false); // Flag anti duplikasi / double trigger
   const lastProcessedInfoRef = useRef({ text: '', timestamp: 0 }); // Deduplication timestamp guard
+
+  // Listen to Pro status, voice quota, or guided tour step events across the app
+  useEffect(() => {
+    const handleProChange = (e) => {
+      setIsPro(e.detail?.isPro ?? isProUser());
+    };
+    const handleQuotaChange = (e) => {
+      setVoiceQuota(e.detail?.quota ?? getVoiceQuota());
+    };
+    const handleTourStep = (e) => {
+      const isVoice = e.detail?.stepId === 'voice_ai';
+      setIsTourVoiceActive(isVoice);
+      isTourVoiceActiveRef.current = isVoice;
+    };
+
+    window.addEventListener('cassiel_pro_status_changed', handleProChange);
+    window.addEventListener('cassiel_voice_quota_changed', handleQuotaChange);
+    window.addEventListener('cassiel_tour_step_changed', handleTourStep);
+
+    return () => {
+      window.removeEventListener('cassiel_pro_status_changed', handleProChange);
+      window.removeEventListener('cassiel_voice_quota_changed', handleQuotaChange);
+      window.removeEventListener('cassiel_tour_step_changed', handleTourStep);
+    };
+  }, []);
 
   // Hentikan rekaman dan batalkan / proses
   const handleCancelOrStop = () => {
@@ -94,6 +126,16 @@ export default function VoiceMicButton({
       return;
     }
 
+    // Validasi kuota Voice Mic untuk Free User (DILEWATI JIKA SEDANG MENGIKUTI GUIDED TOUR)
+    if (!isTourVoiceActiveRef.current && !hasVoiceQuota()) {
+      if (onOpenProModal) {
+        onOpenProModal('voice');
+      } else {
+        alert('Kuota input suara gratis Anda telah habis (7x pemakaian). Silakan upgrade ke Cassiel Pro untuk penggunaan tanpa batas!');
+      }
+      return;
+    }
+
     // START LISTENING
     accumulatedTranscriptRef.current = '';
     isProcessingRef.current = false;
@@ -138,7 +180,7 @@ export default function VoiceMicButton({
         setStatus('idle');
       }
     } else {
-      // 2. Web / Laptop Browser (Continuous listening with 1.2s silence debounce)
+      // 2. Web / Laptop Browser (Continuous listening with generous silence debounce in tour mode)
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -180,13 +222,14 @@ export default function VoiceMicButton({
           }
           accumulatedTranscriptRef.current = currentTranscript;
 
-          // Reset silence timer setiap kali ada kata baru (tunggu 2 detik jeda hening sebelum submit)
+          // Reset silence timer setiap kali ada kata baru (pada mode tour berikan waktu lebih sabar 2.8s)
+          const silenceDelay = isTourVoiceActiveRef.current ? 2800 : 2000;
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
           silenceTimerRef.current = setTimeout(() => {
             stopListeningAndProcess();
-          }, 2000);
+          }, silenceDelay);
         };
 
         recognition.onerror = (event) => {
@@ -249,11 +292,34 @@ export default function VoiceMicButton({
       try {
         const result = parseVoiceTransaction(text, { expenseCategories, incomeCategories, accountsList });
         
-        if (!result || !result.success) {
-          setStatus('error');
-          isProcessingRef.current = false;
-          setTimeout(() => setStatus('idle'), 1500);
-          return;
+        // Mode Guided Tour: Validasi apakah teks yang diucapkan sesuai / valid transaksi
+        if (isTourVoiceActiveRef.current) {
+          const resType = (result?.type || '').toLowerCase();
+          if (!result || !result.success || !result.amount || !(resType === 'expense' || resType === 'income')) {
+            window.dispatchEvent(new CustomEvent('cassiel_tour_voice_error', {
+              detail: { message: 'Teks salah, coba lagi', spokenText: text }
+            }));
+            setStatus('error');
+            isProcessingRef.current = false;
+            setTimeout(() => setStatus('idle'), 1500);
+            return;
+          }
+
+          // Tour Berhasil: Kirim sinyal sukses & JANGAN kurangi kuota 7x free user!
+          window.dispatchEvent(new CustomEvent('cassiel_tour_voice_success', {
+            detail: { result }
+          }));
+        } else {
+          // Mode Reguler Luar Tour: Cek validitas & kurangi kuota jika berhasil
+          if (!result || !result.success) {
+            setStatus('error');
+            isProcessingRef.current = false;
+            setTimeout(() => setStatus('idle'), 1500);
+            return;
+          }
+
+          const nextQuota = decrementVoiceQuota();
+          if (!isPro) setVoiceQuota(nextQuota);
         }
 
         if (result.isMultiple && Array.isArray(result.commands)) {
@@ -273,6 +339,42 @@ export default function VoiceMicButton({
         if (result.action === 'DELETE') {
           handleSaveVoiceTransaction(result);
           setStatus('success'); // Visual State: Hijau Berhasil Hapus
+
+          setTimeout(() => {
+            setStatus('idle');
+            isProcessingRef.current = false;
+          }, 1000);
+          return;
+        }
+
+        // A2. Perintah Edit / Ralat (Voice-Command EDIT)
+        if (result.action === 'EDIT_LAST' || result.action === 'EDIT') {
+          handleSaveVoiceTransaction(result);
+          setStatus('success'); // Visual State: Hijau Berhasil Edit
+
+          setTimeout(() => {
+            setStatus('idle');
+            isProcessingRef.current = false;
+          }, 1000);
+          return;
+        }
+
+        // A3. Perintah Transfer / Pindah Saldo (Voice-Command TRANSFER)
+        if (result.action === 'TRANSFER') {
+          handleSaveVoiceTransaction(result);
+          setStatus('success'); // Visual State: Hijau Berhasil Transfer
+
+          setTimeout(() => {
+            setStatus('idle');
+            isProcessingRef.current = false;
+          }, 1000);
+          return;
+        }
+
+        // A4. Pertanyaan Finansial / Asisten Suara AI (Voice-Command QUERY)
+        if (result.action === 'QUERY') {
+          handleSaveVoiceTransaction(result);
+          setStatus('success');
 
           setTimeout(() => {
             setStatus('idle');
@@ -329,7 +431,12 @@ export default function VoiceMicButton({
         </button>
       )}
       <div className="voice-mic-fab-wrapper">
-        <span className="voice-mic-beta-badge">BETA</span>
+        <span 
+          className={`voice-mic-beta-badge ${isPro ? 'pro-beta-badge' : 'free-quota-badge'}`}
+          title={isPro ? 'Status BETA (Unlimited Voice AI)' : `Sisa ${voiceQuota}x pemakaian suara gratis`}
+        >
+          {isPro ? 'BETA' : String(voiceQuota)}
+        </span>
         <button 
           type="button"
           className={`voice-mic-fab status-${status} tour-target-voice-btn`}
@@ -341,7 +448,9 @@ export default function VoiceMicButton({
               ? 'Sedang mendengarkan... (Klik untuk selesai / proses)' 
               : status === 'processing' 
                 ? 'Sedang memproses... (Klik untuk batal)' 
-                : 'Bicara untuk catat atau hapus transaksi'
+                : isPro 
+                  ? 'Bicara untuk catat atau hapus transaksi (BETA Unlimited)'
+                  : `Bicara untuk catat transaksi (Sisa ${voiceQuota}x)`
           }
         >
           {status === 'success' ? (
@@ -365,4 +474,3 @@ export default function VoiceMicButton({
     </div>
   );
 }
-
