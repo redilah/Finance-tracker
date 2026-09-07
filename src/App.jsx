@@ -66,6 +66,9 @@ import GuidedTourModal from './components/GuidedTourModal';
 import GroupsHubModal from './components/groups/GroupsHubModal';
 import HomeGroupTabContent from './components/HomeGroupTabContent';
 import ProUpgradeModal from './components/ProUpgradeModal';
+import KitabisaTransparencyModal from './components/KitabisaTransparencyModal';
+import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
+import kitabisaLogo from './assets/kitabisa_logo.png';
 import { exportTransactionsToSpreadsheet } from './utils/excelExport';
 import { isProUser, setProUser } from './utils/proManager';
 import { initRevenueCat } from './utils/revenueCatManager';
@@ -1153,8 +1156,15 @@ function App() {
 
   // Pro Upgrade Modal State
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isKitabisaModalOpen, setIsKitabisaModalOpen] = useState(false);
   const [proTriggerReason, setProTriggerReason] = useState('general');
   const [isPro, setIsPro] = useState(() => isProUser());
+
+  useEffect(() => {
+    if (isPro) {
+      syncAndAssignDonorNumberFromFirebase(profileName).catch(() => {});
+    }
+  }, [isPro, profileName]);
 
   const handleOpenProModal = (reason = 'general') => {
     setProTriggerReason(reason);
@@ -6899,6 +6909,29 @@ function App() {
                       <circle cx="12" cy="13" r="4"/>
                     </svg>
                   </div>
+
+                  {/* Donor Capsule Badge (Only shown for real verified donors on native devices/local test) */}
+                  {isPro && getUserDonorInfo().isDonor && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-14px',
+                        right: '-14px',
+                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                        color: '#FFFFFF',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        padding: '3px 9px',
+                        borderRadius: '999px',
+                        boxShadow: '0 4px 12px rgba(217, 119, 6, 0.4)',
+                        letterSpacing: '0.4px',
+                        zIndex: 10,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {getUserDonorInfo().badgeText}
+                    </div>
+                  )}
                 </div>
 
                 <input
@@ -7019,6 +7052,68 @@ function App() {
                     viewBox="0 0 24 24" 
                     fill="none" 
                     stroke={isPro ? '#FFFFFF' : '#B45309'} 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
+                {/* 💙 KITABISA TRANSPARENCY & PROOF ENTRY CARD */}
+                <div 
+                  className="kitabisa-transparency-profile-card"
+                  onClick={() => setIsKitabisaModalOpen(true)}
+                  style={{
+                    margin: '8px auto 0',
+                    width: 'calc(100% - 16px)',
+                    maxWidth: '360px',
+                    borderRadius: '16px',
+                    padding: '11px 16px',
+                    background: 'rgba(255, 255, 255, 0.92)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(2, 132, 199, 0.18)',
+                    boxShadow: '0 2px 10px rgba(2, 132, 199, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img 
+                      src={kitabisaLogo} 
+                      alt="Kitabisa" 
+                      style={{ width: '22px', height: '22px', borderRadius: '6px', objectFit: 'cover' }} 
+                    />
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{
+                        fontSize: '13px',
+                        fontWeight: '800',
+                        color: '#0284C7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span>Jalur Penyaluran & Bukti Donasi</span>
+                      </div>
+                      <div style={{
+                        fontSize: '10.5px',
+                        color: '#64748B',
+                        marginTop: '1px'
+                      }}>
+                        Pantau penyaluran real-time & bukti sertifikat donasi
+                      </div>
+                    </div>
+                  </div>
+
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="#0284C7" 
                     strokeWidth="2.5" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
@@ -10458,6 +10553,15 @@ function App() {
           setIsPro(newProStatus);
           showVoiceToast(newProStatus ? '👑 Mode Cassiel Pro Aktif!' : 'Mode Gratis (Free) Aktif');
         }}
+      />
+
+      {/* Kitabisa Transparency & Real-Time Impact Journey Modal */}
+      <KitabisaTransparencyModal
+        isOpen={isKitabisaModalOpen}
+        onClose={() => setIsKitabisaModalOpen(false)}
+        currentUserName={profileName || 'Pengguna Cassiel'}
+        onOpenProModal={handleOpenProModal}
+        isPro={isPro}
       />
     </div>
   );
