@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cassiel Assistant</title>
+<style>
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent; 
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: transparent;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Overlay dimmer ─── */
+  .overlay {
+    position: fixed; 
+    inset: 0;
+    background: rgba(0,0,0,0.38);
+    z-index: 1;
+    opacity: 0;
+    animation: fadeIn 0.25s ease forwards;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ─── Bottom Sheet Card ─── */
+  .sheet {
+    position: relative;
+    z-index: 10;
+    background: #F8EFE6;
+    border-radius: 28px 28px 0 0;
+    padding: 14px 20px 24px;
+    box-shadow: 0 -8px 40px rgba(120,80,20,0.18);
+    transform: translateY(100%);
+    animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+  }
+  @keyframes slideUp { to { transform: translateY(0); } }
+  
+  .sheet-dismiss {
+    animation: slideDown 0.25s ease forwards;
+  }
+  @keyframes slideDown { 
+    to { 
+      transform: translateY(100%); 
+      opacity: 0; 
+    } 
+  }
+
+  /* ─── Handle bar ─── */
+  .handle {
+    width: 42px; 
+    height: 4.5px;
+    background: rgba(160,130,100,0.35);
+    border-radius: 999px;
+    margin: 2px auto 14px;
+    flex-shrink: 0;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-icon {
+    width: 38px; 
+    height: 38px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border-radius: 12px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(217,119,6,0.28);
+    flex-shrink: 0;
+  }
+  .header-icon svg { 
+    width: 20px; 
+    height: 20px; 
+    fill: #FFFFFF; 
+  }
+  .header-text h1 {
+    font-size: 17px; 
+    font-weight: 700;
+    color: #2D2319;
+  }
+  .header-text p {
+    font-size: 12px;
+    color: #8C7B70;
+  }
+  .close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(160,130,100,0.15);
+    color: #6B5B52;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  /* ─── Waveform & Mic Visualizer ─── */
+  .visualizer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 0 14px;
+    gap: 12px;
+  }
+  .mic-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    box-shadow: 0 6px 20px rgba(217,119,6,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .mic-badge svg {
+    width: 28px;
+    height: 28px;
+    fill: #FFFFFF;
+  }
+  .mic-ripple {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(245, 158, 11, 0.4);
+    animation: pulseRipple 1.6s infinite ease-out;
+  }
+  @keyframes pulseRipple {
+    0% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  .wave-bars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+  }
+  .wave-bar {
+    width: 3.5px;
+    height: 8px;
+    background: #D97706;
+    border-radius: 4px;
+    transition: height 0.08s ease;
+  }
+
+  /* ─── Status & Speech Preview ─── */
+  .status-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #D97706;
+    text-align: center;
+  }
+  .transcript-box {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    padding: 12px 16px;
+    min-height: 48px;
+    font-size: 14px;
+    color: #3D322A;
+    text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .transcript-box:empty::before {
+    content: "Katakan transaksi Anda, misal: 'Kopi 25 ribu pakai BCA'...";
+    color: #A89B91;
+    font-style: italic;
+  }
+
+  /* ─── Result Transaction Card ─── */
+  .result-card {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 6px 20px rgba(160, 130, 100, 0.12);
+    margin-bottom: 16px;
+    display: none;
+    animation: fadeIn 0.2s ease forwards;
+  }
+  .result-card.active {
+    display: block;
+  }
+  .result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .result-type-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .type-expense {
+    background: rgba(239, 68, 68, 0.12);
+    color: #DC2626;
+  }
+  .type-income {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+  }
+  .result-account-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.14);
+    color: #B45309;
+  }
+  .result-amount {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1F1914;
+    margin-bottom: 6px;
+  }
+  .result-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #6B5B52;
+  }
+  .result-category-pill {
+    background: #F3ECE4;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #57483F;
+  }
+
+  /* ─── Action Buttons ─── */
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+  }
+  .btn-save {
+    flex: 1;
+    height: 46px;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border: none;
+    border-radius: 14px;
+    color: #FFFFFF !important;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.32);
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .btn-save:active {
+    transform: scale(0.98);
+  }
+  .btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-cancel {
+    height: 46px;
+    padding: 0 18px;
+    background: #EDE2D6;
+    border: none;
+    border-radius: 14px;
+    color: #6B5B52;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ─── Countdown bar inside save button ─── */
+  .save-timer-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 0 0 14px 14px;
+    width: 0%;
+    transition: width 3s linear;
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeAssistant()"></div>
+
+<div class="sheet" id="sheet">
+  <div class="handle"></div>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Cassiel Assistant</h1>
+        <p>Bicara untuk catat transaksi instan</p>
+      </div>
+    </div>
+    <button class="close-btn" onclick="closeAssistant()">✕</button>
+  </div>
+
+  <div class="visualizer-container">
+    <div class="mic-badge" id="micBtn" onclick="toggleListening()">
+      <div class="mic-ripple" id="micRipple"></div>
+      <svg viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </div>
+
+    <div class="wave-bars" id="waveBars">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+
+    <div class="status-text" id="statusText">Mendengarkan...</div>
+  </div>
+
+  <div class="transcript-box" id="transcriptBox"></div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-top">
+      <span class="result-type-badge type-expense" id="resType">Pengeluaran</span>
+      <span class="result-account-badge" id="resAccount">BCA</span>
+    </div>
+    <div class="result-amount" id="resAmount">Rp 0</div>
+    <div class="result-meta">
+      <span class="result-category-pill" id="resCategory">Food</span>
+      <span id="resNote">Catatan</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-cancel" onclick="closeAssistant()">Batal</button>
+    <button class="btn-save" id="btnSave" onclick="saveCurrentTransaction()" disabled>
+      <span id="saveBtnText">Simpan Transaksi</span>
+      <div class="save-timer-bar" id="saveTimerBar"></div>
+    </button>
+  </div>
+</div>
+
+<script>
+  let isListening = false;
+  let parsedTx = null;
+  let autoSaveTimeout = null;
+
+  // ─── Bridge Lifecycle ───
+  function onBridgeReady() {
+    startListening();
+  }
+
+  // Auto trigger if opened in browser or after webview ready
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      startListening();
+    }, 300);
+  });
+
+  function startListening() {
+    try {
+      if (window.CassielAssistBridge && typeof CassielAssistBridge.startListening === 'function') {
+        CassielAssistBridge.startListening();
+      }
+    } catch(e) {
+      console.warn('Native bridge not available:', e);
+    }
+    isListening = true;
+    updateUiState('listening');
+  }
+
+  function stopListening() {
+    try {
+      if (window.CassielAssistBridge && typeof CassielAssistBridge.stopListening === 'function') {
+        CassielAssistBridge.stopListening();
+      }
+    } catch(e) {}
+    isListening = false;
+    updateUiState('idle');
+  }
+
+  function toggleListening() {
+    if (isListening) {
+      stopListening();
+    } else {
+      clearAutoSave();
+      startListening();
+    }
+  }
+
+  function updateUiState(state) {
+    const statusText = document.getElementById('statusText');
+    const micRipple = document.getElementById('micRipple');
+    if (state === 'listening') {
+      statusText.innerText = 'Mendengarkan suara Anda...';
+      micRipple.style.display = 'block';
+    } else if (state === 'processing') {
+      statusText.innerText = 'Memproses transaksi...';
+      micRipple.style.display = 'none';
+    } else if (state === 'success') {
+      statusText.innerText = 'Transaksi terdeteksi!';
+      micRipple.style.display = 'none';
+    } else if (state === 'idle') {
+      statusText.innerText = 'Sentuh mikrofon untuk bicara';
+      micRipple.style.display = 'none';
+    }
+  }
+
+  // ─── Native Android Callbacks ───
+  window.onSpeechStarted = function() {
+    isListening = true;
+    updateUiState('listening');
+  };
+
+  window.onSpeechReady = function() {
+    updateUiState('listening');
+  };
+
+  window.onSpeechRms = function(rmsdB) {
+    // Animate wave bars based on RMS dB (-2 to 10 typical)
+    const bars = document.querySelectorAll('.wave-bar');
+    const heightScale = Math.max(6, Math.min(24, (rmsdB + 2) * 2.2));
+    bars.forEach((bar, idx) => {
+      const variation = Math.sin(Date.now() / 150 + idx) * 4;
+      bar.style.height = Math.max(4, heightScale + variation) + 'px';
+    });
+  };
+
+  window.onSpeechPartial = function(partialText) {
+    const box = document.getElementById('transcriptBox');
+    box.innerText = partialText;
+  };
+
+  window.onSpeechEndOfSpeech = function() {
+    updateUiState('processing');
+    const bars = document.querySelectorAll('.wave-bar');
+    bars.forEach(b => b.style.height = '6px');
+  };
+
+  window.onSpeechResult = function(finalText) {
+    isListening = false;
+    updateUiState('success');
+    const box = document.getElementById('transcriptBox');
+    box.innerText = finalText;
+
+    // Parse transaction via Java AssistantVoiceParser or fallback to client parser
+    let res = null;
+    try {
+      if (window.CassielAssistBridge && typeof CassielAssistBridge.parseTransaction === 'function') {
+        const jsonStr = CassielAssistBridge.parseTransaction(finalText);
+        res = JSON.parse(jsonStr);
+      }
+    } catch(e) {
+      console.warn('Native parseTransaction error:', e);
+    }
+
+    if (!res || !res.isValid) {
+      res = clientSideParse(finalText);
+    }
+
+    renderResult(res);
+  };
+
+  window.onSpeechError = function(errorMsg) {
+    isListening = false;
+    updateUiState('idle');
+    const statusText = document.getElementById('statusText');
+    statusText.innerText = errorMsg || 'Gagal mengenali suara. Coba lagi.';
+  };
+
+  // ─── Result Rendering & Saving ───
+  function renderResult(res) {
+    parsedTx = res;
+    const card = document.getElementById('resultCard');
+    const btnSave = document.getElementById('btnSave');
+
+    if (!res || res.amount <= 0) {
+      card.classList.remove('active');
+      btnSave.disabled = true;
+      document.getElementById('statusText').innerText = 'Nominal tidak terdeteksi. Silakan coba lagi.';
+      return;
+    }
+
+    card.classList.add('active');
+    btnSave.disabled = false;
+
+    // Badges
+    const resType = document.getElementById('resType');
+    resType.innerText = res.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
+    resType.className = 'result-type-badge ' + (res.type === 'income' ? 'type-income' : 'type-expense');
+
+    document.getElementById('resAccount').innerText = res.account || 'Cash';
+    document.getElementById('resAmount').innerText = res.formattedAmount || ('Rp ' + res.amount.toLocaleString('id-ID'));
+    document.getElementById('resCategory').innerText = res.category || 'Food';
+    document.getElementById('resNote').innerText = res.note || '';
+
+    // Auto-save countdown (3 seconds)
+    startAutoSave();
+  }
+
+  function startAutoSave() {
+    clearAutoSave();
+    const timerBar = document.getElementById('saveTimerBar');
+    const saveBtnText = document.getElementById('saveBtnText');
+    
+    let countdown = 3;
+    saveBtnText.innerText = `Simpan Otomatis (${countdown}s)`;
+    timerBar.style.width = '100%';
+
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        saveBtnText.innerText = `Simpan Otomatis (${countdown}s)`;
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    autoSaveTimeout = setTimeout(() => {
+      clearInterval(interval);
+      saveCurrentTransaction();
+    }, 3000);
+  }
+
+  function clearAutoSave() {
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+      autoSaveTimeout = null;
+    }
+    const timerBar = document.getElementById('saveTimerBar');
+    if (timerBar) timerBar.style.width = '0%';
+    const saveBtnText = document.getElementById('saveBtnText');
+    if (saveBtnText) saveBtnText.innerText = 'Simpan Transaksi';
+  }
+
+  function saveCurrentTransaction() {
+    clearAutoSave();
+    if (!parsedTx || parsedTx.amount <= 0) return;
+
+    const btnSave = document.getElementById('btnSave');
+    btnSave.disabled = true;
+    document.getElementById('saveBtnText').innerText = 'Menyimpan...';
+
+    try {
+      if (window.CassielAssistBridge && typeof CassielAssistBridge.saveTransaction === 'function') {
+        CassielAssistBridge.saveTransaction(JSON.stringify(parsedTx));
+      }
+    } catch(e) {
+      console.warn('Failed to call saveTransaction bridge:', e);
+    }
+
+    document.getElementById('statusText').innerText = '✓ Berhasil Disimpan!';
+    setTimeout(() => {
+      closeAssistant();
+    }, 500);
+  }
+
+  // ─── Dismissing Assistant UI ───
+  function closeAssistant() {
+    clearAutoSave();
+    stopListening();
+
+    const sheet = document.getElementById('sheet');
+    sheet.classList.add('sheet-dismiss');
+
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.style.animation = 'fadeIn 0.2s ease reverse forwards';
+
+    setTimeout(function() {
+      try {
+        if (window.CassielAssistBridge && typeof CassielAssistBridge.closeAssistant === 'function') {
+          CassielAssistBridge.closeAssistant();
+        } else {
+          window.close();
+        }
+      } catch (e) {
+        window.close();
+      }
+    }, 260);
+  }
+
+  // ─── Robust Client-Side Parser Fallback ───
+  function clientSideParse(rawText) {
+    const text = (rawText || '').trim();
+    const lower = text.toLowerCase();
+
+    // 1. Type
+    const isIncome = /(gaji|salary|bonus|terima|masuk|dapat|dapet|pendapatan|pemasukan|affiliate|komisi|cashback)/i.test(lower);
+    const type = isIncome ? 'income' : 'expense';
+
+    // 2. Amount detection
+    let amount = 0;
+    // Direct Rp format e.g. Rp20.000 / 20.000 / 20000
+    const numMatch = lower.match(/(?:rp\.?\s*)?(\d{1,3}(?:\.\d{3})+|\d+)(?:\s*(?:ribu|rb|k|jt|juta))?/i);
+    if (numMatch) {
+      const rawNum = numMatch[1].replace(/\./g, '');
+      let parsedNum = parseInt(rawNum, 10) || 0;
+      const suffixMatch = lower.substring(numMatch.index);
+      if (/juta|jt/i.test(suffixMatch) && parsedNum < 1000) parsedNum *= 1000000;
+      else if (/ribu|rb|k/i.test(suffixMatch) && parsedNum < 1000) parsedNum *= 1000;
+      amount = parsedNum;
+    }
+
+    // Slang fallback
+    if (amount <= 0) {
+      if (/goceng/i.test(lower)) amount = 5000;
+      else if (/ceban/i.test(lower)) amount = 10000;
+      else if (/goban/i.test(lower)) amount = 50000;
+      else if (/gocap/i.test(lower)) amount = 50000;
+      else if (/seceng/i.test(lower)) amount = 1000;
+      else if (/gopek/i.test(lower)) amount = 500;
+    }
+
+    // 3. Account detection
+    let account = 'Cash';
+    if (/brimo|bri/i.test(lower)) account = 'BRImo';
+    else if (/bca|mybca/i.test(lower)) account = 'BCA';
+    else if (/mandiri|livin/i.test(lower)) account = 'Mandiri';
+    else if (/bni|wondr/i.test(lower)) account = 'BNI';
+    else if (/bsi/i.test(lower)) account = 'BSI';
+    else if (/gopay|go pay/i.test(lower)) account = 'GoPay';
+    else if (/dana/i.test(lower)) account = 'DANA';
+    else if (/ovo/i.test(lower)) account = 'OVO';
+    else if (/shopeepay|shopee/i.test(lower)) account = 'ShopeePay';
+    else if (/seabank/i.test(lower)) account = 'SeaBank';
+    else if (/jago/i.test(lower)) account = 'Bank Jago';
+
+    // 4. Category detection
+    let category = 'Food';
+    let categoryId = 'food';
+
+    if (isIncome) {
+      if (/gaji|salary/i.test(lower)) { category = 'Gaji'; categoryId = 'gaji'; }
+      else if (/bonus|cashback/i.test(lower)) { category = 'Bonus'; categoryId = 'bonus'; }
+      else if (/affiliate|komisi/i.test(lower)) { category = 'Affiliate'; categoryId = 'affiliate'; }
+      else { category = 'Pemasukan Lain'; categoryId = 'gaji'; }
+    } else {
+      if (/kopi|coffee|latte|starbucks|fore|tomoro/i.test(lower)) { category = 'Coffee'; categoryId = 'coffee'; }
+      else if (/bensin|pertalite|pertamax|spbu|solar/i.test(lower)) { category = 'Bensin'; categoryId = 'bensin'; }
+      else if (/gojek|grab|maxim|tol|parkir|krl|mrt|angkot/i.test(lower)) { category = 'Transport'; categoryId = 'transport'; }
+      else if (/indomaret|alfamart|superindo/i.test(lower)) { category = 'Supermarket'; categoryId = 'supermarket'; }
+      else if (/pulsa|kuota|paket data/i.test(lower)) { category = 'Pulsa'; categoryId = 'pulsa'; }
+      else if (/wifi|indihome|biznet/i.test(lower)) { category = 'WiFi'; categoryId = 'wifi'; }
+      else if (/netflix|spotify|youtube/i.test(lower)) { category = 'Subscription'; categoryId = 'subscription'; }
+      else if (/baju|celana|pakaian|sepatu/i.test(lower)) { category = 'Fashion'; categoryId = 'fashion'; }
+      else if (/makan|mie|nasi|bakso|ayam|mangga|buah|sayur/i.test(lower)) { category = 'Food'; categoryId = 'food'; }
+    }
+
+    // Format currency string
+    const formattedAmount = 'Rp ' + amount.toLocaleString('id-ID');
+
+    return {
+      isValid: amount > 0,
+      type: type,
+      amount: amount,
+      formattedAmount: formattedAmount,
+      category: category,
+      categoryId: categoryId,
+      account: account,
+      note: text
+    };
+  }
+</script>
+
+</body>
+</html>

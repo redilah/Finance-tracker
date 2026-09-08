@@ -100,6 +100,32 @@ export async function openNotificationAccessSettings() {
   }
 }
 
+/**
+ * Open Android Digital Assistant settings ("Assist & voice input").
+ */
+export async function openAssistantSettings() {
+  try {
+    await NotificationTrackerNative.openAssistantSettings();
+    return true;
+  } catch (err) {
+    console.warn('[NotifTracker] Failed to open assistant settings:', err);
+    return false;
+  }
+}
+
+/**
+ * Check if Cassiel is currently selected as the active Digital Assistant app in Android.
+ */
+export async function checkAssistantActive() {
+  try {
+    const res = await NotificationTrackerNative.isAssistantActive();
+    return Boolean(res?.active);
+  } catch {
+    return false;
+  }
+}
+
+
 // ─── 1. NORMALIZER ──────────────────────────────────────────────────────────
 
 /**

@@ -546,6 +546,10 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel tidak akan mencatat transaksi dari notifikasi.',
     notifAutoTrackerDescOn: 'Pelacakan transaksi otomatis aktif.',
     notifAutoTrackerDescReq: 'Akses notifikasi diperlukan.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Tahan tombol Power untuk catat transaksi',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Tahan tombol Power untuk catat transaksi',
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih font tampilan aplikasi & catatan',
@@ -1295,6 +1299,8 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel will not track transactions from notifications.',
     notifAutoTrackerDescOn: 'Automatic transaction tracking is active.',
     notifAutoTrackerDescReq: 'Notification access is required.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Hold Power button to track transactions',
 
     fontSettingTitle: 'Typography',
     fontSettingSubtitle: 'Choose font family for app UI',
@@ -1696,6 +1702,8 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel mboten badhe nyathet transaksi saking pepèling.',
     notifAutoTrackerDescOn: 'Pelacakan transaksi otomatis sampun aktif.',
     notifAutoTrackerDescReq: 'Akses pepèling dipunbetahaken.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Tahan tombol Power kangge nyathet transaksi',
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih gaya tulisan tampilan lan cathetan',
@@ -2094,6 +2102,8 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel buhui cong tongzhi zhong jilu jiaoyi.',
     notifAutoTrackerDescOn: 'Zidong jiaoyi gencong yi qiyong.',
     notifAutoTrackerDescReq: 'Xuyao tongzhi fangwen quanxian.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Chang an dianyuan jian jilu jiaoyi',
 
     fontSettingTitle: 'Ziti Yangshi',
     fontSettingSubtitle: 'Xuanze ziti',
@@ -2492,6 +2502,8 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel-eun alim-eseo geolaeleul gilog-haji anhseubnida.',
     notifAutoTrackerDescOn: 'Zadong geolae chuzeog-i hwal-seonghwa doe-eoss-seubnida.',
     notifAutoTrackerDescReq: 'Alim geun-han-i pir-yohabnida.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Jeon-won beoteun-eul gilleo geolae gilog',
 
     fontSettingTitle: 'Geulkkol Seoljeong',
     fontSettingSubtitle: 'Aep geulkkol seontaek',
@@ -2732,6 +2744,8 @@ export const DICTIONARY = {
     notifAutoTrackerDescOff: 'Cassiel-eun alim-eseo geolaeleul gilog-haji anhseubnida.',
     notifAutoTrackerDescOn: 'Zadong geolae chuzeog-i hwal-seonghwa doe-eoss-seubnida.',
     notifAutoTrackerDescReq: 'Alim geun-han-i pir-yohabnida.',
+    quickAssistTitle: 'Cassiel Quick Assist',
+    quickAssistSubtitle: 'Jeon-won beoteun-eul gilleo geolae gilog',
 
     fontSettingTitle: 'Geulkkol Seoljeong',
     fontSettingSubtitle: 'Aep geulkkol seontaek',

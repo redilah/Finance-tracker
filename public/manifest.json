@@ -1,0 +1,17 @@
+{
+  "short_name": "Cassiel",
+  "name": "Cassiel Finance Tracker",
+  "description": "Aplikasi pelacak keuangan pribadi & grup mewah tanpa iklan",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8EFE6",
+  "theme_color": "#F8EFE6",
+  "display": "standalone",
+  "orientation": "portrait"
+}

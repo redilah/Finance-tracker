@@ -76,6 +76,70 @@
             </intent-filter>
         </service>
 
+        <!-- ═══ Cassiel Digital Assistant (Settings → Default Apps → Assist & Voice Input) ═══ -->
+
+        <!-- 1. VoiceInteractionService — registers Cassiel in the Digital Assistant picker -->
+        <service
+            android:name=".assistant.CassielVoiceInteractionService"
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:exported="true">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+
+        <!-- 2. VoiceInteractionSessionService — creates sessions when assistant gesture fires -->
+        <service
+            android:name=".assistant.CassielVoiceInteractionSessionService"
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:exported="true" />
+
+        <!-- 3. RecognitionService — required by OS for complete voice input validation -->
+        <service
+            android:name=".assistant.CassielRecognitionService"
+            android:permission="android.permission.BIND_RECOGNITION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- 4. AssistActivity — transparent floating UI launched by the session -->
+        <activity
+            android:name=".assistant.CassielAssistActivity"
+            android:theme="@style/AppTheme.TransparentAssistant"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.redilah.financetracker.assistant"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VOICE_COMMAND" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- 5. Quick Settings Tile — triggers Cassiel Assist from notification panel -->
+        <service
+            android:name=".assistant.CassielTileService"
+            android:label="Cassiel Assist"
+            android:icon="@drawable/ic_stat_icon"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
     </application>
 
     <!-- Permissions -->
@@ -84,6 +148,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Queries for Android 11+ Speech Recognition -->
     <queries>

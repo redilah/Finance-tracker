@@ -68,12 +68,25 @@ const DONATION_CAUSES = [
     targetInfo: 'Program Bantuan Air Bersih',
     image: airBersihGunungkidulImg,
     description: (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ margin: 0, fontWeight: '700', color: '#0F172A' }}>
-          Selama lebih dari 30 tahun, puluhan Kepala Keluarga di Gunungkidul terpaksa menghadapi krisis air bersih.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span>📖</span>
+          <span>Latar Belakang & Detail Penyaluran:</span>
+        </div>
+        <p style={{ margin: 0, fontWeight: '700', color: '#0F172A', lineHeight: 1.5 }}>
+          Selama lebih dari 30 tahun, 60 Kepala Keluarga di Dusun Bonpon terpaksa 'bertaruh' dengan kekeringan.
         </p>
-        <p style={{ margin: 0 }}>
-          Penyaluran bantuan dropping air bersih, pengadaan tandon penampungan umum, serta perbaikan instalasi pipa air bagi ratusan warga dan lansia di Dusun Bonpon dan sekitarnya, Gunungkidul, D.I. Yogyakarta yang terdampak krisis kekeringan panjang setiap musim kemarau.
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
+          Bagi mereka, air bersih adalah barang langka. Demi memenuhi kebutuhan harian, warga harus bergantian menyedot air dari selang kecil dari satu-satunya sumber mata air berdebit sangat rendah—harapan tipis yang harus dibagi untuk seluruh desa.
+        </p>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
+          Kini, titik terang mulai terlihat. Yayasan Tanah Air Lestari sebelumnya telah berhasil membangun sumur air bersih di wilayah Kutugan, yang berjarak sekitar 2 kilometer dari Bonpon. Air melimpah dari Kutugan menjadi kunci jawaban atas penantian panjang warga.
+        </p>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
+          Sebagai langkah tanggap darurat, rencana besar siap dijalankan: menyambungkan jaringan pipa sepanjang 2 kilometer dari sumur Kutugan menuju Dusun Bonpon. Pipanisasi ini akan menjadi jalur kehidupan yang mengalirkan air bersih langsung ke pemukiman, sekaligus mengakhiri krisis air tiga dekade di Bonpon.
+        </p>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
+          Perjuangan ini bukan sekadar menyambung pipa, melainkan menyambungkan harapan dan menghadirkan kehidupan yang lebih layak bagi warga Dusun Bonpon.
         </p>
       </div>
     ),
@@ -89,23 +102,27 @@ const DONATION_CAUSES = [
     targetInfo: 'Bantuan Air Bersih Gempa NTT',
     image: sedekahAirGempaNttImg,
     description: (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ margin: 0, fontWeight: '700', color: '#1F2937' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span>📖</span>
+          <span>Latar Belakang & Detail Penyaluran:</span>
+        </div>
+        <p style={{ margin: 0, fontWeight: '700', color: '#0F172A', lineHeight: 1.5 }}>
           Air Bersih Mendesak, Penyintas Gempa NTT Masih Membutuhkan Bantuan
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
           Gempa bumi bermagnitudo 7,7 mengguncang wilayah Nusa Tenggara Timur pada Sabtu (15/8) pagi. Gempa berpusat di laut, sekitar 38 km timur laut Mbay, Kabupaten Nagekeo, dengan kedalaman sekitar 15 km.
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
           Hingga saat ini, masih banyak penyintas yang bertahan di pengungsian dalam kondisi serba terbatas dan memprihatinkan. Mereka kehilangan tempat tinggal dan harus menjalani hari-hari di tengah situasi darurat, sementara kebutuhan dasar belum sepenuhnya terpenuhi.
         </p>
-        <p style={{ margin: 0, fontWeight: '700', color: '#0F172A' }}>
+        <p style={{ margin: 0, fontWeight: '700', color: '#0F172A', lineHeight: 1.5 }}>
           Salah satu kebutuhan yang paling mendesak adalah air bersih.
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
           Tanpa air yang cukup, aktivitas sederhana seperti minum, memasak, mandi, mencuci, hingga menjaga kebersihan menjadi sangat sulit. Kondisi ini juga dapat meningkatkan risiko gangguan kesehatan bagi para penyintas, terutama anak-anak, lansia, dan kelompok rentan lainnya.
         </p>
-        <p style={{ margin: 0 }}>
+        <p style={{ margin: 0, lineHeight: 1.55 }}>
           Setiap hari yang mereka lalui di pengungsian berarti kebutuhan air bersih terus bertambah. Jangan sampai mereka harus bertahan dari bencana sekaligus kesulitan mendapatkan air untuk kebutuhan paling dasar.
         </p>
       </div>
@@ -113,24 +130,6 @@ const DONATION_CAUSES = [
     color: '#0D9488',
     glowColor: 'rgba(13, 148, 136, 0.22)',
     bgCard: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 250, 0.94))'
-  },
-  {
-    id: 'tangki_air_darurat',
-    title: 'Tangki Air Bersih Darurat Daerah Kekeringan',
-    tag: 'Kitabisa Air Bersih',
-    organizer: 'Aksi Tanggap Bencana & Air Bersih',
-    targetInfo: 'Distribusi Cepat Musim Kemarau',
-    image: 'https://images.unsplash.com/photo-1594398901394-4e34939a4fd0?w=600&auto=format&fit=crop&q=80',
-    description: (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ margin: 0 }}>
-          Mobilisasi armada truk tangki air bersih berkapasitas ribuan liter untuk mendistribusikan air siap pakai langsung ke drum dan bak penampungan warga di wilayah yang mengalami krisis air parah demi kebutuhan minum, masak, dan sanitasi keluarga.
-        </p>
-      </div>
-    ),
-    color: '#D97706',
-    glowColor: 'rgba(217, 119, 6, 0.22)',
-    bgCard: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 243, 199, 0.94))'
   }
 ];
 
@@ -165,15 +164,15 @@ export default function ProUpgradeModal({
   const currentCause = DONATION_CAUSES.find(c => c.id === selectedCauseId) || DONATION_CAUSES[0];
 
   const formatRupiah = (num) => {
-    return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    return 'Rp' + Number(num || 0).toLocaleString('id-ID');
   };
 
-  // Kalkulasi Transparansi Keuangan
+  // Kalkulasi Transparansi Keuangan (Sesuai Gambar 3)
   const grossPrice = currentPlan.numericPrice;
-  const playStoreCut = Math.round(grossPrice * 0.15); // Potongan standar Google Play 15%
-  const netIncome = grossPrice - playStoreCut;
-  const devShare = Math.round(grossPrice * 0.085); // Biaya operasional server & AI
-  const donationShare = netIncome - devShare; // Alokasi Donasi Kitabisa (76.5% dari harga)
+  const playStoreCut = Math.round(grossPrice * 0.15); // Potongan Google Play Store (15%)
+  const netAfterPlayStore = grossPrice - playStoreCut;
+  const devShare = Math.round(netAfterPlayStore * 0.10); // Operasional Pengembang (10%)
+  const donationShare = netAfterPlayStore - devShare; // Alokasi Donasi Kitabisa
 
   const toggleExpandCause = (causeId, e) => {
     if (e) e.stopPropagation();
@@ -254,33 +253,29 @@ export default function ProUpgradeModal({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
         zIndex: 10000,
+        background: 'radial-gradient(130% 65% at 95% 0%, #FED7AA 0%, #FEF3C7 32%, #FAF4ED 65%, #FAF4ED 100%)',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        animation: 'fadeIn 0.25s ease-out'
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        fontFamily: 'var(--font-body, system-ui, -apple-system, sans-serif)',
+        animation: 'fadeIn 0.2s ease-out'
       }}
-      onClick={onClose}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
           width: '100%',
           maxWidth: '430px',
-          maxHeight: '92vh',
-          borderRadius: '24px',
-          overflowY: 'auto',
-          padding: '24px 20px',
+          minHeight: '100vh',
+          padding: 'calc(env(safe-area-inset-top, 0px) + 16px) 20px calc(env(safe-area-inset-bottom, 0px) + 32px)',
           boxSizing: 'border-box',
-          background: '#FAF2EA',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
-          border: 'none',
-          scrollbarWidth: 'none'
+          background: 'transparent',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 1
         }}
       >
         {/* Top Bar: Navigation & Step Indicator */}
@@ -314,16 +309,23 @@ export default function ProUpgradeModal({
               {step === 2 ? (
                 <path d="M15 18l-6-6 6-6" />
               ) : (
-                <>
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </>
+                <path d="M15 18l-6-6 6-6" />
               )}
             </svg>
           </button>
 
-          {/* Step Dots & Progress Label */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          {/* Step Dots & Progress Label Capsule */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#FFFFFF',
+              padding: '5px 14px',
+              borderRadius: '999px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+            }}
+          >
             <span
               style={{
                 width: '7px',
@@ -344,9 +346,9 @@ export default function ProUpgradeModal({
             />
             <span
               style={{
-                fontSize: '11px',
+                fontSize: '11.5px',
                 fontWeight: '700',
-                color: '#6B7280',
+                color: '#4B5563',
                 marginLeft: '2px'
               }}
             >
@@ -382,17 +384,17 @@ export default function ProUpgradeModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '4px 12px',
+                padding: '6px 16px',
                 borderRadius: '999px',
-                background: 'rgba(245, 158, 11, 0.12)',
+                background: 'rgba(254, 243, 199, 0.85)',
                 color: '#D97706',
                 fontSize: '11px',
                 fontWeight: '800',
-                letterSpacing: '0.3px',
-                marginBottom: '8px'
+                letterSpacing: '0.4px',
+                marginBottom: '10px'
               }}>
-                <img src={kitabisaLogo} alt="Kitabisa" style={{ width: '15px', height: '15px', borderRadius: '4px' }} />
-                <span>JUSTICE CASSIEL • IMPACT</span>
+                <span style={{ fontSize: '13px' }}>✨</span>
+                <span style={{ color: '#D97706' }}>LANGGANAN BERKAH & BERBAGI</span>
               </div>
               <h2
                 style={{
@@ -414,12 +416,12 @@ export default function ProUpgradeModal({
                   lineHeight: 1.45
                 }}
               >
-                Seluruh fitur premium aktif tanpa batas & sebagian besar hasil disalurkan ke donasi air bersih Kitabisa.
+                Seluruh fitur premium aktif tanpa batas & sebagian besar hasil disalurkan ke donasi Kitabisa.
               </p>
             </div>
 
             {/* Subscription Plan Cards List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
               {SUBSCRIPTION_PLANS.map(plan => {
                 const isSelected = selectedPlanId === plan.id;
 
@@ -430,100 +432,109 @@ export default function ProUpgradeModal({
                     style={{
                       position: 'relative',
                       background: '#FFFFFF',
-                      borderRadius: '20px',
-                      padding: '17px 18px 15px',
+                      borderRadius: '22px',
+                      padding: '20px 18px 18px',
                       border: isSelected
                         ? '2.5px solid #E65100'
-                        : '2.5px solid #E5E7EB',
-                      boxShadow: 'none',
+                        : '2.5px solid transparent',
+                      boxShadow: isSelected
+                        ? '0 4px 18px rgba(230, 81, 0, 0.08)'
+                        : '0 4px 16px rgba(0, 0, 0, 0.03)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    {/* Top Badge (BEST VALUE / POPULER) */}
+                    {/* Top Badge (BEST VALUE / POPULER / WORTH IT) */}
                     {plan.badgeTopLeft && (
                       <div
                         style={{
                           position: 'absolute',
-                          top: '-10px',
+                          top: '-11px',
                           left: '16px',
-                          background: plan.id === 'yearly'
-                            ? 'linear-gradient(135deg, #10B981, #059669)'
-                            : 'linear-gradient(135deg, #F59E0B, #D97706)',
+                          background: '#E65100',
                           color: '#FFFFFF',
-                          fontSize: '10px',
+                          fontSize: '11px',
                           fontWeight: '800',
-                          padding: '3px 10px',
+                          padding: '4px 12px',
                           borderRadius: '8px',
                           letterSpacing: '0.4px',
-                          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)'
+                          textTransform: 'uppercase'
                         }}
                       >
                         {plan.badgeTopLeft}
                       </div>
                     )}
 
-                    {/* Top Right Badge (Diskon) */}
-                    {plan.badgeTopRight && (
+                    {/* Top Row: Title on Left, Radio Button on Right */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: plan.badgeTopLeft ? '2px' : '0', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#1F2937' }}>
+                        {plan.title}
+                      </div>
+
+                      {/* Custom Radio Button at Top Right (above Hemat badge) */}
                       <div
                         style={{
-                          position: 'absolute',
-                          top: '-10px',
-                          right: '16px',
-                          background: '#FEF3C7',
-                          color: '#B45309',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          padding: '3px 10px',
-                          borderRadius: '8px',
-                          border: '1px solid #FDE68A'
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          background: isSelected ? '#E65100' : '#E5E7EB',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        {plan.badgeTopRight}
+                        {isSelected && (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
                       </div>
-                    )}
+                    </div>
 
-                    {/* Title & Price Row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '2px' }}>
-                      <div>
-                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#1F2937' }}>
-                          {plan.title}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '3px' }}>
-                          <span style={{ fontSize: '18px', fontWeight: '800', color: '#E65100' }}>
-                            {plan.priceText}
-                          </span>
-                          <span style={{ fontSize: '12px', color: '#6B7280' }}>
-                            {plan.periodText}
+                    {/* Second Row: Price on Left, Hemat & Strikethrough on Right */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '24px', fontWeight: '800', color: '#E65100' }}>
+                          {plan.priceText}
+                        </span>
+                        <span style={{ fontSize: '14px', color: '#4B5563', fontWeight: '600' }}>
+                          {plan.periodText}
+                        </span>
+                      </div>
+
+                      {/* Discount Badge stacked vertically on top of Strike-through Price */}
+                      {plan.badgeTopRight && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                          <span
+                            style={{
+                              background: '#FEECE6',
+                              color: '#E65100',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              padding: '2.5px 9px',
+                              borderRadius: '6px',
+                              whiteSpace: 'nowrap',
+                              letterSpacing: '0.1px'
+                            }}
+                          >
+                            {plan.badgeTopRight}
                           </span>
                           {plan.originalPrice && (
-                            <span style={{ fontSize: '12px', color: '#9CA3AF', textDecoration: 'line-through', marginLeft: '4px' }}>
+                            <span style={{ fontSize: '12px', color: '#94A3B8', textDecoration: 'line-through', fontWeight: '500' }}>
                               {plan.originalPrice}
                             </span>
                           )}
                         </div>
-                      </div>
-
-                      {/* Custom Radio Button */}
-                      <div
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          border: isSelected ? '6px solid #E65100' : '2px solid #D1D5DB',
-                          background: '#FFFFFF',
-                          transition: 'all 0.15s ease',
-                          flexShrink: 0,
-                          marginTop: '2px'
-                        }}
-                      />
+                      )}
                     </div>
 
                     {/* Features Bullet List */}
-                    <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #F3F4F6', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {plan.features.map((feat, fIdx) => (
-                        <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#4B5563' }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: '600', color: '#1F2937' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E65100" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                           <span>{feat}</span>
@@ -535,31 +546,64 @@ export default function ProUpgradeModal({
               })}
             </div>
 
-            {/* Next Button */}
+            {/* Kitabisa Social Impact Highlight Box (Sesuai Gambar 1) */}
+            <div
+              style={{
+                background: 'rgba(254, 243, 199, 0.65)',
+                borderRadius: '18px',
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px'
+              }}
+            >
+              <img
+                src={kitabisaLogo}
+                alt="Kitabisa"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  objectFit: 'cover',
+                  flexShrink: 0
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13.5px', fontWeight: '800', color: '#78350F' }}>
+                  Kitabisa Social Impact
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#92400E', lineHeight: 1.45, marginTop: '2px' }}>
+                  Sebagian besar pembayaran paketmu langsung dialokasikan untuk program donasi pilihanmu.
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1 Next Button (Sesuai Gambar 1) */}
             <button
               type="button"
               onClick={handleNextToDonation}
               style={{
                 width: '100%',
-                padding: '15px 16px',
-                borderRadius: '14px',
+                padding: '16px',
+                borderRadius: '16px',
                 background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                 color: '#FFFFFF',
                 fontSize: '15px',
                 fontWeight: '800',
-                letterSpacing: '0.4px',
+                letterSpacing: '0.5px',
                 border: 'none',
                 cursor: 'pointer',
                 boxShadow: '0 6px 20px rgba(217, 119, 6, 0.35)',
-                marginBottom: '12px',
+                marginBottom: '14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px'
               }}
             >
-              <span>Lanjut: Pilih Misi Donasi Air Bersih</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <span>PILIH MISI KEBAIKAN</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
             </button>
@@ -575,17 +619,18 @@ export default function ProUpgradeModal({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(2, 132, 199, 0.08)',
-                  padding: '4px 12px',
+                  gap: '7px',
+                  background: '#FFFFFF',
+                  padding: '6px 16px',
                   borderRadius: '999px',
-                  marginBottom: '8px'
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                  marginBottom: '10px'
                 }}
               >
                 <img
                   src={kitabisaLogo}
                   alt="Kitabisa"
-                  style={{ width: '15px', height: '15px', borderRadius: '4px', objectFit: 'cover' }}
+                  style={{ width: '18px', height: '18px', borderRadius: '4px', objectFit: 'cover' }}
                 />
                 <span
                   style={{
@@ -595,7 +640,7 @@ export default function ProUpgradeModal({
                     letterSpacing: '0.4px'
                   }}
                 >
-                  Kitabisa Social Impact
+                  KITABISA CAUSE SELECTION
                 </span>
               </div>
               <h2
@@ -607,7 +652,7 @@ export default function ProUpgradeModal({
                   letterSpacing: '-0.2px'
                 }}
               >
-                Pilih Misi Donasi Air Bersih
+                Tentukan Misi Kebaikanmu
               </h2>
               <p
                 style={{
@@ -618,7 +663,7 @@ export default function ProUpgradeModal({
                   lineHeight: 1.45
                 }}
               >
-                Dari langganan paket <strong style={{ color: '#0F172A' }}>{currentPlan.title} ({currentPlan.priceText})</strong>, sebesar <strong style={{ color: '#D97706' }}>{formatRupiah(donationShare)}</strong> akan disalurkan ke misi pilihanmu di bawah:
+                Pilih program sosial yang ingin kamu bantu lewat langganan <strong style={{ color: '#0F172A' }}>{currentPlan.title}</strong>.
               </p>
             </div>
 
@@ -634,15 +679,15 @@ export default function ProUpgradeModal({
                     onClick={() => setSelectedCauseId(cause.id)}
                     style={{
                       position: 'relative',
-                      background: isSelected ? '#FFFFFF' : 'rgba(255, 255, 255, 0.88)',
-                      borderRadius: '18px',
-                      padding: '14px 16px',
+                      background: '#FFFFFF',
+                      borderRadius: '20px',
+                      padding: '16px',
                       boxShadow: isSelected
-                        ? '0 10px 24px -4px ' + cause.glowColor + ', 0 4px 10px rgba(0, 0, 0, 0.04)'
-                        : '0 4px 14px rgba(0, 0, 0, 0.02)',
-                      border: isSelected ? '2px solid ' + cause.color : '2px solid transparent',
+                        ? '0 8px 20px rgba(2, 132, 199, 0.12)'
+                        : '0 2px 10px rgba(0, 0, 0, 0.02)',
+                      border: isSelected ? '2px solid #0284C7' : '2px solid transparent',
                       cursor: 'pointer',
-                      transition: 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)'
+                      transition: 'all 0.2s ease'
                     }}
                   >
                     {/* Top Row: Photo, Title, Organizer, Radio & Expand Arrow */}
@@ -692,7 +737,7 @@ export default function ProUpgradeModal({
                             <polyline points="15 3 21 3 21 9" />
                             <polyline points="9 21 3 21 3 15" />
                             <line x1="21" y1="3" x2="14" y2="10" />
-                            <line x1="3" y1="21" x2="10" y2="14" />
+                            <line x1="3" y1="21" x2="14" y2="10" />
                           </svg>
                         </div>
                       </div>
@@ -704,19 +749,22 @@ export default function ProUpgradeModal({
                             style={{
                               fontSize: '9.5px',
                               fontWeight: '800',
-                              color: cause.color,
-                              background: cause.glowColor,
-                              padding: '1.5px 6px',
-                              borderRadius: '4px',
+                              color: '#0284C7',
+                              background: 'rgba(2, 132, 199, 0.08)',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
                               letterSpacing: '0.2px'
                             }}
                           >
                             {cause.tag}
                           </span>
                         </div>
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '600', marginBottom: '2px' }}>
+                          • {cause.organizer}
+                        </div>
                         <div
                           style={{
-                            fontSize: '13.5px',
+                            fontSize: '14px',
                             fontWeight: '800',
                             color: '#0F172A',
                             lineHeight: 1.3,
@@ -725,45 +773,59 @@ export default function ProUpgradeModal({
                         >
                           {cause.title}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '500' }}>
-                          Oleh: <strong style={{ color: '#334155' }}>{cause.organizer}</strong>
+                        <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: '500' }}>
+                          {cause.targetInfo}
                         </div>
                       </div>
 
                       {/* Radio & Expand Toggle */}
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                        {/* Selected Check Button (Cyan circle with white check) or Unselected (Solid light grey circle) */}
                         <div
                           style={{
-                            width: '20px',
-                            height: '20px',
+                            width: '22px',
+                            height: '22px',
                             borderRadius: '50%',
-                            border: isSelected ? '6px solid ' + cause.color : '2px solid #CBD5E1',
-                            background: '#FFFFFF',
+                            background: isSelected ? '#0284C7' : '#E2E8F0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             transition: 'all 0.2s ease'
                           }}
-                        />
+                        >
+                          {isSelected && (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Accordion Expand Button in soft grey rounded box */}
                         <button
                           type="button"
                           onClick={(e) => toggleExpandCause(cause.id, e)}
                           style={{
-                            background: 'transparent',
+                            background: '#F1F5F9',
                             border: 'none',
-                            padding: '4px',
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#94A3B8'
+                            color: '#64748B',
+                            padding: 0
                           }}
                           aria-label={isExpanded ? 'Tutup Rincian' : 'Buka Rincian'}
                         >
                           <svg
-                            width="16"
-                            height="16"
+                            width="14"
+                            height="14"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2.4"
+                            strokeWidth="2.6"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             style={{
@@ -797,15 +859,15 @@ export default function ProUpgradeModal({
               })}
             </div>
 
-            {/* Financial Transparency Breakdown Card (Borderless Luxury) */}
+            {/* Financial Transparency Breakdown Card (Sesuai Gambar 3) */}
             <div
               style={{
-                background: 'rgba(255, 255, 255, 0.92)',
-                backdropFilter: 'blur(16px)',
+                background: '#FFFFFF',
                 borderRadius: '18px',
                 padding: '16px 18px',
                 marginBottom: '16px',
-                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.04)'
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+                border: 'none'
               }}
             >
               <div
@@ -813,56 +875,79 @@ export default function ProUpgradeModal({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '10px'
+                  marginBottom: '12px'
                 }}
               >
-                <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#1E293B' }}>
-                  Transparansi Pembagian Dana
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: '#0284C7',
-                    background: 'rgba(2, 132, 199, 0.08)',
-                    padding: '2px 8px',
-                    borderRadius: '6px'
-                  }}
-                >
-                  100% Terbuka
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', fontSize: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
-                  <span>Total Harga Paket ({currentPlan.title}):</span>
-                  <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatRupiah(grossPrice)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
-                  <span>Biaya Layanan Google Play (15%):</span>
-                  <span>- {formatRupiah(playStoreCut)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
-                  <span>Biaya Server & Pemeliharaan AI (8.5%):</span>
-                  <span>- {formatRupiah(devShare)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>
+                  <span>📊</span>
+                  <span>Rincian Alokasi Dana</span>
                 </div>
                 <div
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    paddingTop: '8px',
-                    borderTop: '1px dashed #E2E8F0',
-                    marginTop: '2px'
+                    gap: '4px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#0284C7',
+                    background: 'rgba(2, 132, 199, 0.08)',
+                    padding: '3px 8px',
+                    borderRadius: '6px'
                   }}
                 >
-                  <span style={{ fontWeight: '800', color: '#0F172A' }}>
-                    Alokasi Donasi Air Bersih:
-                  </span>
-                  <span style={{ fontSize: '15px', fontWeight: '800', color: '#D97706' }}>
+                  <img src={kitabisaLogo} alt="" style={{ width: '12px', height: '12px', borderRadius: '2px' }} />
+                  <span>100% Transparan</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155' }}>
+                  <span>Total Biaya Paket ({currentPlan.title})</span>
+                  <span style={{ fontWeight: '800', color: '#0F172A' }}>{formatRupiah(grossPrice)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                  <span>Potongan Google Play Store (15%)</span>
+                  <span style={{ fontWeight: '700', color: '#0F172A' }}>- {formatRupiah(playStoreCut)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                  <span>Operasional Pengembang (10%)</span>
+                  <span style={{ fontWeight: '700', color: '#0F172A' }}>- {formatRupiah(devShare)}</span>
+                </div>
+
+                {/* Highlight Box Alokasi Donasi Kitabisa */}
+                <div
+                  style={{
+                    marginTop: '6px',
+                    padding: '11px 14px',
+                    borderRadius: '12px',
+                    background: 'rgba(2, 132, 199, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <img src={kitabisaLogo} alt="Kitabisa" style={{ width: '18px', height: '18px', borderRadius: '4px', objectFit: 'cover' }} />
+                    <span style={{ fontSize: '13px', fontWeight: '800', color: '#0369A1' }}>
+                      Alokasi Donasi Kitabisa
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '15px', fontWeight: '800', color: '#0284C7' }}>
                     {formatRupiah(donationShare)}
                   </span>
                 </div>
+              </div>
+
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: '#64748B',
+                  textAlign: 'center',
+                  marginTop: '12px',
+                  lineHeight: 1.45
+                }}
+              >
+                Penyaluran resmi dilakukan berkala ke Kitabisa atas nama seluruh pengguna Cassiel.
               </div>
             </div>
 
@@ -925,7 +1010,7 @@ export default function ProUpgradeModal({
             padding: '0 10px'
           }}
         >
-          Kamu akan ditagih secara otomatis sesuai dengan masa berlangganan yang kamu pilih. Pembatalan dapat dilakukan dengan mudah kapan saja melalui langganan akun Google Play Store kamu.
+          Kamu akan ditagih secara otomatis pada akhir masa uji coba/periode, sesuai dengan masa berlangganan yang kamu pilih. Pembatalan dapat dilakukan dengan mudah kapan saja melalui langganan akun Google Play Store kamu.
         </p>
 
         {/* Extra Bottom Safe Spacer */}

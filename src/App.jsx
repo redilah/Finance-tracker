@@ -101,6 +101,8 @@ import {
   setAutoTrackerPreference, 
   checkNotificationAccessPermission, 
   openNotificationAccessSettings, 
+  checkAssistantActive,
+  openAssistantSettings,
   drainAndProcessQueuedNotifications,
   NotificationTrackerNative
 } from './utils/notificationTracker';
@@ -1525,6 +1527,7 @@ function App() {
   // Notification Auto Tracker State (Persisted)
   const [isAutoTrackerPref, setIsAutoTrackerPref] = useState(() => isAutoTrackerPreferenceEnabled());
   const [hasNotifPermission, setHasNotifPermission] = useState(false);
+  const [isAssistantActive, setIsAssistantActive] = useState(false);
 
   // Web Admin Dashboard URL detection (?admin or /admin)
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -3053,10 +3056,11 @@ function App() {
     }
   }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions]);
 
-  // Sync Notification Access permission when Profile modal opens
+  // Sync Notification Access permission & Assistant status when Profile modal opens
   React.useEffect(() => {
     if (isProfileModalOpen) {
       checkNotificationAccessPermission().then(setHasNotifPermission);
+      checkAssistantActive().then(setIsAssistantActive);
     }
   }, [isProfileModalOpen]);
 
@@ -3073,11 +3077,14 @@ function App() {
       processAutoTrackerQueue();
     });
 
+    checkAssistantActive().then(setIsAssistantActive);
+
     let notifResumeListener;
     import('@capacitor/app')
       .then(({ App: CapApp }) => {
         CapApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
+            checkAssistantActive().then(setIsAssistantActive);
             processAutoTrackerQueue();
           }
         }).then(listener => {
@@ -3087,6 +3094,7 @@ function App() {
       .catch(() => {
         const handleVisibility = () => {
           if (document.visibilityState === 'visible') {
+            checkAssistantActive().then(setIsAssistantActive);
             processAutoTrackerQueue();
           }
         };
@@ -5095,7 +5103,6 @@ function App() {
                   <line x1="8" y1="17" x2="16" y2="17"></line>
                 </svg>
                 <span>Excel</span>
-                {!isPro && <span style={{ fontSize: '9px' }}>👑</span>}
               </button>
 
               <div className="stats-dropdown-wrapper" ref={dropdownRef}>
@@ -7201,6 +7208,39 @@ function App() {
                     </span>
                   </div>
                   <div className={`wa-custom-toggle-track ${isAutoTrackerPref ? 'active' : ''}`}>
+                    <div className="wa-custom-toggle-thumb" />
+                  </div>
+                </div>
+
+                {/* 1c. Cassiel Quick Assist */}
+                <div 
+                  className="wa-menu-item"
+                  onClick={async () => {
+                    await openAssistantSettings();
+                    setTimeout(async () => {
+                      const active = await checkAssistantActive();
+                      setIsAssistantActive(active);
+                    }, 1000);
+                  }}
+                >
+                  <div className="wa-menu-icon-box assistant-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
+                      <path d="M5 3v4"/>
+                      <path d="M3 5h4"/>
+                      <path d="M19 17v4"/>
+                      <path d="M17 19h4"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('quickAssistTitle') || 'Cassiel Quick Assist'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {t('quickAssistSubtitle') || 'Tahan tombol Power untuk catat transaksi'}
+                    </span>
+                  </div>
+                  <div className={`wa-custom-toggle-track ${isAssistantActive ? 'active' : ''}`}>
                     <div className="wa-custom-toggle-thumb" />
                   </div>
                 </div>

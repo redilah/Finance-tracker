@@ -2603,7 +2603,7 @@ img[src*="Kost"] {
 }
 
 .account-info-banner-icon {
-  color: #BC6C25;
+  color: #D97706;
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -2633,7 +2633,7 @@ img[src*="Kost"] {
 }
 
 .account-info-banner-ack-btn {
-  background: #BC6C25;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
   color: #FFFFFF !important;
   font-size: 11px;
   font-weight: 700;
@@ -2641,7 +2641,7 @@ img[src*="Kost"] {
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(188, 108, 37, 0.25);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
@@ -2650,7 +2650,7 @@ img[src*="Kost"] {
 
 .account-info-banner-ack-btn:active {
   transform: scale(0.95);
-  background: #9d561a;
+  opacity: 0.9;
 }
 
 /* 5. Modal Dialog: Atur Saldo Akun */
@@ -4344,6 +4344,7 @@ img[src*="Kost"] {
 .wa-menu-icon-box.reset-icon,
 .wa-menu-icon-box.notif-icon,
 .wa-menu-icon-box.auto-tracker-icon,
+.wa-menu-icon-box.assistant-icon,
 .wa-menu-icon-box.font-icon,
 .wa-menu-icon-box.lang-icon,
 .wa-menu-icon-box.currency-icon,

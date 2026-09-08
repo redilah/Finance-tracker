@@ -104,4 +104,49 @@ public class NotificationTrackerPlugin extends Plugin {
             call.reject("Failed to get tracking status", e);
         }
     }
+
+    @PluginMethod
+    public void openAssistantSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                getContext().startActivity(intent);
+            } else {
+                Intent fallback = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+            }
+            call.resolve();
+        } catch (Exception e) {
+            try {
+                Intent fallback = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Failed to open assistant settings", ex);
+            }
+        }
+    }
+
+    @PluginMethod
+    public void isAssistantActive(PluginCall call) {
+        try {
+            String currentAssistant = Settings.Secure.getString(getContext().getContentResolver(), "assistant");
+            String currentVoiceService = Settings.Secure.getString(getContext().getContentResolver(), "voice_interaction_service");
+            String packageName = getContext().getPackageName();
+
+            boolean active = (currentAssistant != null && currentAssistant.contains(packageName)) ||
+                             (currentVoiceService != null && currentVoiceService.contains(packageName));
+
+            JSObject ret = new JSObject();
+            ret.put("active", active);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("active", false);
+            call.resolve(ret);
+        }
+    }
 }
