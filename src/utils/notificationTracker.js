@@ -384,7 +384,6 @@ export function isDuplicateInTransactions(newTx, existingTransactions) {
   const txAccount = newTx.account;
 
   return existingTransactions.some(t => {
-    if (t.inputMethod !== 'notification') return false;
     if (t.date !== txDate) return false;
     if (Number(t.amount) !== txAmount) return false;
     if (t.type !== txType) return false;
@@ -392,7 +391,8 @@ export function isDuplicateInTransactions(newTx, existingTransactions) {
 
     // Check if created within 5 minutes of each other
     if (t.id && newTx.id && Math.abs(t.id - newTx.id) < 5 * 60 * 1000) {
-      return true;
+      if (t.inputMethod === 'notification' && newTx.inputMethod === 'notification') return true;
+      if (t.title === newTx.title) return true;
     }
 
     return false;
@@ -412,6 +412,72 @@ export function processSingleNotification(rawNotif, {
   incomeCategories,
   existingTransactions
 }) {
+  // Check if this is an assistant direct transaction (from Quick Assist / Voice Session)
+  const isAssistant = Boolean(
+    rawNotif && (
+      rawNotif.assistantDirect === true ||
+      rawNotif.packageName === 'com.redilah.financetracker.assistant' ||
+      rawNotif.txInputMethod === 'assistant' ||
+      (rawNotif.txAmount && rawNotif.txCategory)
+    )
+  );
+
+  if (isAssistant) {
+    const rawAmount = Number(rawNotif.txAmount);
+    if (!rawAmount || rawAmount <= 0) return null;
+
+    const type = rawNotif.txType === 'income' ? 'income' : 'expense';
+    const activeCats = type === 'income' ? (incomeCategories || []) : (expenseCategories || []);
+
+    const targetCatId = (rawNotif.txCategoryId || '').toLowerCase();
+    const targetCatName = (rawNotif.txCategory || '').toLowerCase();
+
+    let resolvedCategory = activeCats.find(c =>
+      (c.id || '').toLowerCase() === targetCatId ||
+      (c.name || '').toLowerCase() === targetCatName
+    );
+
+    if (!resolvedCategory) {
+      resolvedCategory = {
+        id: rawNotif.txCategoryId || (type === 'income' ? 'bonus' : 'food'),
+        name: rawNotif.txCategory || (type === 'income' ? 'Bonus' : 'Food'),
+        iconClass: type === 'income' ? 'bonus-icon' : 'food-icon'
+      };
+    }
+
+    let notifDate = new Date(Number(rawNotif.postTime) || Number(rawNotif.receivedAt) || Date.now());
+    if (isNaN(notifDate.getTime()) || notifDate.getFullYear() < 2020) {
+      notifDate = new Date();
+    }
+    const y = notifDate.getFullYear();
+    const m = String(notifDate.getMonth() + 1).padStart(2, '0');
+    const d = String(notifDate.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+
+    const txTitle = (rawNotif.txNote || resolvedCategory.name || 'Transaksi Asisten').trim();
+    const newTxId = Date.now() + Math.floor(Math.random() * 1000);
+
+    const newTx = {
+      id: newTxId,
+      title: txTitle,
+      category: resolvedCategory.name,
+      categoryId: resolvedCategory.id || null,
+      account: rawNotif.txAccount || 'Cash',
+      amount: rawAmount,
+      type: type,
+      iconClass: resolvedCategory.iconClass || (type === 'income' ? 'bonus-icon' : 'food-icon'),
+      date: dateStr,
+      inputMethod: 'voice',
+      autoTracked: false
+    };
+
+    if (isDuplicateInTransactions(newTx, existingTransactions)) {
+      return null;
+    }
+
+    return newTx;
+  }
+
   // Step 1: Normalize
   const normalized = normalizeNotification(rawNotif);
   if (!normalized) return null;
@@ -527,11 +593,6 @@ export async function drainAndProcessQueuedNotifications({
   transactions,
   onNewTransactions
 }) {
-  // Only process if user preference is ON
-  if (!isAutoTrackerPreferenceEnabled()) {
-    return [];
-  }
-
   try {
     const result = await NotificationTrackerNative.getQueuedNotifications();
     const rawQueue = result?.notifications;
@@ -540,14 +601,28 @@ export async function drainAndProcessQueuedNotifications({
       return [];
     }
 
+    const isTrackerEnabled = isAutoTrackerPreferenceEnabled();
     const createdTransactions = [];
     let currentTxs = Array.isArray(transactions) ? [...transactions] : [];
 
     for (const rawNotif of rawQueue) {
       try {
-        if (!canAutoTrack()) {
-          console.log('[NotifTracker] Daily limit reached for free user');
-          break;
+        const isAssistant = Boolean(
+          rawNotif && (
+            rawNotif.assistantDirect === true ||
+            rawNotif.packageName === 'com.redilah.financetracker.assistant' ||
+            rawNotif.txInputMethod === 'assistant' ||
+            (rawNotif.txAmount && rawNotif.txCategory)
+          )
+        );
+
+        // If it is a bank notification (not assistant), respect auto-tracker preference and daily limit
+        if (!isAssistant) {
+          if (!isTrackerEnabled) continue;
+          if (!canAutoTrack()) {
+            console.log('[NotifTracker] Daily limit reached for free user');
+            break;
+          }
         }
 
         const newTx = processSingleNotification(rawNotif, {
@@ -559,7 +634,9 @@ export async function drainAndProcessQueuedNotifications({
         });
 
         if (newTx) {
-          incrementDailyAutoTrack();
+          if (!isAssistant) {
+            incrementDailyAutoTrack();
+          }
           createdTransactions.push(newTx);
           currentTxs = [newTx, ...currentTxs]; // Update memory copy to prevent batch duplicates
         }

@@ -46,9 +46,79 @@ export default function GroupsHubModal({
 
   const [newGroupFee, setNewGroupFee] = useState('50.000');
   const [newGroupInitBalance, setNewGroupInitBalance] = useState('');
-  const [initialMembers, setInitialMembers] = useState([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
+
+  // Handle swipe-to-back & back events
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBack = () => {
+      if (selectedGroup) {
+        setSelectedGroup(null);
+        return;
+      }
+      if (isCreatingGroup) {
+        setIsCreatingGroup(false);
+        return;
+      }
+      if (isJoiningGroup) {
+        setIsJoiningGroup(false);
+        return;
+      }
+      onClose();
+    };
+
+    const handleBackEvent = (e) => {
+      if (selectedGroup) {
+        setSelectedGroup(null);
+        if (e && e.preventDefault) e.preventDefault();
+      } else if (isCreatingGroup) {
+        setIsCreatingGroup(false);
+        if (e && e.preventDefault) e.preventDefault();
+      } else if (isJoiningGroup) {
+        setIsJoiningGroup(false);
+        if (e && e.preventDefault) e.preventDefault();
+      } else {
+        onClose();
+      }
+    };
+
+    window.addEventListener('cassiel_groups_modal_back', handleBackEvent);
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      const duration = Date.now() - startTime;
+
+      if (startX <= 60 && deltaX >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2 && duration < 550) {
+        handleBack();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('cassiel_groups_modal_back', handleBackEvent);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isOpen, selectedGroup, isCreatingGroup, isJoiningGroup, onClose]);
 
   if (!isOpen) return null;
 

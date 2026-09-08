@@ -158,6 +158,71 @@ export default function ProUpgradeModal({
     }
   }, [isOpen]);
 
+  // Handle swipe-to-back & back events (Step 2 -> Step 1 -> Close, or Close Preview Image)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBackAction = () => {
+      if (previewImage) {
+        setPreviewImage(null);
+        return true;
+      }
+      if (step === 2) {
+        setStep(1);
+        return true;
+      }
+      onClose();
+      return true;
+    };
+
+    const handleBackEvent = (e) => {
+      if (previewImage) {
+        setPreviewImage(null);
+        if (e && e.preventDefault) e.preventDefault();
+      } else if (step === 2) {
+        setStep(1);
+        if (e && e.preventDefault) e.preventDefault();
+      } else {
+        onClose();
+      }
+    };
+
+    window.addEventListener('cassiel_pro_modal_back', handleBackEvent);
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      const duration = Date.now() - startTime;
+
+      if (startX <= 60 && deltaX >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2 && duration < 550) {
+        handleBackAction();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('cassiel_pro_modal_back', handleBackEvent);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isOpen, step, previewImage, onClose]);
+
   if (!isOpen) return null;
 
   const currentPlan = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlanId) || SUBSCRIPTION_PLANS[1];
@@ -254,7 +319,7 @@ export default function ProUpgradeModal({
         right: 0,
         bottom: 0,
         zIndex: 10000,
-        background: 'radial-gradient(130% 65% at 95% 0%, #FED7AA 0%, #FEF3C7 32%, #FAF4ED 65%, #FAF4ED 100%)',
+        background: '#FFFDF9',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -264,6 +329,106 @@ export default function ProUpgradeModal({
         animation: 'fadeIn 0.2s ease-out'
       }}
     >
+      {/* Background Ambience Silk Mesh (Orange Amber White with Mesh Lines) */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          overflow: 'hidden'
+        }}
+      >
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 430 932"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        >
+          <defs>
+            {/* Linear gradients for flowing mesh silk ribbons */}
+            <linearGradient id="amberSilkFlow1" x1="0" y1="0" x2="430" y2="420" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.28" />
+              <stop offset="45%" stopColor="#FB923C" stopOpacity="0.16" />
+              <stop offset="85%" stopColor="#FFF7ED" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#FFFDF9" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="amberSilkFlow2" x1="430" y1="320" x2="0" y2="880" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#EA580C" stopOpacity="0.15" />
+              <stop offset="50%" stopColor="#FBBF24" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#FFFDF9" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="meshLineGrad1" x1="0" y1="0" x2="430" y2="600" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#D97706" stopOpacity="0.24" />
+              <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#EA580C" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="meshLineGrad2" x1="430" y1="200" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.22" />
+              <stop offset="60%" stopColor="#FBBF24" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+            </linearGradient>
+            <filter id="meshGlowBlur" x="-20%" y="-20%" width="140%" height="140%" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="40" />
+            </filter>
+            <filter id="meshSoftBlur" x="-10%" y="-10%" width="120%" height="120%" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="16" />
+            </filter>
+          </defs>
+
+          {/* Base Luxury Warm Canvas */}
+          <rect width="100%" height="100%" fill="#FFFDF9" />
+
+          {/* Glowing Aura Mesh Nodes (Orange Amber White) */}
+          <g filter="url(#meshGlowBlur)">
+            {/* Top-left deep warm Amber sun */}
+            <circle cx="30" cy="140" r="200" fill="#F59E0B" fillOpacity="0.28" />
+            {/* Top-right warm Golden Orange glow */}
+            <circle cx="410" cy="80" r="180" fill="#FB923C" fillOpacity="0.22" />
+            {/* Center-left White Radiance Highlight */}
+            <circle cx="170" cy="380" r="220" fill="#FFFFFF" fillOpacity="0.80" />
+            {/* Mid-left Golden Amber warmth */}
+            <circle cx="40" cy="560" r="210" fill="#FBBF24" fillOpacity="0.26" />
+            {/* Bottom-right Warm Tangerine glow */}
+            <circle cx="390" cy="760" r="240" fill="#EA580C" fillOpacity="0.16" />
+            {/* Bottom-left soft warm peach */}
+            <circle cx="90" cy="900" r="190" fill="#FED7AA" fillOpacity="0.35" />
+          </g>
+
+          {/* Dynamic Silk Wave Ribbon Layers */}
+          <path d="M0 0C140 120 290 60 430 210V0H0Z" fill="url(#amberSilkFlow1)" />
+          <path d="M430 420C290 560 140 510 0 680V932H430V420Z" fill="url(#amberSilkFlow2)" />
+
+          {/* Organic Topological Mesh Wave Lines ("Garis Mesh" Ambient Glow) */}
+          <g filter="url(#meshSoftBlur)" opacity="0.65">
+            <path d="M-20 180 C120 90, 260 260, 450 140" stroke="url(#meshLineGrad1)" strokeWidth="3" fill="none" />
+            <path d="M-30 320 C140 240, 280 410, 460 290" stroke="url(#meshLineGrad1)" strokeWidth="2.5" fill="none" />
+            <path d="M-10 480 C150 390, 290 560, 450 460" stroke="url(#meshLineGrad2)" strokeWidth="2.5" fill="none" />
+            <path d="M-20 660 C130 570, 270 740, 450 630" stroke="url(#meshLineGrad2)" strokeWidth="3" fill="none" />
+          </g>
+
+          {/* Fine Crisp Mesh Contour Lines */}
+          <g opacity="0.5">
+            <path d="M-20 180 C120 90, 260 260, 450 140" stroke="url(#meshLineGrad1)" strokeWidth="1.2" fill="none" />
+            <path d="M-30 320 C140 240, 280 410, 460 290" stroke="url(#meshLineGrad1)" strokeWidth="1" strokeDasharray="6 4" fill="none" />
+            <path d="M-10 480 C150 390, 290 560, 450 460" stroke="url(#meshLineGrad2)" strokeWidth="1" strokeDasharray="8 5" fill="none" />
+            <path d="M-20 660 C130 570, 270 740, 450 630" stroke="url(#meshLineGrad2)" strokeWidth="1.2" fill="none" />
+            <path d="M-20 820 C140 730, 280 900, 450 800" stroke="url(#meshLineGrad2)" strokeWidth="1" strokeDasharray="6 4" fill="none" />
+
+            {/* Subtle Cross Isometric Grid Mesh Accents */}
+            <path d="M60 -20 C100 240, 70 540, 130 950" stroke="rgba(245, 158, 11, 0.09)" strokeWidth="0.8" fill="none" />
+            <path d="M210 -20 C240 260, 210 570, 260 950" stroke="rgba(245, 158, 11, 0.09)" strokeWidth="0.8" fill="none" />
+            <path d="M360 -20 C380 250, 350 560, 400 950" stroke="rgba(245, 158, 11, 0.09)" strokeWidth="0.8" fill="none" />
+          </g>
+        </svg>
+      </div>
+
       <div
         style={{
           position: 'relative',

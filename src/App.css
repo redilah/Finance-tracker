@@ -10505,6 +10505,336 @@ img[src*="Kost"] {
   box-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
 }
 
+/* ==========================================================================
+   STATS STOCK MARKET LINE CHART & INSPECTOR BANNER DESIGN
+   ========================================================================== */
+.stats-stock-chart-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  background: transparent;
+  padding-bottom: 24px;
+  animation: fadeIn 0.35s ease-out;
+}
+
+/* Inspector Banner Card - Clean Crisp Luxury White Card */
+.stats-stock-inspector-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  background: #FFFFFF;
+  border-radius: 22px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 20px rgba(140, 95, 60, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border: none !important;
+  position: relative;
+  z-index: 100;
+}
+
+/* Left Column */
+.stock-banner-col.left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.stock-inspector-month-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stock-inspector-cal-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.stock-inspector-month-text {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2D2520;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+.stock-inspector-net-pill-wrap {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stock-inspector-net-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.net-pill-icon {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2D2520;
+  white-space: nowrap;
+}
+
+.stock-inspector-net-pill.surplus .net-pill-amount {
+  color: #059669;
+}
+
+.stock-inspector-net-pill.deficit .net-pill-amount {
+  color: #DC2626;
+}
+
+.net-pill-amount {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 390px) {
+  .stats-stock-inspector-banner {
+    padding: 14px 14px;
+    gap: 8px;
+  }
+
+  .stock-inspector-month-text {
+    font-size: 13.5px;
+  }
+
+  .stock-inspector-cal-icon {
+    font-size: 14px;
+  }
+
+  .net-pill-icon {
+    font-size: 12px;
+  }
+
+  .net-pill-amount {
+    font-size: 13px;
+  }
+
+  .stock-val-row {
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .stock-val-label {
+    font-size: 10.5px;
+  }
+
+  .stock-val-num {
+    font-size: 11.5px;
+  }
+}
+
+/* Right Column */
+.stock-banner-col.right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* Dropdown Period Pill Button (1 Tahun / 6 Bulan / 3 Bulan) */
+.chart-period-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #FFFFFF !important;
+  color: #2D2520 !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 5px 12px 5px 14px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+}
+
+.chart-period-pill-btn:active {
+  transform: scale(0.96);
+}
+
+/* Value Rows on Right */
+.stock-val-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748B;
+  white-space: nowrap;
+}
+
+.stock-val-dot {
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stock-val-dot.income-dot {
+  background: #2563EB;
+}
+
+.stock-val-dot.expense-dot {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.stock-val-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.stock-val-num {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1E293B;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stock Chart Scroll & Canvas Area */
+.stats-stock-chart-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 8px 0 4px;
+  position: relative;
+  z-index: 10;
+}
+
+.stats-stock-chart-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.stats-stock-svg-container {
+  position: relative;
+  margin: 0 auto;
+}
+
+.stats-stock-svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Stock SVG Chart Curves & Visuals */
+.stock-polyline {
+  transition: d 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stock-area-fill {
+  pointer-events: none;
+  transition: d 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Sumbu X Month Text and Pill */
+.stock-x-label-group {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.stock-x-label-group:active {
+  transform: scale(0.94);
+}
+
+.stock-x-pill-bg {
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stock-x-text {
+  font-family: inherit;
+  transition: fill 0.2s ease, font-weight 0.2s ease;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Dynamic Saving Rate Badge Pill */
+.stock-saving-rate-group {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.stock-saving-rate-bg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08));
+}
+
+.stock-saving-rate-text {
+  font-size: 9.5px;
+  font-family: inherit;
+  user-select: none;
+}
+
+.stock-saving-rate-label {
+  fill: #7D6E62;
+  font-weight: 600;
+}
+
+.stock-saving-rate-val {
+  font-weight: 800;
+}
+
+.stock-saving-rate-val.pos {
+  fill: #059669;
+}
+
+.stock-saving-rate-val.neg {
+  fill: #DC2626;
+}
+
+/* Legend bar styles */
+.stats-chart-legend-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 7px 20px;
+  border-radius: 999px;
+  margin-top: 14px;
+  user-select: none;
+}
+
+.stock-income-dot {
+  background: #2563EB !important;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
+}
+
+.stock-expense-dot {
+  background: #FFFFFF !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.stats-legend-divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+
 
 
 

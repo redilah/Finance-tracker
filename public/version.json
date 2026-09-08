@@ -1,15 +1,15 @@
 {
-  "versionCode": 37,
-  "versionName": "1.0.34",
-  "version": "1.0.34",
-  "changelog": "New in this update:\n[UPDATE] Peningkatan Target SDK 36 (Android 16)\n[NEW] Quick Settings Tile di Tirai Notifikasi untuk Akses Cepat\n[FIX] Pemulihan Status Bar Android Presisi & Safe-Area",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.34",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.34",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.34",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.34",
+  "versionCode": 38,
+  "versionName": "1.0.35",
+  "version": "1.0.35",
+  "changelog": "New in this update:\n[UPDATE] Target SDK 36 (Android 16 Ready)\n[NEW] Nuansa Background Mesh Elegan Orange & Amber pada Halaman Berlangganan\n[FIX] Stabilitas & Sinkronisasi Rilis",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.35",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.35",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.35",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.35",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.redilah.financetracker",
   "sha256": "fc753e2044bf86263a302b85b011169dea5cf9d8f6fbb811cda1604e91fbd0c1",
-  "minSdkVersion": 22
+  "minSdkVersion": 24
 }
 
 

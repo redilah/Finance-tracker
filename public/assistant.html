@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Cassiel Assistant</title>
 <style>
   * { 
@@ -27,7 +27,7 @@
   .overlay {
     position: fixed; 
     inset: 0;
-    background: rgba(0,0,0,0.38);
+    background: rgba(0,0,0,0.42);
     z-index: 1;
     opacity: 0;
     animation: fadeIn 0.25s ease forwards;
@@ -38,13 +38,13 @@
   .sheet {
     position: relative;
     z-index: 10;
-    background: #F8EFE6;
+    background: #FAF3EC;
     border-radius: 28px 28px 0 0;
-    padding: 14px 20px 24px;
+    padding: 12px 18px calc(16px + env(safe-area-inset-bottom, 12px));
     box-shadow: 0 -8px 40px rgba(120,80,20,0.18);
     transform: translateY(100%);
     animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    max-height: 88vh;
+    max-height: 92vh;
     display: flex;
     flex-direction: column;
   }
@@ -66,7 +66,7 @@
     height: 4.5px;
     background: rgba(160,130,100,0.35);
     border-radius: 999px;
-    margin: 2px auto 14px;
+    margin: 2px auto 12px;
     flex-shrink: 0;
   }
 
@@ -75,7 +75,7 @@
     display: flex; 
     align-items: center; 
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     flex-shrink: 0;
   }
   .header-left {
@@ -84,240 +84,346 @@
     gap: 12px;
   }
   .header-icon {
-    width: 38px; 
-    height: 38px;
+    width: 40px; 
+    height: 40px; 
     background: linear-gradient(135deg, #F59E0B, #D97706);
-    border-radius: 12px;
+    border-radius: 14px;
     display: flex; 
     align-items: center; 
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(217,119,6,0.28);
+    box-shadow: 0 4px 14px rgba(217,119,6,0.28);
     flex-shrink: 0;
   }
   .header-icon svg { 
-    width: 20px; 
-    height: 20px; 
+    width: 22px; 
+    height: 22px; 
     fill: #FFFFFF; 
   }
   .header-text h1 {
     font-size: 17px; 
-    font-weight: 700;
-    color: #2D2319;
+    font-weight: 800;
+    color: #1F1914;
+    line-height: 1.2;
   }
   .header-text p {
     font-size: 12px;
-    color: #8C7B70;
+    color: #786C64;
+    margin-top: 2px;
   }
   .close-btn {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: rgba(160,130,100,0.15);
+    background: rgba(160,130,100,0.12);
     color: #6B5B52;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
     cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .close-btn:active {
+    background: rgba(160,130,100,0.25);
   }
 
-  /* ─── Waveform & Mic Visualizer ─── */
-  .visualizer-container {
+  /* ─── Scrollable Chat & Cards Area ─── */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 18px 0 14px;
     gap: 12px;
-  }
-  .mic-badge {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #F59E0B, #D97706);
-    box-shadow: 0 6px 20px rgba(217,119,6,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    cursor: pointer;
-    transition: transform 0.15s ease;
-  }
-  .mic-badge svg {
-    width: 28px;
-    height: 28px;
-    fill: #FFFFFF;
-  }
-  .mic-ripple {
-    position: absolute;
-    inset: -8px;
-    border-radius: 50%;
-    border: 2px solid rgba(245, 158, 11, 0.4);
-    animation: pulseRipple 1.6s infinite ease-out;
-  }
-  @keyframes pulseRipple {
-    0% { transform: scale(0.9); opacity: 1; }
-    100% { transform: scale(1.4); opacity: 0; }
+    padding: 4px 2px 14px;
+    max-height: 60vh;
   }
 
-  .wave-bars {
+  /* ─── Greeting / Assistant Message Bubble ─── */
+  .bubble-assistant {
+    align-self: flex-start;
+    max-width: 90%;
+    background: #FFFFFF;
+    border-radius: 18px 18px 18px 6px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 10px rgba(120, 80, 20, 0.06);
+  }
+  .bubble-assistant p.intro {
+    font-size: 14px;
+    color: #2D2319;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-bottom: 6px;
+  }
+  .bubble-assistant p.example {
+    font-size: 12.5px;
+    color: #786C64;
+    line-height: 1.4;
+  }
+
+  /* ─── User Speech Bubble (Right Aligned Orange) ─── */
+  .bubble-user {
+    align-self: flex-end;
+    max-width: 85%;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #FFFFFF;
+    border-radius: 18px 18px 6px 18px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.28);
+    word-break: break-word;
+    animation: popIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.92); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ─── Transaction Preview Card ─── */
+  .preview-card {
+    background: #FFFFFF;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 4px 18px rgba(120, 80, 20, 0.08);
+    display: none;
+    animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  .preview-card.active {
+    display: block;
+  }
+
+  .preview-card-header {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #D97706;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     gap: 4px;
-    height: 24px;
-  }
-  .wave-bar {
-    width: 3.5px;
-    height: 8px;
-    background: #D97706;
-    border-radius: 4px;
-    transition: height 0.08s ease;
   }
 
-  /* ─── Status & Speech Preview ─── */
-  .status-text {
-    font-size: 13px;
-    font-weight: 600;
+  .preview-card-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 4px;
+  }
+  .preview-type-badge {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    text-transform: uppercase;
+  }
+  .preview-type-badge.type-income {
+    background: #D1FAE5;
+    color: #065F46;
+  }
+
+  .preview-amount {
+    font-size: 26px;
+    font-weight: 800;
     color: #D97706;
-    text-align: center;
+    letter-spacing: -0.3px;
+    margin-top: 2px;
   }
-  .transcript-box {
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 16px;
-    padding: 12px 16px;
-    min-height: 48px;
-    font-size: 14px;
-    color: #3D322A;
-    text-align: center;
-    line-height: 1.4;
-    word-break: break-word;
-    margin-bottom: 12px;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .transcript-box:empty::before {
-    content: "Katakan transaksi Anda, misal: 'Kopi 25 ribu pakai BCA'...";
-    color: #A89B91;
-    font-style: italic;
+  .preview-amount.type-income {
+    color: #059669;
   }
 
-  /* ─── Result Transaction Card ─── */
-  .result-card {
-    background: #FFFFFF;
-    border-radius: 20px;
-    padding: 16px;
-    box-shadow: 0 6px 20px rgba(160, 130, 100, 0.12);
-    margin-bottom: 16px;
-    display: none;
-    animation: fadeIn 0.2s ease forwards;
+  .preview-rows {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
   }
-  .result-card.active {
-    display: block;
-  }
-  .result-top {
+  .preview-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    padding: 9px 0;
+    font-size: 13.5px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
   }
-  .result-type-badge {
-    font-size: 11px;
+  .preview-row-label {
+    color: #6B7280;
+    font-weight: 500;
+  }
+  .preview-row-val {
+    color: #1F2937;
     font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 999px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .type-expense {
-    background: rgba(239, 68, 68, 0.12);
-    color: #DC2626;
-  }
-  .type-income {
-    background: rgba(16, 185, 129, 0.12);
-    color: #059669;
-  }
-  .result-account-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: rgba(245, 158, 11, 0.14);
-    color: #B45309;
-  }
-  .result-amount {
-    font-size: 24px;
-    font-weight: 800;
-    color: #1F1914;
-    margin-bottom: 6px;
-  }
-  .result-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #6B5B52;
-  }
-  .result-category-pill {
-    background: #F3ECE4;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-weight: 600;
-    color: #57483F;
+    text-align: right;
+    max-width: 65%;
+    word-break: break-word;
   }
 
-  /* ─── Action Buttons ─── */
-  .actions {
+  /* ─── Card Action Buttons (Batal / Kirim) ─── */
+  .preview-actions {
     display: flex;
     gap: 10px;
-    margin-top: auto;
   }
-  .btn-save {
+  .btn-action-cancel {
     flex: 1;
-    height: 46px;
+    height: 44px;
+    background: #EFE6DC;
+    border: none;
+    border-radius: 14px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .btn-action-cancel:active {
+    background: #E4D8CC;
+    transform: scale(0.98);
+  }
+
+  .btn-action-send {
+    flex: 1;
+    height: 44px;
     background: linear-gradient(135deg, #F59E0B, #D97706);
     border: none;
     border-radius: 14px;
     color: #FFFFFF !important;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 700;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
     box-shadow: 0 4px 14px rgba(217, 119, 6, 0.32);
-    cursor: pointer;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition: opacity 0.15s ease, transform 0.1s ease;
   }
-  .btn-save:active {
+  .btn-action-send:active {
     transform: scale(0.98);
   }
-  .btn-save:disabled {
-    opacity: 0.5;
+  .btn-action-send:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
   }
-  .btn-cancel {
-    height: 46px;
-    padding: 0 18px;
-    background: #EDE2D6;
+
+  /* ─── Bottom Floating Input Bar ─── */
+  .bottom-bar {
+    position: relative;
+    background: #FFFFFF;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px 6px 18px;
+    box-shadow: 0 4px 18px rgba(120, 80, 20, 0.12);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .bottom-input {
+    flex: 1;
     border: none;
-    border-radius: 14px;
-    color: #6B5B52;
+    outline: none;
     font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
+    color: #1F2937;
+    background: transparent;
+    font-family: inherit;
+    padding: 6px 0;
+  }
+  .bottom-input::placeholder {
+    color: #9CA3AF;
   }
 
-  /* ─── Countdown bar inside save button ─── */
-  .save-timer-bar {
+  .btn-mic-toggle {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #4B5563;
+    margin-right: 4px;
+    transition: color 0.15s ease;
+  }
+  .btn-mic-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    z-index: 2;
+  }
+  .btn-mic-toggle.listening {
+    color: #D97706;
+  }
+  
+  /* Pulsing Ripple on Mic Button */
+  .mic-pulse-glow {
+    display: none;
     position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 0 0 14px 14px;
-    width: 0%;
-    transition: width 3s linear;
+    inset: -2px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.25);
+    animation: micPulseAnimation 1.4s infinite ease-out;
+    z-index: 1;
+  }
+  .btn-mic-toggle.listening .mic-pulse-glow {
+    display: block;
+  }
+  @keyframes micPulseAnimation {
+    0% { transform: scale(0.9); opacity: 0.9; }
+    50% { transform: scale(1.35); opacity: 0.35; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  .btn-send-arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, 0.32);
+    transition: transform 0.12s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+  .btn-send-arrow:active {
+    transform: scale(0.92);
+  }
+  .btn-send-arrow svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #FFFFFF;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ─── Listening Status Toast inside Sheet ─── */
+  .listening-indicator {
+    display: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: #D97706;
+    text-align: center;
+    padding: 4px 0 2px;
+    animation: fadeIn 0.2s ease;
+  }
+  .listening-indicator.active {
+    display: block;
   }
 </style>
 </head>
@@ -328,6 +434,7 @@
 <div class="sheet" id="sheet">
   <div class="handle"></div>
 
+  <!-- Header -->
   <div class="header">
     <div class="header-left">
       <div class="header-icon">
@@ -338,72 +445,99 @@
       </div>
       <div class="header-text">
         <h1>Cassiel Assistant</h1>
-        <p>Bicara untuk catat transaksi instan</p>
+        <p>Catat transaksi dengan suara</p>
       </div>
     </div>
-    <button class="close-btn" onclick="closeAssistant()">✕</button>
+    <button class="close-btn" onclick="closeAssistant()" aria-label="Tutup">✕</button>
   </div>
 
-  <div class="visualizer-container">
-    <div class="mic-badge" id="micBtn" onclick="toggleListening()">
-      <div class="mic-ripple" id="micRipple"></div>
+  <!-- Chat & Preview Area (Scrollable) -->
+  <div class="chat-area" id="chatArea">
+    <!-- Initial Greeting Bubble -->
+    <div class="bubble-assistant">
+      <p class="intro">Hai! 👋 Tekan tombol mic dan ucapkan transaksi kamu.</p>
+      <p class="example">Contoh: "Beli mangga 5 biji 20 ribu pakai BRI"</p>
+    </div>
+
+    <!-- User Speech/Text Bubble (Dynamically Updated) -->
+    <div class="bubble-user" id="userBubble" style="display: none;"></div>
+
+    <!-- Transaction Preview Card -->
+    <div class="preview-card" id="previewCard">
+      <div class="preview-card-header">
+        <span>✔</span> PREVIEW TRANSAKSI
+      </div>
+
+      <div class="preview-card-top">
+        <span class="preview-type-badge" id="previewTypeBadge">PENGELUARAN</span>
+        <div class="preview-amount" id="previewAmount">Rp 0</div>
+      </div>
+
+      <div class="preview-rows">
+        <div class="preview-row">
+          <span class="preview-row-label">Kategori</span>
+          <span class="preview-row-val" id="previewCategory">Food</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-row-label">Akun</span>
+          <span class="preview-row-val" id="previewAccount">Cash</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-row-label">Catatan</span>
+          <span class="preview-row-val" id="previewNote">-</span>
+        </div>
+      </div>
+
+      <div class="preview-actions">
+        <button type="button" class="btn-action-cancel" onclick="handleCancelTransaction()">Batal</button>
+        <button type="button" class="btn-action-send" id="btnSave" onclick="saveCurrentTransaction()">
+          <span id="saveBtnText">Kirim</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live listening indicator -->
+  <div class="listening-indicator" id="listeningIndicator">
+    🎙️ Mendengarkan suara Anda...
+  </div>
+
+  <!-- Bottom Floating Input Bar -->
+  <form class="bottom-bar" id="inputForm" onsubmit="handleFormSubmit(event)">
+    <input 
+      type="text" 
+      class="bottom-input" 
+      id="textInput" 
+      placeholder="Ketik transaksi..." 
+      autocomplete="off"
+    />
+
+    <button type="button" class="btn-mic-toggle" id="micBtn" onclick="toggleListening()" aria-label="Rekam Suara">
+      <div class="mic-pulse-glow"></div>
       <svg viewBox="0 0 24 24">
         <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
         <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
       </svg>
-    </div>
-
-    <div class="wave-bars" id="waveBars">
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-    </div>
-
-    <div class="status-text" id="statusText">Mendengarkan...</div>
-  </div>
-
-  <div class="transcript-box" id="transcriptBox"></div>
-
-  <div class="result-card" id="resultCard">
-    <div class="result-top">
-      <span class="result-type-badge type-expense" id="resType">Pengeluaran</span>
-      <span class="result-account-badge" id="resAccount">BCA</span>
-    </div>
-    <div class="result-amount" id="resAmount">Rp 0</div>
-    <div class="result-meta">
-      <span class="result-category-pill" id="resCategory">Food</span>
-      <span id="resNote">Catatan</span>
-    </div>
-  </div>
-
-  <div class="actions">
-    <button class="btn-cancel" onclick="closeAssistant()">Batal</button>
-    <button class="btn-save" id="btnSave" onclick="saveCurrentTransaction()" disabled>
-      <span id="saveBtnText">Simpan Transaksi</span>
-      <div class="save-timer-bar" id="saveTimerBar"></div>
     </button>
-  </div>
+
+    <button type="submit" class="btn-send-arrow" aria-label="Kirim Input">
+      <svg viewBox="0 0 24 24">
+        <line x1="12" y1="19" x2="12" y2="5"></line>
+        <polyline points="5 12 12 5 19 12"></polyline>
+      </svg>
+    </button>
+  </form>
 </div>
 
 <script>
   let isListening = false;
   let parsedTx = null;
-  let autoSaveTimeout = null;
 
-  // ─── Bridge Lifecycle ───
-  function onBridgeReady() {
-    startListening();
-  }
-
-  // Auto trigger if opened in browser or after webview ready
+  // Auto trigger speech recognition when opened
   window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       startListening();
-    }, 300);
+    }, 350);
   });
 
   function startListening() {
@@ -432,163 +566,152 @@
     if (isListening) {
       stopListening();
     } else {
-      clearAutoSave();
       startListening();
     }
   }
 
   function updateUiState(state) {
-    const statusText = document.getElementById('statusText');
-    const micRipple = document.getElementById('micRipple');
+    const micBtn = document.getElementById('micBtn');
+    const indicator = document.getElementById('listeningIndicator');
+
     if (state === 'listening') {
-      statusText.innerText = 'Mendengarkan suara Anda...';
-      micRipple.style.display = 'block';
-    } else if (state === 'processing') {
-      statusText.innerText = 'Memproses transaksi...';
-      micRipple.style.display = 'none';
-    } else if (state === 'success') {
-      statusText.innerText = 'Transaksi terdeteksi!';
-      micRipple.style.display = 'none';
-    } else if (state === 'idle') {
-      statusText.innerText = 'Sentuh mikrofon untuk bicara';
-      micRipple.style.display = 'none';
+      if (micBtn) micBtn.classList.add('listening');
+      if (indicator) {
+        indicator.classList.add('active');
+        indicator.innerText = '🎙️ Mendengarkan suara Anda...';
+      }
+    } else {
+      if (micBtn) micBtn.classList.remove('listening');
+      if (indicator) {
+        indicator.classList.remove('active');
+      }
     }
   }
 
-  // ─── Native Android Callbacks ───
-  window.onSpeechStarted = function() {
-    isListening = true;
-    updateUiState('listening');
-  };
+  // ─── Native Callbacks from Android SpeechRecognizer ───
 
-  window.onSpeechReady = function() {
-    updateUiState('listening');
-  };
-
-  window.onSpeechRms = function(rmsdB) {
-    // Animate wave bars based on RMS dB (-2 to 10 typical)
-    const bars = document.querySelectorAll('.wave-bar');
-    const heightScale = Math.max(6, Math.min(24, (rmsdB + 2) * 2.2));
-    bars.forEach((bar, idx) => {
-      const variation = Math.sin(Date.now() / 150 + idx) * 4;
-      bar.style.height = Math.max(4, heightScale + variation) + 'px';
-    });
-  };
-
-  window.onSpeechPartial = function(partialText) {
-    const box = document.getElementById('transcriptBox');
-    box.innerText = partialText;
-  };
-
-  window.onSpeechEndOfSpeech = function() {
-    updateUiState('processing');
-    const bars = document.querySelectorAll('.wave-bar');
-    bars.forEach(b => b.style.height = '6px');
+  window.onSpeechPartial = function(text) {
+    if (!text) return;
+    const userBubble = document.getElementById('userBubble');
+    if (userBubble) {
+      userBubble.innerText = text;
+      userBubble.style.display = 'block';
+      scrollToBottom();
+    }
   };
 
   window.onSpeechResult = function(finalText) {
-    isListening = false;
-    updateUiState('success');
-    const box = document.getElementById('transcriptBox');
-    box.innerText = finalText;
+    stopListening();
+    if (!finalText || !finalText.trim()) return;
 
-    // Parse transaction via Java AssistantVoiceParser or fallback to client parser
-    let res = null;
-    try {
-      if (window.CassielAssistBridge && typeof CassielAssistBridge.parseTransaction === 'function') {
-        const jsonStr = CassielAssistBridge.parseTransaction(finalText);
-        res = JSON.parse(jsonStr);
-      }
-    } catch(e) {
-      console.warn('Native parseTransaction error:', e);
-    }
-
-    if (!res || !res.isValid) {
-      res = clientSideParse(finalText);
-    }
-
-    renderResult(res);
+    processTransactionText(finalText.trim());
   };
 
   window.onSpeechError = function(errorMsg) {
-    isListening = false;
-    updateUiState('idle');
-    const statusText = document.getElementById('statusText');
-    statusText.innerText = errorMsg || 'Gagal mengenali suara. Coba lagi.';
+    stopListening();
+    const indicator = document.getElementById('listeningIndicator');
+    if (indicator) {
+      indicator.classList.add('active');
+      indicator.innerText = '⚠️ ' + (errorMsg || 'Tidak mendengar suara. Coba lagi.');
+      setTimeout(() => {
+        indicator.classList.remove('active');
+      }, 3000);
+    }
   };
 
-  // ─── Result Rendering & Saving ───
-  function renderResult(res) {
-    parsedTx = res;
-    const card = document.getElementById('resultCard');
-    const btnSave = document.getElementById('btnSave');
+  // ─── Text Input Form Submit ───
+  function handleFormSubmit(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('textInput');
+    const val = input ? input.value.trim() : '';
+    if (!val) return;
 
-    if (!res || res.amount <= 0) {
-      card.classList.remove('active');
-      btnSave.disabled = true;
-      document.getElementById('statusText').innerText = 'Nominal tidak terdeteksi. Silakan coba lagi.';
-      return;
+    if (isListening) stopListening();
+    input.value = '';
+    input.blur();
+
+    processTransactionText(val);
+  }
+
+  // ─── Process & Parse Transaction Text ───
+  function processTransactionText(text) {
+    // 1. Show user bubble
+    const userBubble = document.getElementById('userBubble');
+    if (userBubble) {
+      userBubble.innerText = text;
+      userBubble.style.display = 'block';
     }
+
+    // 2. Parse via Java bridge or JS fallback
+    let resultJson = null;
+    try {
+      if (window.CassielAssistBridge && typeof CassielAssistBridge.parseTransaction === 'function') {
+        const jsonStr = CassielAssistBridge.parseTransaction(text);
+        resultJson = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+      }
+    } catch (e) {
+      console.warn('Bridge parseTransaction failed:', e);
+    }
+
+    if (!resultJson || !resultJson.isValid || resultJson.amount <= 0) {
+      resultJson = fallbackParseJs(text);
+    }
+
+    parsedTx = resultJson;
+    renderPreviewCard(resultJson);
+    scrollToBottom();
+  }
+
+  // ─── Render Preview Card (NO AUTO-SAVE COUNTDOWN) ───
+  function renderPreviewCard(tx) {
+    const card = document.getElementById('previewCard');
+    if (!card) return;
+
+    const isIncome = tx.type === 'income';
+    const typeBadge = document.getElementById('previewTypeBadge');
+    const amountEl = document.getElementById('previewAmount');
+    const catEl = document.getElementById('previewCategory');
+    const accEl = document.getElementById('previewAccount');
+    const noteEl = document.getElementById('previewNote');
+
+    if (typeBadge) {
+      typeBadge.innerText = isIncome ? 'PEMASUKAN' : 'PENGELUARAN';
+      if (isIncome) {
+        typeBadge.classList.add('type-income');
+      } else {
+        typeBadge.classList.remove('type-income');
+      }
+    }
+
+    if (amountEl) {
+      amountEl.innerText = tx.formattedAmount || ('Rp ' + Number(tx.amount || 0).toLocaleString('id-ID'));
+      if (isIncome) {
+        amountEl.classList.add('type-income');
+      } else {
+        amountEl.classList.remove('type-income');
+      }
+    }
+
+    if (catEl) catEl.innerText = tx.category || (isIncome ? 'Bonus' : 'Food');
+    if (accEl) accEl.innerText = tx.account || 'Cash';
+    if (noteEl) noteEl.innerText = tx.note || tx.category || 'Transaksi';
 
     card.classList.add('active');
-    btnSave.disabled = false;
-
-    // Badges
-    const resType = document.getElementById('resType');
-    resType.innerText = res.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-    resType.className = 'result-type-badge ' + (res.type === 'income' ? 'type-income' : 'type-expense');
-
-    document.getElementById('resAccount').innerText = res.account || 'Cash';
-    document.getElementById('resAmount').innerText = res.formattedAmount || ('Rp ' + res.amount.toLocaleString('id-ID'));
-    document.getElementById('resCategory').innerText = res.category || 'Food';
-    document.getElementById('resNote').innerText = res.note || '';
-
-    // Auto-save countdown (3 seconds)
-    startAutoSave();
-  }
-
-  function startAutoSave() {
-    clearAutoSave();
-    const timerBar = document.getElementById('saveTimerBar');
-    const saveBtnText = document.getElementById('saveBtnText');
-    
-    let countdown = 3;
-    saveBtnText.innerText = `Simpan Otomatis (${countdown}s)`;
-    timerBar.style.width = '100%';
-
-    const interval = setInterval(() => {
-      countdown--;
-      if (countdown > 0) {
-        saveBtnText.innerText = `Simpan Otomatis (${countdown}s)`;
-      } else {
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    autoSaveTimeout = setTimeout(() => {
-      clearInterval(interval);
-      saveCurrentTransaction();
-    }, 3000);
-  }
-
-  function clearAutoSave() {
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout);
-      autoSaveTimeout = null;
+    const btnSave = document.getElementById('btnSave');
+    if (btnSave) {
+      btnSave.disabled = false;
+      document.getElementById('saveBtnText').innerText = 'Kirim';
     }
-    const timerBar = document.getElementById('saveTimerBar');
-    if (timerBar) timerBar.style.width = '0%';
-    const saveBtnText = document.getElementById('saveBtnText');
-    if (saveBtnText) saveBtnText.innerText = 'Simpan Transaksi';
   }
 
+  // ─── Save Transaction to Cassiel Core State ───
   function saveCurrentTransaction() {
-    clearAutoSave();
     if (!parsedTx || parsedTx.amount <= 0) return;
 
     const btnSave = document.getElementById('btnSave');
-    btnSave.disabled = true;
-    document.getElementById('saveBtnText').innerText = 'Menyimpan...';
+    if (btnSave) btnSave.disabled = true;
+    const saveBtnText = document.getElementById('saveBtnText');
+    if (saveBtnText) saveBtnText.innerText = 'Menyimpan...';
 
     try {
       if (window.CassielAssistBridge && typeof CassielAssistBridge.saveTransaction === 'function') {
@@ -598,19 +721,22 @@
       console.warn('Failed to call saveTransaction bridge:', e);
     }
 
-    document.getElementById('statusText').innerText = '✓ Berhasil Disimpan!';
+    if (saveBtnText) saveBtnText.innerText = '✓ Berhasil!';
     setTimeout(() => {
       closeAssistant();
-    }, 500);
+    }, 400);
+  }
+
+  function handleCancelTransaction() {
+    closeAssistant();
   }
 
   // ─── Dismissing Assistant UI ───
   function closeAssistant() {
-    clearAutoSave();
     stopListening();
 
     const sheet = document.getElementById('sheet');
-    sheet.classList.add('sheet-dismiss');
+    if (sheet) sheet.classList.add('sheet-dismiss');
 
     const overlay = document.getElementById('overlay');
     if (overlay) overlay.style.animation = 'fadeIn 0.2s ease reverse forwards';
@@ -625,84 +751,63 @@
       } catch (e) {
         window.close();
       }
-    }, 260);
+    }, 240);
   }
 
-  // ─── Robust Client-Side Parser Fallback ───
-  function clientSideParse(rawText) {
-    const text = (rawText || '').trim();
+  function scrollToBottom() {
+    const chatArea = document.getElementById('chatArea');
+    if (chatArea) {
+      setTimeout(() => {
+        chatArea.scrollTo({
+          top: chatArea.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 50);
+    }
+  }
+
+  // ─── JS Fallback Parser ───
+  function fallbackParseJs(text) {
     const lower = text.toLowerCase();
-
-    // 1. Type
-    const isIncome = /(gaji|salary|bonus|terima|masuk|dapat|dapet|pendapatan|pemasukan|affiliate|komisi|cashback)/i.test(lower);
-    const type = isIncome ? 'income' : 'expense';
-
-    // 2. Amount detection
+    const isIncome = lower.includes('gaji') || lower.includes('masuk') || lower.includes('diterima') || lower.includes('bonus') || lower.includes('pemasukan');
+    
     let amount = 0;
-    // Direct Rp format e.g. Rp20.000 / 20.000 / 20000
-    const numMatch = lower.match(/(?:rp\.?\s*)?(\d{1,3}(?:\.\d{3})+|\d+)(?:\s*(?:ribu|rb|k|jt|juta))?/i);
-    if (numMatch) {
-      const rawNum = numMatch[1].replace(/\./g, '');
-      let parsedNum = parseInt(rawNum, 10) || 0;
-      const suffixMatch = lower.substring(numMatch.index);
-      if (/juta|jt/i.test(suffixMatch) && parsedNum < 1000) parsedNum *= 1000000;
-      else if (/ribu|rb|k/i.test(suffixMatch) && parsedNum < 1000) parsedNum *= 1000;
-      amount = parsedNum;
+    const jtMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:juta|jt)/);
+    if (jtMatch) amount = Math.round(parseFloat(jtMatch[1].replace(',', '.')) * 1000000);
+    
+    if (!amount) {
+      const rbMatch = lower.match(/(\d+(?:[.,]\d+)?)\s*(?:ribu|rb|k)/);
+      if (rbMatch) amount = Math.round(parseFloat(rbMatch[1].replace(',', '.')) * 1000);
     }
 
-    // Slang fallback
-    if (amount <= 0) {
-      if (/goceng/i.test(lower)) amount = 5000;
-      else if (/ceban/i.test(lower)) amount = 10000;
-      else if (/goban/i.test(lower)) amount = 50000;
-      else if (/gocap/i.test(lower)) amount = 50000;
-      else if (/seceng/i.test(lower)) amount = 1000;
-      else if (/gopek/i.test(lower)) amount = 500;
+    if (!amount) {
+      const rawMatch = lower.match(/(?:rp)?\s*(\d{1,3}(?:\.\d{3})+|\d+)/);
+      if (rawMatch) amount = parseInt(rawMatch[1].replace(/\./g, ''), 10) || 0;
     }
 
-    // 3. Account detection
     let account = 'Cash';
-    if (/brimo|bri/i.test(lower)) account = 'BRImo';
-    else if (/bca|mybca/i.test(lower)) account = 'BCA';
-    else if (/mandiri|livin/i.test(lower)) account = 'Mandiri';
-    else if (/bni|wondr/i.test(lower)) account = 'BNI';
-    else if (/bsi/i.test(lower)) account = 'BSI';
-    else if (/gopay|go pay/i.test(lower)) account = 'GoPay';
-    else if (/dana/i.test(lower)) account = 'DANA';
-    else if (/ovo/i.test(lower)) account = 'OVO';
-    else if (/shopeepay|shopee/i.test(lower)) account = 'ShopeePay';
-    else if (/seabank/i.test(lower)) account = 'SeaBank';
-    else if (/jago/i.test(lower)) account = 'Bank Jago';
+    if (lower.includes('bri') || lower.includes('brimo')) account = 'BRImo';
+    else if (lower.includes('bca')) account = 'BCA';
+    else if (lower.includes('mandiri') || lower.includes('livin')) account = "Livin' by Mandiri";
+    else if (lower.includes('bni') || lower.includes('wondr')) account = 'Wondr by BNI';
+    else if (lower.includes('gopay')) account = 'GoPay';
+    else if (lower.includes('ovo')) account = 'OVO';
+    else if (lower.includes('dana')) account = 'DANA';
+    else if (lower.includes('shopee') || lower.includes('spay')) account = 'ShopeePay';
 
-    // 4. Category detection
-    let category = 'Food';
-    let categoryId = 'food';
-
-    if (isIncome) {
-      if (/gaji|salary/i.test(lower)) { category = 'Gaji'; categoryId = 'gaji'; }
-      else if (/bonus|cashback/i.test(lower)) { category = 'Bonus'; categoryId = 'bonus'; }
-      else if (/affiliate|komisi/i.test(lower)) { category = 'Affiliate'; categoryId = 'affiliate'; }
-      else { category = 'Pemasukan Lain'; categoryId = 'gaji'; }
-    } else {
-      if (/kopi|coffee|latte|starbucks|fore|tomoro/i.test(lower)) { category = 'Coffee'; categoryId = 'coffee'; }
-      else if (/bensin|pertalite|pertamax|spbu|solar/i.test(lower)) { category = 'Bensin'; categoryId = 'bensin'; }
-      else if (/gojek|grab|maxim|tol|parkir|krl|mrt|angkot/i.test(lower)) { category = 'Transport'; categoryId = 'transport'; }
-      else if (/indomaret|alfamart|superindo/i.test(lower)) { category = 'Supermarket'; categoryId = 'supermarket'; }
-      else if (/pulsa|kuota|paket data/i.test(lower)) { category = 'Pulsa'; categoryId = 'pulsa'; }
-      else if (/wifi|indihome|biznet/i.test(lower)) { category = 'WiFi'; categoryId = 'wifi'; }
-      else if (/netflix|spotify|youtube/i.test(lower)) { category = 'Subscription'; categoryId = 'subscription'; }
-      else if (/baju|celana|pakaian|sepatu/i.test(lower)) { category = 'Fashion'; categoryId = 'fashion'; }
-      else if (/makan|mie|nasi|bakso|ayam|mangga|buah|sayur/i.test(lower)) { category = 'Food'; categoryId = 'food'; }
-    }
-
-    // Format currency string
-    const formattedAmount = 'Rp ' + amount.toLocaleString('id-ID');
+    let category = isIncome ? 'Bonus' : 'Food';
+    let categoryId = isIncome ? 'bonus' : 'food';
+    if (lower.includes('bensin') || lower.includes('spbu')) { category = 'Bensin'; categoryId = 'bensin'; }
+    else if (lower.includes('kopi') || lower.includes('coffee')) { category = 'Coffee'; categoryId = 'coffee'; }
+    else if (lower.includes('makan') || lower.includes('mie') || lower.includes('nasi') || lower.includes('food')) { category = 'Food'; categoryId = 'food'; }
+    else if (lower.includes('gojek') || lower.includes('grab') || lower.includes('transport')) { category = 'Transportasi'; categoryId = 'transport'; }
+    else if (lower.includes('gaji')) { category = 'Gaji'; categoryId = 'gaji'; }
 
     return {
       isValid: amount > 0,
-      type: type,
+      type: isIncome ? 'income' : 'expense',
       amount: amount,
-      formattedAmount: formattedAmount,
+      formattedAmount: 'Rp ' + Number(amount).toLocaleString('id-ID'),
       category: category,
       categoryId: categoryId,
       account: account,
@@ -710,6 +815,5 @@
     };
   }
 </script>
-
 </body>
 </html>

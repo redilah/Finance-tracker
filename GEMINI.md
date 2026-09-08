@@ -58,6 +58,16 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 4. **Auto-Purge Pending Notification Queue**:
    - Sebelum menjadwalkan notifikasi fresh (`schedulePersonalizedNotifications`), wajib mengambil dan membatalkan seluruh ID notifikasi pending (`LocalNotifications.getPending()`) untuk mencegah notifikasi usang/kotak hitam masa lalu tertinggal di sistem Android AlarmManager.
 
+### E. Cassiel Assistant (Quick Access) Voice/Text Ingestion Invariant
+1. **Direct Ingestion & Gatekeeper Bypass**:
+   - Seluruh transaksi yang dicatat melalui pop-up homescreen / overlay Cassiel Assistant (`com.redilah.financetracker.assistant` / `assistantDirect: true`) wajib langsung dikonversi menjadi objek transaksi valid di `processSingleNotification()` (`src/utils/notificationTracker.js`) tanpa dilempar ke `detectProvider()` bank atau filter OTP pihak ketiga.
+   - Pemanggilan `drainAndProcessQueuedNotifications()` di `App.jsx` dilarang diblokir oleh syarat izin `NotificationListenerService` maupun saklar preferensi auto-tracker bank, agar transaksi asisten selalu terserap seketika saat aplikasi dibuka/resume.
+2. **Interactive UI & Strict Ban on Auto-Save Countdown**:
+   - Tampilan `public/assistant.html` wajib mengusung gaya **Interactive Chat & Dual Input** (kolom teks `"Ketik transaksi..."` + tombol mic dengan animasi denyut *pulse ripple* saat aktif + tombol kirim panah oranye).
+   - Setelah input suara/teks selesai, sistem wajib menampilkan bubble pengguna oranye dan kartu `✔ PREVIEW TRANSAKSI` yang memuat jenis, nominal oranye besar, Kategori, Akun, dan Catatan, disertai tombol **`Batal`** dan **`Kirim`**.
+   - **DILARANG KERAS** memasang timer hitung mundur otomatis (misal 3 detik auto-save) yang menyimpan transaksi tanpa tindakan eksplisit dari pengguna.
+   - Halaman asisten wajib mendukung revisi instan (bicara/ketik ulang) dan scroll vertikal halus (*smooth scroll*) tanpa terpotong keyboard.
+
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
@@ -72,6 +82,14 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
   - URI wajib diawali dengan skema `file://` agar valid di `SharePlugin.java`.
 
 ## 5. UI Invariants & Design Standards
+* **Global Navigation, Modal Back & Edge-Swipe Invariant**:
+  - Setiap modal/layar pop-up baru (misal: `KitabisaTransparencyModal`, `ProUpgradeModal`, `GroupsHubModal`, `QuickTextModal`, dll.) **WAJIB** didaftarkan ke dalam `backHandlerStateRef.current` dan ditangani secara bertingkat di dalam `handleAppBack()` pada `src/App.jsx`.
+  - Modal multi-langkah (seperti `ProUpgradeModal`) wajib menangani hierarki kembali (*step-aware back navigation*): menutup pratinjau gambar jika terbuka $\rightarrow$ kembali ke Langkah 1 jika berada di Langkah 2 $\rightarrow$ menutup modal jika berada di Langkah 1.
+  - Parameter gestur usapan tepi global (*edge-swipe gesture*) dikunci pada toleransi: titik sentuh awal tepi kiri `touchStartX <= 50px`, jarak usapan `deltaX >= 50px`, dominan horizontal `Math.abs(deltaX) > Math.abs(deltaY) * 1.2`, dan durasi `duration < 550ms` agar dapat mendeteksi usapan jari pengguna secara presisi pada perangkat ber-bezel tebal maupun ber-casing.
+* **Compact Screen Single-Line Typography (iPhone SE & Small Displays)**:
+  - Label navigasi bulan-tahun dan status finansial (seperti `"Defisit Rp 10.000"` / `"Surplus Rp ..."` pada grafik stats) **WAJIB** selalu tampil dalam **1 baris rapi** tanpa terpotong (*no line-wrap*) pada layar kecil/kompak ($\le 375\text{px}$) dengan memanfaatkan `font-size: clamp(...)` atau *media query* responsif khusus.
+* **PIN Setup Modal Action Button Contrast & Theme**:
+  - Tombol aksi konfirmasi pada modal PIN Setup wajib selalu menggunakan gradien **Warm Orange / Amber** (`linear-gradient(135deg, #F59E0B, #D97706)`) dengan teks putih bersih (`color: #FFFFFF !important;`), dilarang keras menggunakan warna biru dingin.
 * **Warna & Theme (Strict Ban on Dark/Black Containers & Cold Blue Buttons)**: 
   - **DILARANG KERAS** menggunakan container, card, hero header, atau elemen utama dengan warna hitam, abu-abu gelap, cokelat tua pekat, atau gradien gelap kaku (`#000000`, `#27221F`, `#333333`, dll.). 
   - **DILARANG KERAS** menggunakan warna biru, navy, cold dark blue (`#2D5284`, `#1D4ED8`, `#3B82F6`, dll.) untuk tombol aksi utama, tombol konfirmasi/selesai modal ("Selesai", "Simpan", "Kirim", "Terapkan", CTA actions), badge toggle, dan highlight elemen baru.

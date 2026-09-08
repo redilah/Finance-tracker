@@ -526,6 +526,26 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [chartPeriodFilter, setChartPeriodFilter] = useState('1year'); // '1year' | '6months' | '3months'
+  const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false);
+  const [activeStockPointIndex, setActiveStockPointIndex] = useState(null);
+  const chartDropdownRef = useRef(null);
+  const stockScrollRef = useRef(null);
+
+  const handleSelectStockPoint = useCallback((idx) => {
+    setActiveStockPointIndex(idx);
+    if (stockScrollRef.current) {
+      const el = stockScrollRef.current;
+      const pointSpacingVal = chartPeriodFilter === '3months' ? 150 : chartPeriodFilter === '6months' ? 110 : 92;
+      const paddingLeftVal = 58;
+      const targetScroll = Math.max(0, paddingLeftVal + idx * pointSpacingVal - (el.clientWidth / 2));
+      el.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  }, [chartPeriodFilter]);
+
   const [expenseDateFilter, setExpenseDateFilter] = useState('month'); // 'month' | 'today' | 'yesterday' | '3days' | '1week' | '2weeks'
   const [isExpenseDropdownOpen, setIsExpenseDropdownOpen] = useState(false);
   const [statsType, setStatsType] = useState('expense'); // 'expense' | 'income'
@@ -1249,100 +1269,6 @@ function App() {
     safeStorageSet('user_app_lang', langCode);
   };
 
-  // === Backup & Restore Handlers ===
-  const handleExportBackup = async () => {
-    if (isBackupProcessing) return;
-    setIsBackupProcessing(true);
-    try {
-      const backupObj = createBackupData({
-        transactions,
-        expenseCategories,
-        incomeCategories,
-        accountsList,
-        deletedAccountsList,
-        accountInitialBalances,
-        profileName,
-        profileImage,
-        appLanguage,
-        appCurrency,
-      });
-      const result = await exportBackup(backupObj, profileName);
-      if (result.success) {
-        safeStorageSet('user_last_backup_time', new Date().toISOString());
-        showVoiceToast(t('backupSuccess'));
-      } else if (result.cancelled) {
-        showVoiceToast(t('backupCancelled'));
-      } else {
-        showVoiceToast(t('backupFailed'));
-      }
-    } catch (err) {
-      console.error('[Backup] Export error:', err);
-      showVoiceToast(t('backupFailed'));
-    } finally {
-      setIsBackupProcessing(false);
-    }
-  };
-
-  const handleImportBackup = async () => {
-    if (isBackupProcessing) return;
-    setIsBackupProcessing(true);
-    try {
-      const result = await importBackup();
-      if (!result) {
-        // User cancelled file picker
-        setIsBackupProcessing(false);
-        return;
-      }
-      if (result.error) {
-        const msgMap = {
-          invalid_format: t('restoreInvalidFile'),
-          parse_error: t('restoreParseError'),
-          read_error: t('restoreReadError'),
-        };
-        showVoiceToast(msgMap[result.error] || t('restoreFailed'));
-        setIsBackupProcessing(false);
-        return;
-      }
-      if (result.success && result.backup) {
-        // Show confirmation before restoring
-        setBackupRestoreConfirm(result.backup);
-      }
-    } catch (err) {
-      console.error('[Backup] Import error:', err);
-      showVoiceToast(t('restoreFailed'));
-    } finally {
-      setIsBackupProcessing(false);
-    }
-  };
-
-  const handleConfirmRestore = () => {
-    if (!backupRestoreConfirm) return;
-    const backupData = backupRestoreConfirm.data;
-    const result = restoreBackupData(backupData, {
-      setTransactions,
-      setExpenseCategories,
-      setIncomeCategories,
-      setAccountsList,
-      setDeletedAccountsList,
-      setAccountInitialBalances,
-      setProfileName,
-      setProfileImage,
-      setAppLanguage,
-      setAppCurrency,
-      setMainMonthlyBudget,
-    });
-    setBackupRestoreConfirm(null);
-    if (result.success) {
-      showVoiceToast(t('restoreSuccess'));
-      // Reload app after short delay to apply all restored state cleanly
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } else {
-      showVoiceToast(t('restoreFailed'));
-    }
-  };
-
   // Voice-Command Deletion & Feedback Toast State
   const [deletingTxId, setDeletingTxId] = useState(null);
   const [deletingTxIds, setDeletingTxIds] = useState([]);
@@ -2058,6 +1984,18 @@ function App() {
     setActiveBalanceDetail,
     activeTxDetail,
     setActiveTxDetail,
+    isKitabisaModalOpen,
+    setIsKitabisaModalOpen,
+    isProModalOpen,
+    setIsProModalOpen,
+    isGroupsModalOpen,
+    setIsGroupsModalOpen,
+    isQuickTextModalOpen,
+    setIsQuickTextModalOpen,
+    isTourOpen,
+    setIsTourOpen,
+    isCustomAddAccOpen,
+    setIsCustomAddAccOpen,
     selectedInsightCategory,
     setSelectedInsightCategory,
     isCropModalOpen,
@@ -2144,6 +2082,54 @@ function App() {
     }
     if (s.activeTxDetail) {
       s.setActiveTxDetail(null);
+      return;
+    }
+
+    // -0.9 Kitabisa Transparency Modal (Jalur Penyaluran Kebaikan)
+    if (s.isKitabisaModalOpen) {
+      const event = new CustomEvent('cassiel_kitabisa_modal_back', { cancelable: true });
+      const dispatched = window.dispatchEvent(event);
+      if (dispatched) {
+        s.setIsKitabisaModalOpen(false);
+      }
+      return;
+    }
+
+    // -0.8 Cassiel Pro Upgrade / Pilihan Paket Langganan Modal
+    if (s.isProModalOpen) {
+      const event = new CustomEvent('cassiel_pro_modal_back', { cancelable: true });
+      const dispatched = window.dispatchEvent(event);
+      if (dispatched) {
+        s.setIsProModalOpen(false);
+      }
+      return;
+    }
+
+    // -0.7 Cassiel Groups Hub Modal
+    if (s.isGroupsModalOpen) {
+      const event = new CustomEvent('cassiel_groups_modal_back', { cancelable: true });
+      const dispatched = window.dispatchEvent(event);
+      if (dispatched) {
+        s.setIsGroupsModalOpen(false);
+      }
+      return;
+    }
+
+    // -0.6 Quick Text Modal
+    if (s.isQuickTextModalOpen) {
+      s.setIsQuickTextModalOpen(false);
+      return;
+    }
+
+    // -0.55 Tour Overlay
+    if (s.isTourOpen) {
+      s.setIsTourOpen(false);
+      return;
+    }
+
+    // -0.52 Custom Add Account Form
+    if (s.isCustomAddAccOpen) {
+      s.setIsCustomAddAccOpen(false);
       return;
     }
 
@@ -2357,12 +2343,143 @@ function App() {
         console.warn('Capacitor App backButton listener not available in this environment:', err);
       });
 
+    // Global Edge-Swipe Gesture Navigation (Usap layar dari pinggir kiri ke kanan untuk kembali)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - touchStartX;
+      const deltaY = endY - touchStartY;
+      const duration = Date.now() - touchStartTime;
+
+      // Syarat edge-swipe: mulai dari tepi kiri (<= 50px), bergerak ke kanan >= 50px, dominan horizontal, durasi < 550ms
+      if (touchStartX <= 50 && deltaX >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2 && duration < 550) {
+        handleAppBack();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
     return () => {
       if (backListener) {
         backListener.remove();
       }
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, []);
+
+  // Backup & Restore Handlers
+  const handleExportBackup = async () => {
+    if (isBackupProcessing) return;
+    setIsBackupProcessing(true);
+    try {
+      const backupData = createBackupData({
+        transactions,
+        expenseCategories,
+        incomeCategories,
+        warehouseExpenseCategories,
+        warehouseIncomeCategories,
+        accountsList,
+        deletedAccountsList,
+        warehouseAccounts: warehouseAccountsList,
+        accountInitialBalances,
+        monthlyBudgetsMap,
+        profileName,
+        profileImage,
+        appLanguage,
+        appCurrency,
+        isPro,
+      });
+
+      const res = await exportBackup(backupData, profileName);
+      if (res.success) {
+        const nowIso = new Date().toISOString();
+        safeStorageSet('user_last_backup_time', nowIso);
+        showVoiceToast(t('backupSuccess') || '✅ Cadangan data berhasil disimpan!');
+      } else if (!res.cancelled) {
+        showVoiceToast(`❌ ${res.error || t('backupError') || 'Gagal membuat cadangan'}`);
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+      showVoiceToast(`❌ ${err.message || t('backupError') || 'Gagal membuat cadangan'}`);
+    } finally {
+      setIsBackupProcessing(false);
+    }
+  };
+
+  const handleImportBackup = async () => {
+    if (isBackupProcessing) return;
+    setIsBackupProcessing(true);
+    try {
+      const res = await importBackup();
+      if (!res) {
+        setIsBackupProcessing(false);
+        return;
+      }
+      if (res.success && res.backup) {
+        setBackupRestoreConfirm(res.backup);
+      } else {
+        const errMsg = res.error === 'invalid_format'
+          ? (t('backupInvalid') || 'Format berkas cadangan tidak dikenali')
+          : (t('backupReadError') || 'Gagal membaca berkas cadangan');
+        showVoiceToast(`❌ ${errMsg}`);
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      showVoiceToast(`❌ ${err.message || 'Gagal memulihkan cadangan'}`);
+    } finally {
+      setIsBackupProcessing(false);
+    }
+  };
+
+  const handleConfirmRestore = () => {
+    if (!backupRestoreConfirm || !backupRestoreConfirm.data) return;
+    try {
+      const res = restoreBackupData(backupRestoreConfirm.data, {
+        setTransactions,
+        setExpenseCategories,
+        setIncomeCategories,
+        setWarehouseExpenseCategories,
+        setWarehouseIncomeCategories,
+        setAccountsList,
+        setDeletedAccountsList,
+        setWarehouseAccountsList,
+        setAccountInitialBalances,
+        setMonthlyBudgetsMap,
+        setProfileName,
+        setProfileImage,
+        setAppLanguage,
+        setAppCurrency,
+        setMainMonthlyBudget,
+        setIsPro,
+      });
+
+      if (res.success) {
+        setBackupRestoreConfirm(null);
+        setIsBackupModalOpen(false);
+        showVoiceToast(t('restoreSuccess') || '✅ Data berhasil dipulihkan!');
+        playPopSound('bubble_pop_2.wav');
+      } else {
+        showVoiceToast(`❌ ${res.error || t('restoreError') || 'Gagal memulihkan data'}`);
+      }
+    } catch (err) {
+      console.error('Restore error:', err);
+      showVoiceToast(`❌ ${err.message || t('restoreError') || 'Gagal memulihkan data'}`);
+    }
+  };
 
   // Listen for Home Screen Widget actions (Deep Link / Intent trigger)
   React.useEffect(() => {
@@ -3025,13 +3142,10 @@ function App() {
     }
   };
 
-  // Process Queued Notifications from Android NotificationListenerService
+  // Process Queued Notifications from Android NotificationListenerService & Quick Assist
   const processAutoTrackerQueue = useCallback(async () => {
-    if (!isAutoTrackerPreferenceEnabled()) return;
     try {
-      const perm = await checkNotificationAccessPermission();
-      setHasNotifPermission(perm);
-      if (!perm) return;
+      checkNotificationAccessPermission().then(setHasNotifPermission).catch(() => {});
 
       await drainAndProcessQueuedNotifications({
         accountsList,
@@ -4000,40 +4114,77 @@ function App() {
       pLabel
     };
   });
-  // Generate 12-month data for Stats Bar Chart (January - December)
+  // Generate data for Stock Line Chart (1 Year / 6 Months / 3 Months)
   const currentYear = currentDate.getFullYear();
+  const currentMonthIdx = currentDate.getMonth();
   const monthNamesShort = MONTH_SHORT_I18N[appLanguage] || MONTH_SHORT_I18N.id;
   const monthNamesFull = MONTH_NAMES_I18N[appLanguage] || MONTH_NAMES_I18N.id;
 
-  const monthlyBarChartData = Array.from({ length: 12 }, (_, monthIdx) => {
-    let earned = 0;
-    let spend = 0;
+  const stockChartData = useMemo(() => {
+    const monthsToGenerate = [];
 
-    transactions.forEach(t => {
-      if (!t.date) return;
-      const [y, m] = t.date.split('-');
-      if (Number(y) === currentYear && Number(m) - 1 === monthIdx) {
-        if (t.type === 'income') {
-          earned += t.amount;
-        } else if (t.type === 'expense') {
-          spend += t.amount;
-        }
+    if (chartPeriodFilter === '6months') {
+      // Past 6 months ending at current month
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(currentYear, currentMonthIdx - i, 1);
+        monthsToGenerate.push({
+          year: d.getFullYear(),
+          monthIdx: d.getMonth()
+        });
       }
-    });
+    } else if (chartPeriodFilter === '3months') {
+      // Past 3 months ending at current month
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(currentYear, currentMonthIdx - i, 1);
+        monthsToGenerate.push({
+          year: d.getFullYear(),
+          monthIdx: d.getMonth()
+        });
+      }
+    } else {
+      // Default 1 Year (12 months: January - December of current year)
+      for (let m = 0; m < 12; m++) {
+        monthsToGenerate.push({
+          year: currentYear,
+          monthIdx: m
+        });
+      }
+    }
 
-    return {
-      monthIdx,
-      shortName: monthNamesShort[monthIdx] || `${monthIdx + 1}`,
-      fullName: monthNamesFull[monthIdx] || `${monthIdx + 1}`,
-      earned,
-      spend,
-      isCurrentMonth: currentDate.getMonth() === monthIdx
-    };
-  });
+    return monthsToGenerate.map((item, idx) => {
+      let earned = 0;
+      let spend = 0;
+
+      transactions.forEach(t => {
+        if (!t.date) return;
+        const [y, m] = t.date.split('-');
+        if (Number(y) === item.year && Number(m) - 1 === item.monthIdx) {
+          if (t.type === 'income') {
+            earned += Number(t.amount) || 0;
+          } else if (t.type === 'expense') {
+            spend += Number(t.amount) || 0;
+          }
+        }
+      });
+
+      const isCurrentMonth = item.monthIdx === currentMonthIdx && item.year === currentYear;
+
+      return {
+        index: idx,
+        year: item.year,
+        monthIdx: item.monthIdx,
+        shortName: monthNamesShort[item.monthIdx] || `${item.monthIdx + 1}`,
+        fullName: monthNamesFull[item.monthIdx] || `${item.monthIdx + 1}`,
+        earned,
+        spend,
+        isCurrentMonth
+      };
+    });
+  }, [transactions, currentDate, chartPeriodFilter, currentYear, currentMonthIdx, monthNamesShort, monthNamesFull]);
 
   // Helper to compute a clean, human-friendly max ceiling (e.g. 500k, 1M, 1.2M, etc.)
   const rawMaxMonthly = Math.max(
-    ...monthlyBarChartData.map(d => Math.max(d.earned, d.spend)),
+    ...stockChartData.map(d => Math.max(d.earned, d.spend)),
     100000 // Minimum scale fallback
   );
 
@@ -4065,6 +4216,101 @@ function App() {
     maxMonthlyAmount * (1 / 3),
     0
   ];
+
+  // Stock Line Chart Geometry Calculations
+  const pointSpacing = chartPeriodFilter === '3months' ? 150 : chartPeriodFilter === '6months' ? 110 : 92;
+  const paddingLeft = 58;
+  const paddingRight = 68;
+  const svgTotalWidth = Math.max(340, paddingLeft + (stockChartData.length - 1) * pointSpacing + paddingRight);
+  const stockChartHeight = 220;
+  const plotBaselineY = 175;
+  const plotTopY = 30;
+  const plotHeight = plotBaselineY - plotTopY;
+
+  const incomePoints = stockChartData.map((d, i) => ({
+    x: paddingLeft + i * pointSpacing,
+    y: plotBaselineY - (maxMonthlyAmount > 0 ? (d.earned / maxMonthlyAmount) * plotHeight : 0),
+    data: d
+  }));
+
+  const expensePoints = stockChartData.map((d, i) => ({
+    x: paddingLeft + i * pointSpacing,
+    y: plotBaselineY - (maxMonthlyAmount > 0 ? (d.spend / maxMonthlyAmount) * plotHeight : 0),
+    data: d
+  }));
+
+  const buildSmoothPath = (pts) => {
+    if (!pts || pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x},${pts[0].y}`;
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+      
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  };
+
+  const buildAreaPath = (pts, baselineY = plotBaselineY) => {
+    if (!pts || pts.length === 0) return '';
+    const linePath = buildSmoothPath(pts);
+    const firstX = pts[0].x;
+    const lastX = pts[pts.length - 1].x;
+    return `${linePath} L ${lastX},${baselineY} L ${firstX},${baselineY} Z`;
+  };
+
+  const incomeLinePath = buildSmoothPath(incomePoints);
+  const incomeAreaPath = buildAreaPath(incomePoints);
+  const expenseLinePath = buildSmoothPath(expensePoints);
+  const expenseAreaPath = buildAreaPath(expensePoints);
+
+  const activePointIdx = activeStockPointIndex !== null && activeStockPointIndex >= 0 && activeStockPointIndex < stockChartData.length
+    ? activeStockPointIndex
+    : (stockChartData.findIndex(d => d.isCurrentMonth) !== -1 ? stockChartData.findIndex(d => d.isCurrentMonth) : stockChartData.length - 1);
+
+  const activeStockData = stockChartData[activePointIdx] || stockChartData[0];
+  const activeIncomePoint = incomePoints[activePointIdx] || incomePoints[0];
+  const activeExpensePoint = expensePoints[activePointIdx] || expensePoints[0];
+
+  // Dynamic Saving Rate Calculation for active indicator/month
+  const savingRateBadge = useMemo(() => {
+    if (!activeStockData) return null;
+    const earned = activeStockData.earned || 0;
+    const spend = activeStockData.spend || 0;
+    const isBothZero = earned === 0 && spend === 0;
+    const rateVal = earned > 0 ? Math.round(((earned - spend) / earned) * 100) : (spend > 0 ? -100 : 0);
+    const rateText = isBothZero ? '0%' : `${rateVal > 0 ? `+${rateVal}` : rateVal}%`;
+    const isPositive = rateVal >= 0;
+
+    // Optical midpoint between income and expense curves for active month
+    const incY = activeIncomePoint?.y ?? plotBaselineY;
+    const expY = activeExpensePoint?.y ?? plotBaselineY;
+    const midX = activeIncomePoint?.x ?? (paddingLeft + activePointIdx * pointSpacing);
+    
+    // Position between the two points, clamped cleanly within chart viewport
+    let midY = (incY + expY) / 2;
+    if (Math.abs(incY - expY) < 24) {
+      midY = Math.min(incY, expY) - 18;
+    }
+    midY = Math.max(plotTopY + 12, Math.min(plotBaselineY - 14, midY));
+
+    return {
+      x: midX,
+      y: midY,
+      rateVal,
+      rateText,
+      isPositive,
+      isBothZero
+    };
+  }, [activeStockData, activeIncomePoint, activeExpensePoint, plotBaselineY, plotTopY, paddingLeft, activePointIdx, pointSpacing]);
 
   if (isAdminView) {
     return (
@@ -5325,100 +5571,394 @@ function App() {
               })}
             </div>
           ) : (
-            /* Monthly Income vs Expense Bar Chart */
-            <div className="stats-bar-chart-card">
+            /* Stock Market Line Chart View */
+            <div className="stats-stock-chart-card">
+              {/* Active Point Quick Inspector Banner with Chart Period Dropdown */}
+              <div className="stats-stock-inspector-banner">
+                {/* Left Column: Calendar Date & Net Pill */}
+                <div className="stock-banner-col left">
+                  <div className="stock-inspector-month-tag">
+                    <span className="stock-inspector-cal-icon">🗓️</span>
+                    <strong className="stock-inspector-month-text">{activeStockData.fullName} {activeStockData.year}</strong>
+                  </div>
+                  <div className="stock-inspector-net-pill-wrap">
+                    <div className={`stock-inspector-net-pill ${(activeStockData.earned - activeStockData.spend) >= 0 ? 'surplus' : 'deficit'}`}>
+                      <span className="net-pill-icon">{(activeStockData.earned - activeStockData.spend) >= 0 ? '▲ Net' : '▼ Defisit'}</span>
+                      <strong className="net-pill-amount">
+                        {fmtMoney(Math.abs(activeStockData.earned - activeStockData.spend))}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Period Dropdown & Pemasukan/Pengeluaran values */}
+                <div className="stock-banner-col right">
+                  {/* Dedicated 3-Period Dropdown (1 Tahun, 6 Bulan, 3 Bulan) */}
+                  <div className="stats-dropdown-wrapper" ref={chartDropdownRef}>
+                    <button
+                      type="button"
+                      className="stats-period-btn chart-period-pill-btn"
+                      onClick={() => setIsChartDropdownOpen(!isChartDropdownOpen)}
+                    >
+                      <span>
+                        {chartPeriodFilter === '3months' 
+                          ? (t('period3Months') || '3 Bulan') 
+                          : chartPeriodFilter === '6months' 
+                            ? (t('period6Months') || '6 Bulan') 
+                            : (t('period1Year') || '1 Tahun')}
+                      </span>
+                      <span className={`stats-select-arrow ${isChartDropdownOpen ? 'open' : ''}`}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                      </span>
+                    </button>
+
+                    {isChartDropdownOpen && (
+                      <div className="custom-dropdown-menu">
+                        {[
+                          { id: '1year', label: t('period1Year') || '1 Tahun' },
+                          { id: '6months', label: t('period6Months') || '6 Bulan' },
+                          { id: '3months', label: t('period3Months') || '3 Bulan' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            className={`custom-dropdown-item ${chartPeriodFilter === opt.id ? 'active' : ''}`}
+                            onClick={() => {
+                              setChartPeriodFilter(opt.id);
+                              setIsChartDropdownOpen(false);
+                            }}
+                          >
+                            {opt.label}
+                            {chartPeriodFilter === opt.id && <span className="check-mark">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="stock-val-row income">
+                    <span className="stock-val-dot income-dot" />
+                    <span className="stock-val-label">{t('statsEarned')}:</span>
+                    <strong className="stock-val-num">{fmtMoney(activeStockData.earned)}</strong>
+                  </div>
+                  <div className="stock-val-row expense">
+                    <span className="stock-val-dot expense-dot" />
+                    <span className="stock-val-label">{t('statsSpend')}:</span>
+                    <strong className="stock-val-num">{fmtMoney(activeStockData.spend)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable Stock SVG Canvas */}
               <div 
-                className="stats-bar-chart-scroll-wrapper"
+                className="stats-stock-chart-scroll-wrapper"
                 ref={(el) => {
-                  if (el && !el._hasAutoScrolled) {
-                    el._hasAutoScrolled = true;
-                    // Auto scroll to current month as leftmost view
-                    const currentMonthIdx = currentDate.getMonth();
-                    const itemWidth = el.scrollWidth / 12;
-                    el.scrollLeft = Math.max(0, currentMonthIdx * itemWidth);
+                  if (el) {
+                    stockScrollRef.current = el;
+                    if (!el._hasAutoScrolled) {
+                      el._hasAutoScrolled = true;
+                      const targetIdx = activePointIdx >= 0 ? activePointIdx : 0;
+                      el.scrollLeft = Math.max(0, paddingLeft + targetIdx * pointSpacing - (el.clientWidth / 2));
+                    }
                   }
                 }}
               >
-                <div className="stats-bar-chart-grid">
-                  {/* Background Reference Lines with Y-Axis Values */}
-                  <div className="stats-bar-grid-lines">
-                    {yAxisTicks.map((val, idx) => (
-                      <div key={idx} className="stats-grid-line-wrap">
-                        <span className="stats-grid-y-label">
-                          {formatCompactMoney(val, appCurrency, liveExchangeRates)}
-                        </span>
-                        <div className="stats-grid-line" />
-                      </div>
-                    ))}
-                  </div>
+                <div className="stats-stock-svg-container" style={{ width: `${svgTotalWidth}px`, height: `${stockChartHeight}px` }}>
+                  <svg 
+                    width={svgTotalWidth} 
+                    height={stockChartHeight} 
+                    viewBox={`0 0 ${svgTotalWidth} ${stockChartHeight}`} 
+                    className="stats-stock-svg"
+                  >
+                    <defs>
+                      {/* Income Gradient Area (Biru Cerah) */}
+                      <linearGradient id="stockIncomeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
+                      </linearGradient>
+                      {/* Expense Gradient Area (Putih) */}
+                      <linearGradient id="stockExpenseAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45" />
+                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
+                      </linearGradient>
+                      {/* Drop shadows for lines */}
+                      <filter id="stockLineGlow" x="-10%" y="-10%" width="120%" height="120%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodOpacity="0.15" />
+                      </filter>
+                    </defs>
 
-                  {/* 12 Months Columns */}
-                  <div className="stats-bar-columns-row">
-                    {monthlyBarChartData.map((item) => {
-                      const earnedHeightPct = maxMonthlyAmount > 0 ? (item.earned / maxMonthlyAmount) * 100 : 0;
-                      const spendHeightPct = maxMonthlyAmount > 0 ? (item.spend / maxMonthlyAmount) * 100 : 0;
-
+                    {/* Horizontal Reference Grid Lines & Ticks */}
+                    {yAxisTicks.map((val, idx) => {
+                      const lineY = plotTopY + idx * (plotHeight / (yAxisTicks.length - 1));
                       return (
-                        <div 
-                          key={item.monthIdx} 
-                          className={`stats-month-col ${item.isCurrentMonth ? 'current-month-col' : ''}`}
-                          onClick={() => {
-                            // Quick change month when clicked
-                            const nextDate = new Date(currentDate);
-                            nextDate.setMonth(item.monthIdx);
-                            setCurrentDate(nextDate);
-                          }}
-                        >
-                          <div className="stats-bar-pair-container">
-                            {/* Earned / Income Bar */}
-                            <div className="stats-bar-track">
-                              {item.earned > 0 && (
-                                <div 
-                                  className="stats-bar-fill earned-bar"
-                                  style={{ 
-                                    height: `${earnedHeightPct}%`,
-                                    animationDelay: `${item.monthIdx * 35}ms`
-                                  }}
-                                  title={`${item.fullName} Pemasukan: ${fmtMoney(item.earned)}`}
-                                />
-                              )}
-                            </div>
-
-                            {/* Spend / Expense Bar */}
-                            <div className="stats-bar-track">
-                              {item.spend > 0 && (
-                                <div 
-                                  className="stats-bar-fill spend-bar"
-                                  style={{ 
-                                    height: `${spendHeightPct}%`,
-                                    animationDelay: `${item.monthIdx * 35 + 90}ms`
-                                  }}
-                                  title={`${item.fullName} Pengeluaran: ${fmtMoney(item.spend)}`}
-                                />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Month Label */}
-                          <div className={`stats-bar-month-pill ${item.isCurrentMonth ? 'active-pill' : ''}`}>
-                            {item.shortName}
-                          </div>
-                        </div>
+                        <g key={`grid-${idx}`} className="stock-grid-group">
+                          <line
+                            x1={0}
+                            y1={lineY}
+                            x2={svgTotalWidth}
+                            y2={lineY}
+                            stroke="rgba(0, 0, 0, 0.06)"
+                            strokeDasharray={idx === yAxisTicks.length - 1 ? "none" : "3,3"}
+                            strokeWidth="1"
+                          />
+                          <text
+                            x={10}
+                            y={lineY - 4}
+                            fill="#94A3B8"
+                            fontSize="10"
+                            fontWeight="600"
+                            className="stock-grid-y-text"
+                          >
+                            {formatCompactMoney(val, appCurrency, liveExchangeRates)}
+                          </text>
+                        </g>
                       );
                     })}
-                  </div>
+
+                    {/* Shaded Area Fills under curves */}
+                    {expenseAreaPath && (
+                      <path
+                        d={expenseAreaPath}
+                        fill="url(#stockExpenseAreaGrad)"
+                        className="stock-area-fill expense"
+                      />
+                    )}
+                    {incomeAreaPath && (
+                      <path
+                        d={incomeAreaPath}
+                        fill="url(#stockIncomeAreaGrad)"
+                        className="stock-area-fill income"
+                      />
+                    )}
+
+                    {/* Active Point Vertical Crosshair */}
+                    {activeIncomePoint && (
+                      <line
+                        x1={activeIncomePoint.x}
+                        y1={plotTopY}
+                        x2={activeIncomePoint.x}
+                        y2={plotBaselineY}
+                        stroke="rgba(45, 37, 32, 0.22)"
+                        strokeDasharray="3,3"
+                        strokeWidth="1.5"
+                        className="stock-active-crosshair"
+                      />
+                    )}
+
+                    {/* Active Point Horizontal Reference Dashes to Right Axis */}
+                    {activeIncomePoint && activeStockData.earned > 0 && (
+                      <line
+                        x1={activeIncomePoint.x}
+                        y1={activeIncomePoint.y}
+                        x2={svgTotalWidth - 8}
+                        y2={activeIncomePoint.y}
+                        stroke="#2563EB"
+                        strokeDasharray="2,3"
+                        strokeWidth="1.2"
+                        strokeOpacity="0.75"
+                        className="stock-active-dash income-dash"
+                      />
+                    )}
+                    {activeExpensePoint && activeStockData.spend > 0 && (
+                      <line
+                        x1={activeExpensePoint.x}
+                        y1={activeExpensePoint.y}
+                        x2={svgTotalWidth - 8}
+                        y2={activeExpensePoint.y}
+                        stroke="#FFFFFF"
+                        strokeDasharray="2,3"
+                        strokeWidth="1.2"
+                        strokeOpacity="0.95"
+                        className="stock-active-dash expense-dash"
+                      />
+                    )}
+
+                    {/* Curved Stock Lines: Expense (Putih) & Income (Biru) */}
+                    {expenseLinePath && (
+                      <path
+                        d={expenseLinePath}
+                        fill="none"
+                        stroke="#FFFFFF"
+                        strokeWidth="3.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#stockLineGlow)"
+                        className="stock-polyline expense"
+                      />
+                    )}
+                    {incomeLinePath && (
+                      <path
+                        d={incomeLinePath}
+                        fill="none"
+                        stroke="#2563EB"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#stockLineGlow)"
+                        className="stock-polyline income"
+                      />
+                    )}
+
+                    {/* Data Points / Circular Nodes: Expense (Putih) */}
+                    {expensePoints.map((pt, i) => {
+                      const isActive = i === activePointIdx;
+                      return (
+                        <g key={`pt-exp-${i}`} className={`stock-node-group ${isActive ? 'active' : ''}`}>
+                          {isActive && (
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="8"
+                              fill="rgba(255, 255, 255, 0.7)"
+                              className="stock-node-halo"
+                            />
+                          )}
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={isActive ? "5.5" : "4"}
+                            fill="#FFFFFF"
+                            stroke="rgba(0, 0, 0, 0.12)"
+                            strokeWidth="1.5"
+                            className="stock-node-dot"
+                          />
+                        </g>
+                      );
+                    })}
+
+                    {/* Data Points / Circular Nodes: Income (Biru) */}
+                    {incomePoints.map((pt, i) => {
+                      const isActive = i === activePointIdx;
+                      return (
+                        <g key={`pt-inc-${i}`} className={`stock-node-group ${isActive ? 'active' : ''}`}>
+                          {isActive && (
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="8"
+                              fill="rgba(37, 99, 235, 0.28)"
+                              className="stock-node-halo"
+                            />
+                          )}
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r={isActive ? "5.5" : "4"}
+                            fill="#2563EB"
+                            stroke="#FFFFFF"
+                            strokeWidth="2"
+                            className="stock-node-dot"
+                          />
+                        </g>
+                      );
+                    })}
+
+                    {/* Dynamic Saving Rate Badge (In between Blue and White curves) */}
+                    {savingRateBadge && (
+                      <g 
+                        className="stock-saving-rate-group"
+                        style={{
+                          transform: `translate(${savingRateBadge.x}px, ${savingRateBadge.y}px)`
+                        }}
+                      >
+                        {/* Pill Background */}
+                        <rect
+                          x={-42}
+                          y={-12}
+                          width={84}
+                          height={24}
+                          rx={12}
+                          fill="#FFFFFF"
+                          className="stock-saving-rate-bg"
+                        />
+                        {/* Saving Rate Text */}
+                        <text
+                          x={0}
+                          y={1}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          className="stock-saving-rate-text"
+                        >
+                          <tspan className="stock-saving-rate-label">Saving Rate </tspan>
+                          <tspan className={`stock-saving-rate-val ${savingRateBadge.isPositive ? 'pos' : 'neg'}`}>
+                            {savingRateBadge.rateText}
+                          </tspan>
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Sumbu X Month Labels (Wider Spacing as requested) */}
+                    {stockChartData.map((d, i) => {
+                      const x = paddingLeft + i * pointSpacing;
+                      const isActive = i === activePointIdx;
+                      const isCurrent = d.isCurrentMonth;
+                      return (
+                        <g 
+                          key={`x-lbl-${i}`} 
+                          className={`stock-x-label-group ${isActive ? 'active' : ''}`}
+                          onClick={() => handleSelectStockPoint(i)}
+                          onTouchStart={() => handleSelectStockPoint(i)}
+                        >
+                          {/* Active / Current Pill Highlight */}
+                          {(isActive || isCurrent) && (
+                            <rect
+                              x={x - 24}
+                              y={plotBaselineY + 12}
+                              width={48}
+                              height={22}
+                              rx={11}
+                              fill={isActive ? "#2D2520" : "#FFFFFF"}
+                              className={`stock-x-pill-bg ${isActive ? 'active' : ''}`}
+                            />
+                          )}
+                          <text
+                            x={x}
+                            y={plotBaselineY + 27}
+                            textAnchor="middle"
+                            fill={isActive ? "#FFFFFF" : isCurrent ? "#2D2520" : "#8C7E74"}
+                            fontSize="11"
+                            fontWeight={isActive || isCurrent ? "800" : "600"}
+                            className="stock-x-text"
+                          >
+                            {d.shortName}
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Interactive Touch/Click Hitboxes per month column with direct Apple feedback */}
+                    {stockChartData.map((d, i) => {
+                      const x = paddingLeft + i * pointSpacing;
+                      return (
+                        <rect
+                          key={`hitbox-${i}`}
+                          x={x - pointSpacing / 2}
+                          y={0}
+                          width={pointSpacing}
+                          height={stockChartHeight}
+                          fill="transparent"
+                          cursor="pointer"
+                          className="stock-month-hitbox"
+                          onClick={() => handleSelectStockPoint(i)}
+                          onTouchStart={() => handleSelectStockPoint(i)}
+                        />
+                      );
+                    })}
+                  </svg>
                 </div>
               </div>
 
               {/* Legend Indicator (Earned vs Spend) */}
               <div className="stats-chart-legend-bar">
                 <div className="stats-legend-item">
-                  <span className="stats-legend-dot earned-dot" />
+                  <span className="stats-legend-dot stock-income-dot" />
                   <span className="stats-legend-label">{t('statsEarned')}</span>
                 </div>
                 <div className="stats-legend-divider" />
                 <div className="stats-legend-item">
-                  <span className="stats-legend-dot spend-dot" />
+                  <span className="stats-legend-dot stock-expense-dot" />
                   <span className="stats-legend-label">{t('statsSpend')}</span>
                 </div>
               </div>
@@ -6917,7 +7457,7 @@ function App() {
                     </svg>
                   </div>
 
-                  {/* Donor Capsule Badge (Only shown for real verified donors on native devices/local test) */}
+                  {/* Donor Capsule Badge (Only shown for verified donors) */}
                   {isPro && getUserDonorInfo().isDonor && (
                     <div
                       style={{
@@ -6936,7 +7476,7 @@ function App() {
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      {getUserDonorInfo().badgeText}
+                      {getUserDonorInfo().donorLabel || getUserDonorInfo().badgeText || 'Donatur #000001'}
                     </div>
                   )}
                 </div>

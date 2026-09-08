@@ -61,6 +61,52 @@ export default function KitabisaTransparencyModal({
     };
   }, []);
 
+  // Handle swipe-to-back & back events
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBackEvent = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      onClose();
+    };
+
+    window.addEventListener('cassiel_kitabisa_modal_back', handleBackEvent);
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!e.changedTouches || e.changedTouches.length !== 1) return;
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      const duration = Date.now() - startTime;
+
+      // Swipe from left to right: edge starting point (<= 60px) or clean horizontal right-swipe (deltaX >= 50px)
+      if (startX <= 60 && deltaX >= 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2 && duration < 550) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('cassiel_kitabisa_modal_back', handleBackEvent);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const hasSubscribed = Boolean(isProStatus || proofs.length > 0);
