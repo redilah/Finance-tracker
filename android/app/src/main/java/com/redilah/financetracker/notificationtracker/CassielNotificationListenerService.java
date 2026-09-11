@@ -56,19 +56,56 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     ));
 
     @Override
+    public void onListenerConnected() {
+        super.onListenerConnected();
+        Log.i(TAG, "CassielNotificationListenerService connected to Android NotificationManager successfully!");
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            if (!prefs.contains(KEY_ENABLED)) {
+                prefs.edit().putBoolean(KEY_ENABLED, true).apply();
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    @Override
+    public void onListenerDisconnected() {
+        super.onListenerDisconnected();
+        Log.w(TAG, "CassielNotificationListenerService disconnected! Attempting immediate auto rebind...");
+        try {
+            CassielUpdateReceiver.rebindListenerService(getApplicationContext());
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed auto rebind onListenerDisconnected", t);
+        }
+    }
+
+    @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         try {
             if (sbn == null) return;
 
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            // If user granted OS permission to Cassiel, default to true unless explicitly disabled in app settings
+            // Default to true if user granted Notification Access
             boolean isExplicitlyDisabled = prefs.contains(KEY_ENABLED) && !prefs.getBoolean(KEY_ENABLED, true);
             if (isExplicitlyDisabled) {
                 return;
             }
 
             String packageName = sbn.getPackageName();
-            if (packageName == null || !WHITELIST.contains(packageName)) {
+            if (packageName == null) return;
+
+            // Robust check: matches whitelist or bank/ewallet package naming
+            boolean isWhitelisted = WHITELIST.contains(packageName);
+            if (!isWhitelisted) {
+                String pkgLower = packageName.toLowerCase();
+                if (pkgLower.contains("bank") || pkgLower.contains("brimo") || pkgLower.contains("bca")
+                        || pkgLower.contains("mandiri") || pkgLower.contains("wondr") || pkgLower.contains("gopay")
+                        || pkgLower.contains("dana") || pkgLower.contains("shopeepay") || pkgLower.contains("seabank")
+                        || pkgLower.contains("jago") || pkgLower.contains("ovo")) {
+                    isWhitelisted = true;
+                }
+            }
+
+            if (!isWhitelisted) {
                 return;
             }
 
@@ -76,14 +113,30 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             if (notification == null) return;
 
             Bundle extras = notification.extras;
-            if (extras == null) return;
-
-            CharSequence titleCs = extras.getCharSequence(Notification.EXTRA_TITLE);
+            CharSequence titleCs = extras != null ? extras.getCharSequence(Notification.EXTRA_TITLE) : null;
             String title = titleCs != null ? titleCs.toString() : "";
-            CharSequence textCs = extras.getCharSequence(Notification.EXTRA_TEXT);
+
+            CharSequence textCs = extras != null ? extras.getCharSequence(Notification.EXTRA_TEXT) : null;
             String text = textCs != null ? textCs.toString() : "";
-            CharSequence bigTextCs = extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
+
+            CharSequence bigTextCs = extras != null ? extras.getCharSequence(Notification.EXTRA_BIG_TEXT) : null;
             String bigText = bigTextCs != null ? bigTextCs.toString() : "";
+
+            CharSequence subTextCs = extras != null ? extras.getCharSequence(Notification.EXTRA_SUB_TEXT) : null;
+            String subText = subTextCs != null ? subTextCs.toString() : "";
+
+            CharSequence infoTextCs = extras != null ? extras.getCharSequence(Notification.EXTRA_INFO_TEXT) : null;
+            String infoText = infoTextCs != null ? infoTextCs.toString() : "";
+
+            CharSequence summaryTextCs = extras != null ? extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) : null;
+            String summaryText = summaryTextCs != null ? summaryTextCs.toString() : "";
+
+            CharSequence tickerCs = notification.tickerText;
+            String tickerText = tickerCs != null ? tickerCs.toString() : "";
+
+            // Fallback: jika text kosong tapi bigText ada, atau sebaliknya
+            if (text.isEmpty() && !bigText.isEmpty()) text = bigText;
+            if (bigText.isEmpty() && !text.isEmpty()) bigText = text;
 
             String appLabel = packageName;
             try {
@@ -93,9 +146,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 if (label != null) {
                     appLabel = label.toString();
                 }
-            } catch (Throwable ignored) {
-                // Safe fallback to package name
-            }
+            } catch (Throwable ignored) {}
 
             JSONObject notifObj = new JSONObject();
             notifObj.put("packageName", packageName);
@@ -103,6 +154,10 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             notifObj.put("title", title);
             notifObj.put("text", text);
             notifObj.put("bigText", bigText);
+            notifObj.put("subText", subText);
+            notifObj.put("infoText", infoText);
+            notifObj.put("summaryText", summaryText);
+            notifObj.put("tickerText", tickerText);
             notifObj.put("postTime", sbn.getPostTime());
             notifObj.put("receivedAt", System.currentTimeMillis());
 
@@ -130,6 +185,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                     }
 
                     prefs.edit().putString(KEY_QUEUE, queue.toString()).apply();
+                    Log.i(TAG, "Notification enqueued from " + packageName + " | Title: " + title);
                 } catch (Throwable queueError) {
                     Log.e(TAG, "Failed to append to queue", queueError);
                 }
@@ -137,7 +193,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             // 2. Post instant confirmation notification to Android status bar
             try {
-                showInstantConfirmationNotification(packageName, appLabel, title, text, bigText);
+                showInstantConfirmationNotification(packageName, appLabel, title, text, bigText, subText, tickerText);
             } catch (Throwable notifError) {
                 Log.e(TAG, "Failed to show instant confirmation notification", notifError);
             }
@@ -147,13 +203,14 @@ public class CassielNotificationListenerService extends NotificationListenerServ
         }
     }
 
-    private void showInstantConfirmationNotification(String packageName, String appLabel, String title, String text, String bigText) {
+    private void showInstantConfirmationNotification(String packageName, String appLabel, String title, String text, String bigText, String subText, String tickerText) {
         try {
-            String fullText = (title + " " + text + " " + bigText).toLowerCase();
+            String fullText = (title + " " + text + " " + bigText + " " + subText + " " + tickerText).toLowerCase();
 
             // Rejection of non-transactional items (OTP, Pure Login/Security)
             if (fullText.contains("otp") || fullText.contains("kode verifikasi") || fullText.contains("login baru")
-                    || fullText.contains("password baru") || fullText.contains("verifikasi perangkat")) {
+                    || fullText.contains("password baru") || fullText.contains("verifikasi perangkat")
+                    || fullText.contains("kata sandi") || fullText.contains("aktivasi")) {
                 return;
             }
 
@@ -162,7 +219,9 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                     || fullText.contains("debit") || fullText.contains("debet") || fullText.contains("kredit")
                     || fullText.contains("credit") || fullText.contains("pembayaran") || fullText.contains("dibayar")
                     || fullText.contains("transfer") || fullText.contains("belanja") || fullText.contains("terima")
-                    || fullText.contains("rp") || fullText.contains("idr");
+                    || fullText.contains("rp") || fullText.contains("idr") || fullText.contains("kirim")
+                    || fullText.contains("topup") || fullText.contains("top up") || fullText.contains("keluar")
+                    || fullText.contains("masuk") || fullText.contains("qris") || fullText.contains("bi-fast");
 
             if (!hasTransactionSignal) {
                 if (fullText.contains("promo") || fullText.contains("diskon") || fullText.contains("cashback hingga")
@@ -174,7 +233,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             // Amount extraction (balance-aware)
             String formattedAmount = extractFormattedAmount(fullText);
             if (formattedAmount == null) {
-                // If not a numeric transaction, skip showing notification
+                // If not a numeric transaction, skip showing confirmation notification
                 return;
             }
 
@@ -269,12 +328,12 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             long candidateAmount = -1;
 
             while (matcher.find()) {
-                int matchIndex = matcher.start(); // Standard Java method (anti-NoSuchMethodError)
+                int matchIndex = matcher.start();
                 String rawBefore = fullText.substring(Math.max(0, matchIndex - 40), matchIndex).toLowerCase();
 
                 // If preceded by saldo/sisa saldo/balance keywords, skip (unless accompanied by bertambah)
                 boolean isBalance = (rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance") || rawBefore.contains("limit"))
-                        && !rawBefore.contains("bertambah") && !rawBefore.contains("ditambahkan");
+                        && !rawBefore.contains("bertambah") && !rawBefore.contains("ditambahkan") && !rawBefore.contains("masuk");
 
                 String numStr = matcher.group(1).trim();
                 // Strip trailing 1-2 decimal places (cents/sen, e.g. .00 or ,00 or .0)
@@ -328,8 +387,8 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
     private String extractMerchantOrCategory(String fullText, String title, String text) {
         try {
-            // Check for merchant prefix keywords: di, ke, kepada, merchant, bayar ke
-            Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke)\\s+([a-zA-Z0-9&'\\.\\s-]{3,25})", Pattern.CASE_INSENSITIVE);
+            // Check for merchant prefix keywords: di, ke, kepada, merchant, bayar ke, transfer ke, qris
+            Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke|transfer ke|qris)\\s+([a-zA-Z0-9&'\\.\\s-]{3,25})", Pattern.CASE_INSENSITIVE);
             Matcher matcher = merchantPattern.matcher(fullText);
             if (matcher.find()) {
                 String candidate = matcher.group(1).trim();

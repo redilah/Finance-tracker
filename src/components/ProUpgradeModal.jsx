@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { isProUser, setProUser } from '../utils/proManager';
-import { getSubscriptionOfferings, purchaseJusticeCassielPackage, restoreJusticePurchases } from '../utils/revenueCatManager';
+import { getSubscriptionOfferings, purchaseJusticeCassielPackage, restoreJusticePurchases } from '../utils/nativeBillingManager';
 import { recordUserDonationProof } from '../utils/kitabisaTransparencyManager';
 import kitabisaLogo from '../assets/kitabisa_logo.png';
 import airBersihGunungkidulImg from '../assets/air_bersih_gunungkidul.png';
@@ -20,7 +20,7 @@ const SUBSCRIPTION_PLANS = [
     features: [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
-      'Auto-Tracker Notifikasi Tanpa Batas',
+      'Auto Cloud Backup & Sinkronisasi Drive',
       'Ekspor Laporan Excel (.xlsx)'
     ]
   },
@@ -36,7 +36,7 @@ const SUBSCRIPTION_PLANS = [
     features: [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
-      'Auto-Tracker Notifikasi Tanpa Batas',
+      'Auto Cloud Backup & Sinkronisasi Drive',
       'Ekspor Laporan Excel (.xlsx)'
     ]
   },
@@ -52,7 +52,7 @@ const SUBSCRIPTION_PLANS = [
     features: [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
-      'Auto-Tracker Notifikasi Tanpa Batas',
+      'Auto Cloud Backup & Sinkronisasi Drive',
       'Ekspor Laporan Excel (.xlsx)'
     ]
   }
@@ -263,9 +263,13 @@ export default function ProUpgradeModal({
         if (selectedPlanId === 'yearly') return id.includes('year') || id.includes('annual');
         if (selectedPlanId === 'six_months') return id.includes('six') || id.includes('6m') || id.includes('semi');
         return id.includes('month');
-      }) || packages[0] || null;
+      }) || packages[0];
 
-      const res = await purchaseJusticeCassielPackage(targetPkg);
+      const fallbackProductId = selectedPlanId === 'yearly'
+        ? 'justice_cassiel_yearly'
+        : (selectedPlanId === 'six_months' ? 'justice_cassiel_six_months' : 'justice_cassiel_monthly');
+
+      const res = await purchaseJusticeCassielPackage(targetPkg || fallbackProductId);
       if (res.success) {
         setProUser(true);
         if (onProStatusChanged) onProStatusChanged(true);
@@ -661,7 +665,7 @@ export default function ProUpgradeModal({
                     {/* Second Row: Price on Left, Hemat & Strikethrough on Right */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                        <span style={{ fontSize: '24px', fontWeight: '800', color: '#E65100' }}>
+                        <span style={{ fontSize: '20px', fontWeight: '800', color: '#E65100' }}>
                           {plan.priceText}
                         </span>
                         <span style={{ fontSize: '14px', color: '#4B5563', fontWeight: '600' }}>

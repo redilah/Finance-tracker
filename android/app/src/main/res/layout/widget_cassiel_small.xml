@@ -1,82 +1,60 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_small_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="14dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="14dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
     android:background="@drawable/widget_background">
 
-    <!-- Header: Logo/Label & Quick Add Button -->
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <TextView
-            android:id="@+id/tv_small_brand"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:text="Cassiel"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="#2D5284" />
-
-        <!-- 1-Tap Quick Action (+) -->
-        <ImageButton
-            android:id="@+id/btn_small_quick_add"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:background="@drawable/widget_btn_circle"
-            android:src="@drawable/ic_stat_icon"
-            android:tint="#FFFFFF"
-            android:scaleType="centerInside"
-            android:padding="6dp"
-            android:contentDescription="Tambah Transaksi" />
-    </RelativeLayout>
-
-    <!-- Center Content: Sisa Jatah Hari Ini & Validasi Mood -->
+    <!-- Sisi Kiri: Label 'Hari Ini' & Nominal Pengeluaran Hari Ini -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:id="@+id/layout_small_info"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center_vertical"
-        android:layout_marginTop="4dp">
+        android:layout_marginEnd="8dp">
 
         <TextView
-            android:id="@+id/tv_small_subtitle"
+            android:id="@+id/tv_small_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Jatah Hari Ini"
-            android:textSize="11sp"
-            android:textColor="#64748B" />
+            android:text="Hari Ini"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#8C7E72"
+            android:fontFamily="sans-serif-medium" />
 
         <TextView
             android:id="@+id/tv_small_amount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Rp 85.000"
+            android:text="Rp 0"
             android:textSize="17sp"
             android:textStyle="bold"
-            android:textColor="#1E293B"
+            android:textColor="#2D241E"
+            android:fontFamily="sans-serif-black"
             android:maxLines="1"
             android:ellipsize="end"
-            android:layout_marginTop="1dp" />
-
-        <!-- Status Mood Badge -->
-        <TextView
-            android:id="@+id/tv_small_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Terkendali ✨"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="#58B07A"
-            android:layout_marginTop="3dp" />
+            android:layout_marginTop="2dp" />
     </LinearLayout>
+
+    <!-- Sisi Kanan: Tombol Bulat Logo CF untuk Membuka Quick Access Assistant -->
+    <ImageButton
+        android:id="@+id/btn_small_cf_assistant"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/widget_btn_circle"
+        android:src="@drawable/ic_stat_icon"
+        android:tint="#FFFFFF"
+        android:scaleType="centerInside"
+        android:padding="11dp"
+        android:contentDescription="Cassiel Quick Assistant" />
 
 </LinearLayout>

@@ -23,39 +23,28 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
 
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         SharedPreferences prefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
-        String dailyAmount = prefs.getString("dailySafeBudget", "Rp 0");
-        String dailyStatus = prefs.getString("dailyStatus", "Terkendali ✨");
-        String statusColor = prefs.getString("statusColor", "#58B07A");
+        String todayExpense = prefs.getString("todayExpenseAmount", "Rp 0");
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_cassiel_small);
-        views.setTextViewText(R.id.tv_small_amount, dailyAmount);
-        views.setTextViewText(R.id.tv_small_status, dailyStatus);
+        views.setTextViewText(R.id.tv_small_amount, todayExpense);
 
-        try {
-            views.setTextColor(R.id.tv_small_status, Color.parseColor(statusColor));
-        } catch (Exception e) {
-            views.setTextColor(R.id.tv_small_status, Color.parseColor("#58B07A"));
-        }
-
-        // Tap Background -> Open Budget
+        // Tap Left / Background -> Open Main App
         Intent openAppIntent = new Intent(context, MainActivity.class);
         openAppIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        openAppIntent.putExtra("ACTION_TARGET", "OPEN_BUDGET");
         PendingIntent piApp = PendingIntent.getActivity(
                 context, 101, openAppIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         views.setOnClickPendingIntent(R.id.widget_small_root, piApp);
 
-        // Tap Quick Add (+) Button -> Open Add Modal
-        Intent addIntent = new Intent(context, MainActivity.class);
-        addIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        addIntent.putExtra("ACTION_TARGET", "OPEN_ADD_MODAL");
-        PendingIntent piAdd = PendingIntent.getActivity(
-                context, 102, addIntent,
+        // Tap CF Logo Button -> Open Floating Quick Access Assistant on Home Screen
+        Intent assistIntent = new Intent(context, com.redilah.financetracker.assistant.CassielAssistActivity.class);
+        assistIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent piAssist = PendingIntent.getActivity(
+                context, 102, assistIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        views.setOnClickPendingIntent(R.id.btn_small_quick_add, piAdd);
+        views.setOnClickPendingIntent(R.id.btn_small_cf_assistant, piAssist);
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }

@@ -17,6 +17,7 @@ public class WidgetBridgePlugin extends Plugin {
         String statusColor = call.getString("statusColor", "#58B07A");
         String monthlyRemaining = call.getString("monthlyRemaining", "Rp 0");
         String todayExpense = call.getString("todayExpense", "Hari ini: Rp 0");
+        String todayExpenseAmount = call.getString("todayExpenseAmount", "Rp 0");
         Integer budgetProgress = call.getInt("budgetProgress", 0);
 
         Context context = getContext();
@@ -27,6 +28,7 @@ public class WidgetBridgePlugin extends Plugin {
                 .putString("statusColor", statusColor)
                 .putString("monthlyRemaining", monthlyRemaining)
                 .putString("todayExpense", todayExpense)
+                .putString("todayExpenseAmount", todayExpenseAmount)
                 .putInt("budgetProgress", budgetProgress != null ? budgetProgress : 0)
                 .apply();
 

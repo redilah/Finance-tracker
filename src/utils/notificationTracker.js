@@ -125,6 +125,43 @@ export async function checkAssistantActive() {
   }
 }
 
+/**
+ * Force re-bind Android NotificationListenerService to wake it up if stalled.
+ */
+export async function forceRebindNotificationListener() {
+  try {
+    await NotificationTrackerNative.forceRebindService();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if Cassiel is exempt from battery optimizations.
+ */
+export async function checkBatteryOptimizationsExempt() {
+  try {
+    const res = await NotificationTrackerNative.isIgnoringBatteryOptimizations();
+    return Boolean(res?.isIgnoring);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Open prompt to exempt Cassiel from Android background battery optimizations.
+ */
+export async function requestIgnoreBatteryOptimizations() {
+  try {
+    await NotificationTrackerNative.requestIgnoreBatteryOptimizations();
+    return true;
+  } catch (err) {
+    console.warn('[NotifTracker] Failed to request battery exemption:', err);
+    return false;
+  }
+}
+
 
 // ─── 1. NORMALIZER ──────────────────────────────────────────────────────────
 
@@ -139,13 +176,21 @@ export function normalizeNotification(raw) {
   const title = (raw.title || '').trim();
   const text = (raw.text || '').trim();
   const bigText = (raw.bigText || '').trim();
+  const subText = (raw.subText || '').trim();
+  const infoText = (raw.infoText || '').trim();
+  const summaryText = (raw.summaryText || '').trim();
+  const tickerText = (raw.tickerText || '').trim();
   const postTime = Number(raw.postTime) || Number(raw.receivedAt) || Date.now();
 
-  // Combine title, text, and bigText without redundant repetitions
+  // Combine title, text, bigText, subText, tickerText without redundant repetitions
   const textParts = [];
   if (title) textParts.push(title);
   if (text && text !== title) textParts.push(text);
   if (bigText && bigText !== text && bigText !== title) textParts.push(bigText);
+  if (subText && !textParts.includes(subText)) textParts.push(subText);
+  if (infoText && !textParts.includes(infoText)) textParts.push(infoText);
+  if (summaryText && !textParts.includes(summaryText)) textParts.push(summaryText);
+  if (tickerText && !textParts.includes(tickerText)) textParts.push(tickerText);
 
   const rawFullText = textParts.join(' ');
   // Clean whitespace, multiple line breaks, zero-width spaces
@@ -160,6 +205,7 @@ export function normalizeNotification(raw) {
     title,
     body: text,
     bigText,
+    subText,
     postTime,
     fullText
   };

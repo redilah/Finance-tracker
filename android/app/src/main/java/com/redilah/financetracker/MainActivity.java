@@ -3,6 +3,7 @@ package com.redilah.financetracker;
 import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.redilah.financetracker.billing.CassielNativeBillingPlugin;
 import com.redilah.financetracker.notificationtracker.NotificationTrackerPlugin;
 import com.redilah.financetracker.widget.WidgetBridgePlugin;
 
@@ -11,8 +12,16 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(NotificationTrackerPlugin.class);
+        registerPlugin(CassielNativeBillingPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
+        com.redilah.financetracker.notificationtracker.CassielUpdateReceiver.rebindListenerService(getApplicationContext());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        com.redilah.financetracker.notificationtracker.CassielUpdateReceiver.rebindListenerService(getApplicationContext());
     }
 
     @Override

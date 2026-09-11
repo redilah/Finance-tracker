@@ -1,4 +1,4 @@
-﻿import { registerPlugin, Capacitor } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import { formatMoney } from './currency';
 
 const WidgetBridge = registerPlugin('WidgetBridge');
@@ -30,9 +30,17 @@ export async function syncWidgetData({
       }
     });
 
-    // 2. Calculate Monthly Expenses & Today's Expenses
+    // 2. Calculate Monthly Expenses & Today's Expenses (Local Date-Aware)
     let monthlyExpenses = 0;
     let todayExpenses = 0;
+
+    const isSameLocalDate = (d1, d2) => {
+      return (
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate()
+      );
+    };
 
     transactions.forEach(tx => {
       if (tx.type === 'Expense' || tx.type === 'expense') {
@@ -40,8 +48,7 @@ export async function syncWidgetData({
         if (txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth) {
           monthlyExpenses += Number(tx.amount || 0);
         }
-        const txDateStr = (tx.date || '').split('T')[0];
-        if (txDateStr === todayDateStr) {
+        if (isSameLocalDate(txDate, now)) {
           todayExpenses += Number(tx.amount || 0);
         }
       }
@@ -80,6 +87,7 @@ export async function syncWidgetData({
       statusColor,
       monthlyRemaining: formatMoney(remainingMonthly, currency),
       todayExpense: `Hari ini: -${formatMoney(todayExpenses, currency)}`,
+      todayExpenseAmount: formatMoney(todayExpenses, currency),
       budgetProgress
     };
 

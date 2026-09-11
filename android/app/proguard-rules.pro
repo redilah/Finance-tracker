@@ -28,6 +28,12 @@
 -keep class com.redilah.financetracker.notificationtracker.** { *; }
 -keepclassmembers class com.redilah.financetracker.notificationtracker.** { *; }
 
+# Keep Native Billing Plugin & Google Play Billing Library
+-keep class com.redilah.financetracker.billing.** { *; }
+-keepclassmembers class com.redilah.financetracker.billing.** { *; }
+-keep class com.android.billingclient.** { *; }
+-keepclassmembers class com.android.billingclient.** { *; }
+
 # Keep Kotlin stdlib & Coroutines
 -keep class kotlin.** { *; }
 -keep interface kotlin.** { *; }

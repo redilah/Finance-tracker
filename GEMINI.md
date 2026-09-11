@@ -1,34 +1,27 @@
 # Developer Guidelines for Cassiel (Finance Tracker)
 
-> [!CAUTION]
-> ## ⛔ ATURAN KRITIS APK — JANGAN PERNAH TERTUKAR!
+> [!IMPORTANT]
+> ## 🚀 STATUS RILIS: GOOGLE PLAY STORE (AAB / ANDROID APP BUNDLE)
 > 
-> | File APK | Untuk Siapa | Keterangan |
-> |----------|-------------|------------|
-> | **`Cassiel.apk`** / **`Cassiel-Release.apk`** | **USER sendiri (Redilah)** | Build **release** dengan **release key signature** (`CN=Redilah`). Ini APK utama yang dipakai user sehari-hari. |
-> | **`cassielll1.apk`** | **Teman user** | Build **debug** (tanpa release key signature) karena HP teman user **tidak bisa install APK berkunci signature**. JANGAN pernah menyuruh user install file ini. |
-> | **`udin.apk`** / **`Udin.apk`** | **User sendiri untuk testing & konten demo** | Build terpisah dengan `applicationId "com.redilah.udin"`, `app_name "Udin"`. Digunakan user untuk keperluan demo/konten. |
+> Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
-> **WAJIB DIPATUHI:**
-> - Jika user minta build/test untuk dirinya sendiri → build **`Cassiel.apk`** (release) atau **`udin.apk`** (demo).
-> - **JANGAN PERNAH** menyuruh user install `cassielll1.apk` — itu khusus untuk temannya.
-> - **JANGAN PERNAH** menuduh/mengasumsikan user menginstal `cassielll1.apk` saat user mengalami kendala instalasi "App not installed". User HANYA memakai `Cassiel.apk`.
-> - **DILARANG KERAS** menyuruh/menyarankan user melakukan **UNINSTALL** aplikasi, karena akan menghapus seluruh data finansial lokal pengguna di `localStorage`. Semua proses pembaruan WAJIB mendukung update langsung (*seamless in-place update*) tanpa kehilangan data.
-> - Jika konteksnya perbaikan notifikasi/bug untuk ditest user sendiri → build **release** (`assembleRelease`) bukan debug.
-> - **PEMISAHAN LOCAL BUILD VS FULL RELEASE**:
->   - Jika user meminta **build ke file APK / compile ke Cassiel.apk saja** (tanpa menyebut rilis/GitHub): **JANGAN** menaikkan versi (`versionCode`/`versionName`) dan **JANGAN** melakukan git push. Cukup kompilasi aset web, sinkronkan Capacitor, build gradle, dan salin APK ke root/folder `./apk/`.
->   - Hanya jalankan alur **Multi-File Version Bump** dan **Git Push** jika user secara eksplisit meminta **rilis versi baru / push ke GitHub**.
+> **STANDAR FORMAT & DISTRIBUSI BARU (WAJIB DIPATUHI):**
+> - **Format Rilis Resmi**: Format distribusi resmi untuk Play Store adalah **Android App Bundle (`.aab`)**, BUKAN file `.apk`.
+> - **Perintah Build Rilis**: Gunakan `.\gradlew bundleRelease --no-daemon` untuk menghasilkan bundle rilis bertanda tangan (*signed release AAB*) di `android/app/build/outputs/bundle/release/app-release.aab`.
+> - **Aturan Push ke GitHub**: Saat user meminta push rilis / push pembaruan ke GitHub, kompilasi dan sertakan file `.aab` bersama seluruh perubahan *source code* ke repositori GitHub.
+> - **DILARANG AUTO-BUILD TANPA PERINTAH**: Jangan melakukan kompilasi/build file binary jika user hanya meminta perubahan kode/fitur atau investigasi. Build HANYA dilakukan jika user secara eksplisit memerintahkannya.
+> - **ANTI-DATA-LOSS**: DILARANG KERAS menyuruh/menyarankan user melakukan *uninstall* aplikasi saat testing, agar tidak menghapus seluruh data finansial lokal pengguna di `localStorage`. Semua proses pembaruan wajib mendukung *seamless in-place update*.
 
 
 ## 1. Proactive Tool & Command Execution
 * **Rule**: Never instruct or delegate tasks to the user if you have the tools and capabilities to perform them yourself. 
 * **Action**: If you see a compilation error, configuration issue, or resource problem, proactively write scripts, fix code, or run terminal commands to resolve it directly. Present the results/resolutions to the user instead of listing instructions for them to run.
 
-## 2. Android Release APK Build & Publishing Runbook
+## 2. Google Play Store Release (AAB) & Publishing Runbook
 Follow these steps to prepare a new release or update:
 
 ### A. Multi-File Synchronized Version Bump
-Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 lokasi file**:
+Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serentak di 4 lokasi file**:
 1. `android/app/build.gradle`: `versionCode` (integer) dan `versionName` (string).
 2. `src/utils/version.js`: `CURRENT_VERSION_CODE` dan `CURRENT_VERSION_NAME` *(Kritis: jika tidak disinkronkan, app akan memicu update pop-up berulang).*
 3. `package.json`: `"version": "x.y.z"`.
@@ -39,14 +32,9 @@ Setiap kali menaikkan versi rilis, **wajib memperbarui secara serentak di 4 loka
 
 ### C. Build and Automatic Signing (Windows & OneDrive Safe)
 1. **Keystore Configuration**: Ensure `signingConfigs.release` is configured in `android/app/build.gradle` and references `release.keystore`.
-2. **Build Command**: Gunakan `.\gradlew assembleRelease --no-daemon` untuk mencegah konflik background *file-locking* OneDrive pada folder `build/intermediates/`.
-3. **Verify Signature**: Run `apksigner verify --print-certs <apk-path>` to confirm it is signed with the release key (`CN=Redilah`) rather than the debug key.
-4. **Dedicated APK Folder & Multi-File Sync**: 
-   - Kumpulkan seluruh file output APK ke dalam 1 folder khusus di dalam direktori proyek: `.\apk\` (misal `.\apk\Cassiel.apk`, `.\apk\Cassiel-Release.apk`, `.\apk\cassielll1.apk`, `.\apk\udin.apk`).
-   - Salin dan sinkronkan juga file rilis ke root: `.\Cassiel.apk`, `.\Cassiel-Release.apk`, `.\cassielll1.apk`, dan `.\udin.apk`.
-   - **Khusus `cassielll1.apk` (Tanpa Release Key Signature)**: File `.\cassielll1.apk` dan `.\apk\cassielll1.apk` **wajib** menggunakan build tanpa release key signature (hasil `./gradlew assembleDebug` dengan R8 shrinker bawaan kunci debug Android) agar kompatibel untuk testing/sideload tanpa konflik keystore.
-   - **Khusus `udin.apk` / `.\apk\Udin.apk` (Isolated Clone App)**: File `.\udin.apk`, `.\apk\udin.apk`, dan `.\apk\Udin.apk` **dilarang keras** hanya disalin/di-rename dari build Cassiel. Wajib dikompilasi secara terpisah dengan `applicationId "com.redilah.udin"` dan `app_name "Udin"` agar beroperasi sebagai aplikasi klon mandiri yang bisa diinstal berdampingan di HP yang sama tanpa menimpa atau tertukar dengan aplikasi utama `Cassiel` (`com.redilah.financetracker`).
-   - **Git Push APK Invariant**: Setiap kali user meminta push kode ke GitHub, wajib memastikan seluruh file APK (`cassielll1.apk`, `udin.apk`, `Cassiel.apk`, serta isi folder `.\apk\`) ikut disertakan dalam staging `git add`, di-commit, dan di-push ke remote repository.
+2. **Build Command**: Gunakan `.\gradlew bundleRelease --no-daemon` untuk menghasilkan file App Bundle (`.aab`) resmi Google Play Store.
+3. **Release Artifact Output**: Output bundle berada di `android/app/build/outputs/bundle/release/app-release.aab`.
+4. **Git Push Invariant**: Saat user meminta rilis/push ke GitHub, pastikan file bundle `.aab` dan *source code* ter-stage, di-commit, dan di-push ke remote GitHub.
 
 ### D. Notification Asset Protection & Keep Rules (Anti-Resource-Stripping)
 1. **AAPT Resource Shrinking Invariant**: File `android/app/src/main/res/raw/keep.xml` wajib selalu dipertahankan dengan `tools:keep="@drawable/ic_*,@drawable/widget_*,@mipmap/*"` untuk mencegah R8/AAPT merusak aset icon notifikasi dinamis Capacitor menjadi dummy hitam/kosong 1x1 piksel saat `shrinkResources true`.

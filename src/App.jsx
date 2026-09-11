@@ -71,7 +71,7 @@ import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/
 import kitabisaLogo from './assets/kitabisa_logo.png';
 import { exportTransactionsToSpreadsheet } from './utils/excelExport';
 import { isProUser, setProUser } from './utils/proManager';
-import { initRevenueCat } from './utils/revenueCatManager';
+import { initNativeBilling } from './utils/nativeBillingManager';
 import { syncWidgetData } from './utils/widgetSync';
 import { FAQ_ITEMS } from './utils/faqData';
 
@@ -1083,16 +1083,9 @@ function App() {
   // Language Settings
   const [appLanguage, setAppLanguage] = useState(() => {
     const savedLang = safeStorageGet('user_app_lang');
-    const migratedVersion = safeStorageGet('user_lang_migrated_v19');
-    // Khusus update ke versi ini (v1.0.18 / code 19), aktifkan Basa Jawa langsung jika belum pernah migrasi
-    if (!migratedVersion) {
-      safeStorageSet('user_lang_migrated_v19', 'done');
-      safeStorageSet('user_app_lang', 'jv');
-      return 'jv';
-    }
     return savedLang || 'id';
   });
-  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'jv');
+  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'id');
   const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   
@@ -1554,7 +1547,7 @@ function App() {
     setTimeout(() => {
       if (active) {
         checkUpdate();
-        initRevenueCat();
+        initNativeBilling();
       }
 
       // Deteksi jika aplikasi dibuka melalui Link Undangan Grup (?g= atau ?joinGroup=)
@@ -4335,13 +4328,13 @@ function App() {
             <div className="month-navigator">
               <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Month">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 18l-6-6 6-6"/>
+                  <path d="M15 19l-7-7 7-7"/>
                 </svg>
               </button>
               <span className="month-text">{formatMonthYear(currentDate)}</span>
               <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Month">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6"/>
+                  <path d="M9 19l7-7-7-7"/>
                 </svg>
               </button>
             </div>
@@ -5292,7 +5285,7 @@ function App() {
             <div className="stats-date-nav">
               <button type="button" className="month-btn" onClick={handlePrevMonth} aria-label="Previous Period">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M15 18l-6-6 6-6"/>
+                  <path d="M15 19l-7-7 7-7"/>
                 </svg>
               </button>
               <span className="month-text">
@@ -5300,7 +5293,7 @@ function App() {
               </span>
               <button type="button" className="month-btn" onClick={handleNextMonth} aria-label="Next Period">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6"/>
+                  <path d="M9 19l7-7-7-7"/>
                 </svg>
               </button>
             </div>
@@ -7378,6 +7371,7 @@ function App() {
                           className={`onboarding-lang-option ${tempLanguage === l.code ? 'active' : ''}`}
                           onClick={() => {
                             setTempLanguage(l.code);
+                            setAppLanguage(l.code);
                             setIsOnboardingLangOpen(false);
                           }}
                         >

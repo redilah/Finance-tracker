@@ -76,6 +76,17 @@
             </intent-filter>
         </service>
 
+        <!-- BroadcastReceiver: Auto re-bind notification listener on app update (.aab/.apk) & boot -->
+        <receiver
+            android:name=".notificationtracker.CassielUpdateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
         <!-- ═══ Cassiel Digital Assistant (Settings → Default Apps → Assist & Voice Input) ═══ -->
 
         <!-- 1. VoiceInteractionService — registers Cassiel in the Digital Assistant picker -->
