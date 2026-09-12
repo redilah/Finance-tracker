@@ -6,14 +6,15 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.41`** | `versionCode` **`41`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.42`** | `versionCode` **`42`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
 > **STANDAR FORMAT & DISTRIBUSI (WAJIB DIPATUHI):**
 > - **Format Rilis Resmi**: Format distribusi resmi untuk Play Store adalah **Android App Bundle (`.aab`)**, BUKAN file `.apk`.
 > - **Perintah Build Rilis**: Gunakan `.\gradlew bundleRelease --no-daemon` untuk menghasilkan bundle rilis bertanda tangan (*signed release AAB*) di `android/app/build/outputs/bundle/release/app-release.aab`.
-> - **Aturan Push ke GitHub**: Saat user meminta push rilis / push pembaruan ke GitHub, kompilasi dan sertakan file `.aab` bersama seluruh perubahan *source code* ke repositori GitHub.
+> - **AUTO-SYNC DISTRIBUSI .AAB (WAJIB)**: Setiap kali perintah `bundleRelease` selesai dan berhasil menghasilkan file `android/app/build/outputs/bundle/release/app-release.aab`, AI **WAJIB OTOMATIS** langsung menyalin (*copy*) file tersebut ke seluruh file distribusi di `apk/app-release.aab`, `apk/Cassiel.aab`, `apk/Cassiel-Release.aab`, `Cassiel.aab` (root), dan `Cassiel-Release.aab` (root) tanpa menunggu perintah tambahan.
+> - **Aturan Push ke GitHub**: Saat user meminta rilis / push pembaruan ke GitHub, kompilasi dan sertakan file `.aab` bersama seluruh perubahan *source code* ke repositori GitHub.
 > - **DILARANG AUTO-BUILD TANPA PERINTAH**: Jangan melakukan kompilasi/build file binary jika user hanya meminta perubahan kode/fitur atau investigasi. Build HANYA dilakukan jika user secara eksplisit memerintahkannya.
 > - **ANTI-DATA-LOSS**: DILARANG KERAS menyuruh/menyarankan user melakukan *uninstall* aplikasi saat testing, agar tidak menghapus seluruh data finansial lokal pengguna di `localStorage`. Semua proses pembaruan wajib mendukung *seamless in-place update*.
 
@@ -38,7 +39,7 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 ### C. Build and Automatic Signing (Windows & OneDrive Safe)
 1. **Keystore Configuration**: Ensure `signingConfigs.release` is configured in `android/app/build.gradle` and references `release.keystore`.
 2. **Build Command**: Gunakan `.\gradlew bundleRelease --no-daemon` untuk menghasilkan file App Bundle (`.aab`) resmi Google Play Store.
-3. **Release Artifact Output**: Output bundle berada di `android/app/build/outputs/bundle/release/app-release.aab`.
+3. **Release Artifact Output & Auto-Sync**: Output bundle berada di `android/app/build/outputs/bundle/release/app-release.aab`. AI wajib langsung menyalin (*copy*) file output ini ke folder `apk/` (`apk/app-release.aab`, `apk/Cassiel.aab`, `apk/Cassiel-Release.aab`) dan root (`Cassiel.aab`, `Cassiel-Release.aab`).
 4. **Git Push Invariant**: Saat user meminta rilis/push ke GitHub, pastikan file bundle `.aab` dan *source code* ter-stage, di-commit, dan di-push ke remote GitHub.
 
 ### D. Notification Asset Protection & Keep Rules (Anti-Resource-Stripping)
@@ -60,6 +61,9 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - Setelah input suara/teks selesai, sistem wajib menampilkan bubble pengguna oranye dan kartu `✔ PREVIEW TRANSAKSI` yang memuat jenis, nominal oranye besar, Kategori, Akun, dan Catatan, disertai tombol **`Batal`** dan **`Kirim`**.
    - **DILARANG KERAS** memasang timer hitung mundur otomatis (misal 3 detik auto-save) yang menyimpan transaksi tanpa tindakan eksplisit dari pengguna.
    - Halaman asisten wajib mendukung revisi instan (bicara/ketik ulang) dan scroll vertikal halus (*smooth scroll*) tanpa terpotong keyboard.
+3. **Phonetic & Slang Account Synonym Invariant**:
+   - Sistem speech-to-text / voice parser wajib mendaftarkan variasi fonetik sehari-hari dan slang perbankan (seperti `"bang jago"` $\rightarrow$ `"Bank Jago"`, `"bang bca"` $\rightarrow$ `"BCA"`, dll.) ke dalam `ACCOUNT_SYNONYMS`, `ACCOUNT_KEYWORDS`, dan `ACCOUNT_INTERCHANGEABLE_ALIASES`.
+   - Kata partikel/preposisi perbankan (`"bang"`, `"bank"`, `"pake"`, `"via"`, `"lewat"`) wajib dimasukkan ke dalam `CONNECTING_WORDS` dan secara otomatis dibersihkan dari catatan akhir transaksi (`note`) agar tidak tertinggal kata residu perbankan pada judul pengeluaran/pemasukan.
 
 ### F. Google Sign-In Native & Firebase Authentication Invariants
 1. **Native 1-Tap Google Sign-In (Strict Ban on Web Popups in Mobile)**:

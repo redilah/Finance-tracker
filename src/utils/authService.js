@@ -161,7 +161,7 @@ export const logoutUser = async () => {
 };
 
 /**
- * Sinkronisasi data lokal ke Cloud Firestore
+ * Sinkronisasi data lokal ke Cloud Firestore (Real-Time Cloud Backup)
  */
 export const syncLocalDataToFirestore = async (user, payload = {}) => {
   if (!user || !user.uid || !db) {
@@ -170,25 +170,28 @@ export const syncLocalDataToFirestore = async (user, payload = {}) => {
 
   try {
     const userDocRef = doc(db, 'users', user.uid);
+    // Sanitize payload to pure JSON (removes undefined or prototype functions)
+    const cleanPayload = JSON.parse(JSON.stringify(payload || {}));
     const syncData = {
       uid: user.uid,
       email: user.email || '',
       displayName: user.displayName || '',
       lastSyncAt: serverTimestamp(),
       updatedAt: new Date().toISOString(),
-      ...payload
+      backupData: cleanPayload,
+      ...cleanPayload
     };
 
     await setDoc(userDocRef, syncData, { merge: true });
     return { success: true, syncedAt: new Date().toISOString() };
   } catch (error) {
     console.error('Firestore Sync Error:', error);
-    return { success: false, error: 'Gagal menyinkronkan data ke Cloud Firestore.' };
+    return { success: false, error: error.message || 'Gagal menyinkronkan data ke Cloud Firestore.' };
   }
 };
 
 /**
- * Ambil data cadangan dari Cloud Firestore
+ * Ambil data cadangan dari Cloud Firestore (Real-Time Cloud Restore)
  */
 export const fetchCloudDataFromFirestore = async (user) => {
   if (!user || !user.uid || !db) {
@@ -200,12 +203,14 @@ export const fetchCloudDataFromFirestore = async (user) => {
     const docSnap = await getDoc(userDocRef);
 
     if (docSnap.exists()) {
-      return { success: true, data: docSnap.data() };
+      const data = docSnap.data();
+      const backupData = data.backupData || data.data || data;
+      return { success: true, data: backupData };
     } else {
       return { success: true, data: null, message: 'Belum ada data cadangan di cloud.' };
     }
   } catch (error) {
     console.error('Firestore Fetch Error:', error);
-    return { success: false, error: 'Gagal mengambil data dari Cloud Firestore.' };
+    return { success: false, error: error.message || 'Gagal mengambil data dari Cloud Firestore.' };
   }
 };

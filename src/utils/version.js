@@ -1,7 +1,7 @@
 import { App } from '@capacitor/app';
 
-export const CURRENT_VERSION_CODE = 41;
-export const CURRENT_VERSION_NAME = '1.0.41';
+export const CURRENT_VERSION_CODE = 42;
+export const CURRENT_VERSION_NAME = '1.0.42';
 
 /**
  * Rebuilt In-App Update Checker with Integrity Verification

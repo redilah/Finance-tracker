@@ -201,6 +201,90 @@ export function formatMoney(amountInBaseIdr = 0, currencyCode = 'IDR', liveRates
 }
 
 /**
+ * Format numerical amount into clean, human-friendly short notation
+ * Example (IDR):
+ * - Rp 5.200.000 => "Rp 5,20 jt"
+ * - Rp 1.250.000 => "Rp 1,25 jt"
+ * - Rp 850.000   => "Rp 850 rb"
+ * - Rp 0         => "Rp 0"
+ */
+export function formatShortMoney(amountInBaseIdr = 0, currencyCode = 'IDR', liveRates = null, includeSymbol = true) {
+  const num = Number(amountInBaseIdr) || 0;
+  const currency = getCurrency(currencyCode);
+  
+  if (num === 0) {
+    return includeSymbol ? (currency.symbol ? `${currency.symbol} 0` : '0') : '0';
+  }
+
+  let val = num;
+  if (currencyCode !== 'IDR') {
+    const rates = liveRates || FALLBACK_RATES_BASE_IDR;
+    const rate = rates[currencyCode] || FALLBACK_RATES_BASE_IDR[currencyCode] || 1;
+    val = num * rate;
+  }
+
+  const sym = includeSymbol ? (currency.symbol ? `${currency.symbol} ` : '') : '';
+
+  if (currencyCode === 'IDR') {
+    if (val >= 1_000_000_000) {
+      const b = val / 1_000_000_000;
+      const formatted = b.toLocaleString('id-ID', {
+        minimumFractionDigits: b % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2
+      });
+      return `${sym}${formatted} M`;
+    }
+    if (val >= 1_000_000) {
+      const m = val / 1_000_000;
+      const formatted = m.toLocaleString('id-ID', {
+        minimumFractionDigits: m % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2
+      });
+      return `${sym}${formatted} jt`;
+    }
+    if (val >= 1_000) {
+      const k = val / 1_000;
+      const formatted = k.toLocaleString('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1
+      });
+      return `${sym}${formatted} rb`;
+    }
+    return `${sym}${Math.round(val).toLocaleString('id-ID')}`;
+  }
+
+  // Other currencies
+  if (val >= 1_000_000_000) {
+    const b = val / 1_000_000_000;
+    const formatted = b.toLocaleString('en-US', {
+      minimumFractionDigits: b % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+    return `${sym}${formatted}B`;
+  }
+  if (val >= 1_000_000) {
+    const m = val / 1_000_000;
+    const formatted = m.toLocaleString('en-US', {
+      minimumFractionDigits: m % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+    return `${sym}${formatted}M`;
+  }
+  if (val >= 1_000) {
+    const k = val / 1_000;
+    const formatted = k.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
+    });
+    return `${sym}${formatted}k`;
+  }
+
+  return `${sym}${val.toLocaleString(currency.locale || 'en-US', {
+    maximumFractionDigits: 2
+  })}`;
+}
+
+/**
  * Format numerical amount into compact/clean tick label for chart Y-axis (e.g., 0, 250k, 500k, 1M, 1.5M, etc.)
  */
 export function formatCompactMoney(amountInBaseIdr = 0, currencyCode = 'IDR', liveRates = null) {

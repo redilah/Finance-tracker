@@ -57,7 +57,7 @@ import { generateFinancialInsights, formatActivePeriodRange } from './utils/fina
 import { getTranslation, getCategoryName, LANGUAGES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
 import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
-import { WORLD_CURRENCIES, getCurrency, formatMoney, formatCompactMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
+import { WORLD_CURRENCIES, getCurrency, formatMoney, formatShortMoney, formatCompactMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
 import { createBackupData, exportBackup, importBackup, restoreBackupData } from './utils/backup';
 import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
 import PinSetupModal from './components/PinSetupModal';
@@ -1143,6 +1143,10 @@ function App() {
     return formatMoney(amount, appCurrency, liveExchangeRates, includeSymbol);
   }, [appCurrency, liveExchangeRates]);
 
+  const fmtShortMoney = useCallback((amount, includeSymbol = true) => {
+    return formatShortMoney(amount, appCurrency, liveExchangeRates, includeSymbol);
+  }, [appCurrency, liveExchangeRates]);
+
   // Privacy / Hide Amounts in Home State (Menyimpan preferensi terakhir, default false/terbuka)
   const [isHomeAmountsHidden, setIsHomeAmountsHidden] = useState(() => {
     const val = safeStorageGet('cassiel_hide_home_amounts');
@@ -1828,44 +1832,63 @@ function App() {
     setIsProfileModalOpen(false);
   };
 
-  // Cloud Sync Payload & Restore Handler
-  const localDataPayload = useMemo(() => ({
+  // Cloud Sync Payload & Restore Handler (Full resilient snapshot)
+  const localDataPayload = useMemo(() => {
+    return createBackupData({
+      transactions,
+      expenseCategories,
+      incomeCategories,
+      warehouseExpenseCategories,
+      warehouseIncomeCategories,
+      accountsList,
+      deletedAccountsList,
+      warehouseAccounts: warehouseAccountsList,
+      accountInitialBalances,
+      monthlyBudgetsMap,
+      profileName,
+      profileImage,
+      appLanguage,
+      appCurrency,
+      isPro,
+    });
+  }, [
     transactions,
-    accounts: accountsList,
     expenseCategories,
     incomeCategories,
+    warehouseExpenseCategories,
+    warehouseIncomeCategories,
+    accountsList,
+    deletedAccountsList,
+    warehouseAccountsList,
+    accountInitialBalances,
     monthlyBudgetsMap,
     profileName,
+    profileImage,
+    appLanguage,
     appCurrency,
-    appLanguage
-  }), [transactions, accountsList, expenseCategories, incomeCategories, monthlyBudgetsMap, profileName, appCurrency, appLanguage]);
+    isPro,
+  ]);
 
   const handleRestoreFromCloud = (cloudData) => {
     if (!cloudData) return;
-    if (cloudData.transactions && Array.isArray(cloudData.transactions)) {
-      setTransactions(cloudData.transactions);
-      safeStorageSet('user_transactions', JSON.stringify(cloudData.transactions));
-    }
-    if (cloudData.accounts && Array.isArray(cloudData.accounts)) {
-      setAccountsList(cloudData.accounts);
-      safeStorageSet('user_accounts_list', JSON.stringify(cloudData.accounts));
-    }
-    if (cloudData.expenseCategories && Array.isArray(cloudData.expenseCategories)) {
-      setExpenseCategories(cloudData.expenseCategories);
-      safeStorageSet('user_expense_categories', JSON.stringify(cloudData.expenseCategories));
-    }
-    if (cloudData.incomeCategories && Array.isArray(cloudData.incomeCategories)) {
-      setIncomeCategories(cloudData.incomeCategories);
-      safeStorageSet('user_income_categories', JSON.stringify(cloudData.incomeCategories));
-    }
-    if (cloudData.monthlyBudgetsMap) {
-      setMonthlyBudgetsMap(cloudData.monthlyBudgetsMap);
-      safeStorageSet('user_monthly_budgets_map', JSON.stringify(cloudData.monthlyBudgetsMap));
-    }
-    if (cloudData.profileName && !profileName) {
-      setProfileName(cloudData.profileName);
-      safeStorageSet('user_profile_name', cloudData.profileName);
-    }
+    const dataToRestore = cloudData.data || cloudData;
+    restoreBackupData(dataToRestore, {
+      setTransactions,
+      setExpenseCategories,
+      setIncomeCategories,
+      setWarehouseExpenseCategories,
+      setWarehouseIncomeCategories,
+      setAccountsList,
+      setDeletedAccountsList,
+      setWarehouseAccountsList,
+      setAccountInitialBalances,
+      setMonthlyBudgetsMap,
+      setProfileName,
+      setProfileImage,
+      setAppLanguage,
+      setAppCurrency,
+      setIsPro,
+    });
   };
 
   const handleOnboardingGoogle = async () => {
@@ -5686,7 +5709,7 @@ function App() {
                     <div className={`stock-inspector-net-pill ${(activeStockData.earned - activeStockData.spend) >= 0 ? 'surplus' : 'deficit'}`}>
                       <span className="net-pill-icon">{(activeStockData.earned - activeStockData.spend) >= 0 ? '▲ Net' : '▼ Defisit'}</span>
                       <strong className="net-pill-amount">
-                        {fmtMoney(Math.abs(activeStockData.earned - activeStockData.spend))}
+                        {fmtShortMoney(Math.abs(activeStockData.earned - activeStockData.spend))}
                       </strong>
                     </div>
                   </div>
@@ -5742,12 +5765,12 @@ function App() {
                   <div className="stock-val-row income">
                     <span className="stock-val-dot income-dot" />
                     <span className="stock-val-label">{t('statsEarned')}:</span>
-                    <strong className="stock-val-num">{fmtMoney(activeStockData.earned)}</strong>
+                    <strong className="stock-val-num">{fmtShortMoney(activeStockData.earned)}</strong>
                   </div>
                   <div className="stock-val-row expense">
                     <span className="stock-val-dot expense-dot" />
                     <span className="stock-val-label">{t('statsSpend')}:</span>
-                    <strong className="stock-val-num">{fmtMoney(activeStockData.spend)}</strong>
+                    <strong className="stock-val-num">{fmtShortMoney(activeStockData.spend)}</strong>
                   </div>
                 </div>
               </div>
@@ -10250,30 +10273,17 @@ function App() {
           setUpdateInfo(null);
         }}>
           <div className="update-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="update-modal-icon-wrap">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </div>
             <div className="update-modal-body">
-              <h3 className="update-modal-title">Versi terbaru aplikasi Cassiel</h3>
+              <h3 className="update-modal-title">
+                Versi terbaru aplikasi
+                <br />
+                Cassiel
+              </h3>
               <p className="update-modal-desc">
-                Mohon update versi aplikasi Cassiel ke versi terbaru untuk menikmati fitur terbaru
+                Mohon update versi aplikasi Cassiel ke versi terbaru untuk menikmati fitur terbaru!
               </p>
             </div>
             <div className="update-modal-footer">
-              <button
-                type="button"
-                className="update-later-btn"
-                onClick={() => {
-                  window.hasDismissedUpdate = true;
-                  setUpdateInfo(null);
-                }}
-              >
-                {t('later') || 'Nanti Saja'}
-              </button>
               <button
                 type="button"
                 className="update-now-btn"
@@ -10304,6 +10314,16 @@ function App() {
                 }}
               >
                 {t('updateNow') || 'Perbarui Sekarang'}
+              </button>
+              <button
+                type="button"
+                className="update-later-btn"
+                onClick={() => {
+                  window.hasDismissedUpdate = true;
+                  setUpdateInfo(null);
+                }}
+              >
+                {t('later') || 'Nanti Saja'}
               </button>
             </div>
           </div>

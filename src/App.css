@@ -16,7 +16,7 @@
 .month-navigator {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: none;
   padding: 0;
   box-shadow: none;
@@ -30,8 +30,8 @@
   font-weight: 700;
   color: var(--text-main);
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +53,7 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--text-main);
-  padding: 0 4px;
+  padding: 0 1px;
   text-align: center;
 }
 
@@ -1391,8 +1391,8 @@ img[src*="Kost"] {
 
 .type-switcher-indicator.to-expense {
   transform: translateX(100%);
-  background: linear-gradient(135deg, #D94141, #C93B3B);
-  box-shadow: 0 4px 14px rgba(217, 65, 65, 0.32);
+  background: linear-gradient(135deg, #D4A373, #BC6C25);
+  box-shadow: 0 4px 14px rgba(188, 108, 37, 0.32);
 }
 
 .type-tab {
@@ -2166,8 +2166,8 @@ img[src*="Kost"] {
 }
 
 .save-red {
-  background: linear-gradient(135deg, #D94141, #C93B3B);
-  box-shadow: 0 6px 18px rgba(217, 65, 65, 0.32);
+  background: linear-gradient(135deg, #D4A373, #BC6C25);
+  box-shadow: 0 6px 18px rgba(188, 108, 37, 0.32);
 }
 
 .save-green {
@@ -2799,7 +2799,7 @@ img[src*="Kost"] {
 
 .set-balance-btn-save {
   flex: 1.5;
-  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
   border: none;
   border-radius: 12px;
   padding: 12px;
@@ -2807,12 +2807,13 @@ img[src*="Kost"] {
   font-weight: 700;
   color: #FFFFFF !important;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(188, 108, 37, 0.25);
-  transition: transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.32) !important;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
 .set-balance-btn-save:active {
   transform: scale(0.97);
+  filter: brightness(0.95);
 }
 
 /* 6. Full-Page Detail Akun Drawer / Screen */
@@ -2946,7 +2947,7 @@ img[src*="Kost"] {
 }
 
 .account-detail-stat-item-val.expense {
-  color: #DC2626;
+  color: var(--card-expense-text, #BC6C25);
 }
 
 .account-detail-tx-list-wrap {
@@ -3029,7 +3030,7 @@ img[src*="Kost"] {
 }
 
 .account-detail-tx-amount.expense {
-  color: #DC2626;
+  color: var(--card-expense-text, #BC6C25);
 }
 
 .account-adjust-tag-btn {
@@ -3531,7 +3532,7 @@ img[src*="Kost"] {
 .stats-date-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .stats-nav-btn {
@@ -4226,7 +4227,7 @@ img[src*="Kost"] {
 }
 
 .wa-name-display-row:hover .wa-edit-pen-btn {
-  color: #2D5284;
+  color: #D97706;
 }
 
 .wa-name-inline-edit {
@@ -4240,14 +4241,14 @@ img[src*="Kost"] {
 .wa-name-edit-input {
   flex: 1;
   background: #FFFFFF;
-  border: 1.5px solid #2D5284;
+  border: 1.5px solid #FFFFFF;
   border-radius: 12px;
   padding: 8px 12px;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main, #2D2520);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(45, 82, 132, 0.12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
@@ -5117,29 +5118,18 @@ img[src*="Kost"] {
 /* Simple App Update Pop-Up Modal */
 .update-modal-card {
   background-color: #F8EFE6;
-  width: calc(100% - 40px);
-  max-width: 340px;
-  border-radius: 24px;
+  width: calc(100% - 48px);
+  max-width: 320px;
+  border-radius: 10px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
-  padding: 24px 20px 20px;
+  padding: 24px 20px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 14px;
+  gap: 12px;
   animation: popUpFloat 0.22s ease;
   box-sizing: border-box;
-}
-
-.update-modal-icon-wrap {
-  width: 54px;
-  height: 54px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.12));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 2px;
 }
 
 .update-modal-body {
@@ -5151,7 +5141,7 @@ img[src*="Kost"] {
 }
 
 .update-modal-title {
-  font-size: 17.5px;
+  font-size: 18px;
   font-weight: 800;
   color: #2D2520;
   margin: 0;
@@ -5170,37 +5160,20 @@ img[src*="Kost"] {
 
 .update-modal-footer {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 9px;
   width: 100%;
   margin-top: 6px;
 }
 
-.update-later-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: transparent;
-  color: #5C4F43;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.update-later-btn:active {
-  transform: scale(0.97);
-  background: rgba(0, 0, 0, 0.04);
-}
-
 .update-now-btn {
-  flex: 1.4;
-  padding: 12px;
-  border-radius: 14px;
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 8px;
   border: none;
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF !important;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 700;
   text-decoration: none;
   display: flex;
@@ -5212,8 +5185,26 @@ img[src*="Kost"] {
 }
 
 .update-now-btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
   opacity: 0.92;
+}
+
+.update-later-btn {
+  width: 100%;
+  padding: 12.5px 16px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(45, 37, 32, 0.07);
+  color: #5C4F43;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.update-later-btn:active {
+  transform: scale(0.98);
+  background: rgba(45, 37, 32, 0.12);
 }
 
 /* Full Screen Image Cropper Overlay (Image 2 style) */
@@ -7185,14 +7176,14 @@ img[src*="Kost"] {
 .quick-text-submit-btn {
   width: 100%;
   padding: 13px 18px;
-  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
   color: #FFFFFF !important;
   font-size: 14.5px;
   font-weight: 700;
   border: none;
   border-radius: 16px;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(188, 108, 37, 0.28);
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.32) !important;
   transition: all 0.2s ease;
   font-family: inherit;
 }
@@ -7200,12 +7191,12 @@ img[src*="Kost"] {
 .quick-text-submit-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  box-shadow: none;
+  box-shadow: none !important;
 }
 
 .quick-text-submit-btn:not(:disabled):active {
   transform: scale(0.97);
-  background: linear-gradient(135deg, #C69363 0%, #A85D1B 100%);
+  filter: brightness(0.95);
 }
 
 /* =========================================================

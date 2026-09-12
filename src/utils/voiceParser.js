@@ -427,7 +427,7 @@ export const INCOME_CATEGORY_KEYWORDS = {
 const ACCOUNT_KEYWORDS = {
   'Cash': ['uang tunai', 'uang fisik', 'bayar pas', 'kontan', 'cash', 'tunai'],
   'Bank': [
-    'mobile banking', 'kartu debit', 'cimb niaga', 'bca mobile', 'bank jago', 'sea bank',
+    'mobile banking', 'kartu debit', 'cimb niaga', 'bca mobile', 'bank jago', 'bang jago', 'sea bank',
     'klikbca', 'rekening mandiri', 'rekening sendiri', 'rekening', 'mandiri', 'mbanking', 'm-banking',
     'debit', 'transfer', 'livin', 'brimo', 'jago', 'seabank', 'bank', 'bca', 'bni', 'bri', 'cimb', 'blu', 'neo', 'permata', 'bsi'
   ],
@@ -473,6 +473,7 @@ const ACCOUNT_SYNONYMS = {
   'syariah': 'BSI',
   'jago': 'Bank Jago',
   'bank jago': 'Bank Jago',
+  'bang jago': 'Bank Jago',
   'seabank': 'SeaBank',
   'sea bank': 'SeaBank',
   'jenius': 'Jenius',
@@ -519,8 +520,9 @@ const ACCOUNT_INTERCHANGEABLE_ALIASES = {
   'bale by btn': ['bale by btn', 'btn', 'bank btn', 'bale btn', 'bale'],
   'bpd diy': ['bpd diy', 'bpddiy', 'bpd', 'bank bpd diy'],
   'bpddiy': ['bpd diy', 'bpddiy', 'bpd', 'bank bpd diy'],
-  'jago': ['bank jago', 'jago'],
-  'bank jago': ['bank jago', 'jago'],
+  'jago': ['bank jago', 'bang jago', 'jago'],
+  'bank jago': ['bank jago', 'bang jago', 'jago'],
+  'bang jago': ['bank jago', 'bang jago', 'jago'],
   'cimb': ['cimb niaga', 'cimb'],
   'cimb niaga': ['cimb niaga', 'cimb'],
   'shopeepay': ['shopeepay', 'spay', 'shopee pay', 'shopee'],
@@ -550,7 +552,9 @@ export const CONNECTING_WORDS = [
 
   'gofood', 'go-food', 'go food', 'grabfood', 'grab-food', 'grab food', 'shopeefood', 'shopee-food', 'shopee food',
   'scan', 'barcode', 'scan barcode', 'transfer', 'tf', 'debit', 'rekening', 'qris', 'kris', 'keris', 'cash', 'tunai', 'mbanking', 'm-banking',
-  'bca', 'mandiri', 'bri', 'bni', 'gopay', 'gope', 'go pay', 'ovo', 'dana', 'shopeepay', 'spay',
+  'bca', 'mandiri', 'bri', 'bni', 'jago', 'bank jago', 'bang jago', 'bang', 'bank', 'seabank', 'bsi', 'blu', 'jenius', 'cimb', 'permata',
+  'gopay', 'gope', 'go pay', 'ovo', 'dana', 'shopeepay', 'spay', 'linkaja',
+  'via', 'lewat', 'menggunakan', 'gunakan',
 
   'dari', 'ke', 'di', 'pada', 'yang', 'yg', 'udah', 'sudah', 'dong', 'deh', 'ya', 'kan', 'ada',
   'buat', 'untuk', 'sebesar', 'senilai', 'nominal', 'sejumlah', 'uang', 'keluar', 'masuk', 'terima', 'dapat', 'dapet', 'oleh',
@@ -1546,6 +1550,11 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
 
   // 5. Replace 'dan' with '&' symbol
   note = note.replace(/\b(dan)\b/gi, '&');
+
+  // 6. Clean leftover payment providers and bank keywords from note (e.g., 'bang jago', 'bank jago', 'bang', 'bank')
+  note = note.replace(/\b(pake|pakai|via|lewat|dari)?\s*(bang\s*jago|bank\s*jago)\b/gi, ' ').trim();
+  note = note.replace(/\b(pake|pakai|via|lewat)\s+(bang|bank)\b/gi, ' ').trim();
+  note = note.replace(/\s+(bang|bank)$/i, '').trim();
 
   note = note.replace(/\s+/g, ' ').trim();
   note = note.replace(/^[.,!?:;\s]+|[.,!?:;\s]+$/g, '').trim();
