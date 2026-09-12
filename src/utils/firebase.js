@@ -1,5 +1,6 @@
-import { initializeApp } from '@firebase/app';
-import { getFirestore } from '@firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBhaSgR4Pc4ctnZ_NoTkVVOIPsegPHwvqE",
@@ -13,5 +14,8 @@ const firebaseConfig = {
 // Initialize Firebase App for Cassiel Command
 const app = initializeApp(firebaseConfig);
 
-// Export Firestore Instance
+// Export Firestore & Auth Instances
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+

@@ -67,6 +67,8 @@ import GroupsHubModal from './components/groups/GroupsHubModal';
 import HomeGroupTabContent from './components/HomeGroupTabContent';
 import ProUpgradeModal from './components/ProUpgradeModal';
 import KitabisaTransparencyModal from './components/KitabisaTransparencyModal';
+import AuthModal, { GoogleLogo } from './components/AuthModal';
+import { subscribeToAuth, loginWithGoogle, fetchCloudDataFromFirestore } from './utils/authService';
 import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
 import kitabisaLogo from './assets/kitabisa_logo.png';
 import { exportTransactionsToSpreadsheet } from './utils/excelExport';
@@ -990,6 +992,19 @@ function App() {
   const [isVoiceQueryResultOpen, setIsVoiceQueryResultOpen] = useState(false);
   const [voiceQueryData, setVoiceQueryData] = useState(null);
 
+  // Firebase Authentication State & Cloud Sync
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth((user) => {
+      setCurrentUser(user);
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
   // Monthly Budgets Map: { 'YYYY-MM': { main: number | null, categories: { [catId]: number } } }
   const [monthlyBudgetsMap, setMonthlyBudgetsMap] = useState(() => {
     try {
@@ -1083,9 +1098,9 @@ function App() {
   // Language Settings
   const [appLanguage, setAppLanguage] = useState(() => {
     const savedLang = safeStorageGet('user_app_lang');
-    return savedLang || 'id';
+    return savedLang || 'id_id';
   });
-  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'id');
+  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'id_id');
   const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   
@@ -1813,6 +1828,92 @@ function App() {
     setIsProfileModalOpen(false);
   };
 
+  // Cloud Sync Payload & Restore Handler
+  const localDataPayload = useMemo(() => ({
+    transactions,
+    accounts: accountsList,
+    expenseCategories,
+    incomeCategories,
+    monthlyBudgetsMap,
+    profileName,
+    appCurrency,
+    appLanguage
+  }), [transactions, accountsList, expenseCategories, incomeCategories, monthlyBudgetsMap, profileName, appCurrency, appLanguage]);
+
+  const handleRestoreFromCloud = (cloudData) => {
+    if (!cloudData) return;
+    if (cloudData.transactions && Array.isArray(cloudData.transactions)) {
+      setTransactions(cloudData.transactions);
+      safeStorageSet('user_transactions', JSON.stringify(cloudData.transactions));
+    }
+    if (cloudData.accounts && Array.isArray(cloudData.accounts)) {
+      setAccountsList(cloudData.accounts);
+      safeStorageSet('user_accounts_list', JSON.stringify(cloudData.accounts));
+    }
+    if (cloudData.expenseCategories && Array.isArray(cloudData.expenseCategories)) {
+      setExpenseCategories(cloudData.expenseCategories);
+      safeStorageSet('user_expense_categories', JSON.stringify(cloudData.expenseCategories));
+    }
+    if (cloudData.incomeCategories && Array.isArray(cloudData.incomeCategories)) {
+      setIncomeCategories(cloudData.incomeCategories);
+      safeStorageSet('user_income_categories', JSON.stringify(cloudData.incomeCategories));
+    }
+    if (cloudData.monthlyBudgetsMap) {
+      setMonthlyBudgetsMap(cloudData.monthlyBudgetsMap);
+      safeStorageSet('user_monthly_budgets_map', JSON.stringify(cloudData.monthlyBudgetsMap));
+    }
+    if (cloudData.profileName && !profileName) {
+      setProfileName(cloudData.profileName);
+      safeStorageSet('user_profile_name', cloudData.profileName);
+    }
+  };
+
+  const handleOnboardingGoogle = async () => {
+    try {
+      const res = await loginWithGoogle();
+      if (res.success && res.user) {
+        const gUser = res.user;
+        const gName = gUser.displayName || (gUser.email ? gUser.email.split('@')[0] : 'Pengguna Cassiel');
+        const gPhoto = gUser.photoURL || null;
+        
+        setTempName(gName);
+        setProfileName(gName);
+        safeStorageSet('user_profile_name', gName);
+        
+        if (gPhoto) {
+          setTempProfileImage(gPhoto);
+          setProfileImage(gPhoto);
+          safeStorageSet('user_profile_image', gPhoto);
+        }
+
+        safeStorageSet('user_profile_setup_done', 'true');
+        setIsProfileSetupDone(true);
+        setCurrentUser(gUser);
+
+        // Check if user has backup data on Cloud
+        const cloudRes = await fetchCloudDataFromFirestore(gUser);
+        if (cloudRes.success && cloudRes.data) {
+          handleRestoreFromCloud(cloudRes.data);
+          showVoiceToast(`Selamat datang kembali, ${gName}! Data berhasil dipulihkan.`);
+        } else {
+          showVoiceToast(`Selamat datang, ${gName}!`);
+        }
+
+        setIsProfileModalOpen(false);
+
+        // Guide Tour for user onboarding
+        setTimeout(() => {
+          setTourMode('full_guide');
+          setIsTourOpen(true);
+        }, 350);
+      } else if (!res.success && res.error) {
+        showVoiceToast(res.error);
+      }
+    } catch (err) {
+      console.error('Google Onboarding Error:', err);
+    }
+  };
+
   const amountInputRef = useRef(null);
   const noteInputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -1983,6 +2084,8 @@ function App() {
     setIsProModalOpen,
     isGroupsModalOpen,
     setIsGroupsModalOpen,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
     isQuickTextModalOpen,
     setIsQuickTextModalOpen,
     isTourOpen,
@@ -2105,6 +2208,12 @@ function App() {
       if (dispatched) {
         s.setIsGroupsModalOpen(false);
       }
+      return;
+    }
+
+    // -0.65 Cassiel Auth & Cloud Sync Modal
+    if (s.isAuthModalOpen) {
+      s.setIsAuthModalOpen(false);
       return;
     }
 
@@ -7355,7 +7464,7 @@ function App() {
                     onClick={() => setIsOnboardingLangOpen(!isOnboardingLangOpen)}
                   >
                     <span className="onboarding-lang-current-name">
-                      {LANGUAGES.find(l => l.code === tempLanguage)?.nativeName || 'Bahasa Indonesia'}
+                      {LANGUAGES.find(l => l.code === (tempLanguage === 'id' || !tempLanguage ? 'id_id' : tempLanguage))?.nativeName || 'Bahasa Indonesia'}
                     </span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`onboarding-lang-chevron ${isOnboardingLangOpen ? 'open' : ''}`}>
                       <polyline points="6 9 12 15 18 9"/>
@@ -7365,31 +7474,35 @@ function App() {
                   {/* Dropdown Menu Options */}
                   {isOnboardingLangOpen && (
                     <div className="onboarding-lang-menu">
-                      {LANGUAGES.map(l => (
-                        <div
-                          key={l.code}
-                          className={`onboarding-lang-option ${tempLanguage === l.code ? 'active' : ''}`}
-                          onClick={() => {
-                            setTempLanguage(l.code);
-                            setAppLanguage(l.code);
-                            setIsOnboardingLangOpen(false);
-                          }}
-                        >
-                          <span className="onboarding-lang-opt-name">{l.nativeName}</span>
-                          {tempLanguage === l.code && (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="onboarding-lang-check">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          )}
-                        </div>
-                      ))}
+                      {LANGUAGES.map(l => {
+                        const selectedLangCode = (tempLanguage === 'id' || !tempLanguage) ? 'id_id' : tempLanguage;
+                        const isSelected = selectedLangCode === l.code;
+                        return (
+                          <div
+                            key={l.code}
+                            className={`onboarding-lang-option ${isSelected ? 'active' : ''}`}
+                            onClick={() => {
+                              setTempLanguage(l.code);
+                              setAppLanguage(l.code);
+                              setIsOnboardingLangOpen(false);
+                            }}
+                          >
+                            <span className="onboarding-lang-opt-name">{l.nativeName}</span>
+                            {isSelected && (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="onboarding-lang-check">
+                                <polyline points="20 6 9 17 4 12"/>
+                              </svg>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Submit Button (Locked if Name is Empty) */}
-              <div style={{ marginTop: '10px' }}>
+              <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"
                   className={`profile-save-btn ${!tempName.trim() ? 'disabled-btn' : ''}`}
@@ -7400,6 +7513,58 @@ function App() {
                 >
                   {t('onboardingStartBtn') || 'Mari Mulai Bersama ✨'}
                 </button>
+              </div>
+
+              {/* Google Sign In & Email Connect Section (Placed Below Language & Submit) */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '2px', paddingBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: '#E8DFD8' }} />
+                  <span style={{ fontSize: '12px', color: '#A3968C', fontWeight: '500' }}>atau lanjutkan dengan</span>
+                  <div style={{ flex: 1, height: '1px', background: '#E8DFD8' }} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOnboardingGoogle}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    background: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '16px',
+                    padding: '12px 18px',
+                    fontSize: '14.5px',
+                    fontWeight: '700',
+                    color: '#374151',
+                    boxShadow: '0 3px 12px rgba(0, 0, 0, 0.07)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <GoogleLogo size={20} />
+                  <span>Lanjutkan dengan Google</span>
+                </button>
+
+                <div style={{ textAlign: 'center', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#D97706',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      padding: '6px 12px'
+                    }}
+                  >
+                    Sudah punya akun? Masuk / Hubungkan Email
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -7939,6 +8104,27 @@ function App() {
                   </svg>
                 </div>
 
+                {/* Akun & Sinkronisasi Cloud (Firebase Auth) */}
+                <div className="wa-menu-item" onClick={() => setIsAuthModalOpen(true)}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">Akun & Cloud Sync</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {currentUser ? `Terhubung: ${currentUser.email || currentUser.displayName}` : 'Hubungkan email untuk cadangan data otomatis'}
+                    </span>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="wa-menu-chevron">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+
                 {/* Data & Cadangan */}
                 <div className="wa-menu-item tour-target-backup" onClick={() => setIsBackupModalOpen(true)}>
                   <div className="wa-menu-icon-box backup-icon">
@@ -7980,7 +8166,7 @@ function App() {
                     }
                   }}
                 >
-                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#D97706' }}>
+                  <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                       <polyline points="14 2 14 8 20 8"></polyline>
@@ -11136,6 +11322,17 @@ function App() {
         currentUserName={profileName || 'Pengguna Cassiel'}
         onOpenProModal={handleOpenProModal}
         isPro={isPro}
+      />
+
+      {/* Firebase Authentication & Cloud Sync Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onUserChange={(u) => setCurrentUser(u)}
+        localDataPayload={localDataPayload}
+        onRestoreData={handleRestoreFromCloud}
+        onShowToast={(msg) => showVoiceToast(msg)}
       />
     </div>
   );

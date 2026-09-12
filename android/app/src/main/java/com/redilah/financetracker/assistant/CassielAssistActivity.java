@@ -498,16 +498,8 @@
      }
  
      @Override
-     protected void onUserLeaveHint() {
-         super.onUserLeaveHint();
-         // Bersihkan task saat user meninggalkan assist activity (misal tekan tombol home / swipe)
-         finishAndRemoveTask();
-     }
- 
-     @Override
      public void onBackPressed() {
          finishAndRemoveTask();
          overridePendingTransition(0, android.R.anim.fade_out);
      }
  }
- 

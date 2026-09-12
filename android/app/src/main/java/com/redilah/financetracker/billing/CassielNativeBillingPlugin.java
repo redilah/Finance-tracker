@@ -127,10 +127,10 @@ public class CassielNativeBillingPlugin extends Plugin implements PurchasesUpdat
                 .setProductList(productList)
                 .build();
 
-        billingClient.queryProductDetailsAsync(queryParams, (billingResult, list) -> {
-            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+        billingClient.queryProductDetailsAsync(queryParams, (billingResult, result) -> {
+            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && result != null && result.getProductDetailsList() != null) {
                 cachedProductDetails.clear();
-                for (ProductDetails details : list) {
+                for (ProductDetails details : result.getProductDetailsList()) {
                     cachedProductDetails.put(details.getProductId(), details);
                 }
                 Log.d(TAG, "Preloaded " + cachedProductDetails.size() + " subscription products.");
@@ -157,12 +157,12 @@ public class CassielNativeBillingPlugin extends Plugin implements PurchasesUpdat
                     .setProductList(productList)
                     .build();
 
-            billingClient.queryProductDetailsAsync(queryParams, (billingResult, list) -> {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+            billingClient.queryProductDetailsAsync(queryParams, (billingResult, result) -> {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && result != null && result.getProductDetailsList() != null) {
                     JSArray productsArray = new JSArray();
                     cachedProductDetails.clear();
 
-                    for (ProductDetails details : list) {
+                    for (ProductDetails details : result.getProductDetailsList()) {
                         cachedProductDetails.put(details.getProductId(), details);
 
                         JSObject obj = new JSObject();
@@ -268,9 +268,10 @@ public class CassielNativeBillingPlugin extends Plugin implements PurchasesUpdat
                         .setProductList(productList)
                         .build();
 
-                billingClient.queryProductDetailsAsync(queryParams, (billingResult, list) -> {
-                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && !list.isEmpty()) {
-                        ProductDetails foundDetails = list.get(0);
+                billingClient.queryProductDetailsAsync(queryParams, (billingResult, result) -> {
+                    List<ProductDetails> detailsList = (result != null) ? result.getProductDetailsList() : null;
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && detailsList != null && !detailsList.isEmpty()) {
+                        ProductDetails foundDetails = detailsList.get(0);
                         cachedProductDetails.put(productId, foundDetails);
                         startBillingFlow(activity, foundDetails, call);
                     } else {

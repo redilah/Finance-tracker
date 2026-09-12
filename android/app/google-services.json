@@ -1,0 +1,47 @@
+﻿{
+  "project_info": {
+    "project_number": "799596292912",
+    "project_id": "regalia-senpai-app",
+    "storage_bucket": "regalia-senpai-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799596292912:android:55779f1304aa0a7c3136f5",
+        "android_client_info": {
+          "package_name": "com.redilah.financetracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "799596292912-c3u8h6daihn0hsj8iifi7m90hg7k0370.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.redilah.financetracker",
+            "certificate_hash": "e1a0383d3e1a0b17d688a7523a7d5fae3d526f5b"
+          }
+        },
+        {
+          "client_id": "799596292912-lglcj9rg074qkao5r0ftd22d2lc7a1ai.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDudmch4uJRgRTiYBRSPG7vLN41-q3vXt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "799596292912-lglcj9rg074qkao5r0ftd22d2lc7a1ai.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

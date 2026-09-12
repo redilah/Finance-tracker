@@ -1,0 +1,23 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[redirects]]
+  from = "/privacy.html"
+  to = "/kebijakanprivacy"
+  status = 301
+
+[[redirects]]
+  from = "/privacy"
+  to = "/kebijakanprivacy"
+  status = 301
+
+[[redirects]]
+  from = "/kebijakanprivacy"
+  to = "/kebijakanprivacy/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

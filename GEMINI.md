@@ -56,6 +56,18 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - **DILARANG KERAS** memasang timer hitung mundur otomatis (misal 3 detik auto-save) yang menyimpan transaksi tanpa tindakan eksplisit dari pengguna.
    - Halaman asisten wajib mendukung revisi instan (bicara/ketik ulang) dan scroll vertikal halus (*smooth scroll*) tanpa terpotong keyboard.
 
+### F. Google Sign-In Native & Firebase Authentication Invariants
+1. **Native 1-Tap Google Sign-In (Strict Ban on Web Popups in Mobile)**:
+   - Di lingkungan Android Capacitor, dilarang mengandalkan `signInWithPopup` / `signInWithRedirect` Web SDK karena pembatasan isolasi sesi (*storage partitioning / missing initial state*) pada browser mobile modern.
+   - Autentikasi Google di Android wajib menggunakan plugin native `CassielNativeGoogleAuthPlugin` (`com.google.android.gms:play-services-auth`) yang memanggil dialog pemilih akun 1-Tap Google Play Services bawaan HP.
+   - Hasil `idToken` dari native ditukarkan ke Firebase melalui `signInWithCredential(auth, GoogleAuthProvider.credential(idToken))`.
+   - `signInWithPopup` hanya digunakan sebagai fallback murni pada platform browser web desktop.
+2. **Google Services & Keystore SHA Synchronization**:
+   - File `android/app/google-services.json` wajib dipertahankan dengan konfigurasi paket `com.redilah.financetracker`.
+   - Sidik jari SHA-1 dan SHA-256 dari `release.keystore` wajib selalu terdaftar di Firebase Project dan Google Cloud Credentials.
+3. **Proactive MCP Tools Priority**:
+   - Selalu manfaatkan tool MCP yang aktif (misal `firebase-mcp-server`) untuk melakukan manajemen project, registrasi SHA, dan query konfigurasi secara otomatis tanpa membebani pengguna dengan langkah manual di konsol browser.
+
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
