@@ -771,7 +771,7 @@ export default function ProUpgradeModal({
                 gap: '8px'
               }}
             >
-              <span>PILIH MISI KEBAIKAN</span>
+              <span style={{ color: '#FFFFFF', fontWeight: '800' }}>PILIH MISI KEBAIKAN</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -1050,22 +1050,6 @@ export default function ProUpgradeModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>
                   <span>📊</span>
                   <span>Rincian Alokasi Dana</span>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: '#0284C7',
-                    background: 'rgba(2, 132, 199, 0.08)',
-                    padding: '3px 8px',
-                    borderRadius: '6px'
-                  }}
-                >
-                  <img src={kitabisaLogo} alt="" style={{ width: '12px', height: '12px', borderRadius: '2px' }} />
-                  <span>100% Transparan</span>
                 </div>
               </div>
 

@@ -51,8 +51,6 @@ public class AssistantVoiceParser {
 
         String input = rawText.trim();
         String lower = input.toLowerCase(Locale.ROOT);
-        result.note = input;
-
         // 1. Determine Transaction Type
         if (lower.contains("gaji") || lower.contains("masuk") || lower.contains("diterima") ||
             lower.contains("bonus") || lower.contains("income") || lower.contains("pemasukan") ||
@@ -76,7 +74,50 @@ public class AssistantVoiceParser {
         // 4. Extract Category
         parseCategory(lower, result);
 
+        // 5. Clean Note (strip amount, account, prepositions)
+        String cleanedNote = cleanNote(input);
+        if (cleanedNote.isEmpty()) {
+            result.note = result.category;
+        } else {
+            result.note = cleanedNote;
+        }
+
         return result;
+    }
+
+    public static String cleanNote(String rawText) {
+        if (rawText == null || rawText.trim().isEmpty()) {
+            return "";
+        }
+
+        String cleaned = rawText.trim();
+
+        // Remove slang number words
+        cleaned = cleaned.replaceAll("(?i)\\b(ceban|goceng|seceng|noceng|noban|goban|cepek|gopek)\\b", " ");
+
+        // Remove amount patterns (juta, jt, ribu, rb, k, rp, raw numbers)
+        cleaned = cleaned.replaceAll("(?i)\\b\\d+(?:[.,]\\d+)?\\s*(?:juta|jt|million|m)\\b", " ");
+        cleaned = cleaned.replaceAll("(?i)\\b\\d+(?:[.,]\\d+)?\\s*(?:ribu|rb|k)\\b", " ");
+        cleaned = cleaned.replaceAll("(?i)(?:rp\\.?|rupiah)?\\s*\\b\\d{1,3}(?:\\.\\d{3})+\\b", " ");
+        cleaned = cleaned.replaceAll("(?i)(?:rp\\.?|rupiah)?\\s*\\b\\d+\\b", " ");
+        cleaned = cleaned.replaceAll("(?i)\\b(rp|rupiah)\\b", " ");
+
+        // Remove bank and account keywords
+        cleaned = cleaned.replaceAll("(?i)\\b(brimo|bri|bca|klikbca|livin'\\s*by\\s*mandiri|livin|mandiri|wondr\\s*by\\s*bni|wondr|bni|seabank|sea\\s*bank|bsi\\s*mobile|bsi|jago|gopay|go-pay|ovo|dana|shopeepay|shopee\\s*pay|spay|linkaja|link\\s*aja|cash|tunai|qris)\\b", " ");
+
+        // Remove preposition & connector words
+        cleaned = cleaned.replaceAll("(?i)\\b(pakai|pake|via|lewat|menggunakan|dengan|sebesar|sebanyak|senilai|ke\\s*akun|dari\\s*akun)\\b", " ");
+        cleaned = cleaned.replaceAll("(?i)\\b(masuk\\s*ke|masuk|diterima\\s*di|diterima)\\b", " ");
+
+        // Remove leftover punctuation and extra whitespace
+        cleaned = cleaned.replaceAll("[,;\\-_/\\|]", " ");
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+
+        if (cleaned.isEmpty()) {
+            return "";
+        }
+
+        return Character.toUpperCase(cleaned.charAt(0)) + (cleaned.length() > 1 ? cleaned.substring(1) : "");
     }
 
     private static long parseAmount(String lower) {

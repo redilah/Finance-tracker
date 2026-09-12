@@ -530,11 +530,20 @@ export function restoreBackupData(backupData, {
       safeStorageSet('user_app_currency', d.appCurrency);
     }
 
-    // 11. Main Budget
+    // 11. Main Budget (legacy & fallback)
     if (d.mainMonthlyBudget !== undefined) {
-      if (setMainMonthlyBudget) setMainMonthlyBudget(d.mainMonthlyBudget ? Number(d.mainMonthlyBudget) : null);
+      if (typeof setMainMonthlyBudget === 'function') {
+        setMainMonthlyBudget(d.mainMonthlyBudget ? Number(d.mainMonthlyBudget) : null);
+      }
       if (d.mainMonthlyBudget) {
         safeStorageSet('user_main_monthly_budget', String(d.mainMonthlyBudget));
+        if (!d.monthlyBudgetsMap && typeof setMonthlyBudgetsMap === 'function') {
+          const now = new Date();
+          const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          const fallbackMap = { [curKey]: Number(d.mainMonthlyBudget) };
+          setMonthlyBudgetsMap(fallbackMap);
+          safeStorageSet('user_monthly_budgets_map', fallbackMap);
+        }
       } else {
         localStorage.removeItem('user_main_monthly_budget');
       }

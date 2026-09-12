@@ -5117,18 +5117,29 @@ img[src*="Kost"] {
 /* Simple App Update Pop-Up Modal */
 .update-modal-card {
   background-color: #F8EFE6;
-  width: calc(100% - 32px);
-  max-width: 360px;
+  width: calc(100% - 40px);
+  max-width: 340px;
   border-radius: 24px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
-  padding: 22px 20px;
+  padding: 24px 20px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
-  animation: popUpFloat 0.2s ease;
+  gap: 14px;
+  animation: popUpFloat 0.22s ease;
   box-sizing: border-box;
+}
+
+.update-modal-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
 }
 
 .update-modal-body {
@@ -5139,76 +5150,22 @@ img[src*="Kost"] {
   gap: 8px;
 }
 
-.update-modal-badge {
-  font-size: 12px;
+.update-modal-title {
+  font-size: 17.5px;
   font-weight: 800;
-  color: #BC6C25;
-  background-color: rgba(188, 108, 37, 0.12);
-  padding: 4px 12px;
-  border-radius: 12px;
-}
-
-.update-version-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--text-main);
+  color: #2D2520;
   margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
-.update-changelog-container {
-  width: 100%;
-  background: transparent;
-  padding: 4px 0;
-  box-sizing: border-box;
-  text-align: left;
-  border: none;
-  box-shadow: none;
-}
-
-.update-changelog-header {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #BC6C25;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0 0 8px 0;
-}
-
-.update-changelog-list {
-  list-style: none;
-  padding: 0;
+.update-modal-desc {
+  font-size: 13.5px;
+  color: #6B5E52;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.update-changelog-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12.5px;
-  color: #374151;
-  line-height: 1.4;
-}
-
-.update-changelog-bullet {
-  color: #BC6C25;
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.update-changelog-line-text {
-  flex: 1;
+  line-height: 1.5;
   font-weight: 500;
-}
-
-.update-changelog-text {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0;
-  line-height: 1.4;
+  padding: 0 4px;
 }
 
 .update-modal-footer {
@@ -5220,30 +5177,43 @@ img[src*="Kost"] {
 
 .update-later-btn {
   flex: 1;
-  padding: 11px;
+  padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: transparent;
-  color: var(--text-main);
-  font-size: 13px;
-  font-weight: 700;
+  color: #5C4F43;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.update-later-btn:active {
+  transform: scale(0.97);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .update-now-btn {
-  flex: 1.5;
-  padding: 11px;
+  flex: 1.4;
+  padding: 12px;
   border-radius: 14px;
   border: none;
-  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF !important;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(188, 108, 37, 0.28);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.update-now-btn:active {
+  transform: scale(0.97);
+  opacity: 0.92;
 }
 
 /* Full Screen Image Cropper Overlay (Image 2 style) */
@@ -8386,18 +8356,18 @@ img[src*="Kost"] {
   padding: 12px 0;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #D4A373 0%, #BC6C25 100%);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF !important;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(188, 108, 37, 0.24);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .backup-restore-btn:active {
   transform: scale(0.97);
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 /* ==========================================================================

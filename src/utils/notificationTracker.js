@@ -243,7 +243,11 @@ const EXPENSE_CATEGORY_KEYWORDS = {
     'gofood', 'grabfood', 'shopeefood', 'mcdonald', 'kfc', 'hokben', 'solaria',
     'burger', 'pizza', 'bakso', 'mie', 'nasi', 'resto', 'warung', 'cafe', 'kafe',
     'kitchen', 'food', 'makan', 'kuliner', 'dapur', 'snack', 'bakery', 'roti',
-    'kopi kenangan', 'fore', 'chatime', 'janji jiwa'
+    'kopi kenangan', 'fore', 'chatime', 'janji jiwa',
+    'ayam', 'bebek', 'sate', 'soto', 'goreng', 'bakar', 'geprek', 'padang',
+    'pecel', 'martabak', 'seafood', 'steak', 'bakmi', 'siomay', 'batagor',
+    'tahu', 'tempe', 'nasi uduk', 'nasi kuning', 'nasi padang', 'bubur',
+    'catering', 'rm ', 'rumah makan', 'warteg', 'kantin'
   ],
   coffee: [
     'starbucks', 'kopi', 'coffee', 'espresso', 'latte', 'cappuccino', 'point coffee',
@@ -534,7 +538,7 @@ export function processSingleNotification(rawNotif, {
   }
 
   // Step 3: Provider Detection
-  const provider = detectProvider(normalized.packageName);
+  const provider = detectProvider(normalized.packageName, normalized.appLabel);
   if (!provider) {
     return null;
   }

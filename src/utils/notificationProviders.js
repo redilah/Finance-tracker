@@ -126,7 +126,55 @@ const PROVIDER_REGISTRY = [
     id: 'blu',
     name: 'blu',
     accountName: 'blu',
-    packageNames: ['bcadigital.blubybcadigital'],
+    packageNames: ['bcadigital.blubybcadigital', 'com.bcadigital.blu'],
+  },
+  {
+    id: 'neobank',
+    name: 'Neobank',
+    accountName: 'Neobank',
+    packageNames: ['com.bnc.finance', 'com.bankneo.mobile'],
+  },
+  {
+    id: 'allobank',
+    name: 'Allo Bank',
+    accountName: 'Allo Bank',
+    packageNames: ['id.allobank.mobile', 'com.allobank.app'],
+  },
+  {
+    id: 'linebank',
+    name: 'Line Bank',
+    accountName: 'Line Bank',
+    packageNames: ['com.linecorp.linebank.id'],
+  },
+  {
+    id: 'superbank',
+    name: 'Superbank',
+    accountName: 'Superbank',
+    packageNames: ['id.superbank.app', 'com.superbank.mobile'],
+  },
+  {
+    id: 'krom',
+    name: 'Krom Bank',
+    accountName: 'Krom Bank',
+    packageNames: ['id.co.krom.app'],
+  },
+  {
+    id: 'astrapay',
+    name: 'AstraPay',
+    accountName: 'AstraPay',
+    packageNames: ['com.astrapay.app'],
+  },
+  {
+    id: 'isaku',
+    name: 'i.saku',
+    accountName: 'i.saku',
+    packageNames: ['com.indomarco.isaku'],
+  },
+  {
+    id: 'doku',
+    name: 'DOKU',
+    accountName: 'DOKU',
+    packageNames: ['com.dokuwallet.android'],
   },
   {
     id: 'paypal',
@@ -145,12 +193,52 @@ for (const provider of PROVIDER_REGISTRY) {
 }
 
 /**
- * Detect provider from notification package name.
- * Returns provider object or null if not recognized.
+ * Detect provider from notification package name or app label.
+ * Returns provider object or fallback financial provider.
  */
-export function detectProvider(packageName) {
-  if (!packageName) return null;
-  return PACKAGE_TO_PROVIDER[packageName] || null;
+export function detectProvider(packageName, appLabel = '') {
+  if (!packageName && !appLabel) return null;
+
+  // 1. Direct package map lookup
+  if (packageName && PACKAGE_TO_PROVIDER[packageName]) {
+    return PACKAGE_TO_PROVIDER[packageName];
+  }
+
+  const lowerPkg = (packageName || '').toLowerCase();
+  const lowerLabel = (appLabel || '').toLowerCase();
+
+  // 2. Keyword heuristic matching against known providers
+  for (const provider of PROVIDER_REGISTRY) {
+    if (provider.id && (lowerPkg.includes(provider.id) || lowerLabel.includes(provider.id))) {
+      return provider;
+    }
+    const nameLower = provider.name.toLowerCase();
+    if (lowerPkg.includes(nameLower) || lowerLabel.includes(nameLower)) {
+      return provider;
+    }
+    if (provider.accountName) {
+      const accLower = provider.accountName.toLowerCase();
+      if (lowerPkg.includes(accLower) || lowerLabel.includes(accLower)) {
+        return provider;
+      }
+    }
+  }
+
+  // 3. Dynamic fallback for any bank or wallet notification
+  if (
+    lowerPkg.includes('bank') || lowerPkg.includes('pay') || lowerPkg.includes('wallet') ||
+    lowerPkg.includes('finance') || lowerPkg.includes('money') || lowerPkg.includes('transfer') ||
+    lowerLabel.includes('bank') || lowerLabel.includes('pay') || lowerLabel.includes('wallet')
+  ) {
+    return {
+      id: 'generic_bank',
+      name: appLabel || 'Bank',
+      accountName: appLabel || 'Bank',
+      packageNames: packageName ? [packageName] : []
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -193,46 +281,49 @@ const NON_TRANSACTION_PATTERNS = [
  */
 const TRANSACTION_SIGNAL_PATTERNS = [
   // Debit / Expense signals
-  /\b(debit|debet)\b/i,
-  /\b(pembayaran|bayar|payment|paid|pay)\b/i,
-  /\b(pembelian|belanja|purchase)\b/i,
-  /\b(transfer\s*(?:keluar|ke\b))/i,
-  /\b(tarik\s*tunai|penarikan|withdrawal)\b/i,
-  /\b(kirim\s*(?:uang|dana|saldo)|sent\b)/i,
+  /(?:debit|debet|pendebetan|didebit|didebet)/i,
+  /(?:pembayaran|bayar|membayar|dibayar|dibayarkan|terbayar|payment|paid|pay)/i,
+  /(?:pembelian|belanja|berbelanja|purchase|beli|membeli|dibeli)/i,
+  /(?:transfer|mentransfer|ditransfer|m-transfer|trsf)/i,
+  /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
+  /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
   // Credit / Income signals
-  /\b(kredit|credit)\b/i,
-  /\b(terima\s*(?:uang|dana|transfer|saldo)|received\b)/i,
-  /\b(transfer\s*(?:masuk|dari\b))/i,
-  /\b(dana\s*masuk|uang\s*masuk)\b/i,
-  /\b(top\s*up)\b/i,
+  /(?:kredit|credit|pengkreditan|dikreditkan)/i,
+  /(?:terima|menerima|diterima|penerimaan|received|receive)/i,
+  /(?:dana\s*masuk|uang\s*masuk|saldo\s*masuk|masuk\s*ke\s*rekening|money\s*in)/i,
+  /(?:dana\s*keluar|uang\s*keluar|saldo\s*keluar|terpotong|pemotongan|dipotong|money\s*out)/i,
+  /(?:top\s*up|topup|isi\s*saldo|tambah\s*saldo|saldo\s*bertambah|bertambah)/i,
   // Generic execution success signals
-  /\b(berhasil|sukses|success|completed|confirmed)\b/i,
-  /\btransaksi\s*(?:berhasil|sukses|selesai|debit|kredit|ke|dari)\b/i,
+  /(?:berhasil|sukses|success|completed|confirmed|tercatat|selesai)/i,
+  /(?:transaksi\s*(?:berhasil|sukses|selesai|debit|debet|kredit|sebesar|keluar|masuk|qris|ke|dari)|\btransaksi\s+rp\b|qris|bi-fast|bifast)/i,
 ];
 
 /**
  * Expense (debit) keyword patterns.
  */
 const EXPENSE_PATTERNS = [
-  /\b(debit|debet)\b/i,
-  /\b(pembayaran|bayar|payment|pay|paid)\b/i,
-  /\b(pembelian|belanja|purchase|beli)\b/i,
-  /\b(transfer\s*(?:keluar|ke\b))/i,
-  /\b(tarik\s*tunai|penarikan|withdrawal)\b/i,
-  /\b(kirim\s*(?:uang|dana|saldo)|sent\b)/i,
-  /\b(pengeluaran)\b/i,
+  /(?:debit|debet|pendebetan|didebit|didebet)/i,
+  /(?:pembayaran|bayar|membayar|dibayar|dibayarkan|terbayar|payment|pay|paid)/i,
+  /(?:pembelian|belanja|berbelanja|purchase|beli|membeli|dibeli)/i,
+  /(?:transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|m-transfer|trsf)/i,
+  /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
+  /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
+  /(?:pengeluaran|uang\s*keluar|dana\s*keluar|saldo\s*keluar|terpotong|dipotong|pemotongan|potong\s*saldo)/i,
+  /(?:qris|belanja\s*di|merchant|money\s*out)/i,
+  /(?:kantong.*terpotong|bayar\s*ke|membayar.*ke)/i,
 ];
 
 /**
  * Income (credit) keyword patterns.
  */
 const INCOME_PATTERNS = [
-  /\b(kredit|credit)\b/i,
-  /\b(terima\s*(?:uang|dana|transfer|saldo))/i,
-  /\b(transfer\s*(?:masuk|dari\b))/i,
-  /\b(dana\s*masuk|uang\s*masuk)\b/i,
-  /\b(pemasukan|pendapatan)\b/i,
-  /\b(top\s*up\s*berhasil)\b/i,
+  /(?:kredit|credit|pengkreditan|dikreditkan)/i,
+  /(?:terima|menerima|diterima|penerimaan|received|receive)/i,
+  /(?:transfer\s*(?:masuk|dari\b)|terima\s*transfer|ditransfer\s*dari|ditransfer\s*oleh)/i,
+  /(?:dana\s*masuk|uang\s*masuk|saldo\s*masuk|masuk\s*ke\s*rekening|money\s*in)/i,
+  /(?:pemasukan|pendapatan|penghasilan|gaji|payroll|salary|upah|honor|bonus|thr|komisi|affiliate)/i,
+  /(?:top\s*up|topup|isi\s*saldo|tambah\s*saldo|saldo\s*bertambah|bertambah)/i,
+  /(?:cashback|refund|pengembalian\s*dana|reimbursement)/i,
 ];
 
 /**
@@ -348,13 +439,13 @@ export function extractTransactionAmount(fullText) {
       }
     }
 
-    if (/bertambah|ditambahkan/i.test(clauseBefore)) {
+    if (/bertambah|ditambahkan|masuk/i.test(clauseBefore)) {
       isBalance = false;
     }
 
     // Check if this specific amount is preceded by transaction keywords
     let isTransaction = false;
-    if (/debit|debet|kredit|credit|bayar|pembayaran|sebesar|nominal|total|kirim|tarik|belanja|beli|top\s*up|bertambah|masuk|ditambahkan/i.test(clauseBefore)) {
+    if (/debit|debet|kredit|credit|bayar|membayar|dibayar|pembayaran|sebesar|nominal|total|kirim|mengirim|tarik|belanja|beli|top\s*up|bertambah|masuk|ditambahkan|ke\b/i.test(clauseBefore)) {
       isTransaction = true;
     }
 
@@ -415,9 +506,9 @@ export function detectTransactionType(fullText) {
   if (expenseScore > 0 && expenseScore > incomeScore) return 'expense';
   if (incomeScore > 0 && incomeScore > expenseScore) return 'income';
   if (expenseScore > 0 && expenseScore === incomeScore) {
-    // Tie-break: "debit" is more definitively expense than generic signals
-    if (/\b(debit|debet)\b/i.test(text)) return 'expense';
-    if (/\b(kredit|credit)\b/i.test(text)) return 'income';
+    // Tie-break: "debit" / "bayar" is more definitively expense
+    if (/(?:debit|debet|bayar|membayar|dibayar|kirim|keluar|beli)/i.test(text)) return 'expense';
+    if (/(?:kredit|credit|terima|menerima|masuk)/i.test(text)) return 'income';
   }
 
   return null;
@@ -435,7 +526,7 @@ export function extractMerchant(fullText) {
   // Pattern: "merchant/toko: [Merchant]" or "ke/di/pada [Merchant]"
   const merchantPatterns = [
     /(?:merchant|toko|store|outlet|merchant\s*name)[:\s]+([A-Za-z0-9\s&.'()-]{2,40})/i,
-    /(?:ke|di|pada|at|to|from|dari)\s+([A-Za-z0-9\s&.'()-]{2,40})/i,
+    /(?:pembayaran\s*(?:sebesar\s*[^,\n]+)?\s*ke|bayar\s*(?:sebesar\s*[^,\n]+)?\s*ke|membayar\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|transfer\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|kirim\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|ke|di|pada|at|to|from|dari)\s+([A-Za-z0-9\s&.'()-]{2,40})/i,
   ];
 
   const falsePositives = [
@@ -452,7 +543,11 @@ export function extractMerchant(fullText) {
       let merchant = match[1].trim();
       // Cut off at sentence endings or trailing metadata keywords
       merchant = merchant.split(/[.,;!?\n\r]/)[0].trim();
-      merchant = merchant.replace(/\s+(berhasil|sukses|pada|sebesar|nominal|tgl|tanggal|jam|waktu|rp|idr)\b.*$/i, '').trim();
+      // Clean trailing pocket / account references (e.g. Jago pocket ", Set", ", Kantong Utama")
+      merchant = merchant.replace(/\s+(?:set|kantong.*|pocket.*|rekening.*|account.*)$/i, '').trim();
+      merchant = merchant.replace(/\s+(berhasil|sukses|pada|sebesar|nominal|tgl|tanggal|jam|waktu|rp|idr|butuh|silakan)\b.*$/i, '').trim();
+      // Strip leading account number digits if present (e.g. "1234567890 Budi" -> "Budi")
+      merchant = merchant.replace(/^\d{4,}\s+/, '').trim();
 
       const merchantLower = merchant.toLowerCase();
       if (falsePositives.some(fp => merchantLower === fp || merchantLower.startsWith(fp + ' '))) {
@@ -489,7 +584,7 @@ export function isNonTransactional(fullText) {
   if (!fullText) return true;
 
   // Pure OTP/verification — always ignore
-  if (/\b(otp|kode\s*verifikasi|verification\s*code)\b/i.test(fullText)) {
+  if (/(?:otp|kode\s*verifikasi|verification\s*code)/i.test(fullText)) {
     return true;
   }
 
@@ -543,6 +638,104 @@ export function calculateConfidence({ amount, type, hasSignal, provider, merchan
 // Each parser adds provider-specific heuristics on top of the generic pipeline.
 
 /**
+ * Bank Jago Parser
+ * Common formats:
+ * - "Kamu telah membayar Rp 15.000 ke Ayam Goreng Hj Toyib, Set. Butuh bantuan? Silakan Tanya Jago di 1500 746."
+ * - "Kamu telah mengirim Rp 50.000 ke [Nama/Rekening]..."
+ * - "Kamu menerima Rp 100.000 dari [Nama]..."
+ * - "Uang masuk Rp 100.000 dari [Nama]..."
+ * - "Pembayaran QRIS Rp 25.000 ke [Merchant] berhasil"
+ */
+function parseJago(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/membayar|mengirim|terpotong|debit|qris|bayar/i.test(text)) type = 'expense';
+    if (/menerima|uang\s*masuk|dana\s*masuk|top\s*up|kredit/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.9, confidence), description: normalized.title || 'Bank Jago' };
+}
+
+/**
+ * SeaBank Parser
+ * Common formats:
+ * - "Transfer berhasil! Rp 50.000 ke [Nama]..."
+ * - "Kamu menerima transfer sebesar Rp 100.000 dari [Nama]..."
+ * - "Pembayaran QRIS sebesar Rp 25.000 ke [Merchant] berhasil."
+ */
+function parseSeaBank(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/transfer\s*keluar|pembayaran|qris|bayar|kirim/i.test(text)) type = 'expense';
+    if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.9, confidence), description: normalized.title || 'SeaBank' };
+}
+
+/**
+ * blu by BCA Digital Parser
+ */
+function parseBlu(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/bayar|membayar|transfer|qris/i.test(text)) type = 'expense';
+    if (/masuk|terima|top\s*up/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.9, confidence), description: normalized.title || 'blu' };
+}
+
+/**
+ * Jenius Parser
+ */
+function parseJenius(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/membayar|mengirim|money\s*out|debit|debet/i.test(text)) type = 'expense';
+    if (/menerima|money\s*in|kredit/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.9, confidence), description: normalized.title || 'Jenius' };
+}
+
+/**
  * BRI / BRImo Parser
  * Common format: "Nasabah Yth. Debet sebesar Rp25.000 pada DD/MM HH:MM. Saldo: Rp1.250.000"
  * Also: "INFO BRI: Debit/Kredit sebesar Rpxxx"
@@ -555,8 +748,8 @@ function parseBRI(normalized) {
   let type = detectTransactionType(text);
   // BRI-specific: "Debet" = expense, "Kredit" = income
   if (!type) {
-    if (/\bdebet\b/i.test(text)) type = 'expense';
-    else if (/\bkredit\b/i.test(text)) type = 'income';
+    if (/debet|debit/i.test(text)) type = 'expense';
+    else if (/kredit|credit/i.test(text)) type = 'income';
   }
   if (!type) return null;
 
@@ -564,7 +757,7 @@ function parseBRI(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'BRImo' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'BRImo' };
 }
 
 /**
@@ -577,13 +770,17 @@ function parseBCA(normalized) {
   if (!amount) return null;
 
   let type = detectTransactionType(text);
+  if (!type) {
+    if (/debit|debet|transfer\s*ke|bayar|qris|m-transfer/i.test(text)) type = 'expense';
+    if (/kredit|credit|transfer\s*dari|masuk/i.test(text)) type = 'income';
+  }
   if (!type) return null;
 
   const merchant = extractMerchant(text);
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'BCA' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'BCA' };
 }
 
 /**
@@ -600,6 +797,7 @@ function parseMandiri(normalized) {
     // Mandiri: "Transfer Berhasil" without explicit debit/credit → expense (sending)
     if (/transfer\s*berhasil/i.test(text)) type = 'expense';
     if (/pembayaran\s*berhasil/i.test(text)) type = 'expense';
+    if (/dana\s*masuk|terima/i.test(text)) type = 'income';
   }
   if (!type) return null;
 
@@ -607,7 +805,51 @@ function parseMandiri(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || "Livin'" };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || "Livin'" };
+}
+
+/**
+ * BNI / Wondr Parser
+ */
+function parseBNI(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/debit|debet|qris|bayar|transfer\s*keluar|transfer\s*ke/i.test(text)) type = 'expense';
+    if (/kredit|credit|transfer\s*masuk|masuk/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'Wondr by BNI' };
+}
+
+/**
+ * BSI Parser
+ */
+function parseBSI(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/debet|debit|bayar|transfer\s*ke|qris/i.test(text)) type = 'expense';
+    if (/kredit|credit|masuk/i.test(text)) type = 'income';
+  }
+  if (!type) return null;
+
+  const merchant = extractMerchant(text);
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'BSI' };
 }
 
 /**
@@ -621,7 +863,7 @@ function parseDANA(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/pembayaran|bayar|kirim/i.test(text)) type = 'expense';
+    if (/pembayaran|bayar|kirim|membayar/i.test(text)) type = 'expense';
     if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
   }
   if (!type) return null;
@@ -630,7 +872,7 @@ function parseDANA(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'DANA' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'DANA' };
 }
 
 /**
@@ -644,7 +886,7 @@ function parseGoPay(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/dibayar|bayar|kirim/i.test(text)) type = 'expense';
+    if (/dibayar|bayar|kirim|membayar/i.test(text)) type = 'expense';
     if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
   }
   if (!type) return null;
@@ -653,7 +895,7 @@ function parseGoPay(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'GoPay' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'GoPay' };
 }
 
 /**
@@ -667,7 +909,7 @@ function parseOVO(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/pembayaran|bayar|kirim|belanja/i.test(text)) type = 'expense';
+    if (/pembayaran|bayar|kirim|belanja|membayar/i.test(text)) type = 'expense';
     if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
   }
   if (!type) return null;
@@ -676,7 +918,7 @@ function parseOVO(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'OVO' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'OVO' };
 }
 
 /**
@@ -690,7 +932,7 @@ function parseShopeePay(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/dikonfirmasi|pembayaran|bayar|kirim/i.test(text)) type = 'expense';
+    if (/dikonfirmasi|pembayaran|bayar|kirim|membayar/i.test(text)) type = 'expense';
     if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
   }
   if (!type) return null;
@@ -699,7 +941,7 @@ function parseShopeePay(normalized) {
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence, description: normalized.title || 'ShopeePay' };
+  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'ShopeePay' };
 }
 
 /**
@@ -710,14 +952,17 @@ function parseGenericBank(normalized) {
   const amount = extractTransactionAmount(text);
   if (!amount) return null;
 
-  const type = detectTransactionType(text);
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/bayar|membayar|dibayar|kirim|keluar|beli|transfer/i.test(text)) type = 'expense';
+    if (/terima|menerima|masuk|kredit|top\s*up/i.test(text)) type = 'income';
+  }
   if (!type) return null;
 
   const merchant = extractMerchant(text);
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
-  // Slightly lower confidence for generic parser
-  const adjustedConfidence = Math.max(0, confidence - 0.05);
+  const adjustedConfidence = Math.max(0.75, confidence);
 
   return { amount, type, merchant, confidence: adjustedConfidence, description: normalized.title || normalized.appLabel || 'Bank' };
 }
@@ -732,15 +977,15 @@ function parseGenericEWallet(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/pembayaran|bayar|kirim|belanja|paid|pay|sent|send/i.test(text)) type = 'expense';
-    if (/terima|masuk|top\s*up|received/i.test(text)) type = 'income';
+    if (/pembayaran|bayar|membayar|dibayar|kirim|belanja|paid|pay|sent|send/i.test(text)) type = 'expense';
+    if (/terima|menerima|masuk|top\s*up|received/i.test(text)) type = 'income';
   }
   if (!type) return null;
 
   const merchant = extractMerchant(text);
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
-  const adjustedConfidence = Math.max(0, confidence - 0.05);
+  const adjustedConfidence = Math.max(0.75, confidence);
 
   return { amount, type, merchant, confidence: adjustedConfidence, description: normalized.title || normalized.appLabel || 'E-Wallet' };
 }
@@ -751,23 +996,32 @@ const PROVIDER_PARSERS = {
   bri: parseBRI,
   bca: parseBCA,
   mandiri: parseMandiri,
-  bni: parseGenericBank,
-  bsi: parseGenericBank,
+  bni: parseBNI,
+  bsi: parseBSI,
   dana: parseDANA,
   gopay: parseGoPay,
   ovo: parseOVO,
   shopeepay: parseShopeePay,
   linkaja: parseGenericEWallet,
-  seabank: parseGenericBank,
-  jago: parseGenericBank,
-  jenius: parseGenericBank,
+  seabank: parseSeaBank,
+  jago: parseJago,
+  jenius: parseJenius,
   cimb: parseGenericBank,
   permata: parseGenericBank,
   maybank: parseGenericBank,
   bpddiy: parseGenericBank,
   btn: parseGenericBank,
-  blu: parseGenericBank,
+  blu: parseBlu,
+  neobank: parseGenericBank,
+  allobank: parseGenericBank,
+  linebank: parseGenericBank,
+  superbank: parseGenericBank,
+  krom: parseGenericBank,
+  astrapay: parseGenericEWallet,
+  isaku: parseGenericEWallet,
+  doku: parseGenericEWallet,
   paypal: parseGenericEWallet,
+  generic_bank: parseGenericBank,
 };
 
 /**
@@ -1136,11 +1390,28 @@ export function runParserTests() {
       title: 'Bank Jago',
       appLabel: 'Jago',
     };
-    const result = parseGenericBank(normalized);
+    const result = parseJago(normalized);
     return {
       passed: result !== null && result.amount === 120000 && result.type === 'expense' && result.merchant === 'Solaria',
       expected: '120000 / expense / Solaria',
       actual: result ? `${result.amount} / ${result.type} / ${result.merchant}` : 'null',
+    };
+  });
+
+  // Test 24b: Bank Jago — Real screenshot format ("Kamu telah membayar Rp 15.000 ke Ayam Goreng Hj Toyib, Set...")
+  test('Bank Jago — Real screenshot format (Kamu telah membayar)', () => {
+    const normalized = {
+      packageName: 'com.bankjago.app',
+      appLabel: 'Jago',
+      title: 'Jago',
+      fullText: 'Jago Kamu telah membayar Rp 15.000 ke Ayam Goreng Hj Toyib, Set. Butuh bantuan? Silakan Tanya Jago di 1500 746.',
+    };
+    const provider = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, provider);
+    return {
+      passed: provider?.id === 'jago' && result !== null && result.amount === 15000 && result.type === 'expense' && result.merchant === 'Ayam Goreng Hj Toyib',
+      expected: 'jago / 15000 / expense / Ayam Goreng Hj Toyib',
+      actual: `${provider?.id} / ${result?.amount} / ${result?.type} / ${result?.merchant}`,
     };
   });
 
@@ -1151,7 +1422,7 @@ export function runParserTests() {
       title: 'Jenius',
       appLabel: 'Jenius',
     };
-    const result = parseGenericBank(normalized);
+    const result = parseJenius(normalized);
     return {
       passed: result !== null && result.amount === 60000 && result.type === 'expense' && result.merchant === 'McDonald',
       expected: '60000 / expense / McDonald',

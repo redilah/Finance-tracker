@@ -21,6 +21,20 @@ public class AssistantVoiceParserTest {
         assertEquals("Rp 20.000", res.formattedAmount);
         assertEquals("Food", res.category);
         assertEquals("BRImo", res.account);
+        assertEquals("Beli mangga lima biji", res.note);
+    }
+
+    @Test
+    public void testUserBawangMerahCase() {
+        String input = "bawang merah 20.000 cash";
+        AssistantVoiceParser.Result res = AssistantVoiceParser.parse(input);
+
+        assertTrue("Should be valid transaction", res.isValid);
+        assertEquals("expense", res.type);
+        assertEquals(20000L, res.amount);
+        assertEquals("Rp 20.000", res.formattedAmount);
+        assertEquals("Cash", res.account);
+        assertEquals("Bawang merah", res.note);
     }
 
     @Test
@@ -34,6 +48,7 @@ public class AssistantVoiceParserTest {
         assertEquals("Rp 5.000.000", res.formattedAmount);
         assertEquals("Gaji", res.category);
         assertEquals("BCA", res.account);
+        assertEquals("Gaji bulan ini", res.note);
     }
 
     @Test
@@ -46,6 +61,7 @@ public class AssistantVoiceParserTest {
         assertEquals(50000L, res.amount);
         assertEquals("Coffee", res.category);
         assertEquals("GoPay", res.account);
+        assertEquals("Kopi starbucks", res.note);
     }
 
     @Test
@@ -57,6 +73,7 @@ public class AssistantVoiceParserTest {
         assertEquals(12500L, res.amount);
         assertEquals("Supermarket", res.category);
         assertEquals("Cash", res.account);
+        assertEquals("Belanja indomaret", res.note);
     }
 
     @Test
@@ -68,6 +85,7 @@ public class AssistantVoiceParserTest {
         assertEquals(10000L, res.amount);
         assertEquals("Bensin", res.category);
         assertEquals("DANA", res.account);
+        assertEquals("Beli bensin", res.note);
     }
 
     @Test
@@ -80,5 +98,6 @@ public class AssistantVoiceParserTest {
         assertTrue(json.contains("\"amount\":25000"));
         assertTrue(json.contains("\"account\":\"GoPay\""));
         assertTrue(json.contains("\"category\":\"Coffee\""));
+        assertTrue(json.contains("\"note\":\"Beli kopi\""));
     }
 }

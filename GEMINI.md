@@ -6,7 +6,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.40`** | `versionCode` **`40`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.41`** | `versionCode` **`41`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 

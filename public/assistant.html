@@ -803,6 +803,9 @@
     else if (lower.includes('gojek') || lower.includes('grab') || lower.includes('transport')) { category = 'Transportasi'; categoryId = 'transport'; }
     else if (lower.includes('gaji')) { category = 'Gaji'; categoryId = 'gaji'; }
 
+    let note = cleanNoteJs(text);
+    if (!note) note = category;
+
     return {
       isValid: amount > 0,
       type: isIncome ? 'income' : 'expense',
@@ -811,8 +814,37 @@
       category: category,
       categoryId: categoryId,
       account: account,
-      note: text
+      note: note
     };
+  }
+
+  function cleanNoteJs(rawText) {
+    if (!rawText) return '';
+    let cleaned = rawText.trim();
+
+    // 1. Remove slang number words
+    cleaned = cleaned.replace(/\b(ceban|goceng|seceng|noceng|noban|goban|cepek|gopek)\b/gi, ' ');
+
+    // 2. Remove amount patterns
+    cleaned = cleaned.replace(/\b\d+(?:[.,]\d+)?\s*(?:juta|jt|million|m)\b/gi, ' ');
+    cleaned = cleaned.replace(/\b\d+(?:[.,]\d+)?\s*(?:ribu|rb|k)\b/gi, ' ');
+    cleaned = cleaned.replace(/(?:rp\.?|rupiah)?\s*\b\d{1,3}(?:\.\d{3})+\b/gi, ' ');
+    cleaned = cleaned.replace(/(?:rp\.?|rupiah)?\s*\b\d+\b/gi, ' ');
+    cleaned = cleaned.replace(/\b(rp|rupiah)\b/gi, ' ');
+
+    // 3. Remove bank & account keywords
+    cleaned = cleaned.replace(/\b(brimo|bri|bca|klikbca|livin'?\s*by\s*mandiri|livin|mandiri|wondr\s*by\s*bni|wondr|bni|seabank|sea\s*bank|bsi\s*mobile|bsi|jago|gopay|go-pay|ovo|dana|shopeepay|shopee\s*pay|spay|linkaja|link\s*aja|cash|tunai|qris)\b/gi, ' ');
+
+    // 4. Remove preposition & connector keywords
+    cleaned = cleaned.replace(/\b(pakai|pake|via|lewat|menggunakan|dengan|sebesar|sebanyak|senilai|ke\s*akun|dari\s*akun)\b/gi, ' ');
+    cleaned = cleaned.replace(/\b(masuk\s*ke|masuk|diterima\s*di|diterima)\b/gi, ' ');
+
+    // 5. Remove leftover punctuation and extra whitespace
+    cleaned = cleaned.replace(/[,;\-_/\\|]/g, ' ');
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    if (!cleaned) return '';
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
 </script>
 </body>

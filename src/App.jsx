@@ -2565,7 +2565,6 @@ function App() {
         setProfileImage,
         setAppLanguage,
         setAppCurrency,
-        setMainMonthlyBudget,
         setIsPro,
       });
 
@@ -10246,44 +10245,23 @@ function App() {
 
       {/* Simple App Update Pop-Up Modal */}
       {updateInfo && (
-        <div className="modal-overlay update-overlay">
-          <div className="update-modal-card">
-            <div className="update-modal-header">
-              <span className="update-modal-badge">{t('newVersionAvailable') || '🚀 Versi Baru Tersedia'}</span>
+        <div className="modal-overlay update-overlay" onClick={() => {
+          window.hasDismissedUpdate = true;
+          setUpdateInfo(null);
+        }}>
+          <div className="update-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="update-modal-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
             </div>
             <div className="update-modal-body">
-              <h3 className="update-version-title">Update v{updateInfo.version}</h3>
-              {(() => {
-                const rawChangelog = updateInfo.changelog || 'Pembaruan aplikasi telah tersedia.';
-                const lines = rawChangelog.split('\n').map(l => l.trim()).filter(Boolean);
-                const featureLines = lines.filter(line => 
-                  !line.toLowerCase().startsWith('new in this update') && 
-                  !line.toLowerCase().startsWith('yang baru')
-                );
-
-                if (featureLines.length === 0) {
-                  return <p className="update-changelog-text">{rawChangelog}</p>;
-                }
-
-                return (
-                  <div className="update-changelog-container">
-                    <p className="update-changelog-header">{t('whatsNewInThisVersion') || 'Yang baru di versi ini:'}</p>
-                    <ul className="update-changelog-list">
-                      {featureLines
-                        .slice(0, 3)
-                        .map((line, idx) => {
-                          const cleanText = line.replace(/^[-•*]\s*/, '').replace(/^\[New\]\s*/i, '').trim();
-                          return (
-                            <li key={idx} className="update-changelog-item">
-                              <span className="update-changelog-bullet">•</span>
-                              <span className="update-changelog-line-text">{cleanText}</span>
-                            </li>
-                          );
-                        })}
-                    </ul>
-                  </div>
-                );
-              })()}
+              <h3 className="update-modal-title">Versi terbaru aplikasi Cassiel</h3>
+              <p className="update-modal-desc">
+                Mohon update versi aplikasi Cassiel ke versi terbaru untuk menikmati fitur terbaru
+              </p>
             </div>
             <div className="update-modal-footer">
               <button
@@ -10294,7 +10272,7 @@ function App() {
                   setUpdateInfo(null);
                 }}
               >
-                {t('later') || 'Nanti'}
+                {t('later') || 'Nanti Saja'}
               </button>
               <button
                 type="button"
@@ -10325,7 +10303,7 @@ function App() {
                   }
                 }}
               >
-                {t('updateNow') || 'Update Sekarang'}
+                {t('updateNow') || 'Perbarui Sekarang'}
               </button>
             </div>
           </div>

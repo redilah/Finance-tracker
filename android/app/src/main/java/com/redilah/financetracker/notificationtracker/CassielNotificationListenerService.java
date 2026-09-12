@@ -52,7 +52,11 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             "com.seabank.id", "com.jfriau.bankjago", "com.bankjago.app", "com.btpn.dc",
             "com.cimbniaga.mobile.android", "net.myinfosys.PermataMobileX",
             "com.maybankindo.maybank2u", "id.co.bankbpd.diy.mobile", "id.co.btn.mobile",
-            "id.co.btn.superapp", "bcadigital.blubybcadigital", "com.paypal.android.p2pmobile"
+            "id.co.btn.superapp", "bcadigital.blubybcadigital", "com.bnc.finance",
+            "com.bankneo.mobile", "id.allobank.mobile", "com.allobank.app",
+            "com.linecorp.linebank.id", "id.superbank.app", "id.co.krom.app",
+            "com.astrapay.app", "com.indomarco.isaku", "com.dokuwallet.android",
+            "com.paypal.android.p2pmobile"
     ));
 
     @Override
@@ -388,13 +392,17 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     private String extractMerchantOrCategory(String fullText, String title, String text) {
         try {
             // Check for merchant prefix keywords: di, ke, kepada, merchant, bayar ke, transfer ke, qris
-            Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke|transfer ke|qris)\\s+([a-zA-Z0-9&'\\.\\s-]{3,25})", Pattern.CASE_INSENSITIVE);
+            Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke|transfer ke|qris)\\s+([a-zA-Z0-9&'\\.\\s-]{3,35})", Pattern.CASE_INSENSITIVE);
             Matcher matcher = merchantPattern.matcher(fullText);
             if (matcher.find()) {
                 String candidate = matcher.group(1).trim();
+                // Strip trailing punctuation / clauses
+                if (candidate.contains(",")) candidate = candidate.split(",")[0].trim();
+                if (candidate.contains(".")) candidate = candidate.split("\\.")[0].trim();
+                candidate = candidate.replaceAll("(?i)\\s+(?:set|kantong.*|pocket.*|rekening.*)$", "").trim();
                 String lower = candidate.toLowerCase();
                 if (!lower.contains("rekening") && !lower.contains("berhasil") && !lower.contains("sukses")
-                        && !lower.contains("transaksi") && !lower.contains("pembayaran") && candidate.length() >= 3) {
+                        && !lower.contains("transaksi") && !lower.contains("pembayaran") && candidate.length() >= 2) {
                     return candidate;
                 }
             }
