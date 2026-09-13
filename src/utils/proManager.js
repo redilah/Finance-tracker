@@ -6,10 +6,14 @@
 const STORAGE_KEY_IS_PRO = 'cassiel_is_pro_user';
 const STORAGE_KEY_VOICE_QUOTA = 'cassiel_voice_mic_quota';
 const STORAGE_KEY_DAILY_AUTO_TRACK = 'cassiel_daily_autotrack_usage';
+const STORAGE_KEY_EXCEL_QUOTA = 'cassiel_excel_export_quota';
+const STORAGE_KEY_EXCEL_LAST_RESET_MONTH = 'cassiel_excel_last_reset_month';
 
 export const FREE_VOICE_QUOTA_DEFAULT = 40;
 export const FREE_MAX_GROUPS = 3;
 export const FREE_DAILY_AUTO_TRACK_LIMIT = 5;
+export const FREE_EXCEL_QUOTA_DEFAULT = 25;
+export const FREE_EXCEL_MONTHLY_RESET_QUOTA = 5;
 
 /**
  * Cek apakah user berstatus Pro
@@ -69,6 +73,64 @@ export function decrementVoiceQuota() {
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem(STORAGE_KEY_VOICE_QUOTA, String(next));
     window.dispatchEvent(new CustomEvent('cassiel_voice_quota_changed', { detail: { quota: next } }));
+  }
+  return next;
+}
+
+/**
+ * Dapatkan sisa kuota ekspor Excel dan lakukan auto-reset bulanan jika bulan berganti
+ */
+export function getExcelExportQuota() {
+  if (typeof localStorage === 'undefined') return FREE_EXCEL_QUOTA_DEFAULT;
+  
+  const currentMonth = new Date().toISOString().slice(0, 7); // Format: "YYYY-MM"
+  const lastResetMonth = localStorage.getItem(STORAGE_KEY_EXCEL_LAST_RESET_MONTH);
+  const rawQuota = localStorage.getItem(STORAGE_KEY_EXCEL_QUOTA);
+
+  // Jika pertama kali / belum pernah ada catatan kuota
+  if (rawQuota === null || rawQuota === undefined) {
+    localStorage.setItem(STORAGE_KEY_EXCEL_QUOTA, String(FREE_EXCEL_QUOTA_DEFAULT));
+    localStorage.setItem(STORAGE_KEY_EXCEL_LAST_RESET_MONTH, currentMonth);
+    return FREE_EXCEL_QUOTA_DEFAULT;
+  }
+
+  let quota = parseInt(rawQuota, 10);
+  if (isNaN(quota)) quota = FREE_EXCEL_QUOTA_DEFAULT;
+
+  // Cek apakah sudah berganti bulan
+  if (!lastResetMonth) {
+    localStorage.setItem(STORAGE_KEY_EXCEL_LAST_RESET_MONTH, currentMonth);
+  } else if (lastResetMonth !== currentMonth) {
+    // Bulan baru! Reset kuota minimal 5 kali ekspor per bulan
+    if (quota < FREE_EXCEL_MONTHLY_RESET_QUOTA) {
+      quota = FREE_EXCEL_MONTHLY_RESET_QUOTA;
+      localStorage.setItem(STORAGE_KEY_EXCEL_QUOTA, String(quota));
+    }
+    localStorage.setItem(STORAGE_KEY_EXCEL_LAST_RESET_MONTH, currentMonth);
+  }
+
+  return Math.max(0, quota);
+}
+
+/**
+ * Cek apakah user memiliki kuota untuk mengekspor Excel
+ */
+export function hasExcelExportQuota() {
+  if (isProUser()) return true;
+  return getExcelExportQuota() > 0;
+}
+
+/**
+ * Kurangi 1 kuota ekspor Excel jika user berstatus Free
+ * Mengembalikan sisa kuota setelah dikurangi
+ */
+export function decrementExcelExportQuota() {
+  if (isProUser()) return Infinity;
+  const current = getExcelExportQuota();
+  const next = Math.max(0, current - 1);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_EXCEL_QUOTA, String(next));
+    window.dispatchEvent(new CustomEvent('cassiel_excel_quota_changed', { detail: { quota: next } }));
   }
   return next;
 }

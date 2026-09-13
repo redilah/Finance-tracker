@@ -2044,12 +2044,13 @@ img[src*="Kost"] {
   flex: 1;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1.5px solid #2D5284;
+  border: 1.5px solid #FFFFFF;
   background-color: #FFFFFF;
   color: var(--text-main);
   font-size: 13px;
   font-weight: 600;
   outline: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .add-cat-btn {
@@ -8295,6 +8296,22 @@ img[src*="Kost"] {
 
 .backup-confirm-icon-wrapper svg {
   stroke: #1565C0;
+}
+
+.excel-confirm-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.excel-confirm-icon-wrapper svg,
+.excel-confirm-icon-wrapper svg * {
+  stroke: #000000 !important;
 }
 
 .backup-confirm-title {

@@ -43,7 +43,8 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     private static final String CHANNEL_ID = "financial_notifications";
 
     private static final Set<String> WHITELIST = new HashSet<>(Arrays.asList(
-            "id.co.bri.brimo", "com.bca", "com.bca.mybca.mobile", "com.bca.mybca", "com.bca.klikbca",
+            "id.co.bri.brimo", "id.co.bri.mobile", "id.co.bri.link", "id.co.bri.internetbanking", "com.bri.brimo",
+            "com.bca", "com.bca.mybca.mobile", "com.bca.mybca", "com.bca.klikbca",
             "com.bankmandiri.mandirionline", "com.bankmandiri.livin",
             "id.co.bni.net.banking", "id.co.bni.wondr",
             "com.bsm.activity2", "id.co.bankbsi.mobile", "id.co.bankbsi.superapp",
@@ -190,6 +191,9 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
                     prefs.edit().putString(KEY_QUEUE, queue.toString()).apply();
                     Log.i(TAG, "Notification enqueued from " + packageName + " | Title: " + title);
+
+                    // Instantly refresh widget
+                    com.redilah.financetracker.widget.CassielSmallWidgetProvider.recalculateAndRefresh(this);
                 } catch (Throwable queueError) {
                     Log.e(TAG, "Failed to append to queue", queueError);
                 }
@@ -299,7 +303,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     private String resolveProviderName(String packageName, String fallbackLabel) {
         if (packageName == null) return fallbackLabel != null ? fallbackLabel : "Bank";
 
-        if (packageName.equals("id.co.bri.brimo")) return "BRImo";
+        if (packageName.contains("bri") || packageName.contains("brimo")) return "BRImo";
         if (packageName.contains("bca")) return "BCA";
         if (packageName.contains("mandiri") || packageName.contains("livin")) return "Livin' Mandiri";
         if (packageName.contains("bni") || packageName.contains("wondr")) return "BNI";
@@ -323,9 +327,43 @@ public class CassielNotificationListenerService extends NotificationListenerServ
         return fallbackLabel != null && !fallbackLabel.isEmpty() ? fallbackLabel : "Bank";
     }
 
+    private boolean isPhoneNumberOrIdentifier(String rawNumStr, String rawBefore, String fullText) {
+        if (rawNumStr == null || rawNumStr.isEmpty()) return false;
+        String digits = rawNumStr.replaceAll("[^0-9]", "");
+        String cb = rawBefore != null ? rawBefore.toLowerCase() : "";
+        
+        // 1. Indonesian phone numbers (628xxx, 08xxx)
+        if (digits.matches("^628\\d{7,12}$")) return true;
+        if (digits.matches("^08\\d{8,11}$")) return true;
+        if (digits.matches("^8\\d{8,11}$") && (cb.contains("ke") || cb.contains("nomor") || cb.contains("hp") || cb.contains("pulsa"))) return true;
+
+        // 2. Bank Call Center numbers (7 digits 1500xxx or 5 digits 140xx without Rp/IDR prefix)
+        if (!cb.contains("rp") && !cb.contains("idr")) {
+            if (digits.matches("^(?:1500\\d{3}|140\\d{2})$")) return true;
+        }
+
+        // 3. Preceded by target/phone/identifier/call center keywords
+        if (cb.endsWith("ke ") || cb.endsWith("ke") || cb.contains("tujuan") || cb.contains("nomor") || cb.contains("no.")
+                || cb.contains("hp") || cb.contains("telp") || cb.contains("serial") || cb.contains("sn")
+                || cb.contains("id") || cb.contains("ref") || cb.contains("order") || cb.contains("trx")
+                || cb.contains("call center") || cb.contains("contact center") || cb.contains("hubungi") || cb.contains("bantuan")) {
+            if (digits.length() >= 5) return true;
+        }
+
+        // 4. Serial / Order / Transaction IDs (10+ digits without Rp prefix, or 12+ digits)
+        if (digits.length() >= 10 && !cb.contains("rp") && !cb.contains("idr")) {
+            return true;
+        }
+        if (digits.length() >= 12) {
+            return true;
+        }
+
+        return false;
+    }
+
     private String extractFormattedAmount(String fullText) {
         try {
-            // Pattern for Rp / IDR amounts like Rp 25.000, IDR 150,000, Rp25000, Rp. 50.000
+            // Pattern for Rp / IDR amounts like Rp 25.000, IDR 150,000, Rp25000, Rp. 50.000, Rp3.275
             Pattern pattern = Pattern.compile("(?:rp\\.?|idr)\\s*([0-9]+(?:[\\.,][0-9]+)*)", Pattern.CASE_INSENSITIVE);
             Matcher matcher = pattern.matcher(fullText);
 
@@ -340,12 +378,16 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                         && !rawBefore.contains("bertambah") && !rawBefore.contains("ditambahkan") && !rawBefore.contains("masuk");
 
                 String numStr = matcher.group(1).trim();
+                if (isPhoneNumberOrIdentifier(numStr, rawBefore, fullText)) {
+                    continue;
+                }
+
                 // Strip trailing 1-2 decimal places (cents/sen, e.g. .00 or ,00 or .0)
                 String cleanedNum = numStr.replaceAll("[,.]\\d{1,2}$", "");
                 String rawNum = cleanedNum.replaceAll("[^0-9]", "");
                 if (!rawNum.isEmpty()) {
                     long amount = Long.parseLong(rawNum);
-                    if (amount > 0) {
+                    if (amount > 0 && amount < 10000000000L) {
                         if (!isBalance) {
                             candidateAmount = amount;
                             break; // Found preferred transaction amount!
@@ -356,7 +398,30 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 }
             }
 
-            // Fallback for standalone large numbers if no Rp/IDR prefix found
+            // Fallback for Pulsa / Digital Product Denominations (e.g. "SIMPATI 2.000", "Pulsa 5.000", "Telkomsel 10.000")
+            if (candidateAmount <= 0) {
+                Pattern pulsaPattern = Pattern.compile("(?:simpati|kartu\\s*as|telkomsel|indosat|im3|mentari|xl|axis|tri|three|smartfren|by\\.?u|pulsa)\\s+([0-9]{1,3}(?:\\.[0-9]{3})+|[0-9]{1,3}k|[0-9]{1,3}rb)\\b", Pattern.CASE_INSENSITIVE);
+                Matcher pulsaMatcher = pulsaPattern.matcher(fullText);
+                if (pulsaMatcher.find()) {
+                    String denomStr = pulsaMatcher.group(1).toLowerCase().replace(".", "");
+                    if (denomStr.endsWith("k") || denomStr.endsWith("rb")) {
+                        String numPart = denomStr.replaceAll("[^0-9]", "");
+                        if (!numPart.isEmpty()) {
+                            candidateAmount = Long.parseLong(numPart) * 1000L;
+                        }
+                    } else {
+                        String digits = denomStr.replaceAll("[^0-9]", "");
+                        if (!digits.isEmpty()) {
+                            long amt = Long.parseLong(digits);
+                            if (amt >= 1000 && amt < 10000000L) {
+                                candidateAmount = amt;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback for standalone large numbers if no Rp/IDR prefix found (strictly excluding phone numbers & serials)
             if (candidateAmount <= 0) {
                 Pattern rawNumPattern = Pattern.compile("\\b([0-9]{1,3}(?:[\\.,][0-9]{3})+(?:[\\.,][0-9]{1,2})?|[0-9]{4,}(?:[\\.,][0-9]{1,2})?)\\b");
                 Matcher rawMatcher = rawNumPattern.matcher(fullText);
@@ -366,11 +431,14 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                     boolean isBalance = rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance");
                     if (!isBalance) {
                         String numStr = rawMatcher.group(1).trim();
+                        if (isPhoneNumberOrIdentifier(numStr, rawBefore, fullText)) {
+                            continue;
+                        }
                         String cleanedNum = numStr.replaceAll("[,.]\\d{1,2}$", "");
                         String digits = cleanedNum.replaceAll("[^0-9]", "");
                         if (!digits.isEmpty()) {
                             long amt = Long.parseLong(digits);
-                            if (amt >= 1000) {
+                            if (amt >= 1000 && amt < 1000000000L) {
                                 candidateAmount = amt;
                                 break;
                             }
@@ -391,6 +459,15 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
     private String extractMerchantOrCategory(String fullText, String title, String text) {
         try {
+            // Check for Pulsa / Provider product name first
+            Pattern pulsaPattern = Pattern.compile("\\b(simpati|kartu\\s*as|telkomsel|indosat|im3|mentari|xl|axis|tri|three|smartfren|by\\.?u|pulsa|paket\\s*data|token\\s*pln|pln)\\s*([0-9]{1,3}(?:\\.[0-9]{3})+|[0-9]{1,3}k|[0-9]{1,3}rb)?\\b", Pattern.CASE_INSENSITIVE);
+            Matcher pulsaMatcher = pulsaPattern.matcher(fullText);
+            if (pulsaMatcher.find()) {
+                String brand = pulsaMatcher.group(1).toUpperCase();
+                String denom = pulsaMatcher.group(2) != null ? " " + pulsaMatcher.group(2) : "";
+                return (brand + denom).trim();
+            }
+
             // Check for merchant prefix keywords: di, ke, kepada, merchant, bayar ke, transfer ke, qris
             Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke|transfer ke|qris)\\s+([a-zA-Z0-9&'\\.\\s-]{3,35})", Pattern.CASE_INSENSITIVE);
             Matcher matcher = merchantPattern.matcher(fullText);
@@ -400,20 +477,26 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 if (candidate.contains(",")) candidate = candidate.split(",")[0].trim();
                 if (candidate.contains(".")) candidate = candidate.split("\\.")[0].trim();
                 candidate = candidate.replaceAll("(?i)\\s+(?:set|kantong.*|pocket.*|rekening.*)$", "").trim();
-                String lower = candidate.toLowerCase();
-                if (!lower.contains("rekening") && !lower.contains("berhasil") && !lower.contains("sukses")
-                        && !lower.contains("transaksi") && !lower.contains("pembayaran") && candidate.length() >= 2) {
-                    return candidate;
+
+                // Skip phone numbers or pure numbers mistaken for merchant
+                String cleanDigits = candidate.replaceAll("[^0-9]", "");
+                if (cleanDigits.length() < 8 && !candidate.startsWith("08") && !candidate.startsWith("628")) {
+                    String lower = candidate.toLowerCase();
+                    if (!lower.contains("rekening") && !lower.contains("berhasil") && !lower.contains("sukses")
+                            && !lower.contains("transaksi") && !lower.contains("pembayaran") && candidate.length() >= 2) {
+                        return candidate;
+                    }
                 }
             }
 
             // Keyword to Category Fallback
+            if (fullText.contains("pembelian qris") || fullText.contains("transaksi qris") || fullText.contains("qris")) return "QRIS";
+            if (fullText.contains("simpati") || fullText.contains("pulsa") || fullText.contains("kuota") || fullText.contains("paket data") || fullText.contains("telkomsel") || fullText.contains("indosat") || fullText.contains("xl") || fullText.contains("tri") || fullText.contains("smartfren") || fullText.contains("axis") || fullText.contains("by.u")) return "Pulsa";
             if (fullText.contains("kopi") || fullText.contains("coffee") || fullText.contains("starbucks") || fullText.contains("fore") || fullText.contains("tomoro") || fullText.contains("kenangan")) return "Coffee";
             if (fullText.contains("makan") || fullText.contains("food") || fullText.contains("nasi") || fullText.contains("resto") || fullText.contains("kfc") || fullText.contains("mcd") || fullText.contains("solaria") || fullText.contains("mie") || fullText.contains("bakso") || fullText.contains("gofood") || fullText.contains("grabfood") || fullText.contains("shopeefood")) return "Food";
             if (fullText.contains("bensin") || fullText.contains("spbu") || fullText.contains("pertamina") || fullText.contains("shell") || fullText.contains("bp") || fullText.contains("pertamax") || fullText.contains("pertalite")) return "Bensin";
             if (fullText.contains("gojek") || fullText.contains("grab") || fullText.contains("maxim") || fullText.contains("tol") || fullText.contains("parkir") || fullText.contains("krl") || fullText.contains("mrt") || fullText.contains("transjakarta") || fullText.contains("taksi")) return "Transportasi";
             if (fullText.contains("indomaret") || fullText.contains("alfamart") || fullText.contains("alfamidi") || fullText.contains("supermarket") || fullText.contains("superindo") || fullText.contains("hypermart") || fullText.contains("swalayan")) return "Supermarket";
-            if (fullText.contains("pulsa") || fullText.contains("kuota") || fullText.contains("paket data") || fullText.contains("telkomsel") || fullText.contains("indosat") || fullText.contains("xl") || fullText.contains("tri") || fullText.contains("smartfren")) return "Pulsa";
             if (fullText.contains("wifi") || fullText.contains("indihome") || fullText.contains("biznet") || fullText.contains("myrepublic") || fullText.contains("internet")) return "WiFi";
             if (fullText.contains("netflix") || fullText.contains("spotify") || fullText.contains("youtube") || fullText.contains("disney") || fullText.contains("canva") || fullText.contains("chatgpt")) return "Subscription";
             if (fullText.contains("bioskop") || fullText.contains("cinema xxi") || fullText.contains("cgv") || fullText.contains("cinepolis") || fullText.contains("tix id")) return "Bioskop";

@@ -18,6 +18,7 @@ public class WidgetBridgePlugin extends Plugin {
         String monthlyRemaining = call.getString("monthlyRemaining", "Rp 0");
         String todayExpense = call.getString("todayExpense", "Hari ini: Rp 0");
         String todayExpenseAmount = call.getString("todayExpenseAmount", "Rp 0");
+        Long todayExpenseRaw = call.getLong("todayExpenseRaw", 0L);
         Integer budgetProgress = call.getInt("budgetProgress", 0);
 
         Context context = getContext();
@@ -29,6 +30,7 @@ public class WidgetBridgePlugin extends Plugin {
                 .putString("monthlyRemaining", monthlyRemaining)
                 .putString("todayExpense", todayExpense)
                 .putString("todayExpenseAmount", todayExpenseAmount)
+                .putLong("todayExpenseRaw", todayExpenseRaw != null ? todayExpenseRaw : 0L)
                 .putInt("budgetProgress", budgetProgress != null ? budgetProgress : 0)
                 .apply();
 

@@ -269,7 +269,10 @@ const EXPENSE_CATEGORY_KEYWORDS = {
     'chatgpt', 'openai', 'subscription', 'langganan', 'canva'
   ],
   pulsa: [
-    'telkomsel', 'indosat', 'xl', 'tri', 'smartfren', 'by.u', 'pulsa', 'kuota', 'paket data'
+    'telkomsel', 'simpati', 'kartu as', 'as', 'indosat', 'im3', 'mentari', 'xl', 'axis',
+    'tri', 'three', '3', 'smartfren', 'by.u', 'byu', 'pulsa', 'kuota', 'paket data',
+    'paket internet', 'paket telepon', 'isi pulsa', 'beli pulsa', 'top up pulsa', 'topup pulsa',
+    'token listrik', 'pln', 'token pln', 'listrik pln'
   ],
   wifi: [
     'indihome', 'biznet', 'myrepublic', 'first media', 'wifi', 'internet'

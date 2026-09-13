@@ -6,7 +6,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.42`** | `versionCode` **`42`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.43`** | `versionCode` **`43`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
@@ -77,6 +77,26 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 3. **Proactive MCP Tools Priority**:
    - Selalu manfaatkan tool MCP yang aktif (misal `firebase-mcp-server`) untuk melakukan manajemen project, registrasi SHA, dan query konfigurasi secara otomatis tanpa membebani pengguna dengan langkah manual di konsol browser.
 
+### G. Excel (.xlsx) Export & Freemium Quota Invariants
+1. **Quota Structure & Monthly Replenish**:
+   - Paket **Free**: Starter quota 25x ekspor gratis di awal. Setiap pergantian bulan kalender, kuota di bawah 5 otomatis diisi ulang menjadi 5x ekspor per bulan tanpa memotong sisa kuota awal jika masih >= 5.
+   - Paket **Pro**: Ekspor Excel tanpa batas (Unlimited).
+2. **Mandatory Confirmation Dialog & Privacy Assertion**:
+   - DILARANG langsung mengunduh/mengekspor berkas saat tombol ekspor ditekan. Sistem wajib selalu menampilkan pop-up dialog konfirmasi terlebih dahulu.
+   - **Ikon Dokumen**: Wajib berupa garis hitam murni (`stroke: #000000 !important;` dengan wadah `.excel-confirm-icon-wrapper`) di atas wadah rounded warm-yellow agar tajam dan tidak ter-override CSS biru warisan.
+   - **Teks Penegasan Privasi**: Wajib menggunakan kalimat: *"Data transaksimu adalah milikmu seutuhnya. Unduh salinan data ke Excel kapan pun kamu mau."*
+   - **Tombol Aksi**: Tombol aksi utama **`Ya, Ekspor`** wajib menggunakan gradien Warm Orange (`linear-gradient(135deg, #F59E0B, #D97706)` dengan `color: #FFFFFF !important;`).
+3. **Global Navigation & Back Gesture Integration**:
+   - State `excelExportConfirm` wajib didaftarkan di `backHandlerStateRef.current` dan ditangani di `handleAppBack()` agar dapat ditutup menggunakan Android System Back Button maupun gestur usapan tepi kiri (*edge-swipe*).
+
+### H. Notification Auto Tracker — Anti-False-Positive & Promo Isolation Invariant
+1. **Promo, Rewards & Giveaway Strict Exclusion**:
+   - Seluruh notifikasi yang memuat kata kunci promosi, sayembara, undian, reward, diskon, atau mini-game (seperti `hadiah`, `menangkan`, `pemenang`, `flip card`, `rewards`, `gratis`, `free`, `spin`, `undian`, `giveaway`, `cashback s.d.`, `voucher`, `kupon`) **WAJIB** diklasifikasikan sebagai `isNonTransactional = true` dan ditolak dari pencatatan otomatis, kecuali bila notifikasi tersebut memuat bukti penyelesaian transaksi riil yang eksplisit (`pembayaran ... berhasil`, `transfer ... berhasil`, `top up berhasil`, `kamu telah membayar`, `berhasil dibayar`).
+2. **Provider Brand vs Verb Collision Protection**:
+   - Pencocokan kata kerja transaksi (seperti `pay`, `beli`, `kirim`) wajib menggunakan pembatas kata ketat (*word boundaries* / negative lookbehind) untuk mencegah nama penyedia layanan (*brand names* seperti `GoPay`, `ShopeePay`, `AstraPay`, `Google Play`) disalahartikan sebagai sinyal transaksi pembayaran aktif.
+3. **Multiplier & Prize Pool Isolation**:
+   - Ekstraksi nominal Rupiah wajib mendeteksi akhiran pengali (`jt`, `juta`, `rb`, `k`, `m`, `miliar`). Dilarang memotong `Rp60 jt` menjadi nominal `Rp 60`. Nominal yang berada dalam konteks hadiah/sayembara/promo (`PROMO_CONTEXT_PATTERNS`) wajib diisolasi dan diabaikan dari pencatatan transaksi.
+
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
@@ -123,6 +143,8 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 * **Navigasi Back & Borderless Cards**: Tombol kembali ($\leftarrow$) menggunakan `back-btn` tanpa border/background kotak kaku.
 * **Dropdown Format**: Tombol aktif dropdown dibuat ringkas (`Big Bank 10%`), sedangkan item menu pilihan menyertakan keterangan periode (`Big Bank 10%/thn`).
 * **Action Button Persistence**: Tombol aksi utama (seperti tombol *Save* transaksi) harus selalu tampil dan aktif di form tanpa dikunci oleh kondisi panel/input focus (`activePanel === 'note'`).
+* **Custom Category & Account Input Box Contrast**:
+  - Kolom input pembuatan akun baru maupun kategori baru (`.custom-cat-input`) pada modal tambah transaksi wajib menggunakan garis tepi putih bersih (`border: 1.5px solid #FFFFFF;`) dengan bayangan halus di atas kontainer krem (`#EFE6DC`), dilarang keras menggunakan garis tepi biru dingin (`#2D5284`).
 * **Strict Ban on Rigid Borders & Outlines (Absolute Borderless UI)**:
   - **DILARANG KERAS** menambahkan garis tepi/border kaku (`border: 1px solid ...`, `border-bottom`, `border-top`, `outline`) pada komponen UI seperti:
     - Kartu Hero Budget (`.budget-hero-card`)

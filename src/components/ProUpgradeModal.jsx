@@ -21,7 +21,7 @@ const SUBSCRIPTION_PLANS = [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
       'Auto Cloud Backup & Sinkronisasi Drive',
-      'Ekspor Laporan Excel (.xlsx)'
+      'Ekspor Laporan Excel Tanpa Batas'
     ]
   },
   {
@@ -37,7 +37,7 @@ const SUBSCRIPTION_PLANS = [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
       'Auto Cloud Backup & Sinkronisasi Drive',
-      'Ekspor Laporan Excel (.xlsx)'
+      'Ekspor Laporan Excel Tanpa Batas'
     ]
   },
   {
@@ -53,7 +53,7 @@ const SUBSCRIPTION_PLANS = [
       'Voice AI Mic Tanpa Batas',
       'Dompet Grup Unlimited',
       'Auto Cloud Backup & Sinkronisasi Drive',
-      'Ekspor Laporan Excel (.xlsx)'
+      'Ekspor Laporan Excel Tanpa Batas'
     ]
   }
 ];

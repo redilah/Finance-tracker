@@ -1,11 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_medium_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:padding="14dp"
-    android:background="@drawable/widget_background"
+    android:background="@drawable/widget_background_dark"
     android:baselineAligned="false">
 
     <!-- Kolom Kiri: Info Budget & Pengeluaran (70% lebar) -->
@@ -21,9 +21,9 @@
             android:id="@+id/tv_med_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cassiel • Budget Bulanan"
+            android:text="Cassiel • Sisa Budget Bulanan"
             android:textSize="11sp"
-            android:textColor="#64748B"
+            android:textColor="#9CA3AF"
             android:fontFamily="sans-serif-medium" />
 
         <TextView
@@ -33,7 +33,8 @@
             android:text="Rp 2.450.000"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#1E293B"
+            android:textColor="#FFFFFF"
+            android:fontFamily="sans-serif-black"
             android:maxLines="1"
             android:ellipsize="end"
             android:layout_marginTop="2dp" />
@@ -45,7 +46,7 @@
             android:layout_height="5dp"
             android:max="100"
             android:progress="65"
-            android:progressDrawable="@drawable/widget_progress_drawable"
+            android:progressDrawable="@drawable/widget_progress_drawable_dark"
             android:layout_marginTop="6dp" />
 
         <TextView
@@ -54,7 +55,7 @@
             android:layout_height="wrap_content"
             android:text="Hari ini: -Rp 45.000"
             android:textSize="11sp"
-            android:textColor="#94A3B8"
+            android:textColor="#A1A1AA"
             android:layout_marginTop="4dp" />
     </LinearLayout>
 
@@ -72,7 +73,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="@drawable/widget_action_btn_bg"
+            android:background="@drawable/widget_action_btn_bg_dark"
             android:layout_marginEnd="5dp">
 
             <TextView
@@ -87,7 +88,7 @@
                 android:text="Voice"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:textColor="#2D5284"
+                android:textColor="#F59E0B"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
@@ -98,7 +99,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="@drawable/widget_action_btn_bg"
+            android:background="@drawable/widget_action_btn_bg_dark"
             android:layout_marginEnd="5dp">
 
             <TextView
@@ -113,7 +114,7 @@
                 android:text="Catat"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:textColor="#2D5284"
+                android:textColor="#F59E0B"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 
@@ -124,7 +125,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="@drawable/widget_action_btn_bg">
+            android:background="@drawable/widget_action_btn_bg_dark">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -138,7 +139,7 @@
                 android:text="Stats"
                 android:textSize="9sp"
                 android:textStyle="bold"
-                android:textColor="#2D5284"
+                android:textColor="#F59E0B"
                 android:layout_marginTop="2dp" />
         </LinearLayout>
 

@@ -264,32 +264,36 @@ const BALANCE_CONTEXT_PATTERNS = [
 ];
 
 /**
- * Patterns indicating the notification is NOT a transaction.
+ * Patterns indicating the notification is a PROMO, CONTEST, REWARD, OR MARKETING (NOT a real transaction).
  */
 const NON_TRANSACTION_PATTERNS = [
-  /\b(promo|diskon|voucher|kupon|coupon|reward|poin|point)\b/i,
+  /\b(promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|poin|points?|koin|coins?)\b/i,
+  /\b(hadiah|menangkan|pemenang|winner|gratis|free|giveaway|undian|lucky\s*draw|flip\s*card|spin|roda\s*putar)\b/i,
+  /\b(cashback\s*(?:s\.?d\.?|hingga|up\s*to|sampai)|potongan\s*(?:hingga|s\.?d\.?|sampai)|diskon\s*(?:hingga|s\.?d\.?|sampai))\b/i,
+  /\b(khusus\s*buat\s*kamu|buat\s*kamu|penawaran\s*spesial|special\s*offer|flash\s*sale|mega\s*sale|deals?|a\+\s*rewards)\b/i,
   /\b(otp|kode\s*verifikasi|verification\s*code|one.?time.?password)\b/i,
   /\b(tagihan\s*(?:bulan|anda|kamu)|billing\s*reminder|jatuh\s*tempo)\b/i,
   /\b(limit\s*(?:kartu|kredit|harian)|daily\s*limit)\b/i,
-  /\b(iklan|advertisement|penawaran\s*spesial|special\s*offer)\b/i,
+  /\b(iklan|advertisement|penawaran)\b/i,
   /\b(login|masuk\s*ke\s*akun|sign\s*in|verifikasi\s*perangkat)\b/i,
   /\b(update\s*aplikasi|pemeliharaan|maintenance)\b/i,
 ];
 
 /**
  * Patterns indicating a real transaction signal exists.
+ * Note: Use strict word boundaries so provider names like "GoPay", "ShopeePay" do not trigger false transaction signals.
  */
 const TRANSACTION_SIGNAL_PATTERNS = [
   // Debit / Expense signals
-  /(?:debit|debet|pendebetan|didebit|didebet)/i,
-  /(?:pembayaran|bayar|membayar|dibayar|dibayarkan|terbayar|payment|paid|pay)/i,
-  /(?:pembelian|belanja|berbelanja|purchase|beli|membeli|dibeli)/i,
-  /(?:transfer|mentransfer|ditransfer|m-transfer|trsf)/i,
-  /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
-  /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
+  /(?:\bdebit\b|\bdebet\b|\bpendebetan\b|\bdidebit\b|\bdidebet\b)/i,
+  /(?:\bpembayaran\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bdibayarkan\b|\bterbayar\b|\bpayment\b|\bpaid\b|(?<!(?:go|shopee|astra|google|apple|line)\s*)\bpay\b)/i,
+  /(?:\bpembelian\b|\bbelanja\b|\bberbelanja\b|\bpurchase\b|\bbeli\b|\bmembeli\b|\bdibeli\b)/i,
+  /(?:\btransfer\b|\bmentransfer\b|\bditransfer\b|\bm-transfer\b|\btrsf\b)/i,
+  /(?:tarik\s*tunai|penarikan|withdrawal|\bmenarik\b|\bditarik\b|\btarik\b)/i,
+  /(?:\bkirim\b|\bmengirim\b|\bdikirim\b|\bpengiriman\b|\bterkirim\b|\bsent\b|\bsend\b)/i,
   // Credit / Income signals
-  /(?:kredit|credit|pengkreditan|dikreditkan)/i,
-  /(?:terima|menerima|diterima|penerimaan|received|receive)/i,
+  /(?:\bkredit\b|\bcredit\b|\bpengkreditan\b|\bdikreditkan\b)/i,
+  /(?:\bterima\b|\bmenerima\b|\bditerima\b|\bpenerimaan\b|\breceived\b|\breceive\b)/i,
   /(?:dana\s*masuk|uang\s*masuk|saldo\s*masuk|masuk\s*ke\s*rekening|money\s*in)/i,
   /(?:dana\s*keluar|uang\s*keluar|saldo\s*keluar|terpotong|pemotongan|dipotong|money\s*out)/i,
   /(?:top\s*up|topup|isi\s*saldo|tambah\s*saldo|saldo\s*bertambah|bertambah)/i,
@@ -302,9 +306,9 @@ const TRANSACTION_SIGNAL_PATTERNS = [
  * Expense (debit) keyword patterns.
  */
 const EXPENSE_PATTERNS = [
-  /(?:debit|debet|pendebetan|didebit|didebet)/i,
-  /(?:pembayaran|bayar|membayar|dibayar|dibayarkan|terbayar|payment|pay|paid)/i,
-  /(?:pembelian|belanja|berbelanja|purchase|beli|membeli|dibeli)/i,
+  /(?:\bdebit\b|\bdebet\b|\bpendebetan\b|\bdidebit\b|\bdidebet\b)/i,
+  /(?:\bpembayaran\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bdibayarkan\b|\bterbayar\b|\bpayment\b|\bpaid\b|(?<!(?:go|shopee|astra|google|apple|line)\s*)\bpay\b)/i,
+  /(?:\bpembelian\b|\bbelanja\b|\bberbelanja\b|\bpurchase\b|\bbeli\b|\bmembeli\b|\bdibeli\b)/i,
   /(?:transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|m-transfer|trsf)/i,
   /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
   /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
@@ -327,8 +331,45 @@ const INCOME_PATTERNS = [
 ];
 
 /**
+ * Helper to check if a numeric string is a phone number, transaction ID, serial number, or account number.
+ */
+export function isPhoneNumberOrIdentifier(rawNumStr, clauseBefore = '', fullText = '') {
+  if (!rawNumStr) return false;
+  const digits = String(rawNumStr).replace(/\D/g, '');
+  const cbLower = (clauseBefore || '').toLowerCase();
+  
+  // 1. Indonesian Phone Number Patterns:
+  // - 628... (10 to 15 digits, e.g. 6282126499818)
+  // - 08... (10 to 14 digits, e.g. 082126499818)
+  if (/^628\d{7,12}$/.test(digits)) return true;
+  if (/^08\d{8,11}$/.test(digits)) return true;
+  if (/^8\d{8,11}$/.test(digits) && /(?:ke|tujuan|nomor|no\.?|hp|telp|pulsa|paket)/i.test(cbLower)) return true;
+  
+  // 2. Bank Call Center Numbers (7 digits e.g. 1500017, 1500888, 1500046 or 5 digits 14000, without Rp prefix)
+  if (!cbLower.includes('rp') && !cbLower.includes('idr')) {
+    if (/^(?:1500\d{3}|140\d{2})$/.test(digits)) return true;
+  }
+
+  // 3. Preceded by phone/target/identifier/call center indicators
+  if (/(?:ke|tujuan|nomor|no\.?|hp|handphone|telepon|telp|msisdn|serial|sn|id|ref|order|trx|transaksi|call\s*center|contact\s*center|hubungi|bantuan)\s*$/i.test(cbLower)) {
+    if (digits.length >= 5) return true;
+  }
+  
+  // 4. Serial numbers, transaction IDs, reference numbers (10+ digits without standard decimal formatting or starting with 0)
+  if (digits.length >= 10 && !/(?:rp\.?|idr)\s*$/i.test(cbLower)) {
+    return true;
+  }
+  if (digits.length >= 12) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Parse Indonesian Rupiah amount strings.
  * Handles: Rp25.000, Rp 25,000, IDR 25000, Rp1.250.000,00, etc.
+ * Excludes phone numbers and serial IDs.
  * Returns numeric amount or null.
  */
 function parseRupiahAmount(text) {
@@ -339,6 +380,7 @@ function parseRupiahAmount(text) {
   const results = [];
   for (const match of matches) {
     const numStr = match.replace(/(?:Rp\.?|IDR)\s*/i, '').trim();
+    if (isPhoneNumberOrIdentifier(numStr, '')) continue;
     let cleaned = numStr;
     cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
     if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
@@ -348,7 +390,7 @@ function parseRupiahAmount(text) {
     }
     cleaned = cleaned.replace(/[^\d]/g, '');
     const amount = parseInt(cleaned, 10);
-    if (!isNaN(amount) && amount > 0) {
+    if (!isNaN(amount) && amount > 0 && amount < 10000000000) {
       results.push(amount);
     }
   }
@@ -358,7 +400,7 @@ function parseRupiahAmount(text) {
 /**
  * Extract raw numeric amounts from text (fallback for notifications
  * that don't use Rp/IDR prefix).
- * Only matches standalone large numbers (>= 1000).
+ * Only matches standalone large numbers (>= 1000) and strictly excludes phone numbers / serial IDs.
  */
 function parseRawAmount(text) {
   if (!text) return null;
@@ -366,6 +408,7 @@ function parseRawAmount(text) {
   if (!matches) return null;
   const results = [];
   for (const match of matches) {
+    if (isPhoneNumberOrIdentifier(match, '')) continue;
     let cleaned = match;
     cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
     if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
@@ -375,7 +418,7 @@ function parseRawAmount(text) {
     }
     cleaned = cleaned.replace(/[^\d]/g, '');
     const amount = parseInt(cleaned, 10);
-    if (!isNaN(amount) && amount >= 1000) {
+    if (!isNaN(amount) && amount >= 1000 && amount < 1000000000) {
       results.push(amount);
     }
   }
@@ -383,38 +426,33 @@ function parseRawAmount(text) {
 }
 
 /**
- * CRITICAL: Extract the TRANSACTION amount, excluding balance amounts.
- * 
- * Strategy:
- * 1. Find all amounts with Rp/IDR prefix
- * 2. For each amount, inspect preceding text within clause (up to preceding punctuation/separator)
- * 3. Exclude amounts preceded by balance keywords (e.g. "Saldo:", "Saldo akhir Rp...")
- * 4. Prioritize amounts preceded by transaction keywords ("Debet sebesar Rp...", "Pembayaran Rp...")
+ * CRITICAL: Extract the TRANSACTION amount, excluding balance amounts,
+ * promo prize amounts, phone numbers, and transaction IDs.
  */
 export function extractTransactionAmount(fullText) {
   if (!fullText) return null;
 
-  // Find all Rp/IDR amounts with their positions
-  const amountRegex = /(?:Rp\.?|IDR)\s*([\d.,]+)/gi;
+  // Patterns indicating an amount is a PROMO / PRIZE POOL / REWARD (not an executed transaction amount)
+  const PROMO_CONTEXT_PATTERNS = [
+    /\b(?:total\s*)?hadiah\b/i,
+    /\b(?:menangkan|dapatkan|dapetin|klaim|menang)\b/i,
+    /\b(?:cashback|potongan|diskon)\s*(?:hingga|s\.?d\.?|sampai|up\s*to)\b/i,
+    /\b(?:senilai|maksimal|maks|min(?:imal)?\s*(?:belanja|transaksi)?)\b/i,
+    /\b(?:voucher|kupon|bonus|reward[s]?)\b/i,
+    /\b(?:flip\s*card|spin|lucky\s*draw|undian|giveaway)\b/i,
+  ];
+
+  // 1. Find all Rp/IDR amounts with their positions and optional multipliers (e.g. Rp60 jt, Rp50rb, Rp 50k)
+  const amountRegex = /(?:Rp\.?|IDR)\s*([\d.,]+)(?:\s*(jt|juta|miliar|m|rb|ribu|k)\b)?/gi;
   let match;
   const candidates = [];
 
   while ((match = amountRegex.exec(fullText)) !== null) {
     const numStr = match[1].trim();
-    let cleaned = numStr;
-    cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
-    if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
-      cleaned = cleaned.replace(/\./g, '');
-    } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
-      cleaned = cleaned.replace(/,/g, '');
-    }
-    cleaned = cleaned.replace(/[^\d]/g, '');
-    const amount = parseInt(cleaned, 10);
-    if (isNaN(amount) || amount <= 0) continue;
-
-    // Isolate preceding clause (up to 50 characters immediately before the match, bounded by punctuation / clause boundary)
+    const multiplierStr = (match[2] || '').toLowerCase();
+    
+    // Isolate preceding clause
     const rawBefore = fullText.substring(Math.max(0, match.index - 50), match.index);
-    // Find the last clause delimiter (. ; ! \n | or comma followed by space)
     let lastPunctuation = -1;
     for (let i = rawBefore.length - 1; i >= 0; i--) {
       const ch = rawBefore[i];
@@ -427,8 +465,38 @@ export function extractTransactionAmount(fullText) {
         break;
       }
     }
-
     const clauseBefore = (lastPunctuation !== -1 ? rawBefore.substring(lastPunctuation + 1) : rawBefore).toLowerCase().trim();
+
+    // Check if phone number / ID
+    if (isPhoneNumberOrIdentifier(numStr, clauseBefore, fullText)) {
+      continue;
+    }
+
+    let multiplier = 1;
+    if (multiplierStr === 'jt' || multiplierStr === 'juta') {
+      multiplier = 1000000;
+    } else if (multiplierStr === 'miliar' || multiplierStr === 'm') {
+      multiplier = 1000000000;
+    } else if (multiplierStr === 'rb' || multiplierStr === 'ribu' || multiplierStr === 'k') {
+      multiplier = 1000;
+    }
+
+    let amount = 0;
+    if (multiplier > 1) {
+      const normalizedDecimal = numStr.replace(/\./g, '').replace(',', '.');
+      amount = Math.round(parseFloat(normalizedDecimal) * multiplier);
+    } else {
+      let cleaned = numStr;
+      cleaned = cleaned.replace(/[,.]\d{1,2}$/, '');
+      if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+        cleaned = cleaned.replace(/\./g, '');
+      } else if (/^\d{1,3}(,\d{3})+$/.test(cleaned)) {
+        cleaned = cleaned.replace(/,/g, '');
+      }
+      cleaned = cleaned.replace(/[^\d]/g, '');
+      amount = parseInt(cleaned, 10);
+    }
+    if (isNaN(amount) || amount <= 0 || amount >= 10000000000) continue;
 
     // Check if this specific amount is preceded by balance keywords
     let isBalance = false;
@@ -443,9 +511,22 @@ export function extractTransactionAmount(fullText) {
       isBalance = false;
     }
 
+    // Check if this specific amount is in a promo/reward/contest context
+    let isPromo = false;
+    for (const pattern of PROMO_CONTEXT_PATTERNS) {
+      if (pattern.test(clauseBefore)) {
+        isPromo = true;
+        break;
+      }
+    }
+    const rawAfter = fullText.substring(match.index + match[0].length, Math.min(fullText.length, match.index + match[0].length + 40)).toLowerCase();
+    if (/\b(?:hadiah|rewards?|flip\s*card|spin|undian|giveaway|bonus|cashback\s*s\.?d\.?)\b/i.test(rawAfter)) {
+      isPromo = true;
+    }
+
     // Check if this specific amount is preceded by transaction keywords
     let isTransaction = false;
-    if (/debit|debet|kredit|credit|bayar|membayar|dibayar|pembayaran|sebesar|nominal|total|kirim|mengirim|tarik|belanja|beli|top\s*up|bertambah|masuk|ditambahkan|ke\b/i.test(clauseBefore)) {
+    if (/(?:\bdebit\b|\bdebet\b|\bkredit\b|\bcredit\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bpembayaran\b|sebesar|nominal|total|kirim|mengirim|tarik|belanja|beli|top\s*up|bertambah|masuk|ditambahkan|ke\b)/i.test(clauseBefore)) {
       isTransaction = true;
     }
 
@@ -458,27 +539,49 @@ export function extractTransactionAmount(fullText) {
       amount,
       position: match.index,
       isBalance,
+      isPromo,
       isTransaction,
       clauseBefore,
       sentence,
     });
   }
 
-  if (candidates.length === 0) return null;
+  if (candidates.length > 0) {
+    // Priority 1: Non-balance & Non-promo amount explicitly preceded by transaction keyword
+    const txAmounts = candidates.filter(c => !c.isBalance && !c.isPromo && c.isTransaction);
+    if (txAmounts.length > 0) {
+      return txAmounts[0].amount;
+    }
 
-  // Priority 1: Non-balance amount explicitly preceded by transaction keyword
-  const txAmounts = candidates.filter(c => !c.isBalance && c.isTransaction);
-  if (txAmounts.length > 0) {
-    return txAmounts[0].amount;
+    // Priority 2: Any non-balance & non-promo amount with Rp prefix
+    const nonBalanceAmounts = candidates.filter(c => !c.isBalance && !c.isPromo);
+    if (nonBalanceAmounts.length > 0) {
+      return nonBalanceAmounts[0].amount;
+    }
+
+    // If all Rp/IDR candidates are balance or promo amounts, ignore the notification
+    return null;
   }
 
-  // Priority 2: Any non-balance amount
-  const nonBalanceAmounts = candidates.filter(c => !c.isBalance);
-  if (nonBalanceAmounts.length > 0) {
-    return nonBalanceAmounts[0].amount;
+  // Priority 3: Fallback for Pulsa / Digital product denomination (e.g. "SIMPATI 2.000", "Pulsa 5.000", "Telkomsel 10.000")
+  const pulsaDenomMatch = fullText.match(/(?:simpati|kartu\s*as|telkomsel|indosat|im3|mentari|xl|axis|tri|three|smartfren|by\.?u|pulsa)\s+([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{1,3}k|[0-9]{1,3}rb)\b/i);
+  if (pulsaDenomMatch && pulsaDenomMatch[1]) {
+    let denomStr = pulsaDenomMatch[1].toLowerCase().replace(/\./g, '');
+    if (denomStr.endsWith('k') || denomStr.endsWith('rb')) {
+      const num = parseInt(denomStr.replace(/[^\d]/g, ''), 10);
+      if (!isNaN(num) && num > 0) return num * 1000;
+    } else {
+      const num = parseInt(denomStr, 10);
+      if (!isNaN(num) && num >= 1000 && num < 10000000) return num;
+    }
   }
 
-  // Priority 3: If ALL amounts are flagged as balance → return null (balance-only notification)
+  // Priority 4: Fallback for raw amounts, strictly filtering phone numbers and IDs
+  const rawMatches = parseRawAmount(fullText);
+  if (rawMatches && rawMatches.length > 0) {
+    return rawMatches[0];
+  }
+
   return null;
 }
 
@@ -495,6 +598,14 @@ export function detectTransactionType(fullText) {
   let expenseScore = 0;
   let incomeScore = 0;
 
+  // Digital product / Pulsa purchases are ALWAYS expenses (even with "isi" or "top up")
+  if (
+    /(?:top\s*up|topup|isi|beli|pembelian)\s*(?:pulsa|kuota|paket|data|game|token|diamond|voucher|saldo\s*emoney|etoll|e-toll)/i.test(text) ||
+    /(?:simpati|indosat|telkomsel|kartu\s*as|im3|mentari|xl|axis|tri|smartfren|by\.?u|token\s*listrik|pln)\s*(?:[0-9]|ke\b|berhasil|sukses)/i.test(text)
+  ) {
+    expenseScore += 5;
+  }
+
   for (const pattern of EXPENSE_PATTERNS) {
     if (pattern.test(text)) expenseScore++;
   }
@@ -507,7 +618,7 @@ export function detectTransactionType(fullText) {
   if (incomeScore > 0 && incomeScore > expenseScore) return 'income';
   if (expenseScore > 0 && expenseScore === incomeScore) {
     // Tie-break: "debit" / "bayar" is more definitively expense
-    if (/(?:debit|debet|bayar|membayar|dibayar|kirim|keluar|beli)/i.test(text)) return 'expense';
+    if (/(?:debit|debet|bayar|membayar|dibayar|kirim|keluar|beli|pulsa|simpati)/i.test(text)) return 'expense';
     if (/(?:kredit|credit|terima|menerima|masuk)/i.test(text)) return 'income';
   }
 
@@ -522,6 +633,14 @@ export function detectTransactionType(fullText) {
  */
 export function extractMerchant(fullText) {
   if (!fullText) return null;
+
+  // Check for Pulsa / Digital Product product name first
+  const pulsaMatch = fullText.match(/\b(simpati|kartu\s*as|telkomsel|indosat|im3|mentari|xl|axis|tri|three|smartfren|by\.?u|pulsa|paket\s*data|token\s*pln|pln)\s*([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{1,3}k|[0-9]{1,3}rb)?\b/i);
+  if (pulsaMatch) {
+    const brand = pulsaMatch[1].toUpperCase();
+    const denom = pulsaMatch[2] ? ` ${pulsaMatch[2]}` : '';
+    return `${brand}${denom}`.trim();
+  }
 
   // Pattern: "merchant/toko: [Merchant]" or "ke/di/pada [Merchant]"
   const merchantPatterns = [
@@ -549,6 +668,12 @@ export function extractMerchant(fullText) {
       // Strip leading account number digits if present (e.g. "1234567890 Budi" -> "Budi")
       merchant = merchant.replace(/^\d{4,}\s+/, '').trim();
 
+      // Skip phone numbers or pure numbers mistaken for merchant
+      const cleanDigits = merchant.replace(/\D/g, '');
+      if (cleanDigits.length >= 8 || /^(?:628|08|\+628)/.test(merchant)) {
+        continue;
+      }
+
       const merchantLower = merchant.toLowerCase();
       if (falsePositives.some(fp => merchantLower === fp || merchantLower.startsWith(fp + ' '))) {
         continue;
@@ -570,6 +695,7 @@ export function extractMerchant(fullText) {
  */
 export function hasTransactionSignal(fullText) {
   if (!fullText) return false;
+  if (isNonTransactional(fullText)) return false;
   for (const pattern of TRANSACTION_SIGNAL_PATTERNS) {
     if (pattern.test(fullText)) return true;
   }
@@ -577,7 +703,7 @@ export function hasTransactionSignal(fullText) {
 }
 
 /**
- * Check if notification is non-transactional (promo, OTP, etc.).
+ * Check if notification is non-transactional (promo, contest, reward, marketing, OTP, etc.).
  * Returns true if the notification should be IGNORED.
  */
 export function isNonTransactional(fullText) {
@@ -585,6 +711,17 @@ export function isNonTransactional(fullText) {
 
   // Pure OTP/verification — always ignore
   if (/(?:otp|kode\s*verifikasi|verification\s*code)/i.test(fullText)) {
+    return true;
+  }
+
+  // Pure Marketing / Promo / Rewards / Contest / Games — check if marketing terms exist
+  const isMarketingOrPromo = /(?:promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|hadiah|menangkan|pemenang|winner|gratis\b|free\b|giveaway|undian|lucky\s*draw|flip\s*card|spin\b|roda\s*putar|cashback\s*(?:s\.?d\.?|hingga|up\s*to|sampai)|potongan\s*(?:hingga|s\.?d\.?|sampai)|khusus\s*buat\s*kamu|buat\s*kamu|penawaran\s*spesial|special\s*offer|flash\s*sale|a\+\s*rewards)/i.test(fullText);
+
+  // Check if there is an explicit REAL transaction execution/completion signal
+  // E.g. "Pembayaran Rp45.000 di Kopi Kenangan berhasil. Dapatkan cashback hingga Rp5.000", "Kamu berhasil bayar SIMPATI 2.000", "Transfer Berhasil"
+  const hasDefiniteTxExecution = /(?:pembayaran\b[^!?\n;]*\b(?:berhasil|sukses|selesai|dikonfirmasi)|(?:transaksi|transfer|debet|debit)\b[^!?\n;]*\b(?:berhasil|sukses|selesai)|berhasil\s*(?:dibayar|bayar|transfer|top\s*up)|kamu\s*(?:telah\s*membayar|berhasil\s*bayar|menerima)|top\s*up\s*(?:berhasil|sukses)|uang\s*masuk\s*dari|debet\s*sebesar|debit\s*sebesar|kredit\s*sebesar)/i.test(fullText);
+
+  if (isMarketingOrPromo && !hasDefiniteTxExecution) {
     return true;
   }
 
@@ -599,9 +736,9 @@ export function isNonTransactional(fullText) {
     if (pattern.test(fullText)) txScore++;
   }
 
-  // If strong transaction signal AND non-tx signal, transaction wins
-  // (e.g., "Pembayaran berhasil, cashback Rp5.000" → transaction)
-  if (txScore >= 2) return false;
+  // If definite transaction signal AND non-tx signal, transaction wins (e.g. cashback after real purchase)
+  if (hasDefiniteTxExecution) return false;
+  if (nonTxScore > 0 && txScore <= 1) return true;
   if (nonTxScore > 0 && txScore === 0) return true;
 
   return false;
@@ -737,8 +874,11 @@ function parseJenius(normalized) {
 
 /**
  * BRI / BRImo Parser
- * Common format: "Nasabah Yth. Debet sebesar Rp25.000 pada DD/MM HH:MM. Saldo: Rp1.250.000"
- * Also: "INFO BRI: Debit/Kredit sebesar Rpxxx"
+ * Common formats:
+ * - "13/09/2026 07:40:25 - Transaksi Pembelian QRIS sebesar Rp10.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017"
+ * - "Nasabah Yth. Debet sebesar Rp25.000 pada DD/MM HH:MM. Saldo: Rp1.250.000"
+ * - "INFO BRI: Debit/Kredit sebesar Rpxxx"
+ * - "Pembayaran QRIS sebesar Rp... di [Merchant] berhasil"
  */
 function parseBRI(normalized) {
   const text = normalized.fullText;
@@ -746,18 +886,28 @@ function parseBRI(normalized) {
   if (!amount) return null;
 
   let type = detectTransactionType(text);
-  // BRI-specific: "Debet" = expense, "Kredit" = income
+  // BRI-specific: "Debet", "Pembelian", "Pembayaran", "QRIS", "Transfer" = expense, "Kredit", "Uang Masuk" = income
   if (!type) {
-    if (/debet|debit/i.test(text)) type = 'expense';
-    else if (/kredit|credit/i.test(text)) type = 'income';
+    if (/debet|debit|pembelian|pembayaran|bayar|qris|transfer/i.test(text)) type = 'expense';
+    else if (/kredit|credit|masuk|terima/i.test(text)) type = 'income';
   }
   if (!type) return null;
 
-  const merchant = extractMerchant(text);
+  let merchant = extractMerchant(text);
+  if (!merchant) {
+    if (/pembelian\s*qris|transaksi\s*qris|pembayaran\s*qris/i.test(text)) {
+      merchant = 'Pembelian QRIS';
+    } else if (/pembelian/i.test(text)) {
+      merchant = 'Pembelian';
+    } else if (/transfer/i.test(text)) {
+      merchant = 'Transfer';
+    }
+  }
+
   const hasSignal = hasTransactionSignal(text);
   const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
 
-  return { amount, type, merchant, confidence: Math.max(0.85, confidence), description: normalized.title || 'BRImo' };
+  return { amount, type, merchant, confidence: Math.max(0.9, confidence), description: merchant || normalized.title || 'BRImo' };
 }
 
 /**
@@ -877,7 +1027,10 @@ function parseDANA(normalized) {
 
 /**
  * GoPay Parser
- * Common format: "Berhasil dibayar Rp[Nominal]" or "Transfer sukses Rp[Nominal]"
+ * Common formats:
+ * - "Berhasil dibayar Rp[Nominal]" or "Transfer sukses Rp[Nominal]"
+ * - "SIMPATI 2.000... Rincian transaksi Total Rp3.275"
+ * - "Kamu berhasil bayar SIMPATI 2.000 ke 6282126499818"
  */
 function parseGoPay(normalized) {
   const text = normalized.fullText;
@@ -886,8 +1039,8 @@ function parseGoPay(normalized) {
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/dibayar|bayar|kirim|membayar/i.test(text)) type = 'expense';
-    if (/terima|masuk|top\s*up/i.test(text)) type = 'income';
+    if (/(?:dibayar|bayar|kirim|membayar|beli|pembelian|pulsa|simpati|kuota|paket|token|pln|gofood|goride|gocar|gotagihan|gogive|gomart)/i.test(text)) type = 'expense';
+    if (/(?:terima|masuk|saldo\s*bertambah|top\s*up\s*saldo)/i.test(text)) type = 'income';
   }
   if (!type) return null;
 
@@ -972,12 +1125,13 @@ function parseGenericBank(normalized) {
  */
 function parseGenericEWallet(normalized) {
   const text = normalized.fullText;
+  if (isNonTransactional(text)) return null;
   const amount = extractTransactionAmount(text);
   if (!amount) return null;
 
   let type = detectTransactionType(text);
   if (!type) {
-    if (/pembayaran|bayar|membayar|dibayar|kirim|belanja|paid|pay|sent|send/i.test(text)) type = 'expense';
+    if (/(?:\bpembayaran\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bkirim\b|\bbelanja\b|\bpaid\b|(?<!(?:go|shopee|astra|google|apple|line)\s*)\bpay\b|\bsent\b|\bsend\b)/i.test(text)) type = 'expense';
     if (/terima|menerima|masuk|top\s*up|received/i.test(text)) type = 'income';
   }
   if (!type) return null;
@@ -1032,6 +1186,7 @@ const PROVIDER_PARSERS = {
  */
 export function parseNotification(normalized, provider) {
   if (!normalized || !provider) return null;
+  if (isNonTransactional(normalized.fullText)) return null;
 
   const parser = PROVIDER_PARSERS[provider.id];
   if (!parser) {
@@ -1585,7 +1740,115 @@ export function runParserTests() {
     };
   });
 
+  // Test 37: GoPay Pulsa Simpati with phone number in text (Anti-6 Trillion Bug)
+  test('GoPay Simpati Pulsa — should extract Rp 3.275 and NOT phone number 6282126499818', () => {
+    const normalized = {
+      packageName: 'com.gojek.app',
+      appLabel: 'GoPay',
+      title: 'SIMPATI 2.000',
+      fullText: 'SIMPATI 2.000 Rincian transaksi Status Selesai Jumlah Rp3.275 Total Rp3.275 Bayar pake GoPay Saldo Rp3.214 ke 6282126499818',
+    };
+    const p = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, p);
+    return {
+      passed: result !== null && result.amount === 3275 && result.type === 'expense' && result.amount !== 6282126499818,
+      expected: '3275 / expense / SIMPATI 2.000',
+      actual: `${result?.amount} / ${result?.type} / ${result?.merchant}`,
+    };
+  });
+
+  // Test 38: Pulsa denomination without explicit Rp prefix
+  test('Pulsa denomination without explicit Rp prefix — should extract denomination', () => {
+    const normalized = {
+      packageName: 'com.gojek.app',
+      appLabel: 'GoPay',
+      title: 'GoPay',
+      fullText: 'Kamu berhasil beli SIMPATI 2.000 ke 082126499818',
+    };
+    const p = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, p);
+    return {
+      passed: result !== null && result.amount === 2000 && result.type === 'expense' && result.amount !== 82126499818,
+      expected: '2000 / expense',
+      actual: `${result?.amount} / ${result?.type}`,
+    };
+  });
+
+  // Test 39: Standalone phone number and serial number filtering
+  test('Anti-Phone & Anti-Serial Number — should filter out 10-15 digit numbers', () => {
+    const phoneAmount = extractTransactionAmount('Isi pulsa ke 6282126499818 berhasil');
+    const serialAmount = extractTransactionAmount('Nomor serial 04273300000627 berhasil');
+    return {
+      passed: phoneAmount !== 6282126499818 && serialAmount !== 4273300000627,
+      expected: 'null or non-phone amount',
+      actual: `${phoneAmount} / ${serialAmount}`,
+    };
+  });
+
+  // Test 40: Real BRImo QRIS Purchase Notification
+  test('BRImo QRIS Purchase — should parse Rp 10.000 expense and ignore Call Center 1500017', () => {
+    const normalized = {
+      packageName: 'id.co.bri.brimo',
+      appLabel: 'BRImo',
+      title: 'BRImo',
+      fullText: 'BRImo 13/09/2026 07:40:25 - Transaksi Pembelian QRIS sebesar Rp10.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017',
+    };
+    const p = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, p);
+    return {
+      passed: p?.id === 'bri' && result !== null && result.amount === 10000 && result.type === 'expense' && result.amount !== 1500017,
+      expected: 'bri / 10000 / expense / Pembelian QRIS',
+      actual: `${p?.id} / ${result?.amount} / ${result?.type} / ${result?.merchant}`,
+    };
+  });
+
+  // Test 41: GoPay Promo / A+ Rewards Flip Card — MUST be rejected (Anti-False-Positive)
+  test('GoPay A+ Rewards Promo — should be non-transactional and ignored', () => {
+    const fullText = 'GRATIS Google AI Plus 12 bulan Menangkan total hadiah Rp60 jt 🔥 Buka Flip Card dari A+ Rewards sekarang!';
+    const normalized = {
+      packageName: 'com.gojek.app',
+      appLabel: 'GoPay',
+      title: 'GRATIS Google AI Plus 12 bulan',
+      text: 'Menangkan total hadiah Rp60 jt 🔥 Buka Flip Card dari A+ Rewards sekarang!',
+      fullText,
+    };
+    const isNonTx = isNonTransactional(fullText);
+    const p = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, p);
+    return {
+      passed: isNonTx === true && result === null,
+      expected: 'isNonTx: true, result: null',
+      actual: `isNonTx: ${isNonTx}, result: ${JSON.stringify(result)}`,
+    };
+  });
+
+  // Test 42: Promo multiplier (Rp60 jt) in extractTransactionAmount — should NOT extract Rp 60
+  test('Promo multiplier prize pool (Rp60 jt) — should not extract truncated 60 as transaction', () => {
+    const fullText = 'Menangkan total hadiah Rp60 jt sekarang di promo Flip Card';
+    const amount = extractTransactionAmount(fullText);
+    return {
+      passed: amount === null,
+      expected: 'null (ignored promo amount)',
+      actual: String(amount),
+    };
+  });
+
+  // Test 43: DANA & ShopeePay Promo with Giveaway / Vouchers — MUST be rejected
+  test('DANA & ShopeePay Promo notifications — should be rejected', () => {
+    const danaPromo = 'Promo spesial! Dapatkan voucher diskon hingga Rp50.000 untuk transaksi QRIS DANA';
+    const shopeePromo = 'Buka spin dan menangkan hadiah total Rp10 jt hanya hari ini di ShopeePay!';
+    const isNonTx1 = isNonTransactional(danaPromo);
+    const isNonTx2 = isNonTransactional(shopeePromo);
+    return {
+      passed: isNonTx1 === true && isNonTx2 === true,
+      expected: 'true & true',
+      actual: `${isNonTx1} & ${isNonTx2}`,
+    };
+  });
+
   return results;
 }
 
 export { PROVIDER_REGISTRY, PACKAGE_TO_PROVIDER, parseRupiahAmount, parseRawAmount };
+
+

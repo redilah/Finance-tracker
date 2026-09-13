@@ -88,6 +88,7 @@ export async function syncWidgetData({
       monthlyRemaining: formatMoney(remainingMonthly, currency),
       todayExpense: `Hari ini: -${formatMoney(todayExpenses, currency)}`,
       todayExpenseAmount: formatMoney(todayExpenses, currency),
+      todayExpenseRaw: Math.round(todayExpenses),
       budgetProgress
     };
 

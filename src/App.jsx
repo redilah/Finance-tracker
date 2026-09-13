@@ -72,7 +72,7 @@ import { subscribeToAuth, loginWithGoogle, fetchCloudDataFromFirestore } from '.
 import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
 import kitabisaLogo from './assets/kitabisa_logo.png';
 import { exportTransactionsToSpreadsheet } from './utils/excelExport';
-import { isProUser, setProUser } from './utils/proManager';
+import { isProUser, setProUser, getExcelExportQuota, hasExcelExportQuota, decrementExcelExportQuota } from './utils/proManager';
 import { initNativeBilling } from './utils/nativeBillingManager';
 import { syncWidgetData } from './utils/widgetSync';
 import { FAQ_ITEMS } from './utils/faqData';
@@ -1193,6 +1193,23 @@ function App() {
   const [isKitabisaModalOpen, setIsKitabisaModalOpen] = useState(false);
   const [proTriggerReason, setProTriggerReason] = useState('general');
   const [isPro, setIsPro] = useState(() => isProUser());
+  const [excelQuota, setExcelQuota] = useState(() => getExcelExportQuota());
+
+  useEffect(() => {
+    const handleProChange = (e) => {
+      setIsPro(e.detail?.isPro ?? isProUser());
+      setExcelQuota(getExcelExportQuota());
+    };
+    const handleExcelQuotaChange = (e) => {
+      setExcelQuota(e.detail?.quota ?? getExcelExportQuota());
+    };
+    window.addEventListener('cassiel_pro_status_changed', handleProChange);
+    window.addEventListener('cassiel_excel_quota_changed', handleExcelQuotaChange);
+    return () => {
+      window.removeEventListener('cassiel_pro_status_changed', handleProChange);
+      window.removeEventListener('cassiel_excel_quota_changed', handleExcelQuotaChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (isPro) {
@@ -1200,9 +1217,48 @@ function App() {
     }
   }, [isPro, profileName]);
 
+  const [excelExportConfirm, setExcelExportConfirm] = useState(null);
+
   const handleOpenProModal = (reason = 'general') => {
     setProTriggerReason(reason);
     setIsProModalOpen(true);
+  };
+
+  const handleRequestExportExcel = (txList = transactions) => {
+    if (!isPro && !hasExcelExportQuota()) {
+      showVoiceToast('⚠️ Kuota ekspor Excel gratis Anda telah habis untuk bulan ini.');
+      handleOpenProModal('export');
+      return;
+    }
+    setExcelExportConfirm({
+      transactions: txList,
+      count: (txList || []).length
+    });
+  };
+
+  const handleConfirmExportExcel = async () => {
+    const txList = excelExportConfirm?.transactions || transactions;
+    setExcelExportConfirm(null);
+    showVoiceToast('Sedang menyiapkan berkas laporan...');
+    const res = await exportTransactionsToSpreadsheet({
+      transactions: txList,
+      currency: appCurrency,
+      profileName
+    });
+    if (res.success) {
+      if (!isPro) {
+        const remaining = decrementExcelExportQuota();
+        if (remaining > 0) {
+          showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor! (Sisa kuota gratis: ${remaining}x)`);
+        } else {
+          showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor! Kuota gratis bulan ini telah habis.`);
+        }
+      } else {
+        showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
+      }
+    } else {
+      showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
+    }
   };
 
   // Feedback for Developer State
@@ -2157,6 +2213,8 @@ function App() {
     setIsBackupModalOpen,
     backupRestoreConfirm,
     setBackupRestoreConfirm,
+    excelExportConfirm,
+    setExcelExportConfirm,
     adjustingAccount,
     setAdjustingAccount,
     accountToSetBalance,
@@ -2331,6 +2389,10 @@ function App() {
     }
     if (s.backupRestoreConfirm) {
       s.setBackupRestoreConfirm(null);
+      return;
+    }
+    if (s.excelExportConfirm) {
+      s.setExcelExportConfirm(null);
       return;
     }
     if (s.isBackupModalOpen) {
@@ -5433,23 +5495,7 @@ function App() {
               <button
                 type="button"
                 className="stats-export-btn"
-                onClick={async () => {
-                  if (!isPro) {
-                    handleOpenProModal('export');
-                    return;
-                  }
-                  showVoiceToast('Sedang menyiapkan berkas laporan...');
-                  const res = await exportTransactionsToSpreadsheet({
-                    transactions: filteredTransactions,
-                    currency: appCurrency,
-                    profileName
-                  });
-                  if (res.success) {
-                    showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
-                  } else {
-                    showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
-                  }
-                }}
+                onClick={() => handleRequestExportExcel(filteredTransactions)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -5464,7 +5510,7 @@ function App() {
                   cursor: 'pointer',
                   boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)'
                 }}
-                title="Ekspor Laporan Excel (.xlsx / CSV)"
+                title={isPro ? "Ekspor Laporan Excel (.xlsx / CSV) (Unlimited Pro)" : `Ekspor Laporan Excel (.xlsx / CSV) (Sisa ${excelQuota}x gratis)`}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -5473,6 +5519,9 @@ function App() {
                   <line x1="8" y1="17" x2="16" y2="17"></line>
                 </svg>
                 <span>Excel</span>
+                {!isPro && (
+                  <span style={{ fontSize: '9.5px', opacity: 0.9, fontWeight: 800 }}>({excelQuota})</span>
+                )}
               </button>
 
               <div className="stats-dropdown-wrapper" ref={dropdownRef}>
@@ -8170,23 +8219,7 @@ function App() {
                 {/* Ekspor Laporan Excel (.xlsx) */}
                 <div 
                   className="wa-menu-item" 
-                  onClick={async () => {
-                    if (!isPro) {
-                      handleOpenProModal('export');
-                      return;
-                    }
-                    showVoiceToast('Sedang menyiapkan berkas laporan...');
-                    const res = await exportTransactionsToSpreadsheet({
-                      transactions,
-                      currency: appCurrency,
-                      profileName
-                    });
-                    if (res.success) {
-                      showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
-                    } else {
-                      showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
-                    }
-                  }}
+                  onClick={() => handleRequestExportExcel(transactions)}
                 >
                   <div className="wa-menu-icon-box" style={{ background: 'transparent', color: '#2D2520' }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -8203,15 +8236,15 @@ function App() {
                       <span style={{
                         fontSize: '10px',
                         fontWeight: 800,
-                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                        color: '#FFFFFF',
+                        background: isPro ? 'linear-gradient(135deg, #F59E0B, #D97706)' : '#FEF3C7',
+                        color: isPro ? '#FFFFFF' : '#D97706',
                         padding: '1px 6px',
                         borderRadius: '6px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '2px'
                       }}>
-                        👑 PRO
+                        {isPro ? '👑 PRO' : `Gratis (${excelQuota}x)`}
                       </span>
                     </div>
                     <span className="wa-menu-subtitle">Unduh seluruh rekapan transaksi ke format Excel (.xlsx)</span>
@@ -9827,23 +9860,7 @@ function App() {
                 <button
                   type="button"
                   className="backup-action-card"
-                  onClick={async () => {
-                    if (!isPro) {
-                      handleOpenProModal('export');
-                      return;
-                    }
-                    showVoiceToast('Sedang menyiapkan berkas laporan...');
-                    const res = await exportTransactionsToSpreadsheet({
-                      transactions,
-                      currency: appCurrency,
-                      profileName
-                    });
-                    if (res.success) {
-                      showVoiceToast(`✅ Laporan ${res.fileName} berhasil diekspor!`);
-                    } else {
-                      showVoiceToast(`❌ ${res.error || 'Gagal mengekspor berkas'}`);
-                    }
-                  }}
+                  onClick={() => handleRequestExportExcel(transactions)}
                 >
                   <div className="backup-action-icon" style={{ background: '#FEF3C7', color: '#D97706' }}>
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -9860,12 +9877,12 @@ function App() {
                       <span style={{
                         fontSize: '9px',
                         fontWeight: 800,
-                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                        color: '#FFFFFF',
+                        background: isPro ? 'linear-gradient(135deg, #F59E0B, #D97706)' : '#FEF3C7',
+                        color: isPro ? '#FFFFFF' : '#D97706',
                         padding: '1px 5px',
                         borderRadius: '5px'
                       }}>
-                        👑 PRO
+                        {isPro ? '👑 PRO' : `Gratis (${excelQuota}x)`}
                       </span>
                     </div>
                     <span className="backup-action-desc">Unduh seluruh riwayat transaksi ke format Excel (.xlsx)</span>
@@ -9945,6 +9962,102 @@ function App() {
               </button>
               <button type="button" className="backup-restore-btn" onClick={handleConfirmRestore}>
                 {t('backupImportBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Ekspor Excel (.xlsx) */}
+      {excelExportConfirm && (
+        <div className="modal-overlay backup-confirm-overlay" onClick={() => setExcelExportConfirm(null)}>
+          <div className="backup-confirm-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '360px' }}>
+            <div className="excel-confirm-icon-wrapper">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: '#000000' }}>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#000000"></path>
+                <polyline points="14 2 14 8 20 8" stroke="#000000"></polyline>
+                <line x1="8" y1="13" x2="16" y2="13" stroke="#000000"></line>
+                <line x1="8" y1="17" x2="16" y2="17" stroke="#000000"></line>
+                <line x1="10" y1="9" x2="8" y2="9" stroke="#000000"></line>
+              </svg>
+            </div>
+            
+            <h3 className="backup-confirm-title" style={{ fontSize: '18px', marginBottom: '6px' }}>
+              Ekspor Laporan Excel
+            </h3>
+            
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '999px',
+              background: '#F1F5F9',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              color: '#475569',
+              marginBottom: '12px'
+            }}>
+              <span>📊 Format .xlsx</span>
+              <span>•</span>
+              <span>{excelExportConfirm.count} Transaksi</span>
+            </div>
+
+            <p className="backup-confirm-text" style={{ fontSize: '13.5px', color: '#64748B', lineHeight: '1.5', margin: '0 0 16px' }}>
+              Data transaksimu adalah milikmu seutuhnya. Unduh salinan data ke Excel kapan pun kamu mau.
+            </p>
+
+            <div style={{
+              background: isPro ? 'rgba(245, 158, 11, 0.08)' : '#FEF3C7',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#92400E'
+            }}>
+              <span>Status Kuota:</span>
+              <span style={{ fontWeight: 800 }}>
+                {isPro ? '👑 PRO (Tanpa Batas)' : `Sisa ${excelQuota}x Gratis`}
+              </span>
+            </div>
+
+            <div className="backup-confirm-actions">
+              <button 
+                type="button" 
+                className="backup-cancel-btn" 
+                onClick={() => setExcelExportConfirm(null)}
+                style={{
+                  borderRadius: '12px',
+                  padding: '12px 0',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Batal
+              </button>
+              <button 
+                type="button" 
+                className="backup-restore-btn" 
+                onClick={handleConfirmExportExcel}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                  color: '#FFFFFF',
+                  borderRadius: '12px',
+                  border: 'none',
+                  padding: '12px 0',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 10px rgba(217, 119, 6, 0.28)'
+                }}
+              >
+                Ya, Ekspor
               </button>
             </div>
           </div>

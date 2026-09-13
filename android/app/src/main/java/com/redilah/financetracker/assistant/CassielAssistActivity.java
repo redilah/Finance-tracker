@@ -282,6 +282,9 @@
                      prefs.edit().putString(KEY_QUEUE, queue.toString()).apply();
                  }
  
+                 // Instantly update Home Screen Widget
+                 com.redilah.financetracker.widget.CassielSmallWidgetProvider.recalculateAndRefresh(CassielAssistActivity.this);
+
                  // Show status bar notification
                  showConfirmationNotification(account, note, formattedAmount);
  
