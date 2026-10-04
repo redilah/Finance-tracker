@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Natural High-Definition Indonesian Speech Synthesis Engine
  * Menggunakan High-Definition Google Indonesian Natural Stream Audio (100% Gratis & Open-Source)
  * Dilengkapi Pemecah Klausa Cerdas, Normalisasi Terbilang Rupiah & Fallback SpeechSynthesis.
@@ -64,8 +64,8 @@ export function formatNaturalIndonesianSpeech(rawText) {
 
   // 1. Bersihkan Simbol, Emoji & Tanda Kurung yang memicu jeda patah-patah
   speech = speech
-    .replace(/[✨🎯💰📉📈🏷️💳🏦📝📊🔄🗑️✏️❌✅👑]/gu, ' ')
-    .replace(/[•\(\)\[\]\{\}\*\_~—–➔<>|#]/g, ' ')
+    .replace(/(?:✨|🎯|💰|📉|📈|🏷️|💳|🏦|📝|📊|🔄|🗑️|✏️|❌|✅|👑)/gu, ' ')
+    .replace(/[•()[\]{}*_~—–➔<>|#]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 

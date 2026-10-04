@@ -263,7 +263,7 @@ export const sendInstantNotification = (userName, transactions, lang) => {
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
-          largeIcon: 'ic_large_icon',
+          largeIcon: 'ic_launcher',
         }
       ]
     }).catch(err => console.log('Capacitor local notification error:', err));
@@ -295,7 +295,7 @@ export const sendInstantBudgetNotification = (title, body) => {
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
-          largeIcon: 'ic_large_icon',
+          largeIcon: 'ic_launcher',
         }
       ]
     }).catch(err => console.log('Capacitor local notification error:', err));
@@ -386,7 +386,7 @@ export const sendUpdateReminderNotification = async (updateInfo, lang) => {
             channelId: 'update_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
+            largeIcon: 'ic_launcher',
           }
         ]
       });
@@ -491,7 +491,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       });
 
       // 2. Notifikasi Pengingat Budget Jam 10:00 PAGI (Hanya jika belum mengatur budget sama sekali)
@@ -514,7 +514,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
-          largeIcon: 'ic_large_icon',
+          largeIcon: 'ic_launcher',
         });
       }
 
@@ -539,7 +539,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
           channelId: 'financial_notifications',
           sound: 'notification',
           smallIcon: 'ic_stat_icon',
-          largeIcon: 'ic_large_icon',
+          largeIcon: 'ic_launcher',
         });
       }
 
@@ -576,7 +576,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       });
 
       // 5. Notifikasi Pengingat Atur Budget & Limit Pos Setiap Tanggal 1 Awal Bulan (Pukul 08:00 Pagi)
@@ -597,7 +597,7 @@ export const schedulePersonalizedNotifications = async (userName = 'Teman', tran
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       });
 
       if (notifsToSchedule.length > 0) {
@@ -680,7 +680,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       },
       {
         id: 202,
@@ -690,7 +690,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       }
     );
   } else if (now.getTime() < eveningTarget.getTime()) {
@@ -702,7 +702,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
       channelId: 'financial_notifications',
       sound: 'notification',
       smallIcon: 'ic_stat_icon',
-      largeIcon: 'ic_large_icon',
+      largeIcon: 'ic_launcher',
     });
   } else {
     const tomorrowMorning = new Date(morningTarget);
@@ -720,7 +720,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       },
       {
         id: 202,
@@ -730,7 +730,7 @@ export const scheduleFeatureIntroNotification = async (userName = 'Teman', lang)
         channelId: 'financial_notifications',
         sound: 'notification',
         smallIcon: 'ic_stat_icon',
-        largeIcon: 'ic_large_icon',
+        largeIcon: 'ic_launcher',
       }
     );
   }
@@ -803,7 +803,7 @@ export const scheduleV20FeatureIntroNotification = async (userName = 'Teman', la
             channelId: 'financial_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
+            largeIcon: 'ic_launcher',
           }
         ]
       });
@@ -866,7 +866,7 @@ export const scheduleV23FeatureIntroNotification = async (userName = 'Teman', la
             channelId: 'financial_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
+            largeIcon: 'ic_launcher',
           }
         ]
       });
@@ -929,7 +929,7 @@ export const scheduleV28AccountFeatureIntroNotification = async (userName = 'Tem
             channelId: 'financial_notifications',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
+            largeIcon: 'ic_launcher',
           }
         ]
       });
@@ -1054,7 +1054,7 @@ export const sendGroupChatNotification = async ({
             channelId: 'group_chat_channel',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
-            largeIcon: 'ic_large_icon',
+            largeIcon: 'ic_launcher',
             extra: {
               type: 'group_chat',
               groupName,

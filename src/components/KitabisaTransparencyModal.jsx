@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import kitabisaLogo from '../assets/kitabisa_logo.png';
 import {
   DONATION_JOURNEY_STAGES,
   OFFICIAL_YOUTUBE_DOCUMENTATION,
@@ -20,6 +19,7 @@ export default function KitabisaTransparencyModal({
   const [isProStatus, setIsProStatus] = useState(() => isProUser() || !!isPro);
   const [proofs, setProofs] = useState([]);
   const [activeProof, setActiveProof] = useState(null);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -108,6 +108,9 @@ export default function KitabisaTransparencyModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const displayProofs = proofs;
+  const currentActiveProof = activeProof || (displayProofs.length > 0 ? displayProofs[0] : null);
 
   const hasSubscribed = Boolean(isProStatus || proofs.length > 0);
   const effectiveStage = hasSubscribed ? currentStage : 0;
@@ -289,20 +292,21 @@ export default function KitabisaTransparencyModal({
               flex: 1,
               position: 'relative',
               zIndex: 2,
-              padding: '10px 14px',
+              padding: '9px 8px',
               borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               fontWeight: '800',
-              fontSize: '13px',
-              letterSpacing: '0.2px',
+              fontSize: 'clamp(11px, 3.2vw, 12.5px)',
+              letterSpacing: '0.1px',
+              whiteSpace: 'nowrap',
               background: 'transparent',
               color: activeTab === 'process' ? '#FFFFFF' : '#6B7280',
               transition: 'color 0.25s ease, transform 0.12s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -310,7 +314,7 @@ export default function KitabisaTransparencyModal({
             onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <span>⚡ Proses</span>
+            <span style={{ whiteSpace: 'nowrap' }}>⚡ Proses</span>
           </button>
 
           <button
@@ -320,20 +324,21 @@ export default function KitabisaTransparencyModal({
               flex: 1,
               position: 'relative',
               zIndex: 2,
-              padding: '10px 14px',
+              padding: '9px 8px',
               borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               fontWeight: '800',
-              fontSize: '13px',
-              letterSpacing: '0.2px',
+              fontSize: 'clamp(11px, 3.2vw, 12.5px)',
+              letterSpacing: '0.1px',
+              whiteSpace: 'nowrap',
               background: 'transparent',
               color: activeTab === 'proofs' ? '#FFFFFF' : '#6B7280',
               transition: 'color 0.25s ease, transform 0.12s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
             onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -341,7 +346,7 @@ export default function KitabisaTransparencyModal({
             onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <span>📜 Bukti Donasi Saya ({proofs.length})</span>
+            <span style={{ whiteSpace: 'nowrap' }}>📜 Bukti Donasi Saya ({proofs.length})</span>
           </button>
         </div>
 
@@ -871,7 +876,7 @@ export default function KitabisaTransparencyModal({
         {/* TAB 2: BUKTI DONASI SAYA (PERSONAL PROOF OF IMPACT) */}
         {activeTab === 'proofs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {proofs.length === 0 ? (
+            {displayProofs.length === 0 ? (
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.88)',
@@ -889,193 +894,581 @@ export default function KitabisaTransparencyModal({
                 <p style={{ fontSize: '13px', color: '#6B7280', lineHeight: 1.45, marginBottom: '18px' }}>
                   Saat kamu berlangganan Justice Cassiel atau mengirim gift, bukti resmi penyaluran ke Kitabisa akan otomatis terbit di akunmu di sini.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    if (onOpenProModal) onOpenProModal('general');
-                  }}
-                  style={{
-                    padding: '12px 20px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                    color: '#FFFFFF',
-                    fontSize: '13.5px',
-                    fontWeight: '800',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(217, 119, 6, 0.28)'
-                  }}
-                >
-                  Berlangganan & Salurkan Kebaikan
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      if (onOpenProModal) onOpenProModal('general');
+                    }}
+                    style={{
+                      padding: '12px 20px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                      color: '#FFFFFF',
+                      fontSize: '13.5px',
+                      fontWeight: '800',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(217, 119, 6, 0.28)'
+                    }}
+                  >
+                    Berlangganan & Salurkan Kebaikan
+                  </button>
+                </div>
               </div>
             ) : (
               <>
-                {/* Proof of Impact Certificate Card */}
-                {activeProof && (
-                  <div
-                    style={{
-                      background: 'linear-gradient(135deg, #FFFFFF, #FFFBF5)',
-                      borderRadius: '22px',
-                      padding: '22px 20px',
-                      boxShadow: '0 10px 30px rgba(217, 119, 6, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04)',
-                      border: '1.5px solid rgba(245, 158, 11, 0.2)',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {/* Background Watermark Crest */}
+                {/* 3D Interactive Flip Card (Front & Back Integration) */}
+                {currentActiveProof && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Perspective Stage Container */}
                     <div
                       style={{
-                        position: 'absolute',
-                        right: '-20px',
-                        bottom: '-20px',
-                        width: '160px',
-                        height: '160px',
-                        opacity: 0.05,
-                        pointerEvents: 'none'
+                        perspective: '1200px',
+                        width: '100%',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none'
                       }}
+                      onClick={() => setIsCardFlipped(prev => !prev)}
                     >
-                      <img
-                        src={kitabisaLogo}
-                        alt="Watermark"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      />
-                    </div>
+                      {/* Flipper Wrapper */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: '100%',
+                          aspectRatio: '1.586 / 1',
+                          borderRadius: '20px',
+                          transformStyle: 'preserve-3d',
+                          transition: 'transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                          transform: isCardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                          boxShadow: '0 20px 45px rgba(0, 0, 0, 0.7), 0 4px 14px rgba(255, 255, 255, 0.05)'
+                        }}
+                      >
+                        {/* ================= CARD FRONT ================= */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            borderRadius: '20px',
+                            background: 'radial-gradient(circle at 20% 30%, #1c1c1f 0%, #0a0a0c 60%, #000000 100%)',
+                            overflow: 'hidden',
+                            padding: '22px 24px',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            color: '#FFFFFF',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden'
+                          }}
+                        >
+                          {/* 3D Isometric Dark Stepped Monolithic Blocks (Reference Matching) */}
+                          <svg
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              bottom: 0,
+                              width: '100%',
+                              height: '100%',
+                              pointerEvents: 'none',
+                              zIndex: 1
+                            }}
+                            viewBox="0 0 360 227"
+                            preserveAspectRatio="none"
+                            fill="none"
+                          >
+                            <defs>
+                              <linearGradient id="cubeTop1" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stopColor="#404044" />
+                                <stop offset="100%" stopColor="#28282b" />
+                              </linearGradient>
+                              <linearGradient id="cubeTop2" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stopColor="#323236" />
+                                <stop offset="100%" stopColor="#1f1f22" />
+                              </linearGradient>
+                              <linearGradient id="cubeFront" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#17171a" />
+                                <stop offset="100%" stopColor="#08080a" />
+                              </linearGradient>
+                              <linearGradient id="cubeDeepShadow" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#0a0a0c" />
+                                <stop offset="100%" stopColor="#000000" />
+                              </linearGradient>
+                              <linearGradient id="cubeSpecularEdge" x1="0" y1="0" x2="1" y2="0.6">
+                                <stop offset="0%" stopColor="#8e8e93" stopOpacity="0.75" />
+                                <stop offset="60%" stopColor="#545458" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#2c2c2e" stopOpacity="0.1" />
+                              </linearGradient>
+                            </defs>
 
-                    {/* Certificate Top Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <img
-                          src={kitabisaLogo}
-                          alt="Kitabisa"
-                          style={{ width: '24px', height: '24px', borderRadius: '6px', objectFit: 'cover' }}
-                        />
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#0284C7', letterSpacing: '0.5px' }}>
-                            SERTIFIKAT DAMPAK SOSIAL
+                            <polygon points="0,0 120,0 200,227 0,227" fill="#09090b" opacity="0.95" />
+                            <polygon points="90,115 155,125 100,227 40,227" fill="#0d0d10" />
+                            <line x1="90" y1="115" x2="155" y2="125" stroke="#3a3a3c" strokeWidth="1" />
+
+                            {/* BLOCK 1 */}
+                            <polygon points="125,20 280,45 360,35 240,0 95,0" fill="url(#cubeTop2)" />
+                            <polygon points="125,20 280,45 280,58 125,33" fill="url(#cubeFront)" />
+                            <line x1="95" y1="0" x2="280" y2="45" stroke="url(#cubeSpecularEdge)" strokeWidth="1.2" />
+                            <line x1="125" y1="33" x2="280" y2="58" stroke="#000000" strokeWidth="2.5" />
+
+                            {/* BLOCK 2 */}
+                            <polygon points="228,38 275,44 260,82 215,74" fill="url(#cubeTop1)" />
+                            <polygon points="215,74 260,82 258,92 213,84" fill="url(#cubeFront)" />
+                            <polygon points="260,82 275,44 275,52 258,92" fill="url(#cubeDeepShadow)" />
+                            <line x1="228" y1="38" x2="215" y2="74" stroke="url(#cubeSpecularEdge)" strokeWidth="1.2" />
+                            <line x1="215" y1="74" x2="260" y2="82" stroke="#636366" strokeWidth="1" />
+                            <line x1="213" y1="84" x2="258" y2="92" stroke="#000000" strokeWidth="2.5" />
+
+                            {/* BLOCK 3 */}
+                            <polygon points="135,42 270,72 360,110 360,95 285,55" fill="url(#cubeTop2)" />
+                            <polygon points="135,42 270,72 260,98 125,68" fill="url(#cubeFront)" />
+                            <line x1="135" y1="42" x2="360" y2="110" stroke="url(#cubeSpecularEdge)" strokeWidth="1.3" />
+                            <line x1="125" y1="68" x2="260" y2="98" stroke="#000000" strokeWidth="2" />
+
+                            {/* BLOCK 4 */}
+                            <polygon points="152,78 262,104 360,152 360,135 240,92" fill="url(#cubeTop1)" />
+                            <polygon points="152,78 262,104 246,144 136,118" fill="url(#cubeFront)" />
+                            <line x1="152" y1="78" x2="360" y2="152" stroke="url(#cubeSpecularEdge)" strokeWidth="1.5" />
+                            <line x1="136" y1="118" x2="246" y2="144" stroke="#000000" strokeWidth="2.5" />
+
+                            {/* BLOCK 5 */}
+                            <polygon points="170,126 255,148 360,202 360,185 245,138" fill="url(#cubeTop2)" />
+                            <polygon points="170,126 255,148 240,188 155,166" fill="url(#cubeFront)" />
+                            <line x1="170" y1="126" x2="360" y2="202" stroke="url(#cubeSpecularEdge)" strokeWidth="1.2" />
+                            <line x1="155" y1="166" x2="240" y2="188" stroke="#000000" strokeWidth="2.5" />
+
+                            {/* BLOCK 6 */}
+                            <polygon points="200,174 275,194 360,227 360,220 280,188" fill="url(#cubeTop1)" />
+                            <polygon points="200,174 275,194 265,227 190,207" fill="url(#cubeFront)" />
+                            <line x1="200" y1="174" x2="360" y2="227" stroke="url(#cubeSpecularEdge)" strokeWidth="1.3" />
+
+                            {/* BLOCK 7 */}
+                            <polygon points="255,0 360,22 360,5 295,0" fill="url(#cubeTop1)" />
+                            <line x1="255" y1="0" x2="360" y2="22" stroke="url(#cubeSpecularEdge)" strokeWidth="1.1" />
+
+                            <polygon points="120,40 160,82 140,125 100,65" fill="#050507" opacity="0.6" />
+                          </svg>
+
+                          {/* Top Row: Logo & Brand Name */}
+                          <div
+                            style={{
+                              position: 'relative',
+                              zIndex: 2,
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+                              <img
+                                src="./cf-logo-white.png"
+                                alt="Cassiel CF"
+                                style={{
+                                  width: '28px',
+                                  height: '28px',
+                                  objectFit: 'contain',
+                                  filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.25))'
+                                }}
+                              />
+                              <div>
+                                <div style={{ fontSize: '15px', fontWeight: '900', letterSpacing: '1.8px', textTransform: 'uppercase', lineHeight: 1.15, color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                                  CASSIEL
+                                </div>
+                                <div style={{ fontSize: '8.5px', fontWeight: '800', letterSpacing: '1.6px', textTransform: 'uppercase', color: '#E4E4E7', opacity: 0.9 }}>
+                                  PLATINUM CERAMIC
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Verified Pill Badge */}
+                            <div
+                              style={{
+                                background: 'rgba(24, 24, 27, 0.75)',
+                                backdropFilter: 'blur(10px)',
+                                padding: '4px 10px',
+                                borderRadius: '999px',
+                                fontSize: '9.5px',
+                                fontWeight: '800',
+                                letterSpacing: '0.5px',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: '#F4F4F5'
+                              }}
+                            >
+                              <span style={{ fontSize: '10px', color: '#34D399' }}>✓</span> {currentActiveProof.status || 'TERVERIFIKASI'}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '10px', color: '#9CA3AF' }}>
-                            No. {activeProof.certificateNumber}
+
+                          {/* Middle: Metallic Smart EMV Chip */}
+                          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div
+                              style={{
+                                width: '42px',
+                                height: '32px',
+                                borderRadius: '7px',
+                                background: 'linear-gradient(135deg, #F4F4F5 0%, #D4D4D8 35%, #71717A 70%, #E4E4E7 100%)',
+                                boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 3px 8px rgba(0, 0, 0, 0.6)',
+                                position: 'relative',
+                                border: '0.8px solid #71717A',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, height: '0.8px', background: '#3F3F46', opacity: 0.65 }} />
+                              <div style={{ position: 'absolute', top: '21px', left: 0, right: 0, height: '0.8px', background: '#3F3F46', opacity: 0.65 }} />
+                              <div style={{ position: 'absolute', left: '14px', top: 0, bottom: 0, width: '0.8px', background: '#3F3F46', opacity: 0.65 }} />
+                              <div style={{ position: 'absolute', right: '14px', top: 0, bottom: 0, width: '0.8px', background: '#3F3F46', opacity: 0.65 }} />
+                              <div style={{ position: 'absolute', left: '14px', right: '14px', top: '10px', bottom: '10px', border: '0.8px solid #3F3F46', borderRadius: '2px', opacity: 0.65 }} />
+                            </div>
+
+                            {/* Seal Donor Label */}
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '800',
+                                letterSpacing: '0.6px',
+                                color: '#FFFFFF',
+                                background: 'rgba(24, 24, 27, 0.85)',
+                                backdropFilter: 'blur(8px)',
+                                border: '1px solid rgba(255, 255, 255, 0.18)',
+                                padding: '4px 12px',
+                                borderRadius: '8px',
+                                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.6)'
+                              }}
+                            >
+                              {currentActiveProof.donorLabel || 'DONATUR #000001'}
+                            </div>
+                          </div>
+
+                          {/* Bottom Row: Member Holder Name & Certificate Number */}
+                          <div
+                            style={{
+                              position: 'relative',
+                              zIndex: 2,
+                              display: 'flex',
+                              alignItems: 'flex-end',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px', color: '#A1A1AA', marginBottom: '2px' }}>
+                                Cardholder / Impact Donor
+                              </div>
+                              <div style={{ fontSize: '17px', fontWeight: '800', letterSpacing: '0.8px', textShadow: '0 2px 6px rgba(0, 0, 0, 0.7)', color: '#FFFFFF' }}>
+                                {currentActiveProof.userName || currentUserName}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                textAlign: 'right',
+                                background: 'rgba(0, 0, 0, 0.65)',
+                                backdropFilter: 'blur(8px)',
+                                padding: '3px 9px',
+                                borderRadius: '7px',
+                                border: '0.8px solid rgba(255, 255, 255, 0.15)'
+                              }}
+                            >
+                              <div style={{ fontSize: '8.5px', textTransform: 'uppercase', letterSpacing: '0.8px', color: '#D4D4D8', fontWeight: '700', marginBottom: '1px' }}>
+                                Cert. ID
+                              </div>
+                              <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.8px', fontFamily: 'monospace', color: '#FFFFFF' }}>
+                                {currentActiveProof.certificateNumber}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ================= CARD BACK ================= */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            borderRadius: '20px',
+                            background: 'radial-gradient(circle at 75% 25%, #242429 0%, #121215 50%, #08080a 100%)',
+                            overflow: 'hidden',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            color: '#FFFFFF',
+                            border: '1px solid rgba(255, 255, 255, 0.16)',
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
+                            transform: 'rotateY(180deg)',
+                            padding: '14px 18px',
+                            boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.12)'
+                          }}
+                        >
+                          {/* Subtle geometric luxury watermark overlay on card back */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              pointerEvents: 'none',
+                              opacity: 0.035,
+                              backgroundImage: 'repeating-linear-gradient(45deg, #FFF 0, #FFF 1px, transparent 0, transparent 16px)'
+                            }}
+                          />
+
+                          {/* Top: Black Magnetic Stripe */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '14px',
+                              left: 0,
+                              right: 0,
+                              height: '34px',
+                              background: 'linear-gradient(180deg, #050507 0%, #1a1a1f 35%, #000000 65%, #0f0f12 100%)',
+                              borderTop: '0.8px solid rgba(255, 255, 255, 0.09)',
+                              borderBottom: '0.8px solid rgba(255, 255, 255, 0.09)',
+                              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.9)'
+                            }}
+                          />
+
+                          {/* Space below magnetic stripe */}
+                          <div style={{ height: '36px' }} />
+
+                          {/* Middle: Signature Strip & Holographic Authenticity Seal */}
+                          <div
+                            style={{
+                              position: 'relative',
+                              zIndex: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px'
+                            }}
+                          >
+                            {/* Realistic Frosted Signature & Barcode Panel */}
+                            <div
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: 'linear-gradient(90deg, #E5E7EB 0%, #F3F4F6 40%, #E5E7EB 100%)',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0 10px',
+                                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
+                                overflow: 'hidden',
+                                position: 'relative'
+                              }}
+                            >
+                              {/* Security pattern lines */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  opacity: 0.15,
+                                  backgroundImage: 'repeating-linear-gradient(-45deg, #000 0, #000 1px, transparent 0, transparent 4px)',
+                                  pointerEvents: 'none'
+                                }}
+                              />
+                              <span
+                                style={{
+                                  fontFamily: '"Brush Script MT", "Caveat", cursive, sans-serif',
+                                  fontSize: '15px',
+                                  color: '#1E293B',
+                                  fontWeight: 'bold',
+                                  letterSpacing: '1px',
+                                  textShadow: '0 0 1px rgba(0,0,0,0.2)'
+                                }}
+                              >
+                                {currentActiveProof.userName || currentUserName}
+                              </span>
+                            </div>
+
+                            {/* Holographic Seal / Chip */}
+                            <div
+                              style={{
+                                width: '38px',
+                                height: '28px',
+                                borderRadius: '5px',
+                                background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 25%, #6EE7B7 50%, #38BDF8 75%, #FDE68A 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                                border: '0.8px solid rgba(255,255,255,0.4)',
+                                opacity: 0.95
+                              }}
+                            >
+                              <span style={{ fontSize: '8px', fontWeight: '900', color: '#09090B', letterSpacing: '0.5px' }}>
+                                SECURE
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Center: Luxury Certificate Data Card */}
+                          <div
+                            style={{
+                              position: 'relative',
+                              zIndex: 2,
+                              background: 'rgba(255, 255, 255, 0.035)',
+                              backdropFilter: 'blur(12px)',
+                              borderRadius: '11px',
+                              padding: '9px 12px',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '5px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '1px', color: '#71717A', fontWeight: '700' }}>
+                                Misi Kebaikan
+                              </span>
+                              <span style={{ fontSize: '11px', fontWeight: '800', color: '#FFFFFF', letterSpacing: '0.2px', textAlign: 'right', maxWidth: '62%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {currentActiveProof.causeTitle}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '1px', color: '#71717A', fontWeight: '700' }}>
+                                Penyelenggara
+                              </span>
+                              <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#38BDF8', letterSpacing: '0.2px' }}>
+                                {currentActiveProof.causeOrganizer}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '1px', color: '#71717A', fontWeight: '700' }}>
+                                Tanggal Verifikasi
+                              </span>
+                              <span style={{ fontSize: '10.5px', fontWeight: '600', color: '#D4D4D8' }}>
+                                {currentActiveProof.dateFormatted}
+                              </span>
+                            </div>
+
+                            {/* Gold Impact Metric Banner */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                paddingTop: '5px',
+                                marginTop: '2px',
+                                borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <div
+                                  style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    background: '#10B981',
+                                    boxShadow: '0 0 6px #10B981'
+                                  }}
+                                />
+                                <span style={{ fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: '800', color: '#E4E4E7' }}>
+                                  Alokasi Donasi
+                                </span>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: '15px',
+                                  fontWeight: '900',
+                                  letterSpacing: '0.6px',
+                                  background: 'linear-gradient(135deg, #FDE68A 0%, #F59E0B 50%, #D97706 100%)',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                  textShadow: '0 2px 10px rgba(245, 158, 11, 0.3)'
+                                }}
+                              >
+                                {formatRupiah(currentActiveProof.amountDonated)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Bottom Action: YouTube Documentary Verification */}
+                          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <a
+                              href={currentActiveProof.youtubeUrl || OFFICIAL_YOUTUBE_DOCUMENTATION.youtubeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                flex: 1,
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%)',
+                                border: '1px solid rgba(255, 255, 255, 0.16)',
+                                color: '#FFFFFF',
+                                fontSize: '11px',
+                                fontWeight: '800',
+                                letterSpacing: '0.3px',
+                                textDecoration: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '7px',
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '50%',
+                                  background: '#EF4444',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="#FFFFFF">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                              <span style={{ color: '#F4F4F5' }}>Dokumentasi Resmi Penyaluran</span>
+                              <span style={{ fontSize: '10px', color: '#9CA3AF' }}>↗</span>
+                            </a>
                           </div>
                         </div>
                       </div>
-
-                      <div
-                        style={{
-                          background: '#ECFDF5',
-                          color: '#059669',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        ✓ {activeProof.status}
-                      </div>
                     </div>
 
-                    {/* Recipient / Donor Name */}
-                    <div style={{ textAlign: 'center', margin: '14px 0' }}>
-                      {/* Pioneer Backer Seal */}
-                      <div style={{ marginBottom: '8px' }}>
-                        <span
-                          style={{
-                            fontSize: '10.5px',
-                            fontWeight: '800',
-                            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                            color: '#FFFFFF',
-                            padding: '3.5px 12px',
-                            borderRadius: '999px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
-                            letterSpacing: '0.4px',
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          {activeProof.donorLabel || 'Donatur #000001'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                        Diberikan Sebagai Apresiasi Kepada:
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#1F2937', margin: '4px 0' }}>
-                        {activeProof.userName || currentUserName}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#D97706', fontWeight: '700' }}>
-                        Atas Partisipasi Langganan {activeProof.planTitle}
-                      </div>
-                    </div>
-
-                    {/* Donation Detail Box */}
+                    {/* Interactive 3D Flip Hint Pill */}
                     <div
+                      onClick={() => setIsCardFlipped(prev => !prev)}
                       style={{
-                        background: 'rgba(245, 158, 11, 0.06)',
-                        borderRadius: '14px',
-                        padding: '12px 14px',
-                        marginBottom: '14px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                        <span style={{ color: '#6B7280' }}>Misi Penyaluran:</span>
-                        <span style={{ fontWeight: '800', color: '#1F2937' }}>{activeProof.causeTitle}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                        <span style={{ color: '#6B7280' }}>Penyelenggara:</span>
-                        <span style={{ fontWeight: '700', color: '#0284C7' }}>{activeProof.causeOrganizer}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                        <span style={{ color: '#6B7280' }}>Tanggal Penyaluran:</span>
-                        <span style={{ fontWeight: '600', color: '#374151' }}>{activeProof.dateFormatted}</span>
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          paddingTop: '6px',
-                          borderTop: '1px dashed rgba(217, 119, 6, 0.2)',
-                          marginTop: '6px'
-                        }}
-                      >
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#92400E' }}>Alokasi Dana Donasi:</span>
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#D97706' }}>
-                          {formatRupiah(activeProof.amountDonated)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* YouTube Proof Direct Link Button */}
-                    <a
-                      href={activeProof.youtubeUrl || OFFICIAL_YOUTUBE_DOCUMENTATION.youtubeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '10px',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        color: '#DC2626',
-                        fontSize: '12px',
-                        fontWeight: '800',
-                        textDecoration: 'none',
-                        display: 'flex',
+                        alignSelf: 'center',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
                         gap: '6px',
-                        boxSizing: 'border-box'
+                        background: 'rgba(0, 0, 0, 0.05)',
+                        padding: '6px 14px',
+                        borderRadius: '999px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: '#6B7280',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        border: '1px solid rgba(0, 0, 0, 0.06)'
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                      </svg>
-                      <span>Lihat Dokumentasi Penyaluran (YouTube)</span>
-                    </a>
+                      <span style={{ fontSize: '13px' }}>🔄</span>
+                      <span>{isCardFlipped ? 'Sentuh kartu untuk melihat sisi depan' : 'Sentuh kartu untuk melihat rincian di belakang'}</span>
+                    </div>
                   </div>
                 )}
 

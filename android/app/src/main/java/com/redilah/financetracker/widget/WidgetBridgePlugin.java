@@ -18,8 +18,26 @@ public class WidgetBridgePlugin extends Plugin {
         String monthlyRemaining = call.getString("monthlyRemaining", "Rp 0");
         String todayExpense = call.getString("todayExpense", "Hari ini: Rp 0");
         String todayExpenseAmount = call.getString("todayExpenseAmount", "Rp 0");
-        Long todayExpenseRaw = call.getLong("todayExpenseRaw", 0L);
-        Integer budgetProgress = call.getInt("budgetProgress", 0);
+        
+        // Safely extract todayExpenseRaw as long (handles Integer/Double/Long from JSON)
+        Object rawObj = call.getData().opt("todayExpenseRaw");
+        long todayExpenseRaw = 0L;
+        if (rawObj instanceof Number) {
+            todayExpenseRaw = ((Number) rawObj).longValue();
+        } else if (rawObj != null) {
+            try {
+                todayExpenseRaw = Long.parseLong(rawObj.toString().replaceAll("[^0-9]", ""));
+            } catch (Exception ignored) {}
+        }
+
+        String syncedDate = call.getString("syncedDate", "");
+
+        // Safely extract budgetProgress as int
+        Object bpObj = call.getData().opt("budgetProgress");
+        int budgetProgress = 0;
+        if (bpObj instanceof Number) {
+            budgetProgress = ((Number) bpObj).intValue();
+        }
 
         Context context = getContext();
         SharedPreferences prefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
@@ -30,8 +48,9 @@ public class WidgetBridgePlugin extends Plugin {
                 .putString("monthlyRemaining", monthlyRemaining)
                 .putString("todayExpense", todayExpense)
                 .putString("todayExpenseAmount", todayExpenseAmount)
-                .putLong("todayExpenseRaw", todayExpenseRaw != null ? todayExpenseRaw : 0L)
-                .putInt("budgetProgress", budgetProgress != null ? budgetProgress : 0)
+                .putLong("todayExpenseRaw", todayExpenseRaw)
+                .putString("syncedDate", syncedDate)
+                .putInt("budgetProgress", budgetProgress)
                 .apply();
 
         // Broadcast updates to all widgets immediately

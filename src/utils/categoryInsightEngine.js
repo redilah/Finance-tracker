@@ -47,7 +47,7 @@ export const generateCategoryInsight = ({
   appLanguage = 'id',
   fmtMoney,
   getCategoryName,
-  communityData = null // { avgAmount, userCount } dari communityBenchmark.js
+  communityData = null // { avgAmount, userCount } — catatan: communityBenchmark.js kini hanya menyediakan { avgPercent, userCount } (tanpa nominal), jadi blok social proof berbasis nominal tetap nonaktif
 }) => {
   const cleanUserName = userName && userName.trim() ? userName.trim() : (
     appLanguage === 'en' ? 'You' : appLanguage === 'jv' ? 'Panjenengan' : appLanguage === 'zh' ? 'Nin' : appLanguage === 'ko' ? 'Dangsin' : 'Kamu'

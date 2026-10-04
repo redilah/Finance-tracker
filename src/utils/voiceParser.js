@@ -396,6 +396,24 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
   ],
   biayaAdmin: [
     'biaya admin', 'admin bank', 'biaya transfer', 'admin transfer', 'biaya transaksi', 'potongan admin', 'biaya bulanan bank', 'admin bulanan', 'admin topup', 'biaya penanganan'
+  ],
+  tiket: [
+    'tiket bioskop', 'tiket film', 'tiket nonton', 'tiket konser', 'tiket festival',
+    'tiket musik', 'tiket pesawat', 'tiket kereta api', 'tiket kereta', 'tiket kai',
+    'kai access', 'tiket krl', 'tiket mrt', 'tiket lrt', 'tiket bus', 'tiket travel',
+    'tiket shuttle', 'tiket kapal laut', 'tiket kapal', 'tiket feri', 'tiket ferry',
+    'tiket penyeberangan', 'tiket whoosh', 'tiket kcic', 'tiket wisata', 'tiket masuk',
+    'tiket wahana', 'tiket liburan', 'tiket museum', 'tiket kebun binatang', 'tiket zoo',
+    'tiket ragunan', 'tiket safari', 'tiket taman safari', 'tiket dufan', 'tiket ancol',
+    'tiket tmii', 'tiket candi', 'tiket prj', 'tiket waterpark', 'tiket waterboom',
+    'tiket seminar', 'tiket webinar', 'tiket workshop', 'tiket konferensi', 'tiket exhibition',
+    'tiket pameran', 'tiket pertunjukan', 'tiket teater', 'tiket drama', 'tiket stand up comedy',
+    'tiket pertandingan', 'tiket bola', 'tiket sepak bola', 'tiket badminton', 'tiket basket',
+    'tiket event', 'tiket acara', 'tiket atraksi', 'tiket penerbangan', 'tiket parkir',
+    'beli tiket', 'pesan tiket', 'booking tiket', 'order tiket', 'pesen tiket',
+    'tiket.com', 'tiketcom', 'traveloka', 'loket.com', 'loket', 'kiostix', 'megatix',
+    'stubhub', 'eventim', 'gotix', 'go-tix', 'karcis masuk', 'karcis parkir', 'karcis tol',
+    'karcis', 'e-ticket', 'eticket', 'voucher tiket', 'tiket'
   ]
 };
 
@@ -750,7 +768,7 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
         queryType = 'BALANCE';
       } else if (/\b(pemasukan|uang\s*masuk|gaji|dapat\s*uang|income)\b/i.test(text)) {
         queryType = 'INCOME';
-      } else if (targetCategory && /\b(kopi|bensin|makan|food|gofood|nonton|bioskop|belanja|transport|pulsa|wifi|skincare|buku|donasi)\b/i.test(text)) {
+      } else if (targetCategory && /\b(kopi|bensin|makan|food|gofood|nonton|bioskop|belanja|transport|pulsa|wifi|skincare|buku|donasi|tiket|karcis)\b/i.test(text)) {
         queryType = 'CATEGORY';
       } else {
         queryType = 'EXPENSE';
@@ -1371,6 +1389,10 @@ export function parseSingleVoiceTransaction(rawText, { expenseCategories, income
     matchedExpenseCatId = 'wifi';
     latestExpenseIdx = 9250;
     expenseMatchedWord = 'wifi';
+  } else if (/\b(tiket kereta|tiket kai|tiket whoosh|tiket kcic|tiket bus|tiket travel|tiket shuttle|tiket kapal|tiket feri|tiket wisata|tiket masuk|tiket wahana|tiket liburan|tiket museum|tiket dufan|tiket ancol|tiket tmii|tiket zoo|tiket seminar|tiket webinar|tiket workshop|tiket pameran|tiket pertunjukan|tiket pertandingan|tiket bola|tiket event|tiket acara|tiket\.com|tiketcom|traveloka|loket\.com|loket|kiostix|megatix|gotix|go-tix|karcis|e-ticket|eticket|beli tiket|pesan tiket|booking tiket|tiket)\b/i.test(primaryText)) {
+    matchedExpenseCatId = 'tiket';
+    latestExpenseIdx = 9200;
+    expenseMatchedWord = 'tiket';
   } else {
     const sortedExpenseCatKeys = Object.keys(EXPENSE_CATEGORY_KEYWORDS).sort((a, b) => {
       return (EXPENSE_CATEGORY_KEYWORDS[b][0]?.length || 0) - (EXPENSE_CATEGORY_KEYWORDS[a][0]?.length || 0);

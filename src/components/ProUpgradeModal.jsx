@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { isProUser, setProUser } from '../utils/proManager';
 import { getSubscriptionOfferings, purchaseJusticeCassielPackage, restoreJusticePurchases } from '../utils/nativeBillingManager';
 import { recordUserDonationProof } from '../utils/kitabisaTransparencyManager';
+import { updateCurrentDeviceTelemetry } from '../utils/telemetry';
 import kitabisaLogo from '../assets/kitabisa_logo.png';
 import airBersihGunungkidulImg from '../assets/air_bersih_gunungkidul.png';
 import sedekahAirGempaNttImg from '../assets/sedekah_air_gempa_ntt.png';
@@ -137,6 +138,7 @@ export default function ProUpgradeModal({
   isOpen,
   onClose,
   triggerReason = 'general',
+  currentUserName = 'Pengguna Cassiel',
   onProStatusChanged
 }) {
   const [step, setStep] = useState(1); // 1: Pilih Paket, 2: Pilih Misi Donasi Kitabisa
@@ -265,9 +267,12 @@ export default function ProUpgradeModal({
         return id.includes('month');
       }) || packages[0];
 
+      const isJusticeVariant = packages.some(p => ((p?.identifier || p?.product?.identifier || '')).toLowerCase().includes('justice'));
       const fallbackProductId = selectedPlanId === 'yearly'
-        ? 'justice_cassiel_yearly'
-        : (selectedPlanId === 'six_months' ? 'justice_cassiel_six_months' : 'justice_cassiel_monthly');
+        ? (isJusticeVariant ? 'justice_cassiel_yearly' : 'cassiel_pro_yearly')
+        : (selectedPlanId === 'six_months' 
+            ? (isJusticeVariant ? 'justice_cassiel_six_months' : 'cassiel_pro_six_months') 
+            : (isJusticeVariant ? 'justice_cassiel_monthly' : 'cassiel_pro_monthly'));
 
       const res = await purchaseJusticeCassielPackage(targetPkg || fallbackProductId);
       if (res.success) {
@@ -276,8 +281,10 @@ export default function ProUpgradeModal({
 
         // Catat bukti donasi resmi ke akun pengguna
         recordUserDonationProof({
+          userName: currentUserName || 'Pengguna Cassiel',
           planId: currentPlan.id,
           planTitle: currentPlan.title,
+          planPriceText: currentPlan.priceText,
           grossPrice: currentPlan.numericPrice,
           amountDonated: donationShare,
           causeId: currentCause.id,
@@ -286,6 +293,9 @@ export default function ProUpgradeModal({
           causeTag: currentCause.tag,
           date: new Date().toISOString()
         });
+
+        // Segera perbarui telemetry ke Firebase agar langsung terlacak di Admin Dashboard
+        updateCurrentDeviceTelemetry().catch(() => {});
 
         setTimeout(() => {
           onClose();
@@ -303,7 +313,9 @@ export default function ProUpgradeModal({
     try {
       const res = await restoreJusticePurchases();
       if (res.success && res.isPro) {
+        setProUser(true);
         if (onProStatusChanged) onProStatusChanged(true);
+        updateCurrentDeviceTelemetry().catch(() => {});
         alert('Status langganan Justice Cassiel berhasil dipulihkan!');
         setTimeout(() => onClose(), 600);
       } else {

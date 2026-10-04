@@ -5,11 +5,11 @@
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon",
-      "largeIcon": "ic_large_icon"
+      "largeIcon": "ic_launcher"
     },
     "PushNotifications": {
       "smallIcon": "ic_stat_icon",
-      "largeIcon": "ic_large_icon"
+      "largeIcon": "ic_launcher"
     }
   }
 }

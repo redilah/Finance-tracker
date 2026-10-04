@@ -1,6 +1,6 @@
 # 💰 Cassiel — Personal Finance Tracker
 
-> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Input Transaksi Berbasis Voice AI Majemuk**, **Sistem Mata Uang 1 Dunia & Kurs Real-Time**, **Multi-Bahasa (Termasuk Romaja Korea & Basa Jawa)**, **Keamanan PIN & Biometrik Sidik Jari**, **Manajemen Multi-Akun & Sebaran Aset 3-Metrik**, **Cadangan Data Dokumen & Google Drive**, **Interactive Monthly Stats Bar Chart**, **Direct Budget Editing & Gaming EXP Bar**, **Live Category Insight Engine**, **Animasi Mesin Hitung Uang (Cash Counter)**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran sehari-hari.
+> Aplikasi pencatat keuangan pribadi yang cerdas, ultra-responsif, aman, dan offline-first. Dilengkapi dengan **Liquid Curved Dynamic Navigation Bar & Apple Fluid Spring Physics**, **Direction-Aware Page Slide Transitions**, **Input Transaksi Berbasis Voice AI Majemuk**, **Sistem Mata Uang 1 Dunia & Kurs Real-Time**, **Multi-Bahasa (Termasuk Romaja Korea & Basa Jawa)**, **Keamanan PIN & Biometrik Sidik Jari**, **Manajemen Multi-Akun & Sebaran Aset 3-Metrik**, **Cadangan Data Dokumen & Google Drive**, **Interactive Monthly Stats Bar Chart**, **Direct Budget Editing & Gaming EXP Bar**, **Live Category Insight Engine**, **Animasi Mesin Hitung Uang (Cash Counter)**, serta klasifikasi finansial otomatis yang dirancang khusus untuk pola pengeluaran sehari-hari.
 
 ---
 
@@ -8,6 +8,8 @@
 
 - [Tentang Cassiel](#tentang-cassiel)
 - [Fitur Utama](#fitur-utama)
+- [🌊 Liquid Curved Navigation Bar & Apple Fluid Physics](#-liquid-curved-navigation-bar--apple-fluid-physics)
+- [🎬 Apple Direction-Aware Page Slide Transitions](#-apple-direction-aware-page-slide-transitions)
 - [💳 Manajemen Multi-Akun & Sebaran Aset](#-manajemen-multi-akun--sebaran-aset)
 - [🌍 Sistem Mata Uang Dunia & Kurs Real-Time](#-sistem-mata-uang-dunia--kurs-real-time)
 - [🌐 Multi-Bahasa (i18n)](#-multi-bahasa-i18n)
@@ -47,6 +49,17 @@ Cassiel tersedia dalam dua platform:
 ---
 
 ## Fitur Utama
+
+### 🌊 Liquid Curved Navigation Bar & Apple Fluid Physics
+- **Dynamic Parametric Cubic Bezier SVG Notch**: Notch melengkung lentur yang mengikuti pergerakan tab aktif secara organik tanpa clipping atau patahan sudut.
+- **Apple Fluid Spring Physics Engine**: Simulasi fisika pegas *critically damped* (`omega = 16.5`, `damping = 0.98`) berbasis delta-time (`requestAnimationFrame`) dengan preservasi momentum saat interupsi cepat.
+- **Luminous Floating Bubble**: Gelembung melayang dengan gradien lembut warm ivory, border oranye amber 2.5px, bayangan cahaya ambient, serta ikon SVG asli penuh warna (anti-pucat siluet).
+- **Independent Floating Add Button**: Tombol `[ + ] Catat Transaksi` tetap terisolasi di tengah dengan akses instan tanpa terganggu animasi navigasi tab.
+
+### 🎬 Apple Direction-Aware Page Slide Transitions
+- **Synchronized Zero-Lag Layout Sweeps**: Animasi perpindahan antar layar utama (*Home*, *Akun*, *Budget*, *Statistik*) tersinkronisasi 100% pada frame yang sama dengan gerakan bulatan menu bar.
+- **Dynamic Distance & Duration Scaling**: Jarak geser dan durasi animasi beradaptasi secara dinamis sesuai jumlah lompatan tab (1 lompatan = 40px/260ms, multi-lompatan = 70px/320ms).
+- **Apple Standard Fluid Curve**: Menggunakan kurva akselerasi `cubic-bezier(0.16, 1, 0.3, 1)` untuk sensasi geser layar yang natural, halus, dan elegan.
 
 ### 💳 Manajemen Multi-Akun & Sebaran Aset 3-Metrik
 - **Multi-Dompet Terisolasi**: Atur saldo terpisah untuk Bank (BCA, Mandiri, BRI, BNI, Jago, dll.), E-Wallet (GoPay, OVO, Dana, ShopeePay), dan Tunai (Cash).
@@ -91,6 +104,57 @@ Cassiel tersedia dalam dua platform:
 - **Interaktif Bar Chart**: Visualisasi tren pengeluaran dan pemasukan bulanan yang jelas.
 - **Pie Chart Stats**: Diagram lingkaran pengeluaran dengan garis penunjuk lurus (*leader line*) presisi horizontal sejajar nama kategori.
 - **Month-to-Month Switcher**: Navigasi cepat antar bulan untuk membandingkan performa finansial historis.
+
+---
+
+## 🌊 Liquid Curved Navigation Bar & Apple Fluid Physics
+
+Cassiel mengimplementasikan navigasi bawah kustom dengan efek *liquid notch* adaptif dan animasi gelembung melayang yang dihitung menggunakan prinsip fisika gerak Apple:
+
+```
+           ┌───────────────────────────────────────────────┐
+           │          Gelembung Melayang (Bubble)          │
+           │     [ Luminous Disc: Warm White + Amber ]     │
+           │   [ Ikon SVG Asli: Warna Penuh Anti-Siluet ]  │
+           └───────────────────────┬───────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Home            Akun              [ + ]            Budget        Statistik │
+│                                (Catat Bebas)                                │
+│ ~~~~~~~~\____________________/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ │
+│         Lekukan Dinamis (Parametric Cubic Bezier SVG Notch)                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Parametric Cubic Bezier Curve**: Bentuk lekukan kurva notch dihitung dinamis via fungsi SVG path generator (`getNavPath`) dengan kontrol transisi tangen mulus:
+   - $M(0, 0) \to L(cx - w, 0)$
+   - $C(cx - w + s, 0, cx - r, d, cx, d)$
+   - $C(cx + r, d, cx + w - s, 0, cx + w, 0) \to L(\text{width}, 0)$
+2. **Apple Spring Physics Engine**: Posisi notch dan bubble bergerak melalui loop `requestAnimationFrame` dengan model pegas redaman kritis (*critically damped*):
+   $$\Delta x = target - x, \quad a = \Delta x \cdot \omega^2 - 2 \cdot \zeta \cdot \omega \cdot v$$
+   Menghasilkan akselerasi dan deselerasi instan tanpa getaran liar (*no harsh bounce*), serta mempertahankan inersia saat pengguna berpindah tab secara cepat sebelum animasi sebelumnya selesai.
+3. **Pemberian Warna Ikon Asli**: Ikon tab aktif tetap mempertahankan warna asli ilustrasi SVG (`houseSvg`, `akunSvg`, `budgetSvg`, `diagramSvg`), bebas dari efek siluet putih pucat, berpadu kontras di atas gelembung melayang warm ivory dengan border oranye amber 2.5px.
+4. **Isolasi Tombol Tambah [ + ]**: Tombol aksi pencatatan transaksi di tengah tetap independen dan mengapung bebas, memberikan kemudahan akses satu jempol tanpa menginterupsi navigasi visual tab utama.
+
+---
+
+## 🎬 Apple Direction-Aware Page Slide Transitions
+
+Setiap kali pengguna berpindah antar tab navigasi utama (*Home*, *Akun*, *Budget*, *Statistik*), halaman yang muncul bertransisi dengan sapuan arah yang tersinkronisasi:
+
+```
+Arah Perpindahan Tab:       Home (idx 0) ───────▶ Budget (idx 2) [Kanan / Forward]
+Gerakan Gelembung Menu:     Meluncur ke Kanan ──────────────▶
+Gerakan Layar (Slide):      Masuk dari Kiri ke Posisi Netral ───▶ [translate3d(-dist, 0, 0) ➔ 0]
+Durasi & Jarak:             Tersinkronisasi Otomatis Sesuai Jumlah Langkah (Steps)
+```
+
+- **Zero-Lag Render-Pass Derivation**: Penentuan arah geser (`direction`), jarak (`distance`), durasi (`duration`), dan jumlah langkah (`steps`) dihitung langsung pada siklus render React saat `activeTab` berubah, menghilangkan jeda visual 1–2 frame yang biasa terjadi pada `useEffect`.
+- **Dynamic Spatial Scaling**:
+  - *1 Langkah (Adjacent Tab)*: Jarak sapuan $40\text{px}$, durasi $260\text{ms}$.
+  - *Multi Langkah (Across Add / Skips)*: Jarak sapuan $70\text{px}$, durasi $320\text{ms}$.
+- **Apple Standard Fluid Timing**: Diimplementasikan dengan fungsi transisi `cubic-bezier(0.16, 1, 0.3, 1)` dan akselerasi perangkat keras GPU (`will-change: transform, opacity; transform: translate3d(...)`) untuk memastikan rendering 60-120 FPS tanpa penurunan frame.
 
 ---
 
@@ -231,6 +295,7 @@ Cassiel mengamankan akses aplikasi dengan lapisan proteksi ganda:
 - **Grafik Batang Komparatif**: Menampilkan perbandingan riil total pemasukan vs pengeluaran setiap bulan.
 - **Distribusi Kategori**: Diagram persentase pengeluaran berdasarkan masing-masing kategori belanja dengan leader line sejajar nama kategori.
 - **Selector Bulan Mudah**: Tombol pill ringkas (`MONTH_SHORT_I18N`) untuk menelusuri rekap keuangan masa lampau.
+- **Clean Header Layout**: Tata letak header statistik yang bersih dan terfokus pada analitik visual, memindahkan aksi ekspor ke menu terpusat Data & Cadangan.
 
 ---
 
@@ -468,7 +533,8 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |---|---|---|---|
-| **1.0.28** | **29** | **Agustus 2026** | **Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time**, Filter Cepat & Pemantauan Arus Kas per Sumber Dana, Animasi Cash Counter Rolling, Notifikasi Personal Cerdas |
+| **1.0.44** | **44** | **September 2026** | **Liquid Curved Dynamic Navigation Bar** (Parametric Bezier Notch & Apple Fluid Spring Physics), **Apple Direction-Aware Page Slide Transitions** (Synchronized Zero-Lag Layout Sweeps), Visualisasi Ikon Penuh Warna Asli, Optimasi Header Statistik Bersih |
+| 1.0.28 | 29 | Agustus 2026 | **Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time**, Filter Cepat & Pemantauan Arus Kas per Sumber Dana, Animasi Cash Counter Rolling, Notifikasi Personal Cerdas |
 | 1.0.27 | 28 | Agustus 2026 | Auto Expense Listener Service & Izin Notifikasi Android Background |
 | 1.0.26 | 27 | Agustus 2026 | Sinkronisasi APK Folder `./apk/`, Dynamic Target APK Routing, SHA-256 Checksum Verification |
 | 1.0.25 | 26 | Agustus 2026 | High-Impact What's New In-App Update, Borderless Luxury UI Design Refresh |

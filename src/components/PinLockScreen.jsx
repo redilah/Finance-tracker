@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './PinLockScreen.css';
-import { verifyUserPin, isBiometricEnabled, authenticateWithBiometrics } from '../utils/authPin';
+import { verifyUserPin, isBiometricEnabled, authenticateWithBiometrics, getPinLockoutRemainingSeconds } from '../utils/authPin';
 import { CURRENT_VERSION_NAME, CURRENT_VERSION_CODE } from '../utils/version';
 
 export default function PinLockScreen({ onUnlockSuccess, t }) {
   const [pin, setPin] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isShaking, setIsShaking] = useState(false);
-  const [isAuthenticatingBio, setIsAuthenticatingBio] = useState(false);
-
   const isBioActive = isBiometricEnabled();
   // Ref untuk menandai bahwa auto-prompt saat inisialisasi sudah berjalan 1x
   const hasAutoPromptedRef = React.useRef(false);
@@ -30,7 +28,6 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
   const handleBiometricAuth = useCallback(async () => {
     if (!isBioActive || isCallingBioRef.current) return;
     isCallingBioRef.current = true;
-    setIsAuthenticatingBio(true);
     try {
       const res = await authenticateWithBiometrics(
         t ? t('biometricPromptReason') || 'Verifikasi sidik jari untuk masuk ke Cassiel' : 'Verifikasi sidik jari untuk masuk ke Cassiel'
@@ -43,7 +40,6 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
       console.log('Biometric prompt dismissed or failed:', e);
     } finally {
       isCallingBioRef.current = false;
-      setIsAuthenticatingBio(false);
     }
   }, [isBioActive, onUnlockSuccess, t]);
 
@@ -60,11 +56,22 @@ export default function PinLockScreen({ onUnlockSuccess, t }) {
 
   // Validasi PIN otomatis begitu 6 digit selesai diketik
   const handlePinSubmit = useCallback(async (fullPin) => {
+    const lockRemaining = getPinLockoutRemainingSeconds();
+    if (lockRemaining > 0) {
+      triggerErrorShake(`Terlalu banyak percobaan salah. Tunggu ${lockRemaining} detik.`);
+      return;
+    }
+
     const isValid = await verifyUserPin(fullPin);
     if (isValid) {
       if (onUnlockSuccess) onUnlockSuccess();
     } else {
-      triggerErrorShake(t ? t('pinWrong') || 'PIN yang Anda masukkan salah' : 'PIN yang Anda masukkan salah');
+      const nextRemaining = getPinLockoutRemainingSeconds();
+      if (nextRemaining > 0) {
+        triggerErrorShake(`Terlalu banyak percobaan salah. Tunggu ${nextRemaining} detik.`);
+      } else {
+        triggerErrorShake(t ? t('pinWrong') || 'PIN yang Anda masukkan salah' : 'PIN yang Anda masukkan salah');
+      }
     }
   }, [onUnlockSuccess, t]);
 

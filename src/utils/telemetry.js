@@ -3,13 +3,15 @@ import { normalizeAccountName } from './accountLogos.jsx';
 const CURRENT_VERSION = CURRENT_VERSION_NAME;
 import { db } from './firebase.js';
 import { safeStorageGet } from './secureStorage.js';
+import { LEGACY_NOMINAL_FIELDS, stripLegacyNominalFields, toCategoryPercentages } from './telemetryPrivacy.js';
 import { 
   collection, 
   doc, 
   setDoc, 
   getDocs, 
   onSnapshot, 
-  deleteDoc 
+  deleteDoc,
+  deleteField
 } from '@firebase/firestore';
 
 const DEVICE_ID_KEY = 'app_device_id';
@@ -48,8 +50,11 @@ const cleanupDummyRecords = (list) => {
       return false;
     }
     return true;
-  });
+  }).map(stripLegacyNominalFields);
 };
+
+// Helper privasi (porsi %, pembersihan nominal lama) ada di modul murni agar bisa diuji
+export { stripLegacyNominalFields, toCategoryPercentages };
 
 // Detect device name & OS/Browser (extracts phone brand/model like Samsung, Xiaomi, iPhone, or Windows Laptop)
 export const detectDeviceName = () => {
@@ -194,7 +199,8 @@ export const updateCurrentDeviceTelemetry = async () => {
   let voiceTxCount = 0;
   let manualTxCount = 0;
   const expenseCategoryStats = {};
-  const expenseCategoryAmounts = {}; // Total nominal rupiah per kategori (untuk community benchmark)
+  // Nominal per kategori HANYA dipakai lokal untuk menghitung persentase — tidak pernah dikirim ke server
+  const localMonthlyExpenseByCategory = {};
   const incomeCategoryStats = {};
   const accountStats = {};
 
@@ -205,7 +211,7 @@ export const updateCurrentDeviceTelemetry = async () => {
       voiceTxCount = tx.filter(t => t.inputMethod === 'voice' || t.source === 'voice' || t.isVoice).length;
       manualTxCount = totalTransactions - voiceTxCount;
 
-      // Filter transaksi bulan berjalan saja untuk amounts benchmark
+      // Filter transaksi bulan berjalan saja untuk porsi persentase per kategori
       const now = new Date();
       const currentYearStr = String(now.getFullYear());
       const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
@@ -220,11 +226,11 @@ export const updateCurrentDeviceTelemetry = async () => {
         } else {
           expenseCategoryStats[cat] = (expenseCategoryStats[cat] || 0) + 1;
 
-          // Hitung total nominal per kategori (bulan ini saja)
-          if (item.date) {
+          // Akumulasi lokal nominal per kategori (bulan ini saja) → dikonversi ke persen di bawah
+          if (typeof item.date === 'string') {
             const [y, m] = item.date.split('-');
             if (y === currentYearStr && m === currentMonthStr) {
-              expenseCategoryAmounts[cat] = (expenseCategoryAmounts[cat] || 0) + (item.amount || 0);
+              localMonthlyExpenseByCategory[cat] = (localMonthlyExpenseByCategory[cat] || 0) + (Number(item.amount) || 0);
             }
           }
         }
@@ -233,6 +239,9 @@ export const updateCurrentDeviceTelemetry = async () => {
       });
     }
   } catch {}
+
+  // Porsi pengeluaran per kategori bulan ini dalam persen (total = 100), tanpa nominal Rupiah
+  const expenseCategoryPercentages = toCategoryPercentages(localMonthlyExpenseByCategory);
 
   // Total active seconds in app (strictly real tracked time)
   let totalActiveSeconds = 0;
@@ -264,6 +273,29 @@ export const updateCurrentDeviceTelemetry = async () => {
     }
   } catch {}
 
+  // Pro & Subscription tracking
+  let isPro = false;
+  let proPlanTitle = null;
+  let proSince = null;
+  let donorNumber = null;
+  let donorLabel = null;
+  let totalDonated = 0;
+  try {
+    isPro = localStorage.getItem('cassiel_is_pro_user') === 'true';
+    const rawProofs = localStorage.getItem('cassiel_user_donation_proofs');
+    if (rawProofs) {
+      const parsedProofs = JSON.parse(rawProofs);
+      if (Array.isArray(parsedProofs) && parsedProofs.length > 0) {
+        isPro = true;
+        proPlanTitle = parsedProofs[0].planTitle || 'Justice Cassiel Pro';
+        proSince = parsedProofs[0].dateFormatted || parsedProofs[0].timestamp || null;
+        donorNumber = parsedProofs[0].donorNumber || null;
+        donorLabel = parsedProofs[0].donorLabel || null;
+        totalDonated = parsedProofs.reduce((acc, p) => acc + (Number(p.amountDonated) || 0), 0);
+      }
+    }
+  } catch {}
+
   const deviceData = {
     id: currentDeviceId,
     userName: currentUserName,
@@ -277,18 +309,29 @@ export const updateCurrentDeviceTelemetry = async () => {
     totalActiveSeconds: totalActiveSeconds,
     sessionCount: sessionCount,
     expenseCategoryStats: expenseCategoryStats,
-    expenseCategoryAmounts: expenseCategoryAmounts,
+    expenseCategoryPercentages: expenseCategoryPercentages,
     incomeCategoryStats: incomeCategoryStats,
     accountStats: accountStats,
     groups: groupsData,
     totalGroups: groupsData.length,
+    isPro: isPro,
+    proPlanTitle: proPlanTitle,
+    proSince: proSince,
+    donorNumber: donorNumber,
+    donorLabel: donorLabel,
+    totalDonated: totalDonated,
     appVersion: CURRENT_VERSION,
     updatedAt: Date.now()
   };
 
   try {
     const docRef = doc(db, TELEMETRY_COLLECTION, currentDeviceId);
-    await withTimeout(setDoc(docRef, deviceData, { merge: true }), 2000);
+    // Hapus field nominal Rupiah lama dari dokumen Firestore versi sebelumnya
+    const firestorePayload = { ...deviceData };
+    LEGACY_NOMINAL_FIELDS.forEach(f => { firestorePayload[f] = deleteField(); });
+    // mergeFields: tiap field top-level diganti utuh (map persen tidak tercampur kategori bulan lalu),
+    // field lain di dokumen yang tidak disebut tetap dipertahankan.
+    await withTimeout(setDoc(docRef, firestorePayload, { mergeFields: Object.keys(firestorePayload) }), 2000);
   } catch (e) {
     console.warn('Firebase setDoc update warning (using local telemetry):', e?.message || e);
   }

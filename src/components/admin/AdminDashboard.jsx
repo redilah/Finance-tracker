@@ -46,16 +46,10 @@ import {
   Check,
   ExternalLink,
   MessageSquare,
-  Heart,
   TrendingUp,
   TrendingDown,
   Wallet,
-  CreditCard,
-  Trophy,
-  Award,
-  BarChart3,
-  Layers,
-  FolderHeart,
+  Crown,
   UserCheck
 } from 'lucide-react';
 
@@ -243,6 +237,7 @@ export const getAnonymizedUserCode = (rawName, deviceId = null) => {
 };
 
 export default function AdminDashboard({ onNavigateToApp }) {
+
   // Navigation Tab: 'telemetry' | 'insights'
   const [activeTab, setActiveTab] = useState('telemetry');
 
@@ -491,8 +486,10 @@ export default function AdminDashboard({ onNavigateToApp }) {
         (item.id || '').toLowerCase().includes(q);
 
       const statusInfo = getDeviceStatus(item.lastActive);
+      const isUserPro = item.isPro === true || (item.donorNumber && item.donorNumber > 0);
       const matchesStatus = 
         filterStatus === 'all' ? true :
+        filterStatus === 'pro' ? isUserPro :
         filterStatus === 'online' ? (statusInfo.status === 'online' || statusInfo.status === 'idle') :
         (statusInfo.status === 'offline');
 
@@ -680,6 +677,9 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const activeDevices = telemetryList.filter(item => getDeviceStatus(item.lastActive).status !== 'offline').length;
   const totalTransactions = telemetryList.reduce((acc, curr) => acc + (curr.totalTransactions || 0), 0);
   const totalGroupsCreated = allGroups.length;
+  const proSubscribers = telemetryList.filter(item => item.isPro === true || (item.donorNumber && item.donorNumber > 0));
+  const totalProUsers = proSubscribers.length;
+  const totalDonatedAll = telemetryList.reduce((acc, curr) => acc + (Number(curr.totalDonated) || 0), 0);
   const deletionCount = learnedInsights.filter(item => !(item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]')))).length;
   const vocabCount = learnedInsights.filter(item => item.type === 'NEW_VOCAB' || (item.deletedTx && item.deletedTx.includes('[Kosakata Baru]'))).length;
   
@@ -931,6 +931,31 @@ export default function AdminDashboard({ onNavigateToApp }) {
             </div>
           </div>
 
+          <div 
+            className="admin-stat-card"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setFilterStatus(prev => prev === 'pro' ? 'all' : 'pro')}
+            title="Klik untuk menyaring pengguna Pro"
+          >
+            <div className="stat-icon-wrapper stat-icon-pro">
+              <Crown size={24} />
+            </div>
+            <div className="stat-info">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <span>PENGGUNA PRO</span>
+                {filterStatus === 'pro' && (
+                  <span style={{ fontSize: '9.5px', background: '#D97706', color: '#FFF', padding: '1px 6px', borderRadius: '6px', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    AKTIF
+                  </span>
+                )}
+              </div>
+              <h3>{totalProUsers} <small style={{ fontSize: '13px', fontWeight: 700, color: '#D97706' }}>pro</small></h3>
+              <p className="stat-subtext">
+                {totalDonatedAll > 0 ? `Rp${totalDonatedAll.toLocaleString('id-ID')} donasi` : 'Langganan Aktif'}
+              </p>
+            </div>
+          </div>
+
           <div className="admin-stat-card">
             <div className="stat-icon-wrapper stat-icon-timer">
               <Clock size={24} />
@@ -1014,6 +1039,13 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     Semua ({totalUsers})
                   </button>
                   <button 
+                    className={`filter-pill ${filterStatus === 'pro' ? 'active' : ''}`}
+                    style={filterStatus === 'pro' ? { background: '#FEF3C7', color: '#B45309', borderColor: '#F59E0B' } : {}}
+                    onClick={() => setFilterStatus('pro')}
+                  >
+                    👑 Pro ({totalProUsers})
+                  </button>
+                  <button 
                     className={`filter-pill ${filterStatus === 'online' ? 'active' : ''}`}
                     onClick={() => setFilterStatus('online')}
                   >
@@ -1058,6 +1090,7 @@ export default function AdminDashboard({ onNavigateToApp }) {
                     <thead>
                       <tr>
                         <th>PENGGUNA</th>
+                        <th>PAKET / STATUS</th>
                         <th>DEVICE</th>
                         <th>METODE INPUT</th>
                         <th>VERSI</th>
@@ -1085,15 +1118,49 @@ export default function AdminDashboard({ onNavigateToApp }) {
                             {/* Nama Pengguna Asli & Jelas */}
                             <td>
                               <div className="user-profile-cell">
-                                <div className="user-avatar-circle">
+                                <div className="user-avatar-circle" style={item.isPro || item.donorNumber ? { background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#FFF' } : {}}>
                                   {avatarLetter}
                                 </div>
                                 <div className="user-meta">
-                                  <span className="user-name-text">{realName}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span className="user-name-text">{realName}</span>
+                                    {(item.isPro || item.donorNumber) && (
+                                      <span title="Pelanggan Pro Aktif" style={{ fontSize: '13px' }}>👑</span>
+                                    )}
+                                  </div>
                                   <span className="user-device-id" title={item.id}>
                                     ID: {item.id ? item.id.substring(0, 14) : '-'}...
                                   </span>
                                 </div>
+                              </div>
+                            </td>
+
+                            {/* Status Langganan & Paket */}
+                            <td>
+                              <div className="subscription-badge-cell">
+                                {item.isPro || item.donorNumber ? (
+                                  <>
+                                    <span className="plan-badge-pro">
+                                      <Crown size={12} />
+                                      <span>{item.proPlanTitle || 'Justice Pro'}</span>
+                                    </span>
+                                    {item.donorLabel && (
+                                      <span className="donor-num-subtext">
+                                        <span>💙</span>
+                                        <span>{item.donorLabel}</span>
+                                      </span>
+                                    )}
+                                    {item.totalDonated > 0 && (
+                                      <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 600 }}>
+                                        Donasi: Rp{Number(item.totalDonated).toLocaleString('id-ID')}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="plan-badge-free">
+                                    <span>Free / Gratis</span>
+                                  </span>
+                                )}
                               </div>
                             </td>
 

@@ -1,14 +1,14 @@
 {
-  "versionCode": 43,
-  "versionName": "1.0.43",
-  "version": "1.0.43",
-  "changelog": "New in this update:\n[FIX] Optimalisasi Filter Notifikasi Promo & Giveaway E-Wallet\n[UI] Penyempurnaan Tampilan Garis Input Tambah Kategori & Akun\n[PERF] Peningkatan Stabilitas & Performa Aplikasi",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.43",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.43",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.43",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.43",
+  "versionCode": 44,
+  "versionName": "1.0.44",
+  "version": "1.0.44",
+  "changelog": "New in this update:\n[FIX] Peningkatan Anti-Wipeout & Stabilitas Sinkronisasi Widget\n[FIX] Optimalisasi Filter Notifikasi Promo Bank & E-Wallet\n[PERF] Peningkatan Kinerja & Efisiensi Sistem",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.44",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.44",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.44",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.44",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.redilah.financetracker",
-  "sha256": "45e7569b8d68dc4b1536df9b0d7582cbcfb9c4c85f8c7e7b5420f34f6651ebf8",
+  "sha256": "f1b5e23ba17d3a518da3367a03b909cb9005dead2257a124dd701066ce6f6121",
   "minSdkVersion": 24
 }
 

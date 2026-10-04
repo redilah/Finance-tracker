@@ -245,7 +245,7 @@ public class CassielVoiceInteractionSession extends VoiceInteractionSession {
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_icon)
-                .setLargeIcon(BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_large_icon))
+                .setLargeIcon(BitmapFactory.decodeResource(ctx.getResources(), R.mipmap.ic_launcher))
                 .setContentTitle(notifTitle)
                 .setContentText(notifBody)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(notifBody))
@@ -348,7 +348,7 @@ public class CassielVoiceInteractionSession extends VoiceInteractionSession {
                 }
 
                 showConfirmationNotification(account, note, formattedAmount);
-                Log.d(TAG, "Transaction saved to queue from VoiceSession: " + notifObj.toString());
+                Log.d(TAG, "Transaction queued successfully from VoiceSession.");
 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to save transaction", e);

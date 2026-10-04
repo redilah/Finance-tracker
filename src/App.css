@@ -1129,9 +1129,25 @@ img[src*="Kost"] {
   pointer-events: none;
 }
 
+/* Animated Floating Bubble (Liquid Indicator - Apple Fluid Design) */
+.nav-floating-bubble {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FFF9F2 100%);
+  border: 2.5px solid #F59E0B;
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.32), 0 2px 6px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform;
+}
+
 .nav-items-container {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1170,19 +1186,20 @@ img[src*="Kost"] {
   cursor: pointer;
   padding: 6px 4px;
   border-radius: 16px;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, filter 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   flex: 1;
   max-width: 68px;
   position: relative;
+  transition: transform 120ms ease-out;
 }
 
 .nav-icon {
   width: 24px;
   height: 24px;
-  opacity: 0.65;
-  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease, filter 0.2s ease;
+  opacity: 0.68;
+  transition: transform 0.36s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.22s ease, filter 0.25s ease;
+  will-change: transform, opacity, filter;
 }
 
 .nav-label {
@@ -1191,27 +1208,27 @@ img[src*="Kost"] {
   color: #64748B;
   line-height: 1.1;
   letter-spacing: -0.1px;
-  transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), font-weight 0.2s ease;
+  transition: color 0.22s ease, transform 0.36s cubic-bezier(0.25, 1, 0.5, 1), font-weight 0.2s ease;
   font-family: inherit;
   white-space: nowrap;
 }
 
+/* Active Nav Item - Keep Vivid Original Colors with Tactile Depth */
 .nav-item.active .nav-icon {
   opacity: 1;
-  transform: translateY(-2px) scale(1.12);
-  filter: drop-shadow(0 2px 6px rgba(45, 82, 132, 0.2));
+  transform: translateY(-16px) scale(1.15);
+  filter: drop-shadow(0 3px 6px rgba(217, 119, 6, 0.26));
 }
 
 .nav-item.active .nav-label {
-  color: #2D5284;
+  color: #D97706;
   font-weight: 800;
-  transform: scale(1.04);
+  transform: translateY(2px);
 }
 
-/* Sinking / Press animation for standard nav items */
+/* Apple Design Instant Response on Pointer-Down */
 .nav-item:active {
-  transform: scale(0.86) translateY(2px);
-  filter: brightness(0.9);
+  transform: scale(0.92);
 }
 
 .nav-item:active .nav-icon {
@@ -1219,20 +1236,59 @@ img[src*="Kost"] {
   transform: scale(0.95);
 }
 
-/* Tab View Switch Animation */
-.tab-page-transition {
-  animation: tabViewFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+.nav-item.active:active .nav-icon {
+  transform: translateY(-16px) scale(1.06);
 }
 
-@keyframes tabViewFadeIn {
-  from {
-    opacity: 0.5;
-    transform: translateY(6px);
+/* Tab View Switch Animation - Apple Synchronized Fluid Slide */
+.tab-page-transition {
+  will-change: transform, opacity;
+  animation-duration: var(--slide-dur, 0.36s);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+/* Forward: Bubble glides RIGHT -> Page sweeps in RIGHT in exact harmony */
+.tab-page-transition.tab-slide-forward {
+  animation-name: appleTabSlideInForward;
+}
+
+/* Backward: Bubble glides LEFT -> Page sweeps in LEFT in exact harmony */
+.tab-page-transition.tab-slide-backward {
+  animation-name: appleTabSlideInBackward;
+}
+
+@keyframes appleTabSlideInForward {
+  0% {
+    opacity: 0;
+    transform: translate3d(calc(-1 * var(--slide-dist, 26px)), 0, 0) scale(0.988);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes appleTabSlideInBackward {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--slide-dist, 26px), 0, 0) scale(0.988);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .tab-page-transition {
+    animation: appleTabFadeIn 0.2s ease-out forwards !important;
+    transform: none !important;
+  }
+  @keyframes appleTabFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
   }
 }
 
@@ -3659,67 +3715,147 @@ img[src*="Kost"] {
   color: #58B07A;
 }
 
-/* Type Toggle Header Row */
+/* Type Toggle Header Row — Apple Fluid Segmented Glider */
 .stats-type-tabs {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.08);
-  padding-bottom: 8px;
-  margin-top: 4px;
+  position: relative;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 6px;
+  margin-top: 6px;
   gap: 8px;
+  user-select: none;
+  isolation: isolate;
+}
+
+.stats-type-slider-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 50%;
+  height: 3px;
+  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.stats-type-slider-indicator::after {
+  content: '';
+  height: 100%;
+  width: clamp(65px, 58%, 105px);
+  border-radius: 4px 4px 0 0;
+  transition: background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stats-type-slider-indicator.to-income {
+  transform: translateX(0%);
+  justify-content: flex-start;
+}
+
+.stats-type-slider-indicator.to-income::after {
+  margin-left: 2px;
+  background: linear-gradient(90deg, #10B981, #059669);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.stats-type-slider-indicator.to-expense {
+  transform: translateX(100%);
+  justify-content: flex-end;
+}
+
+.stats-type-slider-indicator.to-expense::after {
+  margin-right: 2px;
+  background: linear-gradient(90deg, #F87171, #EF4444);
+  box-shadow: 0 2px 8px rgba(248, 113, 113, 0.35);
 }
 
 .stats-type-tab {
   background: none;
   border: none;
-  font-size: clamp(12px, 3.5vw, 14px);
+  font-size: clamp(12.5px, 3.6vw, 14.5px);
   font-weight: 600;
   color: var(--text-muted);
+  opacity: 0.58;
   cursor: pointer;
-  padding: 4px 4px;
+  padding: 6px 4px;
   display: flex;
   align-items: center;
   gap: 6px;
   position: relative;
+  flex: 1;
   min-width: 0;
-  flex-shrink: 1;
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stats-type-tab.income {
+  justify-content: flex-start;
+}
+
+.stats-type-tab.expense {
+  justify-content: flex-end;
 }
 
 .stats-type-tab.active {
   color: var(--text-main);
   font-weight: 800;
+  opacity: 1;
 }
 
-.stats-type-tab.expense.active::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: #FF7676;
-  border-radius: 3px 3px 0 0;
-}
-
-.stats-type-tab.income.active::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: #58B07A;
-  border-radius: 3px 3px 0 0;
+.stats-type-tab:active {
+  transform: scale(0.97);
+  opacity: 0.85;
 }
 
 .stats-total-amount {
-  font-size: clamp(11px, 3.2vw, 14px);
+  font-size: clamp(11.5px, 3.3vw, 14px);
   font-weight: 800;
-  color: var(--text-main);
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.015em;
+  transition: color 0.25s ease;
+}
+
+.stats-type-tab.active.income .stats-total-amount {
+  color: #059669;
+}
+
+.stats-type-tab.active.expense .stats-total-amount {
+  color: #DC2626;
+}
+
+/* Apple Fluid Content Transition Wrapper */
+.stats-type-animated-wrapper {
+  animation: appleStatsContentTransition 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+@keyframes appleStatsContentTransition {
+  0% {
+    opacity: 0.25;
+    transform: translateY(8px) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-type-slider-indicator {
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .stats-type-animated-wrapper {
+    animation: fadeIn 0.18s ease;
+  }
 }
 
 /* Chart Container (Transparent background) */
@@ -3855,12 +3991,31 @@ img[src*="Kost"] {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, box-shadow 0.16s ease;
+  animation: appleListItemEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stats-breakdown-item:hover {
   background-color: #FFFFFF;
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.stats-breakdown-item:active {
+  transform: scale(0.985);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+@keyframes appleListItemEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .stats-item-left {

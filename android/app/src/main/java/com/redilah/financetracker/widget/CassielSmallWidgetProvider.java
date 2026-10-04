@@ -79,17 +79,65 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
             SharedPreferences widgetPrefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
             SharedPreferences notifPrefs = context.getSharedPreferences("CassielNotifTrackerPrefs", Context.MODE_PRIVATE);
 
-            long baseTodayExpense = widgetPrefs.getLong("todayExpenseRaw", 0);
+            Calendar calNow = Calendar.getInstance();
+            int nowYear = calNow.get(Calendar.YEAR);
+            int nowMonth = calNow.get(Calendar.MONTH) + 1;
+            int nowDay = calNow.get(Calendar.DAY_OF_MONTH);
+            int nowDayOfYear = calNow.get(Calendar.DAY_OF_YEAR);
+            String todayDateKey = String.format(Locale.US, "%d-%d-%d", nowYear, nowMonth, nowDay);
+            String todayDateKeyPadded = String.format(Locale.US, "%04d-%02d-%02d", nowYear, nowMonth, nowDay);
 
-            // Check pending queue for any fresh un-synced today transactions
+            // 1. Get base today expense from widgetPrefs safely
+            long baseTodayExpense = 0;
+            try {
+                baseTodayExpense = widgetPrefs.getLong("todayExpenseRaw", 0L);
+            } catch (Exception ex) {
+                try {
+                    baseTodayExpense = widgetPrefs.getInt("todayExpenseRaw", 0);
+                } catch (Exception ignored) {}
+            }
+            String existingAmountStr = widgetPrefs.getString("todayExpenseAmount", "Rp 0");
+            String lastSyncedDate = widgetPrefs.getString("syncedDate", "");
+
+            // Check if date genuinely rolled over to a new day
+            boolean isNewDay = false;
+            if (lastSyncedDate != null && !lastSyncedDate.isEmpty()) {
+                if (!lastSyncedDate.equals(todayDateKey) && !lastSyncedDate.equals(todayDateKeyPadded)) {
+                    try {
+                        String[] parts = lastSyncedDate.split("-");
+                        if (parts.length >= 3) {
+                            int y = Integer.parseInt(parts[0]);
+                            int m = Integer.parseInt(parts[1]);
+                            int d = Integer.parseInt(parts[2]);
+                            if (y != nowYear || m != nowMonth || d != nowDay) {
+                                isNewDay = true;
+                            }
+                        }
+                    } catch (Exception ignored) {
+                        isNewDay = false;
+                    }
+                }
+            }
+
+            if (isNewDay) {
+                baseTodayExpense = 0;
+            } else {
+                // Anti-Wipeout Fallback: If baseTodayExpense is 0 but existing string has valid numbers (e.g., "Rp 50.000"), extract it!
+                if (baseTodayExpense <= 0 && existingAmountStr != null && !existingAmountStr.trim().isEmpty() && !existingAmountStr.equals("Rp 0")) {
+                    try {
+                        String digits = existingAmountStr.replaceAll("[^0-9]", "");
+                        if (!digits.isEmpty()) {
+                            baseTodayExpense = Long.parseLong(digits);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            // 2. Check pending queue in CassielNotifTrackerPrefs for un-synced today transactions
             String queueStr = notifPrefs.getString("cassiel_notif_tracker_queue", "[]");
             long queueTodayExpense = 0;
             try {
                 JSONArray queue = new JSONArray(queueStr);
-                Calendar calNow = Calendar.getInstance();
-                int nowYear = calNow.get(Calendar.YEAR);
-                int nowDayOfYear = calNow.get(Calendar.DAY_OF_YEAR);
-
                 for (int i = 0; i < queue.length(); i++) {
                     JSONObject obj = queue.getJSONObject(i);
                     long postTime = obj.optLong("postTime", System.currentTimeMillis());
@@ -106,16 +154,28 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
             } catch (Exception ignored) {}
 
             long totalToday = baseTodayExpense + queueTodayExpense;
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("id", "ID"));
-            symbols.setGroupingSeparator('.');
-            DecimalFormat df = new DecimalFormat("#,###", symbols);
-            String formatted = "Rp " + (totalToday > 0 ? df.format(totalToday) : "0");
+            String formatted;
+            if (totalToday > 0) {
+                DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("id", "ID"));
+                symbols.setGroupingSeparator('.');
+                DecimalFormat df = new DecimalFormat("#,###", symbols);
+                formatted = "Rp " + df.format(totalToday);
+            } else if (isNewDay) {
+                formatted = "Rp 0";
+            } else if (existingAmountStr != null && !existingAmountStr.trim().isEmpty() && !existingAmountStr.equals("Rp 0")) {
+                formatted = existingAmountStr;
+            } else {
+                formatted = "Rp 0";
+            }
 
             widgetPrefs.edit()
+                    .putLong("todayExpenseRaw", totalToday)
                     .putString("todayExpenseAmount", formatted)
+                    .putString("syncedDate", todayDateKeyPadded)
                     .apply();
 
             updateAllWidgets(context);
+            CassielMediumWidgetProvider.updateAllWidgets(context);
             Toast.makeText(context, "Widget Cassiel Diperbarui ✨", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             updateAllWidgets(context);

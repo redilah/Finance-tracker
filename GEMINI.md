@@ -6,7 +6,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.43`** | `versionCode` **`43`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.44`** | `versionCode` **`44`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
@@ -96,6 +96,45 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - Pencocokan kata kerja transaksi (seperti `pay`, `beli`, `kirim`) wajib menggunakan pembatas kata ketat (*word boundaries* / negative lookbehind) untuk mencegah nama penyedia layanan (*brand names* seperti `GoPay`, `ShopeePay`, `AstraPay`, `Google Play`) disalahartikan sebagai sinyal transaksi pembayaran aktif.
 3. **Multiplier & Prize Pool Isolation**:
    - Ekstraksi nominal Rupiah wajib mendeteksi akhiran pengali (`jt`, `juta`, `rb`, `k`, `m`, `miliar`). Dilarang memotong `Rp60 jt` menjadi nominal `Rp 60`. Nominal yang berada dalam konteks hadiah/sayembara/promo (`PROMO_CONTEXT_PATTERNS`) wajib diisolasi dan diabaikan dari pencatatan transaksi.
+4. **Amount Indicator vs Account/Identifier Collision Protection**:
+   - Filter nomor rekening/telepon (`isPhoneNumberOrIdentifier`) **DILARANG KERAS** menolak atau mengabaikan nominal yang secara eksplisit diawali oleh kata nominal/mata uang (`sebesar`, `sejumlah`, `nominal`, `total`, `rp`, `idr`).
+   - Pengecekan kata kunci nomor rekening/telepon (`nomor`, `rekening`, `tujuan`, `hp`, `call center`) wajib dibatasi hanya jika kata kunci tersebut **berada langsung persis sebelum angka** (*immediate preceding match*) dan tidak diakhiri oleh indikator nominal.
+5. **Strict Date, Timestamp & Year Sanitization**:
+   - Format tanggal kalender (`DD/MM/YYYY`, `YYYY-MM-DD`, `DD-MM-YYYY`), jam/waktu (`HH:mm:ss`, `HH:mm`), dan tahun kalender 4-digit (`2020..2039`) **WAJIB** dibersihkan (*sanitized*) terlebih dahulu sebelum eksekusi fallback pencarian angka (*raw numeric amount extraction*). Dilarang keras mengekstrak tahun kalender (seperti `2026` pada `20/09/2026`) menjadi nominal Rupiah (`Rp 2.026`).
+6. **Bank Transfer Destination Ingestion**:
+   - Notifikasi transfer perbankan (seperti BRImo: `"Transfer dari ... dengan nomor rekening tujuan [tujuan] sebesar Rp..."`) wajib diklasifikasikan sebagai pengeluaran (*expense*) dan mengekstrak label tujuan transaksi menjadi `"Transfer ke [tujuan]"` secara otomatis.
+7. **Failed, Cancelled & Insufficient Balance Strict Exclusion**:
+   - Seluruh notifikasi yang menyatakan transaksi gagal, batal, ditolak, kadaluarsa, atau saldo tidak cukup (seperti `pembayaran gagal`, `gak bisa bayar`, `tidak berhasil`, `saldonya kurang`, `saldo tidak cukup`, `saldo tidak mencukupi`, `gagal diproses`, `gagal transfer`, `ditolak`, `declined`, `failed`, `cancelled`, `kadaluarsa`, `expired`, `batal`) **WAJIB LANGSUNG DITOLAK** (`isNonTransactional = true` / `isFailedOrCancelledNotification = true`) dan DILARANG KERAS dicatat atau dimunculkan sebagai notifikasi transaksi berhasil.
+
+### I. Android Widget & Background Refresh Invariants
+1. **Anti-Wipeout & Nominal Preservation**:
+   - Menekan tombol refresh pada widget Android (2x2 maupun 4x2) **DILARANG KERAS** menghapus atau me-reset nominal pengeluaran hari ini yang sudah tercatat valid menjadi `Rp 0`.
+   - Logika refresh wajib membaca dan mengekstrak nominal yang sudah tersimpan (`todayExpenseAmount` / `todayExpenseRaw`) sebagai basis, dan hanya menjumlahkan transaksi baru dari antrean lokal (`CassielNotifTrackerPrefs`).
+2. **Date-Key Rollover Protection**:
+   - Reset nominal harian ke `Rp 0` hanya diperbolehkan jika tanggal kalender perangkat (`syncedDate` vs `todayDateKey`) sudah benar-benar berganti ke hari berikutnya.
+3. **Dark Modern Theme (`#18181B`)**:
+ ### J. Google Play Console Policy, Data Safety & Store Listing Master Blueprint
+1. **Financial Features Declaration Invariant**:
+   - Sebagai aplikasi *manual personal budgeting & offline expense tracker*, wajib selalu memilih **`Aplikasi saya tidak menyediakan fitur keuangan apa pun`** di form Deklarasi Fitur Keuangan Google Play.
+   - **DILARANG KERAS** memilih *"Perbankan"*, *"Pinjaman"*, *"Dompet Digital"*, *"Trading"*, atau *"Saran Keuangan"* karena akan mewajibkan dokumen lisensi OJK/Bank Indonesia dan memicu penolakan review.
+2. **Data Safety (Keamanan Data) Declaration**:
+   - **Apakah Mengumpulkan Data?**: Pilih **`Ya`** (karena ada Firebase Auth untuk Google Sign-In opsional dan formulir Feedback/Bug Report).
+   - **Enkripsi saat transit**: Pilih **`Ya`** (HTTPS/SSL).
+   - **Penghapusan data**: Pilih **`Ya`** dengan URL `https://cassiel-finance.netlify.app/privacy.html`.
+   - **Info Keuangan**: **KOSONGKAN SEMUA** (karena data transaksi, saldo, dan rekening disimpan 100% lokal di memori HP pengguna dan tidak pernah dikirim ke server).
+   - **Info Pribadi**: Centang **Nama** & **Alamat Email** (Pengelolaan Akun & Fungsi Aplikasi, bersifat opsional).
+   - **ID Perangkat / Lainnya**: Centang **Perangkat atau ID lainnya** (Fungsi aplikasi & Analytics, tidak diproses sementara).
+   - **Metode Pembuatan Akun**: Pilih **`OAuth`** (Google Sign-In 1-Tap).
+3. **App Access & Target Audience Invariant**:
+   - **Akses Aplikasi (Login Credentials)**: Pilih **`Tidak (Semua fungsi tersedia tanpa batasan)`** agar reviewer Google dapat langsung menguji aplikasi tanpa memerlukan akun demo khusus.
+   - **Target Usia**: Pilih **`18 tahun ke atas`** untuk menghindari regulasi ketat perlindungan anak (COPPA / Designed for Families).
+   - **Kategori Store**: Pilih **`Produktivitas`** (*Productivity*) atau **`Keuangan`**.
+4. **Visual Asset Specs (Feature Graphic & Screenshots)**:
+   - **Feature Graphic**: Tepat **`1024 × 500 px`**, format PNG/JPEG, maksimal 15 MB.
+   - **Screenshots**: Rasio 16:9 atau hingga maksimal 2:1 (contoh: **`1080 × 2160 px`**). Mengabadikan 6 layar kunci: Home, Account, Add Modal, Budget Hero & Gaming EXP Bar, Stats Trend Line Chart dengan Net Surplus, dan Profil Donasi Kitabisa.
+5. **Testing Progression & Live Approval**:
+   - Alur rilis: `Internal Testing` $\rightarrow$ `Closed Testing (Alpha)` $\rightarrow$ Checklist Dasbor & Kebijakan $\rightarrow$ `Kirim Perubahan untuk Ditinjau` $\rightarrow$ Status **`Diterbitkan`** (*Published*).
+   - Akun developer personal baru wajib memenuhi minimal **20 penguji aktif selama 14 hari berturut-turut** di Pengujian Tertutup sebelum tombol pengajuan ke **Produksi (*Production*)** terbuka.
 
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
@@ -175,6 +214,22 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
   - **Solid Opaque Backing**: Siluet lengkungan `<path>` pada `.nav-bg-svg` wajib menggunakan warna solid `fill="#F8EFE6"` (bukan variabel CSS mentah di inline SVG path) agar GPU Android me-rendernya 100% kedap dan tidak tembus ke konten yang di-scroll di belakangnya.
   - **Shadow Layer Isolation**: Properti `filter: drop-shadow` wajib ditempelkan langsung pada elemen `.nav-bg-svg`, bukan pada kontainer pembungkus `.bottom-nav`, guna mencegah artefak kotak bayangan bolong (*bounding box clipping*) pada tombol Add dan ikon.
   - **Soft Keyboard Avoidance**: Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`) atau saat kolom pencarian kategori difokuskan (`isSearchingBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi antarmuka pencarian dan tombol aksi.
+* **Liquid Curved Navigation Bar & Apple Fluid Spring Physics Invariant**:
+  - **Dynamic Parametric SVG Bezier Notch**: Lekukan lengkungan bar bawah (`getNavPath`) dihitung secara dinamis berbasis posisi tengah tab aktif (`navNotchCx`). Dilarang menggunakan notch statis kaku yang memotong atau menutupi tombol Add.
+  - **Critically Damped Spring Loop**: Pergerakan notch dan gelembung melayang (`.nav-floating-bubble`) wajib dihitung melalui loop `requestAnimationFrame` menggunakan rumus fisika pegas teredam kritis (`omega = 16.5`, `damping = 0.98`) dengan penghitungan delta-time (`dt`) dan preservasi kecepatan antar-interupsi (`velocityRef`).
+  - **Active Icon Full-Color Invariant (Strict Ban on White Silhouette Washout)**:
+    - Ikon tab navigasi aktif **DILARANG KERAS** menggunakan filter monokrom atau pemutihan siluet (`filter: brightness(0) invert(1)` atau `fill: #FFFFFF`).
+    - Ikon aktif wajib mempertahankan warna asli ilustrasi SVG (`houseSvg`, `akunSvg`, `budgetSvg`, `diagramSvg`) dengan bayangan halus 3D warm amber di atas gelembung melayang warm ivory (`linear-gradient(180deg, #FFFFFF 0%, #FFF9F2 100%)`) bergaris tepi oranye amber 2.5px (`border: 2.5px solid #F59E0B;`).
+  - **Independent Floating Add Button**: Tombol `[ + ] Catat Transaksi` di tengah wajib tetap mengapung bebas (*independent floating button*) tanpa terikat animasi kurva tab kiri/kanan.
+* **Apple Direction-Aware Page Slide Transitions Invariant**:
+  - **Zero-Lag Render-Pass Derivation**: Penentuan arah geser tab (`direction: 'forward' | 'backward'`), jumlah langkah (`steps`), jarak geser (`distance`), dan durasi (`duration`) **WAJIB** dihitung langsung pada siklus render React saat `activeTab` berubah (`if (prevTabRef.current !== activeTab) setTabMotion(...)`), **DILARANG** mengandalkan `useEffect` yang menyebabkan jeda render 1–2 frame.
+  - **Directional Alignment Invariant**:
+    - Perpindahan tab ke arah kanan ($\rightarrow$) memicu gelembung menu meluncur ke kanan DAN halaman masuk meluncur ke kanan (`translate3d(-dist, 0, 0)` menuju `0`).
+    - Perpindahan tab ke arah kiri ($\leftarrow$) memicu gelembung menu meluncur ke kiri DAN halaman masuk meluncur ke kiri (`translate3d(dist, 0, 0)` menuju `0`).
+  - **Dynamic Step-Aware Distance & Duration Scaling**:
+    - Perpindahan 1 langkah (tab bertetangga): `--slide-dist: 40px; --slide-dur: 260ms;`.
+    - Perpindahan melompati tombol Add / multi-langkah: `--slide-dist: 70px; --slide-dur: 320ms;`.
+  - **Apple Standard Easing**: Menggunakan kurva `cubic-bezier(0.16, 1, 0.3, 1)` dengan akselerasi GPU (`will-change: transform, opacity; transform: translate3d(...)`) pada setiap kontainer halaman tab.
 * **Home Segmented Filter Tabs & Quick Dropdown Invariants**:
   - **Click Isolation & Independent Dropdown Trigger**:
     - Menekan tab **Expense** murni hanya berpindah filter kategori transaksi (`homeTxFilter = 'expense'`) dan **WAJIB** menutup dropdown (`isExpenseDropdownOpen = false`). Dilarang keras otomatis memunculkan dropdown saat berpindah tab.
@@ -557,4 +612,39 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
   - Kontak pengembang (Instagram & GitHub) wajib berupa tombol ikon bulat murni (*pure icon buttons*) tanpa deretan teks panjang.
 * **Formal & Professional Phrasing**:
   - Menggunakan frasa legal yang tenang dan elegan seperti *"Privacy-First (Privasi Utama)"* (menghindari kata berlebihan seperti *"Privasi Mutlak"*).
+
+## 40. Kitabisa Proof of Impact — 3D Interactive Flip Card Invariants
+* **Zero Disconnected White Slip Boxes**:
+  - DILARANG menampilkan kotak slip putih terpisah di bawah kartu sertifikat bukti donasi.
+  - Seluruh rincian penyaluran (Misi Kebaikan, Penyelenggara, Tanggal Verifikasi, Alokasi Donasi emas, dan tombol dokumentasi YouTube) wajib terintegrasi langsung di sisi belakang kartu (*card back*).
+* **Ultra-Luxury Black Ceramic Aesthetic**:
+  - Sisi depan (*card front*): 3D isometric dark monolithic stepped blocks (Riyadh Platinum style), logo siluet putih Cassiel `CF` transparan tanpa kotak putih kaku, chip EMV, dan sudut simetris rapi `borderRadius: 20px`.
+  - Sisi belakang (*card back*): Black magnetic stripe, frosted security signature strip (nama pengguna + segel hologram pelangi, tanpa angka CVV tiruan seperti `892`), tipografi mikro elegan `#71717A`/`#FFFFFF`, dan alokasi dana dengan efek gradien emas metalik (*metallic liquid gold*).
+* **Click Event Isolation**:
+  - Tombol tautan video dokumentasi YouTube di bagian belakang kartu wajib memiliki `onClick={(e) => e.stopPropagation()}` agar sentuhan pada tombol tidak memicu kartu berputar balik secara tidak sengaja.
+* **Strict Ban on Persistent Mock Previews**:
+  - Dilarang memasang tombol atau kartu pratinjau dummy di lingkungan produksi. Kartu bukti donasi murni hanya muncul ketika pengguna telah memiliki catatan bukti donasi riil (`recordUserDonationProof`). Pengguna yang belum berlangganan hanya melihat status kosong bersih dengan tombol ajakan berlangganan.
+
+## 41. Pro Subscription Telemetry & Admin Dashboard Metrics Invariants
+* **Immediate Subscription Telemetry Sync**:
+  - Setiap kali transaksi langganan berhasil (`purchaseJusticeCassielPackage`) atau dipulihkan (`restoreJusticePurchases`), fungsi `updateCurrentDeviceTelemetry()` wajib langsung dipanggil secara otomatis untuk menyinkronkan status Pro (`isPro: true`, `proPlanTitle`, `donorNumber`, `donorLabel`, `totalDonated`) ke koleksi Firebase Firestore `cassiel_telemetry`.
+* **Concise & Clean Dashboard Typography**:
+  - Kartu metrik langganan di Admin Dashboard wajib menggunakan teks ringkas 1 baris:
+    - Judul: **`PENGGUNA PRO`** (dilarang menggunakan judul panjang seperti `"PENGGUNA LANGGANAN PRO"` yang memicu line-wrap canggung).
+    - Satuan angka: **`{count} pro`**.
+    - Subteks: **`Langganan Aktif`** (atau ringkasan total nominal donasi).
+  - Tombol filter tabel: **`👑 Pro ({count})`**.
+  - Kolom tabel `PAKET / STATUS`: Menampilkan badge emas `👑 {PlanTitle}`, badge donatur Kitabisa `💙 {DonorLabel}`, dan label abu-abu bersih `Free / Gratis` untuk pengguna reguler.
+
+## 42. Telemetry Privacy & Data Safety Invariants (Percentages vs Nominals)
+* **Strict Percentage-Based Expense Aggregation**:
+  - Seluruh pengiriman data telemetri kategori pengeluaran ke Firestore (`cassiel_telemetry`) **WAJIB** menggunakan persentase rasio integer (0..100%) melalui modul `toCategoryPercentages()` di `src/utils/telemetryPrivacy.js`.
+  - **DILARANG KERAS** mengirimkan atau menyimpan nominal Rupiah mentah per kategori transaksi (`expenseCategoryAmounts`) ke Firestore demi mematuhi deklarasi Google Play Data Safety.
+* **Preservation of User & Group Identity**:
+  - Kolom nama pengguna (`userName`) dan daftar grup (`groups`) **WAJIB TETAP DIPERTAHANKAN** di Firestore dan telemetri. AI dilarang menghapus, mengosongkan, atau membuang data nama dan grup ini saat sanitasi telemetri.
+
+## 43. Admin Dashboard Direct Access Invariant (Localhost Monitor)
+* **No Password/Passcode Gate**:
+  - Tampilan `AdminDashboard.jsx` ditujukan sebagai monitor pengembang lokal (*localhost*).
+  - **DILARANG KERAS** memasang formulir sandi, passcode SHA-256, session gate, atau tombol kunci/logout yang menghalangi pembukaan dasbor admin. Dasbor wajib selalu dapat diakses secara langsung dan instan.
 

@@ -294,6 +294,10 @@ const EXPENSE_CATEGORY_KEYWORDS = {
   ],
   bioskop: [
     'cinema xxi', 'cgv', 'cinepolis', 'tix id', 'm-tix', 'bioskop', 'nonton'
+  ],
+  tiket: [
+    'tiket.com', 'tiketcom', 'traveloka', 'kai access', 'kai', 'kereta api', 'whoosh', 'kcic',
+    'tiket', 'karcis', 'loket.com', 'loket', 'kiostix', 'megatix', 'e-ticket', 'eticket'
   ]
 };
 

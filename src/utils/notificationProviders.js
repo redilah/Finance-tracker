@@ -264,9 +264,19 @@ const BALANCE_CONTEXT_PATTERNS = [
 ];
 
 /**
+ * Patterns indicating a FAILED, CANCELLED, DECLINED, or INSUFFICIENT BALANCE transaction.
+ * MUST ALWAYS BE REJECTED IMMEDIATELY.
+ */
+export const FAILED_TRANSACTION_PATTERNS = [
+  /\b(gagal|failed|unsuccessful|declined|ditolak|dibatalkan|cancelled|canceled|kadaluarsa|expired|batal)\b/i,
+  /(?:tidak\s*(?:berhasil|dapat\s*diproses|bisa\s*diproses|bisa\s*bayar|bisa\s*transfer)|gak\s*bisa\s*(?:bayar|transfer|kirim|beli|diproses)|gagal\s*(?:bayar|transfer|kirim|beli|diproses|top\s*up)|saldo\s*(?:tidak\s*cukup|kurang|tidak\s*mencukupi)|saldonya\s*kurang|insufficient\s*(?:balance|funds)|payment\s*failed|transaction\s*failed)/i,
+];
+
+/**
  * Patterns indicating the notification is a PROMO, CONTEST, REWARD, OR MARKETING (NOT a real transaction).
  */
 const NON_TRANSACTION_PATTERNS = [
+  ...FAILED_TRANSACTION_PATTERNS,
   /\b(promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|poin|points?|koin|coins?)\b/i,
   /\b(hadiah|menangkan|pemenang|winner|gratis|free|giveaway|undian|lucky\s*draw|flip\s*card|spin|roda\s*putar)\b/i,
   /\b(cashback\s*(?:s\.?d\.?|hingga|up\s*to|sampai)|potongan\s*(?:hingga|s\.?d\.?|sampai)|diskon\s*(?:hingga|s\.?d\.?|sampai))\b/i,
@@ -309,7 +319,7 @@ const EXPENSE_PATTERNS = [
   /(?:\bdebit\b|\bdebet\b|\bpendebetan\b|\bdidebit\b|\bdidebet\b)/i,
   /(?:\bpembayaran\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bdibayarkan\b|\bterbayar\b|\bpayment\b|\bpaid\b|(?<!(?:go|shopee|astra|google|apple|line)\s*)\bpay\b)/i,
   /(?:\bpembelian\b|\bbelanja\b|\bberbelanja\b|\bpurchase\b|\bbeli\b|\bmembeli\b|\bdibeli\b)/i,
-  /(?:transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|m-transfer|trsf)/i,
+  /(?:transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|m-transfer|trsf|transfer\s*dari.*(?:nomor\s*rekening\s*tujuan|rekening\s*tujuan|tujuan|ke\b))/i,
   /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
   /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
   /(?:pengeluaran|uang\s*keluar|dana\s*keluar|saldo\s*keluar|terpotong|dipotong|pemotongan|potong\s*saldo)/i,
@@ -323,7 +333,7 @@ const EXPENSE_PATTERNS = [
 const INCOME_PATTERNS = [
   /(?:kredit|credit|pengkreditan|dikreditkan)/i,
   /(?:terima|menerima|diterima|penerimaan|received|receive)/i,
-  /(?:transfer\s*(?:masuk|dari\b)|terima\s*transfer|ditransfer\s*dari|ditransfer\s*oleh)/i,
+  /(?:transfer\s*masuk|terima\s*transfer|ditransfer\s*dari|ditransfer\s*oleh|(?:transfer\s*dari(?!.*(?:rekening\s*tujuan|tujuan|ke\b))))/i,
   /(?:dana\s*masuk|uang\s*masuk|saldo\s*masuk|masuk\s*ke\s*rekening|money\s*in)/i,
   /(?:pemasukan|pendapatan|penghasilan|gaji|payroll|salary|upah|honor|bonus|thr|komisi|affiliate)/i,
   /(?:top\s*up|topup|isi\s*saldo|tambah\s*saldo|saldo\s*bertambah|bertambah)/i,
@@ -336,30 +346,32 @@ const INCOME_PATTERNS = [
 export function isPhoneNumberOrIdentifier(rawNumStr, clauseBefore = '', fullText = '') {
   if (!rawNumStr) return false;
   const digits = String(rawNumStr).replace(/\D/g, '');
-  const cbLower = (clauseBefore || '').toLowerCase();
+  const cbLower = (clauseBefore || '').toLowerCase().trim();
   
   // 1. Indonesian Phone Number Patterns:
   // - 628... (10 to 15 digits, e.g. 6282126499818)
   // - 08... (10 to 14 digits, e.g. 082126499818)
   if (/^628\d{7,12}$/.test(digits)) return true;
   if (/^08\d{8,11}$/.test(digits)) return true;
-  if (/^8\d{8,11}$/.test(digits) && /(?:ke|tujuan|nomor|no\.?|hp|telp|pulsa|paket)/i.test(cbLower)) return true;
+  if (/^8\d{8,11}$/.test(digits) && /(?:ke|tujuan|nomor|no\.?|hp|telp|pulsa|paket)$/i.test(cbLower)) return true;
   
   // 2. Bank Call Center Numbers (7 digits e.g. 1500017, 1500888, 1500046 or 5 digits 14000, without Rp prefix)
   if (!cbLower.includes('rp') && !cbLower.includes('idr')) {
     if (/^(?:1500\d{3}|140\d{2})$/.test(digits)) return true;
   }
 
-  // 3. Preceded by phone/target/identifier/call center indicators
-  if (/(?:ke|tujuan|nomor|no\.?|hp|handphone|telepon|telp|msisdn|serial|sn|id|ref|order|trx|transaksi|call\s*center|contact\s*center|hubungi|bantuan)\s*$/i.test(cbLower)) {
-    if (digits.length >= 5) return true;
+  // 3. Preceded immediately by phone/target/identifier/call center indicators (unless ending with amount indicators)
+  if (/(?:ke|tujuan|nomor|no\.?|hp|handphone|telepon|telp|msisdn|serial|sn|id|ref|order|trx|call\s*center|contact\s*center|hubungi|bantuan)\s*[:#-]?\s*$/i.test(cbLower)) {
+    if (!/(?:sebesar|sejumlah|nominal|total|rp|idr)\s*$/i.test(cbLower)) {
+      if (digits.length >= 5) return true;
+    }
   }
   
   // 4. Serial numbers, transaction IDs, reference numbers (10+ digits without standard decimal formatting or starting with 0)
   if (digits.length >= 10 && !/(?:rp\.?|idr)\s*$/i.test(cbLower)) {
     return true;
   }
-  if (digits.length >= 12) {
+  if (digits.length >= 12 && !cbLower.includes('rp') && !cbLower.includes('idr')) {
     return true;
   }
 
@@ -400,11 +412,18 @@ function parseRupiahAmount(text) {
 /**
  * Extract raw numeric amounts from text (fallback for notifications
  * that don't use Rp/IDR prefix).
- * Only matches standalone large numbers (>= 1000) and strictly excludes phone numbers / serial IDs.
+ * Only matches standalone large numbers (>= 1000) and strictly excludes dates, times, years, phone numbers / serial IDs.
  */
 function parseRawAmount(text) {
   if (!text) return null;
-  const matches = text.match(/\b(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d{4,}(?:[.,]\d{1,2})?)\b/g);
+  // Strip dates (DD/MM/YYYY, YYYY-MM-DD), times (HH:mm:ss), and calendar years (2020-2039)
+  const sanitizedText = text
+    .replace(/\b\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}\b/g, ' ')
+    .replace(/\b\d{4}[/\-.]\d{1,2}[/\-.]\d{1,2}\b/g, ' ')
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
+    .replace(/\b20[2-3]\d\b/g, ' ');
+
+  const matches = sanitizedText.match(/\b(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d{4,}(?:[.,]\d{1,2})?)\b/g);
   if (!matches) return null;
   const results = [];
   for (const match of matches) {
@@ -709,7 +728,14 @@ export function hasTransactionSignal(fullText) {
 export function isNonTransactional(fullText) {
   if (!fullText) return true;
 
-  // Pure OTP/verification — always ignore
+  // 1. Explicit Rejection of failed, cancelled, declined, or insufficient balance transactions
+  for (const pattern of FAILED_TRANSACTION_PATTERNS) {
+    if (pattern.test(fullText)) {
+      return true;
+    }
+  }
+
+  // 2. Pure OTP/verification — always ignore
   if (/(?:otp|kode\s*verifikasi|verification\s*code)/i.test(fullText)) {
     return true;
   }
@@ -895,12 +921,22 @@ function parseBRI(normalized) {
 
   let merchant = extractMerchant(text);
   if (!merchant) {
-    if (/pembelian\s*qris|transaksi\s*qris|pembayaran\s*qris/i.test(text)) {
-      merchant = 'Pembelian QRIS';
-    } else if (/pembelian/i.test(text)) {
-      merchant = 'Pembelian';
-    } else if (/transfer/i.test(text)) {
-      merchant = 'Transfer';
+    // Check BRI specific transfer destination: "nomor rekening tujuan [Tujuan]"
+    const tfMatch = text.match(/(?:rekening\s*tujuan|tujuan)\s+([a-z0-9&'().\s-]{2,30})/i);
+    if (tfMatch && tfMatch[1]) {
+      let cand = tfMatch[1].replace(/\s+(?:sebesar|sejumlah|nominal|rp|idr|berhasil|sukses|info|call).*$/i, '').trim();
+      if (cand && !/^08\d{8,11}$/.test(cand) && cand.length >= 2) {
+        merchant = `Transfer ke ${cand}`;
+      }
+    }
+    if (!merchant) {
+      if (/pembelian\s*qris|transaksi\s*qris|pembayaran\s*qris/i.test(text)) {
+        merchant = 'Pembelian QRIS';
+      } else if (/pembelian/i.test(text)) {
+        merchant = 'Pembelian';
+      } else if (/transfer/i.test(text)) {
+        merchant = 'Transfer';
+      }
     }
   }
 
@@ -1257,6 +1293,20 @@ export function runParserTests() {
     };
   });
 
+  // Test 2c: BRImo Transfer format with destination account and timestamp
+  test('BRImo Transfer with timestamp and destination account — should parse 5600000 expense', () => {
+    const text = '20/09/2026 12:42:40 - Transfer dari XXXXXXXXXX9503 dengan nomor rekening tujuan XXXXXX6251 sebesar Rp5.600.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017';
+    const amount = extractTransactionAmount(text);
+    const type = detectTransactionType(text);
+    const normalized = { fullText: text, title: 'BRImo', appLabel: 'BRImo' };
+    const parsed = parseBRI(normalized);
+    return {
+      passed: amount === 5600000 && type === 'expense' && parsed?.amount === 5600000 && parsed?.type === 'expense',
+      expected: '5600000 / expense',
+      actual: `${amount} / ${type} / parsed: ${parsed?.amount}`,
+    };
+  });
+
   // Test 3: Balance-only notification
   test('Balance only — should be ignored', () => {
     const text = 'Saldo Anda Rp2.500.000';
@@ -1271,6 +1321,29 @@ export function runParserTests() {
   // Test 4: Promo notification
   test('Promo — should be non-transactional', () => {
     const text = 'Promo spesial! Diskon 50% untuk transaksi berikutnya. Gunakan kupon HEMAT50';
+    const isNonTx = isNonTransactional(text);
+    return {
+      passed: isNonTx === true,
+      expected: 'true (ignored)',
+      actual: String(isNonTx),
+    };
+  });
+
+  // Test 4b: Failed GoPay payment due to insufficient balance
+  test('GoPay Pembayaran gagal — should be non-transactional (ignored)', () => {
+    const text = 'Pembayaran gagal Gak bisa bayar Rp85.470 ke Google Play pake GoPay karena saldonya kurang. Klik buat top up.';
+    const isNonTx = isNonTransactional(text);
+    const hasSig = hasTransactionSignal(text);
+    return {
+      passed: isNonTx === true && hasSig === false,
+      expected: 'true / false',
+      actual: `${isNonTx} / ${hasSig}`,
+    };
+  });
+
+  // Test 4c: Generic transfer failed / declined
+  test('Transfer gagal / ditolak — should be non-transactional (ignored)', () => {
+    const text = 'Transfer Rp500.000 ke Budi gagal diproses karena saldo tidak mencukupi.';
     const isNonTx = isNonTransactional(text);
     return {
       passed: isNonTx === true,

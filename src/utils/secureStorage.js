@@ -1,15 +1,17 @@
 /**
- * Cassiel Secure Storage Layer (OWASP MASVS-STORAGE Compliant)
+ * Cassiel Secure Storage Layer (OWASP MASVS-STORAGE)
  * 
- * Provides AES-GCM and obfuscation encryption for sensitive financial records in localStorage.
- * Automatically migrates existing plaintext data upon read and write.
+ * Lapisan obfuskasi tersinkronisasi (Device-Salt XOR + Base64) untuk inisialisasi state React
+ * secara instan tanpa jeda async, diperkuat oleh isolasi sandbox sistem Android
+ * (android:allowBackup="false" dan proteksi WebView internal).
+ * Mendukung auto-migrasi data plaintext lama secara transparan.
  */
 
 const ENCRYPTION_PREFIX = 'enc:v1:';
 const DEVICE_SALT_KEY = 'cassiel_sec_salt';
 
 // Generate or retrieve persistent device-unique salt
-function getDeviceSalt() {
+export function getDeviceSalt() {
   try {
     let salt = localStorage.getItem(DEVICE_SALT_KEY);
     if (!salt) {

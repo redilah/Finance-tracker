@@ -33,11 +33,28 @@ public class MainActivity extends BridgeActivity {
         handleWidgetIntent(intent);
     }
 
+    // Whitelist aksi widget yang diizinkan untuk mencegah injeksi JavaScript (OWASP MASVS-PLATFORM-2 / MASVS-CODE-4)
+    private static final java.util.Set<String> ALLOWED_WIDGET_ACTIONS = new java.util.HashSet<>(java.util.Arrays.asList(
+        "OPEN_BUDGET",
+        "OPEN_STATS",
+        "OPEN_ADD_MODAL",
+        "OPEN_VOICE"
+    ));
+
     private void handleWidgetIntent(Intent intent) {
         if (intent == null) return;
         String actionTarget = intent.getStringExtra("ACTION_TARGET");
-        if (actionTarget != null && getBridge() != null && getBridge().getWebView() != null) {
-            String js = "window.dispatchEvent(new CustomEvent('app_widget_action', { detail: { action: '" + actionTarget + "' } }));";
+        if (actionTarget == null) return;
+
+        // Validasi ketat: hanya proses jika action ada di dalam whitelist
+        if (!ALLOWED_WIDGET_ACTIONS.contains(actionTarget)) {
+            android.util.Log.w("MainActivity", "Rejected unauthorized or unwhitelisted widget action: " + actionTarget);
+            return;
+        }
+
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            String safeAction = org.json.JSONObject.quote(actionTarget);
+            String js = "window.dispatchEvent(new CustomEvent('app_widget_action', { detail: { action: " + safeAction + " } }));";
             getBridge().getWebView().post(() -> getBridge().getWebView().evaluateJavascript(js, null));
         }
     }

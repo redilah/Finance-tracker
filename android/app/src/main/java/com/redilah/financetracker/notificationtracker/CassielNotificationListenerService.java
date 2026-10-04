@@ -153,6 +153,14 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 }
             } catch (Throwable ignored) {}
 
+            String fullText = (title + " " + text + " " + bigText + " " + subText + " " + summaryText + " " + tickerText).toLowerCase();
+
+            // Rejection of failed/cancelled transactions (e.g. Pembayaran gagal, saldonya kurang, declined)
+            if (isFailedOrCancelledNotification(fullText)) {
+                Log.i(TAG, "Notification rejected (failed/cancelled transaction) from " + packageName + " | Title: " + title);
+                return;
+            }
+
             JSONObject notifObj = new JSONObject();
             notifObj.put("packageName", packageName);
             notifObj.put("appLabel", appLabel);
@@ -211,9 +219,40 @@ public class CassielNotificationListenerService extends NotificationListenerServ
         }
     }
 
+    public static boolean isFailedOrCancelledNotification(String fullText) {
+        if (fullText == null || fullText.isEmpty()) return false;
+        String lower = fullText.toLowerCase();
+
+        // 1. Explicit failure / cancellation keywords
+        if (lower.contains("gagal") || lower.contains("failed") || lower.contains("unsuccessful")
+                || lower.contains("declined") || lower.contains("ditolak") || lower.contains("dibatalkan")
+                || lower.contains("cancelled") || lower.contains("canceled") || lower.contains("kadaluarsa")
+                || lower.contains("expired") || lower.contains("batal")) {
+            return true;
+        }
+
+        // 2. Failure phrases (Indonesian & English)
+        if (lower.contains("gak bisa bayar") || lower.contains("tidak bisa bayar") || lower.contains("tidak berhasil")
+                || lower.contains("gak bisa transfer") || lower.contains("tidak bisa transfer")
+                || lower.contains("tidak dapat diproses") || lower.contains("gak bisa diproses")
+                || lower.contains("saldo tidak cukup") || lower.contains("saldonya kurang")
+                || lower.contains("saldo tidak mencukupi") || lower.contains("saldo kurang")
+                || lower.contains("insufficient balance") || lower.contains("insufficient funds")
+                || lower.contains("payment failed") || lower.contains("transaction failed")) {
+            return true;
+        }
+
+        return false;
+    }
+
     private void showInstantConfirmationNotification(String packageName, String appLabel, String title, String text, String bigText, String subText, String tickerText) {
         try {
             String fullText = (title + " " + text + " " + bigText + " " + subText + " " + tickerText).toLowerCase();
+
+            // Rejection of failed/cancelled transactions
+            if (isFailedOrCancelledNotification(fullText)) {
+                return;
+            }
 
             // Rejection of non-transactional items (OTP, Pure Login/Security)
             if (fullText.contains("otp") || fullText.contains("kode verifikasi") || fullText.contains("login baru")
@@ -282,7 +321,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_stat_icon)
-                    .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_large_icon))
+                    .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
                     .setContentTitle(notifTitle)
                     .setContentText(notifBody)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(notifBody))
@@ -330,31 +369,30 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     private boolean isPhoneNumberOrIdentifier(String rawNumStr, String rawBefore, String fullText) {
         if (rawNumStr == null || rawNumStr.isEmpty()) return false;
         String digits = rawNumStr.replaceAll("[^0-9]", "");
-        String cb = rawBefore != null ? rawBefore.toLowerCase() : "";
+        String cb = rawBefore != null ? rawBefore.toLowerCase().trim() : "";
         
         // 1. Indonesian phone numbers (628xxx, 08xxx)
         if (digits.matches("^628\\d{7,12}$")) return true;
         if (digits.matches("^08\\d{8,11}$")) return true;
-        if (digits.matches("^8\\d{8,11}$") && (cb.contains("ke") || cb.contains("nomor") || cb.contains("hp") || cb.contains("pulsa"))) return true;
+        if (digits.matches("^8\\d{8,11}$") && (cb.endsWith("ke") || cb.endsWith("nomor") || cb.endsWith("no") || cb.endsWith("hp") || cb.endsWith("pulsa"))) return true;
 
         // 2. Bank Call Center numbers (7 digits 1500xxx or 5 digits 140xx without Rp/IDR prefix)
         if (!cb.contains("rp") && !cb.contains("idr")) {
             if (digits.matches("^(?:1500\\d{3}|140\\d{2})$")) return true;
         }
 
-        // 3. Preceded by target/phone/identifier/call center keywords
-        if (cb.endsWith("ke ") || cb.endsWith("ke") || cb.contains("tujuan") || cb.contains("nomor") || cb.contains("no.")
-                || cb.contains("hp") || cb.contains("telp") || cb.contains("serial") || cb.contains("sn")
-                || cb.contains("id") || cb.contains("ref") || cb.contains("order") || cb.contains("trx")
-                || cb.contains("call center") || cb.contains("contact center") || cb.contains("hubungi") || cb.contains("bantuan")) {
-            if (digits.length() >= 5) return true;
+        // 3. Preceded immediately by phone/target/identifier/call center keywords (unless ending with amount indicators)
+        if (cb.matches(".*(?:ke|tujuan|nomor|no\\.?|hp|handphone|telepon|telp|msisdn|serial|sn|id|ref|order|trx|call\\s*center|contact\\s*center|hubungi|bantuan)\\s*[:#-]?\\s*$")) {
+            if (!cb.matches(".*(?:sebesar|sejumlah|nominal|total|rp|idr)\\s*$")) {
+                if (digits.length() >= 5) return true;
+            }
         }
 
         // 4. Serial / Order / Transaction IDs (10+ digits without Rp prefix, or 12+ digits)
         if (digits.length() >= 10 && !cb.contains("rp") && !cb.contains("idr")) {
             return true;
         }
-        if (digits.length() >= 12) {
+        if (digits.length() >= 12 && !cb.contains("rp") && !cb.contains("idr")) {
             return true;
         }
 
@@ -363,7 +401,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
     private String extractFormattedAmount(String fullText) {
         try {
-            // Pattern for Rp / IDR amounts like Rp 25.000, IDR 150,000, Rp25000, Rp. 50.000, Rp3.275
+            // Pattern for Rp / IDR amounts like Rp 25.000, IDR 150,000, Rp25000, Rp. 50.000, Rp3.275, Rp5.600.000,00
             Pattern pattern = Pattern.compile("(?:rp\\.?|idr)\\s*([0-9]+(?:[\\.,][0-9]+)*)", Pattern.CASE_INSENSITIVE);
             Matcher matcher = pattern.matcher(fullText);
 
@@ -421,17 +459,24 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 }
             }
 
-            // Fallback for standalone large numbers if no Rp/IDR prefix found (strictly excluding phone numbers & serials)
+            // Fallback for standalone large numbers if no Rp/IDR prefix found (strictly excluding dates, times, years, phone numbers & serials)
             if (candidateAmount <= 0) {
+                // Strip dates (DD/MM/YYYY, YYYY-MM-DD), times (HH:mm:ss), and calendar years (2020-2039)
+                String textWithoutDates = fullText
+                        .replaceAll("\\b\\d{1,2}[/\\-\\.]\\d{1,2}[/\\-\\.]\\d{2,4}\\b", " ")
+                        .replaceAll("\\b\\d{4}[/\\-\\.]\\d{1,2}[/\\-\\.]\\d{1,2}\\b", " ")
+                        .replaceAll("\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b", " ")
+                        .replaceAll("\\b20[2-3]\\d\\b", " ");
+
                 Pattern rawNumPattern = Pattern.compile("\\b([0-9]{1,3}(?:[\\.,][0-9]{3})+(?:[\\.,][0-9]{1,2})?|[0-9]{4,}(?:[\\.,][0-9]{1,2})?)\\b");
-                Matcher rawMatcher = rawNumPattern.matcher(fullText);
+                Matcher rawMatcher = rawNumPattern.matcher(textWithoutDates);
                 while (rawMatcher.find()) {
                     int matchIndex = rawMatcher.start();
-                    String rawBefore = fullText.substring(Math.max(0, matchIndex - 40), matchIndex).toLowerCase();
+                    String rawBefore = textWithoutDates.substring(Math.max(0, matchIndex - 40), matchIndex).toLowerCase();
                     boolean isBalance = rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance");
                     if (!isBalance) {
                         String numStr = rawMatcher.group(1).trim();
-                        if (isPhoneNumberOrIdentifier(numStr, rawBefore, fullText)) {
+                        if (isPhoneNumberOrIdentifier(numStr, rawBefore, textWithoutDates)) {
                             continue;
                         }
                         String cleanedNum = numStr.replaceAll("[,.]\\d{1,2}$", "");
@@ -459,7 +504,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
     private String extractMerchantOrCategory(String fullText, String title, String text) {
         try {
-            // Check for Pulsa / Provider product name first
+            // 1. Check for Pulsa / Provider product name first
             Pattern pulsaPattern = Pattern.compile("\\b(simpati|kartu\\s*as|telkomsel|indosat|im3|mentari|xl|axis|tri|three|smartfren|by\\.?u|pulsa|paket\\s*data|token\\s*pln|pln)\\s*([0-9]{1,3}(?:\\.[0-9]{3})+|[0-9]{1,3}k|[0-9]{1,3}rb)?\\b", Pattern.CASE_INSENSITIVE);
             Matcher pulsaMatcher = pulsaPattern.matcher(fullText);
             if (pulsaMatcher.find()) {
@@ -468,29 +513,82 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 return (brand + denom).trim();
             }
 
-            // Check for merchant prefix keywords: di, ke, kepada, merchant, bayar ke, transfer ke, qris
-            Pattern merchantPattern = Pattern.compile("(?:di|ke|kepada|merchant|pembayaran ke|bayar ke|transfer ke|qris)\\s+([a-zA-Z0-9&'\\.\\s-]{3,35})", Pattern.CASE_INSENSITIVE);
-            Matcher matcher = merchantPattern.matcher(fullText);
-            if (matcher.find()) {
-                String candidate = matcher.group(1).trim();
-                // Strip trailing punctuation / clauses
-                if (candidate.contains(",")) candidate = candidate.split(",")[0].trim();
-                if (candidate.contains(".")) candidate = candidate.split("\\.")[0].trim();
-                candidate = candidate.replaceAll("(?i)\\s+(?:set|kantong.*|pocket.*|rekening.*)$", "").trim();
-
-                // Skip phone numbers or pure numbers mistaken for merchant
-                String cleanDigits = candidate.replaceAll("[^0-9]", "");
-                if (cleanDigits.length() < 8 && !candidate.startsWith("08") && !candidate.startsWith("628")) {
-                    String lower = candidate.toLowerCase();
-                    if (!lower.contains("rekening") && !lower.contains("berhasil") && !lower.contains("sukses")
-                            && !lower.contains("transaksi") && !lower.contains("pembayaran") && candidate.length() >= 2) {
+            // 2. Specific Transaction Type Patterns (QRIS, Transfer, Top Up)
+            if (fullText.contains("pembelian qris")) {
+                // Check if there is a merchant following 'di' or 'ke'
+                Pattern qrisMerchantPattern = Pattern.compile("(?:pembelian qris|qris)\\s+(?:di|ke|pada|merchant)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+                Matcher qrisMatcher = qrisMerchantPattern.matcher(fullText);
+                if (qrisMatcher.find()) {
+                    String candidate = cleanCandidateMerchant(qrisMatcher.group(1));
+                    if (isValidMerchantCandidate(candidate)) {
                         return candidate;
                     }
                 }
+                return "Pembelian QRIS";
             }
 
-            // Keyword to Category Fallback
-            if (fullText.contains("pembelian qris") || fullText.contains("transaksi qris") || fullText.contains("qris")) return "QRIS";
+            if (fullText.contains("pembayaran qris") || fullText.contains("transaksi qris")) {
+                Pattern qrisMerchantPattern = Pattern.compile("(?:pembayaran qris|transaksi qris|qris)\\s+(?:di|ke|pada|merchant)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+                Matcher qrisMatcher = qrisMerchantPattern.matcher(fullText);
+                if (qrisMatcher.find()) {
+                    String candidate = cleanCandidateMerchant(qrisMatcher.group(1));
+                    if (isValidMerchantCandidate(candidate)) {
+                        return candidate;
+                    }
+                }
+                return "Pembayaran QRIS";
+            }
+
+            // Transfer Specific Patterns
+            if (fullText.contains("transfer dari") && (fullText.contains("rekening tujuan") || fullText.contains("tujuan"))) {
+                Pattern briTfPattern = Pattern.compile("(?:rekening tujuan|tujuan)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+                Matcher briTfMatcher = briTfPattern.matcher(fullText);
+                if (briTfMatcher.find()) {
+                    String candidate = cleanCandidateMerchant(briTfMatcher.group(1));
+                    if (isValidMerchantCandidate(candidate)) {
+                        return "Transfer ke " + candidate;
+                    }
+                }
+                return "Transfer";
+            }
+
+            if (fullText.contains("transfer ke") || fullText.contains("transfer dana ke") || fullText.contains("kirim uang ke") || fullText.contains("kirim dana ke")) {
+                Pattern tfPattern = Pattern.compile("(?:transfer(?:\\s+dana)?\\s+ke|kirim(?:\\s+dana|\\s+uang)?\\s+ke)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+                Matcher tfMatcher = tfPattern.matcher(fullText);
+                if (tfMatcher.find()) {
+                    String candidate = cleanCandidateMerchant(tfMatcher.group(1));
+                    if (isValidMerchantCandidate(candidate)) {
+                        return "Transfer ke " + candidate;
+                    }
+                }
+                return "Transfer Keluar";
+            }
+
+            if (fullText.contains("transfer masuk") || fullText.contains("dana masuk") || fullText.contains("terima transfer") || fullText.contains("penerimaan transfer")) {
+                Pattern tfInPattern = Pattern.compile("(?:dari|pengirim)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+                Matcher tfInMatcher = tfInPattern.matcher(fullText);
+                if (tfInMatcher.find()) {
+                    String candidate = cleanCandidateMerchant(tfInMatcher.group(1));
+                    if (isValidMerchantCandidate(candidate)) {
+                        return "Transfer dari " + candidate;
+                    }
+                }
+                return "Transfer Masuk";
+            }
+
+            // 3. Check for general merchant prefix keywords: di, merchant, bayar ke, pembayaran ke, belanja di
+            Pattern merchantPattern = Pattern.compile("(?:di\\s+merchant|belanja\\s+di|pembayaran\\s+ke|bayar\\s+ke|merchant|di)\\s+([a-zA-Z0-9&'\\.\\s-]{3,35})", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = merchantPattern.matcher(fullText);
+            if (matcher.find()) {
+                String candidate = cleanCandidateMerchant(matcher.group(1));
+                if (isValidMerchantCandidate(candidate)) {
+                    return candidate;
+                }
+            }
+
+            // 4. Keyword to Category Fallback
+            if (fullText.contains("qris")) return "Pembelian QRIS";
+            if (fullText.contains("transfer")) return "Transfer";
             if (fullText.contains("simpati") || fullText.contains("pulsa") || fullText.contains("kuota") || fullText.contains("paket data") || fullText.contains("telkomsel") || fullText.contains("indosat") || fullText.contains("xl") || fullText.contains("tri") || fullText.contains("smartfren") || fullText.contains("axis") || fullText.contains("by.u")) return "Pulsa";
             if (fullText.contains("kopi") || fullText.contains("coffee") || fullText.contains("starbucks") || fullText.contains("fore") || fullText.contains("tomoro") || fullText.contains("kenangan")) return "Coffee";
             if (fullText.contains("makan") || fullText.contains("food") || fullText.contains("nasi") || fullText.contains("resto") || fullText.contains("kfc") || fullText.contains("mcd") || fullText.contains("solaria") || fullText.contains("mie") || fullText.contains("bakso") || fullText.contains("gofood") || fullText.contains("grabfood") || fullText.contains("shopeefood")) return "Food";
@@ -509,5 +607,36 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
         // Safe neutral default
         return fullText.contains("masuk") || fullText.contains("terima") || fullText.contains("kredit") || fullText.contains("credit") ? "Pemasukan" : "Pengeluaran";
+    }
+
+    private String cleanCandidateMerchant(String candidate) {
+        if (candidate == null) return "";
+        String res = candidate.trim();
+        if (res.contains(",")) res = res.split(",")[0].trim();
+        if (res.contains(".")) res = res.split("\\.")[0].trim();
+        res = res.replaceAll("(?i)\\s+(?:sebesar|sejumlah|nominal|rp|idr|berhasil|sukses|pada|tgl|tanggal|jam|waktu|set|kantong.*|pocket.*|rekening.*|call center.*|contact center.*).*$", "").trim();
+        return res;
+    }
+
+    private boolean isValidMerchantCandidate(String candidate) {
+        if (candidate == null || candidate.length() < 2) return false;
+        String lower = candidate.toLowerCase();
+        
+        // Discard transition words, amounts, and system words
+        if (lower.startsWith("sebesar") || lower.startsWith("sejumlah") || lower.startsWith("senilai") 
+                || lower.startsWith("nominal") || lower.startsWith("rp") || lower.startsWith("idr")
+                || lower.startsWith("berhasil") || lower.startsWith("sukses") || lower.startsWith("transaksi")
+                || lower.startsWith("pembayaran") || lower.startsWith("pembelian") || lower.startsWith("rekening")
+                || lower.startsWith("call center") || lower.startsWith("info lebih")) {
+            return false;
+        }
+
+        // Must not be pure phone number or account number (10+ pure digits)
+        String cleanDigits = candidate.replaceAll("[^0-9]", "");
+        if (cleanDigits.length() >= 10 || candidate.startsWith("08") || candidate.startsWith("628")) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -41,6 +41,7 @@ import wifiSvg from './assets/wifi.svg';
 import freelanceSvg from './assets/Freelance.svg';
 import biayaAdminSvg from './assets/Biaya admin.svg';
 import accessoriesSvg from './assets/Accesories.svg';
+import ticketSvg from './assets/Ticket.svg';
 import budgetClipboardSvg from './assets/budget-clipboard.svg';
 import kalenderSvg from './assets/kalender.svg';
 import dompetSvg from './assets/dompet.svg';
@@ -71,7 +72,6 @@ import AuthModal, { GoogleLogo } from './components/AuthModal';
 import { subscribeToAuth, loginWithGoogle, fetchCloudDataFromFirestore } from './utils/authService';
 import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
 import kitabisaLogo from './assets/kitabisa_logo.png';
-import { exportTransactionsToSpreadsheet } from './utils/excelExport';
 import { isProUser, setProUser, getExcelExportQuota, hasExcelExportQuota, decrementExcelExportQuota } from './utils/proManager';
 import { initNativeBilling } from './utils/nativeBillingManager';
 import { syncWidgetData } from './utils/widgetSync';
@@ -140,6 +140,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'wifi', name: 'WiFi', iconClass: 'wifi-icon' },
   { id: 'biayaAdmin', name: 'Biaya Admin', iconClass: 'biaya-admin-icon' },
   { id: 'accessories', name: 'Accessories', iconClass: 'accessories-icon' },
+  { id: 'tiket', name: 'Tiket', iconClass: 'tiket-icon' },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
@@ -190,6 +191,7 @@ const ICON_MAP = {
   wifi: wifiSvg,
   biayaAdmin: biayaAdminSvg,
   accessories: accessoriesSvg,
+  tiket: ticketSvg,
   gaji: salarySvg,
   bonus: bonusSvg,
   kip: bookSvg,
@@ -256,6 +258,7 @@ const CATEGORY_BG_COLORS = {
   biayaAdmin: '#EBE2F7',
   biayaadmin: '#EBE2F7',
   accessories: '#F5D7DF',
+  tiket: '#FEE5DC',
   gaji: '#D5F1DF',
   bonus: '#D8EBF9',
   kip: '#F5DFDE',
@@ -312,6 +315,7 @@ const migrateTransactions = (list) => {
     'Jajan Adek': 'jajanAdek', 'Party': 'party', 'Buah': 'buah',
     'Minuman': 'minuman', 'WiFi': 'wifi', 'Wifi': 'wifi', 'WIFI': 'wifi',
     'Biaya Admin': 'biayaAdmin', 'Accessories': 'accessories', 'Aksesoris': 'accessories', 'accesories': 'accessories', 'accessories': 'accessories',
+    'Tiket': 'tiket', 'tiket': 'tiket', 'Ticket': 'tiket', 'ticket': 'tiket', 'Karcis': 'tiket', 'karcis': 'tiket',
   };
   let changed = false;
   const migrated = list.map(tx => {
@@ -527,6 +531,144 @@ function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'home' | 'stats'
   const [currentDate, setCurrentDate] = useState(new Date());
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
+
+  // Apple Design Direction-Aware Page Transitions (Synchronized with Nav Bubble)
+  const TAB_ORDER_MAP = useRef({ home: 0, accounts: 1, budget: 2, stats: 3 });
+  const [tabMotion, setTabMotion] = useState({
+    direction: 'forward',
+    steps: 1,
+    duration: 0.36,
+    distance: 26,
+  });
+  const prevTabRef = useRef(activeTab);
+
+  if (prevTabRef.current !== activeTab) {
+    const prevIdx = TAB_ORDER_MAP.current[prevTabRef.current] ?? 0;
+    const nextIdx = TAB_ORDER_MAP.current[activeTab] ?? 0;
+    const diff = nextIdx - prevIdx;
+    const steps = Math.max(1, Math.abs(diff));
+    prevTabRef.current = activeTab;
+    setTabMotion({
+      direction: diff >= 0 ? 'forward' : 'backward',
+      steps,
+      duration: Math.min(0.46, 0.32 + steps * 0.045),
+      distance: Math.min(38, 20 + steps * 6),
+    });
+  }
+
+  // Animated Liquid Curved Notch & Floating Indicator (Apple Fluid Physics)
+  const navContainerRef = useRef(null);
+  const tabButtonRefs = useRef({});
+  const [navIndicatorX, setNavIndicatorX] = useState(null);
+  const [navNotchCx, setNavNotchCx] = useState(null);
+  const navPhysicsRef = useRef({
+    curPixel: null,
+    curSvg: null,
+    velPixel: 0,
+    velSvg: 0,
+    lastTime: null,
+  });
+  const navAnimFrameRef = useRef(null);
+
+  const getNavPath = useCallback((cx) => {
+    if (cx === null || isNaN(cx)) {
+      cx = 50;
+    }
+    const leftStart = Math.max(20, cx - 58);
+    const rightEnd = Math.min(380, cx + 58);
+    return (
+      `M 0,16 Q 0,0 20,0 L ${leftStart.toFixed(1)},0 ` +
+      `C ${(cx - 42).toFixed(1)},0 ${(cx - 34).toFixed(1)},6 ${(cx - 26).toFixed(1)},14 ` +
+      `C ${(cx - 17).toFixed(1)},23 ${(cx - 11).toFixed(1)},25 ${cx.toFixed(1)},25 ` +
+      `C ${(cx + 11).toFixed(1)},25 ${(cx + 17).toFixed(1)},23 ${(cx + 26).toFixed(1)},14 ` +
+      `C ${(cx + 34).toFixed(1)},6 ${(cx + 42).toFixed(1)},0 ${rightEnd.toFixed(1)},0 ` +
+      `L 380,0 Q 400,0 400,16 L 400,85 L 0,85 Z`
+    );
+  }, []);
+
+  const updateNavIndicator = useCallback((immediate = false) => {
+    const container = navContainerRef.current;
+    const targetEl = tabButtonRefs.current[activeTab];
+    if (!container || !targetEl) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    if (containerRect.width === 0) return;
+
+    const targetPixelX = (targetRect.left + targetRect.width / 2) - containerRect.left;
+    const targetSvgCx = (targetPixelX / containerRect.width) * 400;
+
+    const phys = navPhysicsRef.current;
+
+    if (immediate || phys.curPixel === null) {
+      if (navAnimFrameRef.current) cancelAnimationFrame(navAnimFrameRef.current);
+      phys.curPixel = targetPixelX;
+      phys.curSvg = targetSvgCx;
+      phys.velPixel = 0;
+      phys.velSvg = 0;
+      phys.lastTime = null;
+      setNavIndicatorX(targetPixelX);
+      setNavNotchCx(targetSvgCx);
+      return;
+    }
+
+    if (navAnimFrameRef.current) {
+      cancelAnimationFrame(navAnimFrameRef.current);
+    }
+
+    // Apple Design: Response = 0.38s, Damping Ratio = 0.94 (Silky, critically damped fluid glide)
+    const omega = 16.53; // 2 * PI / 0.38
+    const k = omega * omega; // ~273.2
+    const c = 2 * 0.94 * omega; // ~31.08
+
+    phys.lastTime = performance.now();
+
+    const step = (now) => {
+      const dt = Math.min((now - (phys.lastTime || now)) / 1000, 0.032) || 0.016;
+      phys.lastTime = now;
+
+      // Spring displacement & forces
+      const dispPixel = phys.curPixel - targetPixelX;
+      const forcePixel = -k * dispPixel - c * phys.velPixel;
+      phys.velPixel += forcePixel * dt;
+      phys.curPixel += phys.velPixel * dt;
+
+      const dispSvg = phys.curSvg - targetSvgCx;
+      const forceSvg = -k * dispSvg - c * phys.velSvg;
+      phys.velSvg += forceSvg * dt;
+      phys.curSvg += phys.velSvg * dt;
+
+      setNavIndicatorX(phys.curPixel);
+      setNavNotchCx(phys.curSvg);
+
+      // Settle check (sub-pixel threshold for imperceptible rest)
+      if (Math.abs(dispPixel) > 0.05 || Math.abs(phys.velPixel) > 0.5) {
+        navAnimFrameRef.current = requestAnimationFrame(step);
+      } else {
+        phys.curPixel = targetPixelX;
+        phys.curSvg = targetSvgCx;
+        phys.velPixel = 0;
+        phys.velSvg = 0;
+        setNavIndicatorX(targetPixelX);
+        setNavNotchCx(targetSvgCx);
+      }
+    };
+
+    navAnimFrameRef.current = requestAnimationFrame(step);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateNavIndicator(navPhysicsRef.current.curPixel === null);
+    }, 16);
+    const handleResize = () => updateNavIndicator(true);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+      if (navAnimFrameRef.current) cancelAnimationFrame(navAnimFrameRef.current);
+    };
+  }, [activeTab, updateNavIndicator]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chartPeriodFilter, setChartPeriodFilter] = useState('1year'); // '1year' | '6months' | '3months'
   const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false);
@@ -1240,6 +1382,7 @@ function App() {
     const txList = excelExportConfirm?.transactions || transactions;
     setExcelExportConfirm(null);
     showVoiceToast('Sedang menyiapkan berkas laporan...');
+    const { exportTransactionsToSpreadsheet } = await import('./utils/excelExport');
     const res = await exportTransactionsToSpreadsheet({
       transactions: txList,
       currency: appCurrency,
@@ -3041,7 +3184,8 @@ function App() {
       minuman: ['minuman', 'es buah', 'es campur', 'es teler', 'coca cola', 'sprite', 'fanta', 'jus', 'susu', 'teh', 'boba', 'cendol', 'dawet', 'minuman segar', 'minuman dingin'],
       wifi: ['wifi', 'internet', 'indihome', 'biznet', 'myrepublic', 'firstmedia'],
       biayaAdmin: ['admin', 'transfer', 'biaya admin', 'fee', 'pajak'],
-      accessories: ['aksesori', 'accessories', 'jam', 'kacamata', 'topi', 'gelang', 'kalung']
+      accessories: ['aksesori', 'accessories', 'jam', 'kacamata', 'topi', 'gelang', 'kalung'],
+      tiket: ['tiket', 'karcis', 'tiket kereta', 'tiket bus', 'tiket wisata', 'tiket masuk', 'tiket wahana', 'tiket museum', 'tiket konser', 'tiket bioskop', 'tiket pesawat', 'traveloka', 'tiketcom', 'loket']
     };
 
     const q = (budgetSearchQuery || '').toLowerCase().trim();
@@ -4515,7 +4659,11 @@ function App() {
     <div className="app-container">
       {/* Active Tab View Rendering */}
       {activeTab === 'home' && (
-        <div className="tab-page-transition">
+        <div
+          key="page-home"
+          className={`tab-page-transition tab-slide-${tabMotion.direction}`}
+          style={{ '--slide-dur': `${tabMotion.duration}s`, '--slide-dist': `${tabMotion.distance}px` }}
+        >
           {/* Top Bar (Home) */}
           <header className="top-bar">
             <div className="month-navigator">
@@ -5145,7 +5293,11 @@ function App() {
 
       {/* Account View (Redesigned: Saldo Tercatat Cassiel) */}
       {activeTab === 'accounts' && (
-        <div className="accounts-page-container tab-page-transition">
+        <div
+          key="page-accounts"
+          className={`accounts-page-container tab-page-transition tab-slide-${tabMotion.direction}`}
+          style={{ '--slide-dur': `${tabMotion.duration}s`, '--slide-dist': `${tabMotion.distance}px` }}
+        >
           {(() => {
             // Kalkulasi metrik saldo per akun
             const getAccountStats = (accName) => {
@@ -5472,7 +5624,11 @@ function App() {
 
       {/* Stats / Diagram View */}
       {activeTab === 'stats' && (
-        <div className="stats-page-container tab-page-transition">
+        <div
+          key="page-stats"
+          className={`stats-page-container tab-page-transition tab-slide-${tabMotion.direction}`}
+          style={{ '--slide-dur': `${tabMotion.duration}s`, '--slide-dist': `${tabMotion.distance}px` }}
+        >
           {/* Header Row: Date Navigator (left) & Period Dropdown (right) */}
           <header className="stats-header-bar">
             <div className="stats-date-nav">
@@ -5492,38 +5648,6 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                type="button"
-                className="stats-export-btn"
-                onClick={() => handleRequestExportExcel(filteredTransactions)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 10px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)'
-                }}
-                title={isPro ? "Ekspor Laporan Excel (.xlsx / CSV) (Unlimited Pro)" : `Ekspor Laporan Excel (.xlsx / CSV) (Sisa ${excelQuota}x gratis)`}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="8" y1="13" x2="16" y2="13"></line>
-                  <line x1="8" y1="17" x2="16" y2="17"></line>
-                </svg>
-                <span>Excel</span>
-                {!isPro && (
-                  <span style={{ fontSize: '9.5px', opacity: 0.9, fontWeight: 800 }}>({excelQuota})</span>
-                )}
-              </button>
-
               <div className="stats-dropdown-wrapper" ref={dropdownRef}>
                 <button
                   type="button"
@@ -5582,8 +5706,9 @@ function App() {
             </div>
           )}
 
-          {/* Type Toggle Header Row: Income vs Expenses Total */}
+          {/* Type Toggle Header Row: Income vs Expenses Total (Apple Design Sliding Glider) */}
           <div className="stats-type-tabs">
+            <div className={`stats-type-slider-indicator ${statsType === 'expense' ? 'to-expense' : 'to-income'}`} />
             <button
               type="button"
               className={`stats-type-tab income ${statsType === 'income' ? 'active' : ''}`}
@@ -5606,8 +5731,8 @@ function App() {
             </button>
           </div>
 
-          {/* Pie Chart Section */}
-          <div className="stats-chart-card">
+          {/* Pie Chart Section with Apple Fluid Transition */}
+          <div key={`stats-chart-card-${statsType}`} className="stats-chart-card stats-type-animated-wrapper">
             {statsCategories.length > 0 ? (
               <div className="pie-chart-container">
                 <svg viewBox="0 0 380 260" className="pie-chart-svg">
@@ -5704,8 +5829,8 @@ function App() {
 
           {/* Conditional View: Pie Chart Breakdown vs Monthly Bar Chart */}
           {statsSubTab === 'pie' ? (
-            /* Category Breakdown List */
-            <div className="stats-breakdown-list">
+            /* Category Breakdown List with Apple Fluid Transition */
+            <div key={`stats-breakdown-${statsType}`} className="stats-breakdown-list stats-type-animated-wrapper">
               {statsCategories.map((cat, idx) => {
                 const isUnlockedMonth = isEndOfMonthOrTesting(currentDate.getFullYear(), currentDate.getMonth());
                 const isRead = isCategoryInsightRead(cat.name, currentDate.getFullYear(), currentDate.getMonth());
@@ -6142,7 +6267,11 @@ function App() {
 
       {/* Budget Cap View (Bottom Nav Tab) */}
       {activeTab === 'budget' && (
-        <div className="budget-page-container tab-page-transition">
+        <div
+          key="page-budget"
+          className={`budget-page-container tab-page-transition tab-slide-${tabMotion.direction}`}
+          style={{ '--slide-dur': `${tabMotion.duration}s`, '--slide-dist': `${tabMotion.distance}px` }}
+        >
           {(() => {
             const hasMain = typeof mainMonthlyBudget === 'number' && mainMonthlyBudget > 0;
             const spent = currentMonthExpenses;
@@ -6673,16 +6802,27 @@ function App() {
       {/* Bottom Nav (Hidden when editing main budget or searching budget to prevent keyboard pushup) */}
       {!isEditingMainBudget && !isSearchingBudget && (
         <nav className="bottom-nav">
-          <svg className="nav-bg-svg" viewBox="0 0 400 80" preserveAspectRatio="none">
+          <svg className="nav-bg-svg" viewBox="0 0 400 85" preserveAspectRatio="none">
             <path
-              d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z"
+              d={getNavPath(navNotchCx)}
               fill="#F8EFE6"
             />
           </svg>
 
-          <div className="nav-items-container">
+          {/* Animated Floating Active Indicator Bubble */}
+          {navIndicatorX !== null && (
+            <div
+              className="nav-floating-bubble"
+              style={{
+                transform: `translate3d(${navIndicatorX}px, 0, 0) translate3d(-50%, -10px, 0)`
+              }}
+            />
+          )}
+
+          <div className="nav-items-container" ref={navContainerRef}>
             <div className="nav-group-left">
               <button
+                ref={(el) => { if (el) tabButtonRefs.current['home'] = el; }}
                 type="button"
                 className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
                 onClick={() => setActiveTab('home')}
@@ -6693,6 +6833,7 @@ function App() {
               </button>
 
               <button
+                ref={(el) => { if (el) tabButtonRefs.current['accounts'] = el; }}
                 type="button"
                 className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
                 onClick={() => setActiveTab('accounts')}
@@ -6719,6 +6860,7 @@ function App() {
 
             <div className="nav-group-right">
               <button
+                ref={(el) => { if (el) tabButtonRefs.current['budget'] = el; }}
                 type="button"
                 className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
                 onClick={() => setActiveTab('budget')}
@@ -6729,6 +6871,7 @@ function App() {
               </button>
 
               <button
+                ref={(el) => { if (el) tabButtonRefs.current['stats'] = el; }}
                 type="button"
                 className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
                 onClick={() => setActiveTab('stats')}
@@ -10418,10 +10561,12 @@ function App() {
                     try {
                       const opened = window.open(playStoreMarketUrl, '_system');
                       if (!opened) {
-                        window.open(playStoreWebUrl, '_blank') || (window.location.href = playStoreWebUrl);
+                        const webOpened = window.open(playStoreWebUrl, '_blank');
+                        if (!webOpened) window.location.href = playStoreWebUrl;
                       }
                     } catch {
-                      window.open(playStoreWebUrl, '_blank') || (window.location.href = playStoreWebUrl);
+                      const webOpened = window.open(playStoreWebUrl, '_blank');
+                      if (!webOpened) window.location.href = playStoreWebUrl;
                     }
                   }
                 }}
@@ -11420,6 +11565,7 @@ function App() {
         isOpen={isProModalOpen}
         onClose={() => setIsProModalOpen(false)}
         triggerReason={proTriggerReason}
+        currentUserName={profileName || 'Pengguna Cassiel'}
         onProStatusChanged={(newProStatus) => {
           setIsPro(newProStatus);
           showVoiceToast(newProStatus ? '👑 Mode Cassiel Pro Aktif!' : 'Mode Gratis (Free) Aktif');

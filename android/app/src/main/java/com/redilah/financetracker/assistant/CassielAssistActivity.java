@@ -288,7 +288,7 @@
                  // Show status bar notification
                  showConfirmationNotification(account, note, formattedAmount);
  
-                 Log.d(TAG, "Transaction saved to queue: " + notifObj.toString());
+                 Log.d(TAG, "Transaction queued successfully from AssistActivity.");
  
              } catch (Exception e) {
                  Log.e(TAG, "Failed to save transaction", e);
@@ -422,7 +422,7 @@
  
              NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                  .setSmallIcon(R.drawable.ic_stat_icon)
-                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_large_icon))
+                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher))
                  .setContentTitle(notifTitle)
                  .setContentText(notifBody)
                  .setStyle(new NotificationCompat.BigTextStyle().bigText(notifBody))

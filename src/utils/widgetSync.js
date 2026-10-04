@@ -81,6 +81,8 @@ export async function syncWidgetData({
       }
     }
 
+    const todayDateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     const payload = {
       dailySafeBudget: formatMoney(dailySafeBudgetVal, currency),
       dailyStatus,
@@ -88,8 +90,9 @@ export async function syncWidgetData({
       monthlyRemaining: formatMoney(remainingMonthly, currency),
       todayExpense: `Hari ini: -${formatMoney(todayExpenses, currency)}`,
       todayExpenseAmount: formatMoney(todayExpenses, currency),
-      todayExpenseRaw: Math.round(todayExpenses),
-      budgetProgress
+      todayExpenseRaw: Math.round(todayExpenses || 0),
+      syncedDate: todayDateKey,
+      budgetProgress: Math.round(budgetProgress || 0)
     };
 
     await WidgetBridge.updateWidgetData(payload);
