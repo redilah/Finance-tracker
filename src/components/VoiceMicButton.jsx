@@ -18,6 +18,7 @@ export default function VoiceMicButton({
   onOpenProModal
 }) {
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'success' | 'error'
+  const [liveTranscript, setLiveTranscript] = useState('');
   const [isPro, setIsPro] = useState(() => isProUser());
   const [voiceQuota, setVoiceQuota] = useState(() => getVoiceQuota());
   const [isTourVoiceActive, setIsTourVoiceActive] = useState(false);
@@ -28,6 +29,21 @@ export default function VoiceMicButton({
   const accumulatedTranscriptRef = useRef('');
   const isProcessingRef = useRef(false); // Flag anti duplikasi / double trigger
   const lastProcessedInfoRef = useRef({ text: '', timestamp: 0 }); // Deduplication timestamp guard
+
+  const nativeListenersRef = useRef([]);
+
+  const cleanupListeners = () => {
+    if (nativeListenersRef.current.length > 0) {
+      nativeListenersRef.current.forEach(handle => {
+        try {
+          if (handle && typeof handle.remove === 'function') {
+            handle.remove();
+          }
+        } catch {}
+      });
+      nativeListenersRef.current = [];
+    }
+  };
 
   // Listen to Pro status, voice quota, or guided tour step events across the app
   useEffect(() => {
@@ -48,22 +64,69 @@ export default function VoiceMicButton({
     window.addEventListener('cassiel_tour_step_changed', handleTourStep);
 
     return () => {
+      cleanupListeners();
+      if (webRecognitionRef.current) {
+        try { webRecognitionRef.current.abort(); } catch {}
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
       window.removeEventListener('cassiel_pro_status_changed', handleProChange);
       window.removeEventListener('cassiel_voice_quota_changed', handleQuotaChange);
       window.removeEventListener('cassiel_tour_step_changed', handleTourStep);
     };
   }, []);
 
-  // Hentikan rekaman dan batalkan / proses
-  const handleCancelOrStop = () => {
+  // Batalkan rekaman suara sepenuhnya (dipicu oleh tombol ✕)
+  const handleCancelVoice = async (e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
 
+    cleanupListeners();
+
     if (Capacitor.isNativePlatform()) {
       try {
-        SpeechRecognition.stop();
+        await SpeechRecognition.stop();
+      } catch (err) {
+        console.warn('Native speech stop error:', err);
+      }
+    } else if (webRecognitionRef.current) {
+      try {
+        webRecognitionRef.current.abort();
+      } catch {}
+      webRecognitionRef.current = null;
+    }
+
+    accumulatedTranscriptRef.current = '';
+    isProcessingRef.current = false;
+    setLiveTranscript('');
+    setStatus('idle');
+  };
+
+
+  // Hentikan rekaman dan batalkan / proses saat user klik tombol mic lagi
+  const handleCancelOrStop = async (e) => {
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    cleanupListeners();
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await SpeechRecognition.stop();
       } catch (e) {
         console.warn('Native speech stop error:', e);
       }
@@ -86,19 +149,25 @@ export default function VoiceMicButton({
       // Jika kosong atau saat sedang memproses/error, reset ke idle
       isProcessingRef.current = false;
       setStatus('idle');
+      setLiveTranscript('');
     }
   };
 
-  const stopListeningAndProcess = () => {
+  const stopListeningAndProcess = async () => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
 
-    const fullText = accumulatedTranscriptRef.current.trim();
-    accumulatedTranscriptRef.current = '';
+    cleanupListeners();
 
-    if (webRecognitionRef.current) {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await SpeechRecognition.stop();
+      } catch (e) {
+        console.warn('Native speech stop error:', e);
+      }
+    } else if (webRecognitionRef.current) {
       try {
         webRecognitionRef.current.stop();
       } catch (e) {
@@ -107,11 +176,15 @@ export default function VoiceMicButton({
       webRecognitionRef.current = null;
     }
 
+    const fullText = accumulatedTranscriptRef.current.trim();
+    accumulatedTranscriptRef.current = '';
+
     if (fullText && !isProcessingRef.current) {
       isProcessingRef.current = true;
       processText(fullText);
     } else if (!isProcessingRef.current) {
       setStatus('idle');
+      setLiveTranscript('');
     }
   };
 
@@ -139,12 +212,15 @@ export default function VoiceMicButton({
     // START LISTENING
     accumulatedTranscriptRef.current = '';
     isProcessingRef.current = false;
+    setLiveTranscript('');
+    setStatus('listening');
 
     if (Capacitor.getPlatform() === 'android') {
-      // 1. Native Android
+      // 1. Native Android (Real-time Partial Transcription)
       try {
         const isAvail = await SpeechRecognition.available().catch(() => ({ available: false }));
         if (isAvail && isAvail.available === false) {
+          cleanupListeners();
           alert('Pengenalan suara tidak tersedia di perangkat ini. Pastikan Google Speech Services aktif.');
           setStatus('error');
           setTimeout(() => setStatus('idle'), 2000);
@@ -155,6 +231,7 @@ export default function VoiceMicButton({
         if (perm.speechRecognition !== 'granted') {
           const request = await SpeechRecognition.requestPermissions().catch(() => ({ speechRecognition: 'denied' }));
           if (request.speechRecognition !== 'granted') {
+            cleanupListeners();
             alert('Izin mikrofon dibutuhkan untuk fitur input suara.');
             setStatus('error');
             setTimeout(() => setStatus('idle'), 2000);
@@ -162,25 +239,53 @@ export default function VoiceMicButton({
           }
         }
 
-        setStatus('listening');
-        const { matches } = await SpeechRecognition.start({
+        // Listener untuk streaming teks parsial real-time di Android
+        const partialSub = await SpeechRecognition.addListener('partialResults', (data) => {
+          if (data?.matches && data.matches.length > 0) {
+            const text = data.matches[0];
+            if (text) {
+              accumulatedTranscriptRef.current = text;
+              setLiveTranscript(text);
+
+              const silenceDelay = isTourVoiceActiveRef.current ? 3000 : 2200;
+              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = setTimeout(() => {
+                stopListeningAndProcess();
+              }, silenceDelay);
+            }
+          }
+        });
+
+        // Listener saat Android selesai mendeteksi hening
+        const stateSub = await SpeechRecognition.addListener('listeningState', (data) => {
+          if (data?.status === 'stopped') {
+            stopListeningAndProcess();
+          }
+        });
+
+        nativeListenersRef.current = [partialSub, stateSub];
+
+        const startRes = await SpeechRecognition.start({
           language: 'id-ID',
           maxResults: 2,
-          partialResults: false,
+          partialResults: true,
           popup: false
         });
 
-        if (matches && matches.length > 0 && !isProcessingRef.current) {
-          processText(matches[0]);
-        } else {
-          setStatus('idle');
+        // Fallback jika platform mengembalikan matches langsung (synchronous)
+        if (startRes && startRes.matches && startRes.matches.length > 0 && !isProcessingRef.current) {
+          const text = startRes.matches[0];
+          accumulatedTranscriptRef.current = text;
+          setLiveTranscript(text);
+          stopListeningAndProcess();
         }
       } catch (e) {
         console.warn('Native speech error / user cancelled:', e);
+        cleanupListeners();
         setStatus('idle');
       }
     } else {
-      // 2. Web / Laptop Browser (Continuous listening with generous silence debounce in tour mode)
+      // 2. Web / Laptop Browser (Continuous listening with real-time interim results)
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -197,6 +302,7 @@ export default function VoiceMicButton({
 
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognitionAPI) {
+          cleanupListeners();
           alert('Browser Anda tidak mendukung Web Speech Recognition. Disarankan menggunakan Google Chrome atau Edge.');
           setStatus('error');
           setTimeout(() => setStatus('idle'), 2000);
@@ -220,7 +326,9 @@ export default function VoiceMicButton({
           for (let i = 0; i < event.results.length; i++) {
             currentTranscript += event.results[i][0].transcript + ' ';
           }
-          accumulatedTranscriptRef.current = currentTranscript;
+          const trimmed = currentTranscript.trim();
+          accumulatedTranscriptRef.current = trimmed;
+          setLiveTranscript(trimmed);
 
           // Reset silence timer setiap kali ada kata baru (pada mode tour berikan waktu lebih sabar 2.8s)
           const silenceDelay = isTourVoiceActiveRef.current ? 2800 : 2000;
@@ -235,6 +343,7 @@ export default function VoiceMicButton({
         recognition.onerror = (event) => {
           if (event.error !== 'no-speech') {
             console.warn('Web Speech Error:', event.error);
+            cleanupListeners();
             setStatus('error');
             setTimeout(() => setStatus('idle'), 1500);
           }
@@ -251,8 +360,10 @@ export default function VoiceMicButton({
           accumulatedTranscriptRef.current = '';
           if (text) {
             isProcessingRef.current = true;
+            cleanupListeners();
             processText(text);
           } else {
+            cleanupListeners();
             setStatus(prev => (prev === 'listening' ? 'idle' : prev));
           }
         };
@@ -261,6 +372,7 @@ export default function VoiceMicButton({
         recognition.start();
       } catch (err) {
         console.warn('Laptop/Browser mic permission error:', err);
+        cleanupListeners();
         alert('Izin mikrofon ditolak pada browser Anda.');
         setStatus('error');
         setTimeout(() => setStatus('idle'), 1500);
@@ -342,6 +454,7 @@ export default function VoiceMicButton({
 
           setTimeout(() => {
             setStatus('idle');
+            setLiveTranscript('');
             isProcessingRef.current = false;
           }, 1000);
           return;
@@ -354,6 +467,7 @@ export default function VoiceMicButton({
 
           setTimeout(() => {
             setStatus('idle');
+            setLiveTranscript('');
             isProcessingRef.current = false;
           }, 1000);
           return;
@@ -366,6 +480,7 @@ export default function VoiceMicButton({
 
           setTimeout(() => {
             setStatus('idle');
+            setLiveTranscript('');
             isProcessingRef.current = false;
           }, 1000);
           return;
@@ -378,6 +493,7 @@ export default function VoiceMicButton({
 
           setTimeout(() => {
             setStatus('idle');
+            setLiveTranscript('');
             isProcessingRef.current = false;
           }, 1000);
           return;
@@ -396,6 +512,7 @@ export default function VoiceMicButton({
 
           setTimeout(() => {
             setStatus('idle');
+            setLiveTranscript('');
             isProcessingRef.current = false;
             setAmountVal('');
             setNote('');
@@ -403,19 +520,66 @@ export default function VoiceMicButton({
         } else {
           setStatus('error');
           isProcessingRef.current = false;
-          setTimeout(() => setStatus('idle'), 1500);
+          setTimeout(() => {
+            setStatus('idle');
+            setLiveTranscript('');
+          }, 1500);
         }
       } catch (err) {
         console.error('Error in processText:', err);
         setStatus('error');
         isProcessingRef.current = false;
-        setTimeout(() => setStatus('idle'), 1500);
+        setTimeout(() => {
+          setStatus('idle');
+          setLiveTranscript('');
+        }, 1500);
       }
     }, 200); // Respon instan dan cepat
   };
 
   return (
     <div className="voice-mic-container tour-target-voice">
+      {/* Live Voice Realtime Transcript Bubble (Level 1) */}
+      {(status === 'listening' || status === 'processing') && (
+        <div 
+          className={`voice-mic-live-bubble status-${status}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="voice-mic-live-bubble-header">
+            <div className="voice-mic-live-indicator">
+              <span className={`voice-live-dot ${status === 'listening' ? 'active-pulse' : 'spin'}`} />
+              <span className="voice-live-title">
+                {status === 'listening' 
+                  ? (liveTranscript ? 'Mendengar ucapan...' : 'Mendengarkan...') 
+                  : 'Menganalisis transaksi...'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="voice-live-close-btn"
+              onClick={handleCancelVoice}
+              onTouchEnd={handleCancelVoice}
+              title="Batal"
+              aria-label="Batalkan rekaman suara"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="voice-mic-live-content">
+            {liveTranscript ? (
+              <p className="voice-live-transcript-text">
+                "{liveTranscript}"
+                {status === 'listening' && <span className="typewriter-cursor">|</span>}
+              </p>
+            ) : (
+              <p className="voice-live-placeholder">
+                Ucapkan transaksimu... <i>(cth: "kopi 20 ribu bca")</i>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {onOpenQuickText && (
         <button
           type="button"
@@ -437,6 +601,7 @@ export default function VoiceMicButton({
         >
           {isPro ? 'BETA' : String(voiceQuota)}
         </span>
+
         <button 
           type="button"
           className={`voice-mic-fab status-${status} tour-target-voice-btn`}

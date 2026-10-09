@@ -9,6 +9,8 @@ import {
   sendGroupTextMessage,
   deleteGroupMessage,
   addMemberToGroup,
+  updateGroupInfo,
+  removeMemberFromGroup,
   leaveGroup,
   deleteGroup,
   calculateGroupLedger,
@@ -37,6 +39,7 @@ export default function GroupsHubModal({
   const [newGroupName, setNewGroupName] = useState('');
   const [groupAvatar, setGroupAvatar] = useState(null);
   const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [initialMembers, setInitialMembers] = useState([]);
   const formatAmountInput = (val) => {
     if (!val && val !== 0) return '';
     const cleanVal = String(val).replace(/\D/g, '');

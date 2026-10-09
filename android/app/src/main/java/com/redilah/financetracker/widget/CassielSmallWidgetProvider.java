@@ -1,5 +1,6 @@
 package com.redilah.financetracker.widget;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -7,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 import com.redilah.financetracker.MainActivity;
@@ -21,23 +23,45 @@ import java.util.Locale;
 public class CassielSmallWidgetProvider extends AppWidgetProvider {
 
     public static final String ACTION_REFRESH_WIDGET = "com.redilah.financetracker.widget.ACTION_REFRESH";
+    public static final String ACTION_MIDNIGHT_RESET = "com.redilah.financetracker.widget.ACTION_MIDNIGHT_RESET";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        if (intent != null && ACTION_REFRESH_WIDGET.equals(intent.getAction())) {
-            recalculateAndRefresh(context);
+        if (intent != null) {
+            String action = intent.getAction();
+            if (ACTION_REFRESH_WIDGET.equals(action)) {
+                recalculateAndRefresh(context);
+            } else if (ACTION_MIDNIGHT_RESET.equals(action)
+                    || Intent.ACTION_DATE_CHANGED.equals(action)
+                    || Intent.ACTION_TIME_CHANGED.equals(action)
+                    || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
+                    || Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+                checkAndResetIfNewDay(context);
+                updateAllWidgets(context);
+                scheduleMidnightReset(context);
+            }
         }
     }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        checkAndResetIfNewDay(context);
+        scheduleMidnightReset(context);
         for (int appWidgetId : appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId);
         }
     }
 
+    @Override
+    public void onEnabled(Context context) {
+        super.onEnabled(context);
+        scheduleMidnightReset(context);
+    }
+
     public static void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        checkAndResetIfNewDay(context);
+
         SharedPreferences prefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
         String todayExpense = prefs.getString("todayExpenseAmount", "Rp 0");
 
@@ -74,6 +98,94 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 
+    /**
+     * Inspects current calendar date against last saved syncedDate.
+     * If the date has rolled over past midnight into a new day, resets the recorded expense to Rp 0.
+     */
+    public static boolean checkAndResetIfNewDay(Context context) {
+        try {
+            SharedPreferences widgetPrefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
+            String lastSyncedDate = widgetPrefs.getString("syncedDate", "");
+
+            Calendar calNow = Calendar.getInstance();
+            int nowYear = calNow.get(Calendar.YEAR);
+            int nowMonth = calNow.get(Calendar.MONTH) + 1;
+            int nowDay = calNow.get(Calendar.DAY_OF_MONTH);
+            String todayDateKeyPadded = String.format(Locale.US, "%04d-%02d-%02d", nowYear, nowMonth, nowDay);
+            String todayDateKey = String.format(Locale.US, "%d-%d-%d", nowYear, nowMonth, nowDay);
+
+            if (lastSyncedDate == null || lastSyncedDate.trim().isEmpty()) {
+                widgetPrefs.edit().putString("syncedDate", todayDateKeyPadded).apply();
+                return false;
+            }
+
+            boolean isNewDay = false;
+            if (!lastSyncedDate.equals(todayDateKey) && !lastSyncedDate.equals(todayDateKeyPadded)) {
+                try {
+                    String[] parts = lastSyncedDate.split("-");
+                    if (parts.length >= 3) {
+                        int y = Integer.parseInt(parts[0].trim());
+                        int m = Integer.parseInt(parts[1].trim());
+                        int d = Integer.parseInt(parts[2].trim());
+                        if (y != nowYear || m != nowMonth || d != nowDay) {
+                            isNewDay = true;
+                        }
+                    } else {
+                        isNewDay = true;
+                    }
+                } catch (Exception ex) {
+                    isNewDay = true;
+                }
+            }
+
+            if (isNewDay) {
+                widgetPrefs.edit()
+                        .putLong("todayExpenseRaw", 0L)
+                        .putString("todayExpenseAmount", "Rp 0")
+                        .putString("todayExpense", "Hari ini: Rp 0")
+                        .putString("syncedDate", todayDateKeyPadded)
+                        .apply();
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
+     * Schedules a background alarm to fire right at 00:00:02 of the next midnight,
+     * ensuring the 2x2 widget resets to Rp 0 automatically even if the app has not been opened.
+     */
+    public static void scheduleMidnightReset(Context context) {
+        try {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) return;
+
+            Intent intent = new Intent(context, CassielSmallWidgetProvider.class);
+            intent.setAction(ACTION_MIDNIGHT_RESET);
+            PendingIntent pi = PendingIntent.getBroadcast(
+                    context, 104, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            Calendar midnight = Calendar.getInstance();
+            midnight.set(Calendar.HOUR_OF_DAY, 0);
+            midnight.set(Calendar.MINUTE, 0);
+            midnight.set(Calendar.SECOND, 2);
+            midnight.set(Calendar.MILLISECOND, 0);
+            if (midnight.getTimeInMillis() <= System.currentTimeMillis()) {
+                midnight.add(Calendar.DAY_OF_YEAR, 1);
+            }
+
+            long triggerAt = midnight.getTimeInMillis();
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC, triggerAt, pi);
+            } else {
+                alarmManager.set(AlarmManager.RTC, triggerAt, pi);
+            }
+        } catch (Exception ignored) {}
+    }
+
     public static void recalculateAndRefresh(Context context) {
         try {
             SharedPreferences widgetPrefs = context.getSharedPreferences("CassielWidgetPrefs", Context.MODE_PRIVATE);
@@ -106,12 +218,14 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
                     try {
                         String[] parts = lastSyncedDate.split("-");
                         if (parts.length >= 3) {
-                            int y = Integer.parseInt(parts[0]);
-                            int m = Integer.parseInt(parts[1]);
-                            int d = Integer.parseInt(parts[2]);
+                            int y = Integer.parseInt(parts[0].trim());
+                            int m = Integer.parseInt(parts[1].trim());
+                            int d = Integer.parseInt(parts[2].trim());
                             if (y != nowYear || m != nowMonth || d != nowDay) {
                                 isNewDay = true;
                             }
+                        } else {
+                            isNewDay = true;
                         }
                     } catch (Exception ignored) {
                         isNewDay = false;
@@ -171,11 +285,12 @@ public class CassielSmallWidgetProvider extends AppWidgetProvider {
             widgetPrefs.edit()
                     .putLong("todayExpenseRaw", totalToday)
                     .putString("todayExpenseAmount", formatted)
+                    .putString("todayExpense", "Hari ini: -" + formatted)
                     .putString("syncedDate", todayDateKeyPadded)
                     .apply();
 
             updateAllWidgets(context);
-            CassielMediumWidgetProvider.updateAllWidgets(context);
+            scheduleMidnightReset(context);
             Toast.makeText(context, "Widget Cassiel Diperbarui ✨", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             updateAllWidgets(context);

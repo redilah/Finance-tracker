@@ -52,8 +52,8 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             "com.shopee.id", "com.shopeepay.id", "com.telkom.mwallet",
             "com.seabank.id", "com.jfriau.bankjago", "com.bankjago.app", "com.btpn.dc",
             "com.cimbniaga.mobile.android", "net.myinfosys.PermataMobileX",
-            "com.maybankindo.maybank2u", "id.co.bankbpd.diy.mobile", "id.co.btn.mobile",
-            "id.co.btn.superapp", "bcadigital.blubybcadigital", "com.bnc.finance",
+            "com.maybankindo.maybank2u", "id.co.bankbpd.diy.mobile", "id.co.btn.mobilebanking.android",
+            "id.co.btn.mobile", "id.co.btn.superapp", "bcadigital.blubybcadigital", "com.bnc.finance",
             "com.bankneo.mobile", "id.allobank.mobile", "com.allobank.app",
             "com.linecorp.linebank.id", "id.superbank.app", "id.co.krom.app",
             "com.astrapay.app", "com.indomarco.isaku", "com.dokuwallet.android",
@@ -105,7 +105,8 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 if (pkgLower.contains("bank") || pkgLower.contains("brimo") || pkgLower.contains("bca")
                         || pkgLower.contains("mandiri") || pkgLower.contains("wondr") || pkgLower.contains("gopay")
                         || pkgLower.contains("dana") || pkgLower.contains("shopeepay") || pkgLower.contains("seabank")
-                        || pkgLower.contains("jago") || pkgLower.contains("ovo")) {
+                        || pkgLower.contains("jago") || pkgLower.contains("ovo") || pkgLower.contains("btn")
+                        || pkgLower.contains("bale")) {
                     isWhitelisted = true;
                 }
             }
@@ -359,7 +360,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
         if (packageName.contains("permata")) return "Permata";
         if (packageName.contains("maybank")) return "Maybank";
         if (packageName.contains("bankbpd") || packageName.contains("bpddiy")) return "BPD DIY";
-        if (packageName.contains("btn")) return "BTN Mobile";
+        if (packageName.contains("btn") || packageName.contains("bale")) return "bale by BTN";
         if (packageName.contains("blu")) return "blu";
         if (packageName.contains("paypal")) return "PayPal";
 
@@ -552,8 +553,8 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 return "Transfer";
             }
 
-            if (fullText.contains("transfer ke") || fullText.contains("transfer dana ke") || fullText.contains("kirim uang ke") || fullText.contains("kirim dana ke")) {
-                Pattern tfPattern = Pattern.compile("(?:transfer(?:\\s+dana)?\\s+ke|kirim(?:\\s+dana|\\s+uang)?\\s+ke)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
+            if (fullText.contains("transfer ke") || fullText.contains("transfer antar bank ke") || fullText.contains("transfer sesama bank ke") || fullText.contains("transfer bi-fast ke") || fullText.contains("transfer online ke") || fullText.contains("transfer dana ke") || fullText.contains("kirim uang ke") || fullText.contains("kirim dana ke")) {
+                Pattern tfPattern = Pattern.compile("(?:transfer(?:\\s+antar\\s+bank|\\s+sesama\\s+bank|\\s+bi-?fast|\\s+online|\\s+dana)?\\s+ke|kirim(?:\\s+dana|\\s+uang)?\\s+ke)\\s+([a-zA-Z0-9&'\\.\\s-]{2,35})", Pattern.CASE_INSENSITIVE);
                 Matcher tfMatcher = tfPattern.matcher(fullText);
                 if (tfMatcher.find()) {
                     String candidate = cleanCandidateMerchant(tfMatcher.group(1));
@@ -588,7 +589,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             // 4. Keyword to Category Fallback
             if (fullText.contains("qris")) return "Pembelian QRIS";
-            if (fullText.contains("transfer")) return "Transfer";
+            if (fullText.contains("transfer") || fullText.contains("tranfer")) return "Tranfer";
             if (fullText.contains("simpati") || fullText.contains("pulsa") || fullText.contains("kuota") || fullText.contains("paket data") || fullText.contains("telkomsel") || fullText.contains("indosat") || fullText.contains("xl") || fullText.contains("tri") || fullText.contains("smartfren") || fullText.contains("axis") || fullText.contains("by.u")) return "Pulsa";
             if (fullText.contains("kopi") || fullText.contains("coffee") || fullText.contains("starbucks") || fullText.contains("fore") || fullText.contains("tomoro") || fullText.contains("kenangan")) return "Coffee";
             if (fullText.contains("makan") || fullText.contains("food") || fullText.contains("nasi") || fullText.contains("resto") || fullText.contains("kfc") || fullText.contains("mcd") || fullText.contains("solaria") || fullText.contains("mie") || fullText.contains("bakso") || fullText.contains("gofood") || fullText.contains("grabfood") || fullText.contains("shopeefood")) return "Food";

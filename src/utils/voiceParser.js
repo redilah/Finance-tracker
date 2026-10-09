@@ -276,6 +276,14 @@ export const EXPENSE_CATEGORY_KEYWORDS = {
     'tiket pesawat', 'super air jet', 'lion air', 'citilink', 'airasia', 'batik air', 'penerbangan',
     'boarding', 'bandara', 'airport', 'pesawat', 'garuda', 'bagasi'
   ],
+  tranfer: [
+    'transfer antar bank', 'transfer sesama bank', 'transfer bi-fast', 'transfer online',
+    'transfer ke', 'transfer keluar', 'transfer', 'tranfer', 'tf ke', 'tf'
+  ],
+  transfer: [
+    'transfer antar bank', 'transfer sesama bank', 'transfer bi-fast', 'transfer online',
+    'transfer ke', 'transfer keluar', 'transfer', 'tranfer', 'tf ke', 'tf'
+  ],
   kost: [
     'uang kosan', 'uang kost', 'bayar kosan', 'bayar kost', 'sewa kontrakan', 'sewa rumah',
     'sewa kamar', 'iuran kost', 'sewa apartemen', 'listrik kost', 'kosan', 'kostan', 'kontrakan',

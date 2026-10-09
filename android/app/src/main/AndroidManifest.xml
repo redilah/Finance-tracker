@@ -47,23 +47,15 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.redilah.financetracker.widget.ACTION_REFRESH" />
+                <action android:name="com.redilah.financetracker.widget.ACTION_MIDNIGHT_RESET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_cassiel_small_info" />
-        </receiver>
-
-        <!-- Cassiel AppWidget 4x2 (Medium Budget & Actions) -->
-        <receiver
-            android:name=".widget.CassielMediumWidgetProvider"
-            android:exported="true"
-            android:label="Cassiel • Budget &amp; Aksi Cepat (4x2)">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_cassiel_medium_info" />
         </receiver>
 
         <!-- Notification Listener Service -->

@@ -13,7 +13,7 @@ const interp = (str = '', vars = {}) =>
 
 // Helper: read language from localStorage (used outside React context)
 const getLang = () => {
-  try { return localStorage.getItem('user_app_lang') || 'id'; } catch { return 'id'; }
+  try { return localStorage.getItem('user_app_lang') || 'en'; } catch { return 'en'; }
 };
 
 // Shorthand t() — resolves from passed lang or falls back to localStorage

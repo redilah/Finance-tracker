@@ -26,6 +26,8 @@ const CATEGORY_HEX_MAP = {
   supermarket: 'F7EFC8',
   sub: 'D7ECE4',
   pesawat: 'D0E6F5',
+  tranfer: 'D0E6F5',
+  transfer: 'D0E6F5',
   kost: 'F4DFD2',
   gofood: 'F8D7D7',
   sepatu: 'EBDEFA',

@@ -118,9 +118,16 @@ const PROVIDER_REGISTRY = [
   },
   {
     id: 'btn',
-    name: 'BTN Mobile',
+    name: 'bale by BTN',
     accountName: 'bale by btn',
-    packageNames: ['id.co.btn.mobile', 'id.co.btn.superapp'],
+    packageNames: [
+      'id.co.btn.mobilebanking.android',
+      'id.co.btn.mobile',
+      'id.co.btn.superapp',
+      'com.btn.mobile',
+      'id.co.btn.bale',
+      'com.btn.bale'
+    ],
   },
   {
     id: 'blu',
@@ -204,24 +211,30 @@ export function detectProvider(packageName, appLabel = '') {
     return PACKAGE_TO_PROVIDER[packageName];
   }
 
-  const lowerPkg = (packageName || '').toLowerCase();
-  const lowerLabel = (appLabel || '').toLowerCase();
+  const lowerPkg = (packageName || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const lowerLabel = (appLabel || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   // 2. Keyword heuristic matching against known providers
   for (const provider of PROVIDER_REGISTRY) {
     if (provider.id && (lowerPkg.includes(provider.id) || lowerLabel.includes(provider.id))) {
       return provider;
     }
-    const nameLower = provider.name.toLowerCase();
+    const nameLower = provider.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (lowerPkg.includes(nameLower) || lowerLabel.includes(nameLower)) {
       return provider;
     }
     if (provider.accountName) {
-      const accLower = provider.accountName.toLowerCase();
+      const accLower = provider.accountName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (lowerPkg.includes(accLower) || lowerLabel.includes(accLower)) {
         return provider;
       }
     }
+  }
+
+  // Explicit bale / BTN alias detection
+  if (lowerPkg.includes('btn') || lowerPkg.includes('bale') || lowerLabel.includes('btn') || lowerLabel.includes('bale')) {
+    const btnProvider = PROVIDER_REGISTRY.find(p => p.id === 'btn');
+    if (btnProvider) return btnProvider;
   }
 
   // 3. Dynamic fallback for any bank or wallet notification
@@ -319,7 +332,7 @@ const EXPENSE_PATTERNS = [
   /(?:\bdebit\b|\bdebet\b|\bpendebetan\b|\bdidebit\b|\bdidebet\b)/i,
   /(?:\bpembayaran\b|\bbayar\b|\bmembayar\b|\bdibayar\b|\bdibayarkan\b|\bterbayar\b|\bpayment\b|\bpaid\b|(?<!(?:go|shopee|astra|google|apple|line)\s*)\bpay\b)/i,
   /(?:\bpembelian\b|\bbelanja\b|\bberbelanja\b|\bpurchase\b|\bbeli\b|\bmembeli\b|\bdibeli\b)/i,
-  /(?:transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|m-transfer|trsf|transfer\s*dari.*(?:nomor\s*rekening\s*tujuan|rekening\s*tujuan|tujuan|ke\b))/i,
+  /(?:transfer(?:\s+antar\s+bank|\s+sesama\s+bank|\s+bi-?fast|\s+online)?\s+ke\b|transfer\s*(?:keluar|ke\b)|mentransfer|ditransfer|transfer\s*berhasil|transfer\s*sukses|transfer\s*antar\s*bank|transfer\s*sesama\s*bank|m-transfer|trsf|transfer\s*dari.*(?:nomor\s*rekening\s*tujuan|rekening\s*tujuan|tujuan|ke\b))/i,
   /(?:tarik\s*tunai|penarikan|withdrawal|menarik|ditarik|tarik)/i,
   /(?:kirim|mengirim|dikirim|pengiriman|terkirim|sent|send)/i,
   /(?:pengeluaran|uang\s*keluar|dana\s*keluar|saldo\s*keluar|terpotong|dipotong|pemotongan|potong\s*saldo)/i,
@@ -664,7 +677,7 @@ export function extractMerchant(fullText) {
   // Pattern: "merchant/toko: [Merchant]" or "ke/di/pada [Merchant]"
   const merchantPatterns = [
     /(?:merchant|toko|store|outlet|merchant\s*name)[:\s]+([A-Za-z0-9\s&.'()-]{2,40})/i,
-    /(?:pembayaran\s*(?:sebesar\s*[^,\n]+)?\s*ke|bayar\s*(?:sebesar\s*[^,\n]+)?\s*ke|membayar\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|transfer\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|kirim\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|ke|di|pada|at|to|from|dari)\s+([A-Za-z0-9\s&.'()-]{2,40})/i,
+    /(?:transfer(?:\s+antar\s+bank|\s+sesama\s+bank|\s+bi-?fast|\s+online)?\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|pembayaran\s*(?:sebesar\s*[^,\n]+)?\s*ke|bayar\s*(?:sebesar\s*[^,\n]+)?\s*ke|membayar\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|transfer\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|kirim\s*(?:sebesar\s*[^,\n]+|\s*rp\s*[\d.,]+)?\s*ke|ke|di|pada|at|to|from|dari)\s+([A-Za-z0-9\s&.'()-]{2,40})/i,
   ];
 
   const falsePositives = [
@@ -1134,6 +1147,67 @@ function parseShopeePay(normalized) {
 }
 
 /**
+ * Bank BTN (balé by BTN) Parser
+ * Handles:
+ * - "Transfer Antar Bank Ke ADE MOHAMAD NATO - BANK CENTRAL ASIA sebesar Rp 100.000 berhasil"
+ * - "Transfer Antar Bank Ke [Penerima] - BANK [Nama Bank] ..."
+ * - "Transfer Sesama Bank Ke [Penerima] ..."
+ * - "Transfer BI-FAST Ke [Penerima] ..."
+ * - "Transfer Ke [Penerima] ..."
+ * - "Pembayaran QRIS sebesar Rp 25.000 di [Merchant] berhasil"
+ * - "Debit sebesar Rp... / Kredit sebesar Rp..."
+ */
+function parseBTN(normalized) {
+  const text = normalized.fullText;
+  const amount = extractTransactionAmount(text);
+  if (!amount) return null;
+
+  let type = detectTransactionType(text);
+  if (!type) {
+    if (/(?:transfer(?:\s+antar\s+bank|\s+sesama\s+bank|\s+bi-?fast|\s+online)?\s*ke|transfer\s*keluar|debet|debit|bayar|membayar|pembayaran|qris|keluar)/i.test(text)) {
+      type = 'expense';
+    } else if (/(?:transfer\s*masuk|uang\s*masuk|dana\s*masuk|masuk|kredit|credit|terima)/i.test(text)) {
+      type = 'income';
+    }
+  }
+  if (!type) return null;
+
+  // Extract destination / merchant
+  let merchant = null;
+  const btnTfMatch = text.match(/transfer(?:\s+antar\s+bank|\s+sesama\s+bank|\s+bi-?fast|\s+online)?\s+ke\s+([a-z0-9&'().\s-]+?)(?=\s+(?:sebesar|sejumlah|nominal|rp|idr|berhasil|sukses|pada|tgl|tanggal)\b|[.,;!?]|$)/i);
+  if (btnTfMatch && btnTfMatch[1]) {
+    let cand = btnTfMatch[1].trim();
+    cand = cand.replace(/\s+(?:sebesar|sejumlah|nominal|rp|idr|berhasil|sukses).*$/i, '').trim();
+    if (cand.length >= 2) {
+      merchant = cand;
+    }
+  }
+
+  if (!merchant) {
+    merchant = extractMerchant(text);
+  }
+
+  if (!merchant) {
+    if (/transfer/i.test(text)) {
+      merchant = 'Transfer';
+    } else if (/qris/i.test(text)) {
+      merchant = 'Pembayaran QRIS';
+    }
+  }
+
+  const hasSignal = hasTransactionSignal(text);
+  const confidence = calculateConfidence({ amount, type, hasSignal, provider: true, merchant });
+
+  return {
+    amount,
+    type,
+    merchant,
+    confidence: Math.max(0.9, confidence),
+    description: merchant || normalized.title || 'bale by BTN'
+  };
+}
+
+/**
  * Generic Bank Parser — fallback for recognized bank providers without specific rules
  */
 function parseGenericBank(normalized) {
@@ -1200,7 +1274,7 @@ const PROVIDER_PARSERS = {
   permata: parseGenericBank,
   maybank: parseGenericBank,
   bpddiy: parseGenericBank,
-  btn: parseGenericBank,
+  btn: parseBTN,
   blu: parseBlu,
   neobank: parseGenericBank,
   allobank: parseGenericBank,
@@ -1916,6 +1990,43 @@ export function runParserTests() {
       passed: isNonTx1 === true && isNonTx2 === true,
       expected: 'true & true',
       actual: `${isNonTx1} & ${isNonTx2}`,
+    };
+  });
+
+  // Test 44: bale by BTN — Transfer Antar Bank Ke (User screenshot format)
+  test('bale by BTN — Transfer Antar Bank Ke should parse expense with destination', () => {
+    const fullText = 'Transfer Antar Bank Ke ADE MOHAMAD NATO - BANK CENTRAL ASIA sebesar Rp 100.000 berhasil';
+    const normalized = {
+      packageName: 'id.co.btn.mobilebanking.android',
+      appLabel: 'bale by BTN',
+      title: 'Transfer Antar Bank Ke ADE MOHAMAD NATO - BANK CENTRAL ASIA',
+      text: 'sebesar Rp 100.000 berhasil',
+      fullText,
+    };
+    const provider = detectProvider(normalized.packageName, normalized.appLabel);
+    const result = parseNotification(normalized, provider);
+    return {
+      passed: provider?.id === 'btn' && result !== null && result.amount === 100000 && result.type === 'expense' && (result.merchant || '').includes('ADE MOHAMAD NATO'),
+      expected: 'btn / 100000 / expense / ADE MOHAMAD NATO...',
+      actual: `${provider?.id} / ${result?.amount} / ${result?.type} / ${result?.merchant}`,
+    };
+  });
+
+  // Test 45: bale by BTN — Header and title detection without package name match
+  test('bale by BTN — Header and title detection without package name match', () => {
+    const fullText = 'bale by BTN Transfer Antar Bank Ke ADE MOHAMAD NATO - BANK JAGO Rp50.000';
+    const normalized = {
+      appLabel: 'bale by BTN',
+      title: 'bale by BTN',
+      text: 'Transfer Antar Bank Ke ADE MOHAMAD NATO - BANK JAGO Rp50.000',
+      fullText,
+    };
+    const provider = detectProvider('', normalized.appLabel);
+    const result = parseNotification(normalized, provider);
+    return {
+      passed: provider?.id === 'btn' && result !== null && result.amount === 50000 && result.type === 'expense',
+      expected: 'btn / 50000 / expense',
+      actual: `${provider?.id} / ${result?.amount} / ${result?.type}`,
     };
   });
 

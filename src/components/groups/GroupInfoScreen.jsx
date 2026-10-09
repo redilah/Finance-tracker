@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, formatMonthLabel, getCurrentUserId } from '../../utils/groupStorage';
-import { safeStorageGet } from '../../utils/secureStorage';
+import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, getCurrentUserId } from '../../utils/groupStorage';
 
 export default function GroupInfoScreen({
   group,
@@ -8,7 +7,7 @@ export default function GroupInfoScreen({
   currentUserAvatar = null,
   onBack,
   onUpdateGroup,
-  onAddMember,
+  _onAddMember,
   onRemoveMember,
   onLeaveGroup,
   onDeleteGroup,

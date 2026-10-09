@@ -281,6 +281,16 @@ const EXPENSE_CATEGORY_KEYWORDS = {
     'biaya admin', 'admin fee', 'biaya transaksi', 'biaya transfer', 'materai',
     'bunga', 'denda'
   ],
+  tranfer: [
+    'transfer antar bank', 'transfer sesama bank', 'transfer bi-fast', 'transfer online',
+    'transfer ke', 'transfer keluar', 'transfer', 'tranfer', 'tf ke', 'tf ', 'antar bank',
+    'kirim uang', 'kirim dana', 'pindah saldo'
+  ],
+  transfer: [
+    'transfer antar bank', 'transfer sesama bank', 'transfer bi-fast', 'transfer online',
+    'transfer ke', 'transfer keluar', 'transfer', 'tranfer', 'tf ke', 'tf ', 'antar bank',
+    'kirim uang', 'kirim dana', 'pindah saldo'
+  ],
   topupGame: [
     'google play', 'steam', 'playstation', 'garena', 'unipin', 'codashop',
     'mobile legends', 'free fire', 'genshin', 'valorant', 'roblox'
@@ -334,10 +344,32 @@ export function resolveCategory(type, merchant, fullText, availableExpenseCatego
   for (const [catId, keywords] of Object.entries(EXPENSE_CATEGORY_KEYWORDS)) {
     for (const kw of keywords) {
       if (text.includes(kw)) {
-        const matched = activeCats.find(c => (c.id || '').toLowerCase() === catId);
+        const matched = activeCats.find(c => {
+          const cId = (c.id || '').toLowerCase();
+          const cName = (c.name || '').toLowerCase();
+          if (cId === catId || cName === catId) return true;
+          if ((catId === 'tranfer' || catId === 'transfer') &&
+              (cId === 'tranfer' || cId === 'transfer' || cName === 'tranfer' || cName === 'transfer')) {
+            return true;
+          }
+          return false;
+        });
         if (matched) return matched;
       }
     }
+  }
+
+  // Direct check for transfer keywords if not yet activated in user's active categories:
+  // Automatically fallback to 'tranfer' category with 'tranfer-icon' instead of food!
+  if (/(?:transfer(?:\s+antar\s+bank|\s+sesama\s+bank|\s+bi-?fast|\s+online)?\s*ke|transfer\s*antar\s*bank|transfer\s*keluar|transfer\b|tranfer\b)/i.test(text)) {
+    const matched = activeCats.find(c => {
+      const cId = (c.id || '').toLowerCase();
+      const cName = (c.name || '').toLowerCase();
+      return cId === 'tranfer' || cId === 'transfer' || cName === 'tranfer' || cName === 'transfer';
+    });
+    if (matched) return matched;
+
+    return { id: 'tranfer', name: 'Tranfer', iconClass: 'tranfer-icon' };
   }
 
   // Fallback expense category: 'food' or first active

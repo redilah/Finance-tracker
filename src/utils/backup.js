@@ -57,7 +57,7 @@ export function createBackupData({
       profileSetupDone: safeStorageGet('user_profile_setup_done') || 'true',
       appFont: appFont || safeStorageGet('user_app_font') || 'lora',
       appFontSize: appFontSize || safeStorageGet('user_app_font_size') || 'default',
-      appLanguage: appLanguage || safeStorageGet('user_app_lang') || 'id',
+      appLanguage: appLanguage || safeStorageGet('user_app_lang') || 'en',
       appCurrency: appCurrency || safeStorageGet('user_app_currency') || 'IDR',
       budgetNotifState: safeStorageGet('user_budget_notif_state') || {},
       lastBadgeDismissed: safeStorageGet('user_last_badge_dismissed') || false,
@@ -130,7 +130,7 @@ export async function exportBackup(backupObj, userName = 'User') {
 
       if (canShare) {
         const isIos = Capacitor.getPlatform() === 'ios';
-        const lang = safeStorageGet('user_app_lang') || 'id';
+        const lang = safeStorageGet('user_app_lang') || 'en';
         const isEn = lang === 'en';
         const dialogTitle = isIos 
           ? (isEn ? 'Save Backup to iCloud Drive / Files' : 'Simpan Cadangan ke iCloud Drive / File')
@@ -262,7 +262,7 @@ export function normalizeBackupData(raw) {
     profileSetupDone: 'true',
     appFont: String(raw.appFont ?? raw.user_app_font ?? 'lora'),
     appFontSize: String(raw.appFontSize ?? raw.user_app_font_size ?? 'default'),
-    appLanguage: String(raw.appLanguage ?? raw.user_app_lang ?? 'id'),
+    appLanguage: String(raw.appLanguage ?? raw.user_app_lang ?? 'en'),
     appCurrency: String(raw.appCurrency ?? raw.user_app_currency ?? 'IDR'),
     mainMonthlyBudget: raw.mainMonthlyBudget ?? raw.user_main_monthly_budget ?? null,
     groups: Array.isArray(groupsRaw) ? groupsRaw : [],

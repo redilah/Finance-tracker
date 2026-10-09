@@ -35,7 +35,6 @@ export default function GroupAddTxModal({
   const [expPaidBy, setExpPaidBy] = useState(currentUserMember?.name || 'Saya');
   const [expPurpose, setExpPurpose] = useState('');
   const [expCategory, setExpCategory] = useState('Rapat Organisasi');
-  const [expNote, setExpNote] = useState('');
   const [expProof, setExpProof] = useState(null);
   const [expFileName, setExpFileName] = useState('');
 
@@ -65,7 +64,7 @@ export default function GroupAddTxModal({
       paidBy: expPaidBy,
       purpose: expPurpose || expTitle,
       category: expCategory,
-      note: expNote,
+      note: expPurpose || '',
       proofImage: expProof
     });
     onClose();

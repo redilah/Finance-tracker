@@ -188,5 +188,10 @@ export const normalizeAccountName = (rawName) => {
     return 'Cash';
   }
 
+  // 25. BTN / bale by BTN
+  if (/^(bale\s*by\s*btn|bale\s*btn|bale|btn|bank\s*btn|btn\s*mobile)$/i.test(lower)) {
+    return 'bale by btn';
+  }
+
   return clean;
 };

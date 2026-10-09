@@ -95,9 +95,9 @@ export function checkProhibitedContent(text, customLang) {
   let lang = customLang;
   if (!lang) {
     try {
-      lang = localStorage.getItem('user_app_lang') || 'id';
+      lang = localStorage.getItem('user_app_lang') || 'en';
     } catch {
-      lang = 'id';
+      lang = 'en';
     }
   }
 

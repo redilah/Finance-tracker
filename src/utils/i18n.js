@@ -4,12 +4,12 @@
  */
 
 export const LANGUAGES = [
-  { code: 'id', name: 'Default', nativeName: 'Default', flag: '🇮🇩' },
+  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
   { code: 'id_id', name: 'Bahasa Indonesia', nativeName: 'Bahasa Indonesia', flag: '🇮🇩' },
   { code: 'jv', name: 'Bahasa Jawa', nativeName: 'Bahasa Jawa', flag: '🇮🇩' },
   { code: 'zh', name: 'Mandarin', nativeName: 'Mandarin', flag: '🇨🇳' },
   { code: 'ko', name: 'Bahasa Korea', nativeName: 'Bahasa Korea', flag: '🇰🇷' },
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+  { code: 'id', name: 'Default', nativeName: 'Default', flag: '🇮🇩' },
 ];
 
 export const FONTS = [
@@ -65,6 +65,10 @@ export const CATEGORY_TRANSLATIONS = {
     'Pesawat': 'Flight',
     'pesawat': 'Flight',
     'Plane': 'Flight',
+    'Tranfer': 'Transfer',
+    'tranfer': 'Transfer',
+    'Transfer': 'Transfer',
+    'transfer': 'Transfer',
     'Kost': 'Rent',
     'kost': 'Rent',
     'Bioskop': 'Cinema',
@@ -157,6 +161,10 @@ export const CATEGORY_TRANSLATIONS = {
     'Pesawat': 'Pesawat',
     'pesawat': 'Pesawat',
     'Plane': 'Pesawat',
+    'Tranfer': 'Tranfer',
+    'tranfer': 'Tranfer',
+    'Transfer': 'Transfer',
+    'transfer': 'Transfer',
     'Kost': 'Kost',
     'kost': 'Kost',
     'Bioskop': 'Bioskop',
@@ -534,6 +542,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Selamat Datang di Cassiel',
     onboardingWelcomeSuffix: 'Selamat Datang di Cassiel',
     onboardingStartBtn: 'Mari Mulai Bersama ✨',
+    orContinueWith: 'atau lanjutkan dengan',
+    continueWithGoogle: 'Lanjutkan dengan Google',
+    alreadyHaveAccount: 'Sudah punya akun? Masuk / Hubungkan Email',
     budgetCapTitle: 'Budget Kategori Per Bulan',
     budgetCapSubtitle: 'Atur batas maksimal pengeluaran kategori',
     mainBudget: 'Budget Utama',
@@ -703,6 +714,20 @@ export const DICTIONARY = {
     tourFullVoiceDesc: 'Cukup tekan tombol mic dan sebutkan transaksimu untuk mencatat instan tanpa mengetik.',
     tourVoiceRecordedTitle: '✨ Transaksi Tercatat Otomatis',
     tourVoiceRecordedDesc: 'Transaksi yang baru saja kamu sebutkan langsung tercatat otomatis di daftar transaksi secara instan.',
+    tourVoiceExamplePrompt: '🎙️ Wajib ucapkan contoh ini:',
+    tourVoiceExamplePhrase: 'Ketoprak 11.000 pakai BRI',
+    tourVoiceErrorRetry: 'Teks salah, coba lagi',
+    tourVoiceSuccessMsg: '✅ Transaksi berhasil dicatat!',
+    tourVoicePressAndSpeak: '🎙️ Tekan Mic & Bicara',
+    tourCloseAria: 'Tutup Panduan',
+    tourVoiceRecordedTitle: '✨ Transaksi Tercatat Otomatis',
+    tourVoiceRecordedDesc: 'Transaksi yang baru saja kamu sebutkan langsung tercatat otomatis di daftar transaksi secara instan.',
+    tourVoiceExamplePrompt: '🎙️ Wajib ucapkan contoh ini:',
+    tourVoiceExamplePhrase: 'Ketoprak 11.000 pakai BRI',
+    tourVoiceErrorRetry: 'Teks salah, coba lagi',
+    tourVoiceSuccessMsg: '✅ Transaksi berhasil dicatat!',
+    tourVoicePressAndSpeak: '🎙️ Tekan Mic & Bicara',
+    tourCloseAria: 'Tutup Panduan',
     tourFullAddTitle: '➕ Tambah Transaksi',
     tourFullAddDesc: 'Tekan tombol plus untuk mencatat pemasukan atau pengeluaran secara manual.',
     tourFormCatTitle: '🏷️ Pilihan Kategori',
@@ -971,6 +996,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Selamat Datang di Cassiel',
     onboardingWelcomeSuffix: 'Selamat Datang di Cassiel',
     onboardingStartBtn: 'Mari Mulai Bersama ✨',
+    orContinueWith: 'atau lanjutkan dengan',
+    continueWithGoogle: 'Lanjutkan dengan Google',
+    alreadyHaveAccount: 'Sudah punya akun? Masuk / Hubungkan Email',
     budgetCapTitle: 'Budget Kategori Bulanan',
     budgetCapSubtitle: 'Atur batas maksimal pengeluaran kategori',
     mainBudget: 'Budget Utama',
@@ -1281,6 +1309,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Welcome to Cassiel',
     onboardingWelcomeSuffix: 'Welcome to Cassiel',
     onboardingStartBtn: "Let's Get Started ✨",
+    orContinueWith: 'or continue with',
+    continueWithGoogle: 'Continue with Google',
+    alreadyHaveAccount: 'Already have an account? Sign in / Connect Email',
     budgetCapTitle: 'Category Budget Cap',
     budgetCapSubtitle: 'Set monthly expense cap per category',
     mainBudget: 'Main Budget',
@@ -1449,6 +1480,12 @@ export const DICTIONARY = {
     tourFullVoiceDesc: 'Simply tap the mic button and speak to record transactions instantly.',
     tourVoiceRecordedTitle: '✨ Transaction Recorded Instantly',
     tourVoiceRecordedDesc: 'The transaction you just spoke is automatically recorded here in real-time without manual typing.',
+    tourVoiceExamplePrompt: '🎙️ Please say this example:',
+    tourVoiceExamplePhrase: 'Coffee 25.000 with Cash',
+    tourVoiceErrorRetry: 'Wrong text, please try again',
+    tourVoiceSuccessMsg: '✅ Transaction recorded successfully!',
+    tourVoicePressAndSpeak: '🎙️ Tap Mic & Speak',
+    tourCloseAria: 'Close Guide',
     tourFullAddTitle: '➕ Add Transaction',
     tourFullAddDesc: 'Tap the plus button to record income or expenses manually.',
     tourFormCatTitle: '🏷️ Category Selection',
@@ -1681,6 +1718,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Sugeng Rawuh ing Cassiel',
     onboardingWelcomeSuffix: 'Sugeng Rawuh ing Cassiel',
     onboardingStartBtn: 'Mangga Miwiti Sesarengan ✨',
+    orContinueWith: 'utawi lajengaken kaliyan',
+    continueWithGoogle: 'Lajengaken kaliyan Google',
+    alreadyHaveAccount: 'Sampun gadhah akun? Mlebet / Sambungaken Email',
     budgetCapTitle: 'Watesan Kategori Saben Wulan',
     budgetCapSubtitle: 'Watesi gunggung pangetrapan saben kategori',
     mainBudget: 'Anggaran Baku',
@@ -1847,6 +1887,14 @@ export const DICTIONARY = {
     tourFullHomeDesc: 'Pirsani ringkesan gunggung saldo, cathetan saben dinten, lan grafik blanja.',
     tourFullVoiceTitle: '🎙️ Cathet Lumantar Swanten',
     tourFullVoiceDesc: 'Cekap pencet tombol mic lan ngendika kangge nyathet instan tanpa ngetik.',
+    tourVoiceRecordedTitle: '✨ Transaksi Kacathet Otomatis',
+    tourVoiceRecordedDesc: 'Transaksi ingkang nembé kemawon dipun-ngendikakaken langsung kacathet otomatis ing mriki kanthi instan.',
+    tourVoiceExamplePrompt: '🎙️ Kudu ngendika tuladha punika:',
+    tourVoiceExamplePhrase: 'Ketoprak 11.000 mawi BRI',
+    tourVoiceErrorRetry: 'Seratan klentu, sumangga cobi malih',
+    tourVoiceSuccessMsg: '✅ Transaksi kasil kacathet!',
+    tourVoicePressAndSpeak: '🎙️ Pencet Mic & Ngendika',
+    tourCloseAria: 'Tutup Pituduh',
     tourFullAddTitle: '➕ Wewah Transaksi',
     tourFullAddDesc: 'Pencet tombol tambah kangge nyathet arta mlebet utawi medal kanthi manual.',
     tourFormCatTitle: '🏷️ Pilihan Kategori',
@@ -2079,6 +2127,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Huanying laidao Cassiel',
     onboardingWelcomeSuffix: 'Huanying laidao Cassiel',
     onboardingStartBtn: 'Rang women yiqi kaishi ✨',
+    orContinueWith: 'huozhe jixu shiyong',
+    continueWithGoogle: 'Shiyong Google Jixu',
+    alreadyHaveAccount: 'Yijing you zhanghao? Denglu / Guanlian Youxiang',
     budgetCapTitle: 'Yuesuan Shezhi',
     budgetCapSubtitle: 'Shezhi meiyue fenlei xiane',
     mainBudget: 'Zhu Yuesuan',
@@ -2244,6 +2295,14 @@ export const DICTIONARY = {
     tourFullHomeDesc: 'Chakan zongji yue, meiri jiaoyi jilu he zhichu tubiao.',
     tourFullVoiceTitle: '🎙️ Yuyin Jilu',
     tourFullVoiceDesc: 'Anxia maikefeng anniu shuo chu jiaoyi jike jilu, wuxu shuru.',
+    tourVoiceRecordedTitle: '✨ Jiaoyi Zidong Jilu',
+    tourVoiceRecordedDesc: 'Gangcai shuo chu de jiaoyi yijing shishi zidong jilu zai zheli, wuxu shoudong shuru.',
+    tourVoiceExamplePrompt: '🎙️ Qing shuo chu ci shili:',
+    tourVoiceExamplePhrase: 'Kafei 25.000 shiyong Xinjin',
+    tourVoiceErrorRetry: 'Wenbeng cuowu, qing chongshi',
+    tourVoiceSuccessMsg: '✅ Jiaoyi jilu chenggong!',
+    tourVoicePressAndSpeak: '🎙️ Anxia Maikefeng & Shuohua',
+    tourCloseAria: 'Guanbi Zhinan',
     tourFullAddTitle: '➕ Tianjia Jiaoyi',
     tourFullAddDesc: 'Anxia jiahao anniu shoudong jilu shouru huo zhichu.',
     tourFormCatTitle: '🏷️ Fenlei Xuanze',
@@ -2476,6 +2535,9 @@ export const DICTIONARY = {
     onboardingWelcome: 'Cassiel-e osin geoseul hwan-yeonghamnida',
     onboardingWelcomeSuffix: 'Cassiel-e osin geoseul hwan-yeonghamnida',
     onboardingStartBtn: 'Hamkke sijakhalkkayo ✨',
+    orContinueWith: 'ttoneun da-eum-euro gyesok',
+    continueWithGoogle: 'Google-ro Gyesok',
+    alreadyHaveAccount: 'Imi gyejeong-i itsseumnikka? Log-in / Imeil Yeon-gyeol',
     budgetCapTitle: 'Wolgan Bungnyu Yesan',
     budgetCapSubtitle: 'Bungnyubyeol choedae jichul hando seoljeong',
     mainBudget: 'Ju Yesan',
@@ -2641,6 +2703,14 @@ export const DICTIONARY = {
     tourFullHomeDesc: 'Chong jann-aeg, me-il georae girok, mich jichul geuraepeureul hwag-inhaseyo.',
     tourFullVoiceTitle: '🎙️ Eumseong Girok',
     tourFullVoiceDesc: 'Maikpeu beoteuneul nureugo malhagi-man hamyeon taiping eopsi baro girokdoemnida.',
+    tourVoiceRecordedTitle: '✨ Georae Jadong Girok',
+    tourVoiceRecordedDesc: 'Bangeum malhan georaega su-dong taiping eopsi sil-sigan-euro baro girokdoeeossseumnida.',
+    tourVoiceExamplePrompt: '🎙️ I yesi-reul malhaeboseyo:',
+    tourVoiceExamplePhrase: 'Keopi 25.000 Hyeon-geum',
+    tourVoiceErrorRetry: 'Tekseuteu o-ryu, dasi sidohaseyo',
+    tourVoiceSuccessMsg: '✅ Georaega seong-gongjeog-euro girokdoeeossseumnida!',
+    tourVoicePressAndSpeak: '🎙️ Maikeu Nureugo Malhagi',
+    tourCloseAria: 'Ga-ideu Datgi',
     tourFullAddTitle: '➕ Georae Chuga',
     tourFullAddDesc: 'Pulleoseu beoteuneul nulleo su-ip tto-neun jichuleul sudong-euro girok.',
     tourFormCatTitle: '🏷️ Bungnyu Seontaek',
@@ -2827,15 +2897,15 @@ export const MONTH_SHORT_I18N = {
   ko: ['1W', '2W', '3W', '4W', '5W', '6W', '7W', '8W', '9W', '10W', '11W', '12W']
 };
 
-export const getTranslation = (lang = 'id', key, vars = {}) => {
-  const currentLangDict = DICTIONARY[lang] || DICTIONARY.id;
+export const getTranslation = (lang = 'en', key, vars = {}) => {
+  const currentLangDict = DICTIONARY[lang] || DICTIONARY.en || DICTIONARY.id;
   let text = undefined;
   if (currentLangDict && key in currentLangDict) {
     text = currentLangDict[key];
-  } else if (DICTIONARY.id && key in DICTIONARY.id) {
-    text = DICTIONARY.id[key];
   } else if (DICTIONARY.en && key in DICTIONARY.en) {
     text = DICTIONARY.en[key];
+  } else if (DICTIONARY.id && key in DICTIONARY.id) {
+    text = DICTIONARY.id[key];
   }
   if (typeof text === 'string' && vars && typeof vars === 'object') {
     return text.replace(/\{(\w+)\}/g, (match, k) => (vars[k] !== undefined ? vars[k] : match));

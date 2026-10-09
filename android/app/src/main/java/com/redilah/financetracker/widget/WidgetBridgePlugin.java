@@ -53,9 +53,9 @@ public class WidgetBridgePlugin extends Plugin {
                 .putInt("budgetProgress", budgetProgress)
                 .apply();
 
-        // Broadcast updates to all widgets immediately
+        // Broadcast updates to 2x2 widget immediately and ensure midnight reset is scheduled
         CassielSmallWidgetProvider.updateAllWidgets(context);
-        CassielMediumWidgetProvider.updateAllWidgets(context);
+        CassielSmallWidgetProvider.scheduleMidnightReset(context);
 
         call.resolve();
     }

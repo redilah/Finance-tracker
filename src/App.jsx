@@ -42,6 +42,7 @@ import freelanceSvg from './assets/Freelance.svg';
 import biayaAdminSvg from './assets/Biaya admin.svg';
 import accessoriesSvg from './assets/Accesories.svg';
 import ticketSvg from './assets/Ticket.svg';
+import tranferSvg from './assets/tranfer.svg';
 import budgetClipboardSvg from './assets/budget-clipboard.svg';
 import kalenderSvg from './assets/kalender.svg';
 import dompetSvg from './assets/dompet.svg';
@@ -122,6 +123,7 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   { id: 'supermarket', name: 'Supermarket', iconClass: 'cart-icon' },
   { id: 'sub', name: 'Subscription', iconClass: 'sub-icon' },
   { id: 'pesawat', name: 'Pesawat', iconClass: 'pesawat-icon' },
+  { id: 'tranfer', name: 'Tranfer', iconClass: 'tranfer-icon' },
   { id: 'kost', name: 'Kost', iconClass: 'kost-icon' },
   { id: 'coffee', name: 'Coffee', iconClass: 'coffee-icon' },
   { id: 'gofood', name: 'GoFood', iconClass: 'gofood-icon' },
@@ -170,6 +172,8 @@ const ICON_MAP = {
   supermarket: shoppingCartSvg,
   sub: subscriptionSvg,
   pesawat: pesawatSvg,
+  tranfer: tranferSvg,
+  transfer: tranferSvg,
   kost: kostSvg,
   coffee: coffeeSvg,
   gofood: fastFoodSvg,
@@ -236,6 +240,8 @@ const CATEGORY_BG_COLORS = {
   supermarket: '#F7EFC8',
   sub: '#D7ECE4',
   pesawat: '#D0E6F5',
+  tranfer: '#D0E6F5',
+  transfer: '#D0E6F5',
   kost: '#F4DFD2',
   gofood: '#F8D7D7',
   sepatu: '#EBDEFA',
@@ -307,7 +313,7 @@ const migrateTransactions = (list) => {
     'Food': 'food', 'Bioskop': 'bioskop', 'Transportasi': 'transport',
     'Barbershop': 'barber', 'Skincare': 'skincare', 'Edukasi': 'edukasi',
     'Air Galon': 'galon', 'Fashion': 'fashion', 'Supermarket': 'supermarket',
-    'Subscription': 'sub', 'Pesawat': 'pesawat', 'Kost': 'kost',
+    'Subscription': 'sub', 'Pesawat': 'pesawat', 'Tranfer': 'tranfer', 'tranfer': 'tranfer', 'Transfer': 'tranfer', 'transfer': 'tranfer', 'Kost': 'kost',
     'Gaji': 'gaji', 'Bonus': 'bonus', 'KIP': 'kip', 'Tambah Saldo': 'tambahSaldo',
     'Bensin': 'bensin', 'Investasi': 'investasi', 'Bisnis': 'bisnis',
     'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
@@ -1240,9 +1246,9 @@ function App() {
   // Language Settings
   const [appLanguage, setAppLanguage] = useState(() => {
     const savedLang = safeStorageGet('user_app_lang');
-    return savedLang || 'id_id';
+    return savedLang || 'en';
   });
-  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'id_id');
+  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'en');
   const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   
@@ -7678,7 +7684,7 @@ function App() {
                     onClick={() => setIsOnboardingLangOpen(!isOnboardingLangOpen)}
                   >
                     <span className="onboarding-lang-current-name">
-                      {LANGUAGES.find(l => l.code === (tempLanguage === 'id' || !tempLanguage ? 'id_id' : tempLanguage))?.nativeName || 'Bahasa Indonesia'}
+                      {LANGUAGES.find(l => l.code === (tempLanguage || 'en'))?.nativeName || 'English'}
                     </span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`onboarding-lang-chevron ${isOnboardingLangOpen ? 'open' : ''}`}>
                       <polyline points="6 9 12 15 18 9"/>
@@ -7689,7 +7695,7 @@ function App() {
                   {isOnboardingLangOpen && (
                     <div className="onboarding-lang-menu">
                       {LANGUAGES.map(l => {
-                        const selectedLangCode = (tempLanguage === 'id' || !tempLanguage) ? 'id_id' : tempLanguage;
+                        const selectedLangCode = tempLanguage || 'en';
                         const isSelected = selectedLangCode === l.code;
                         return (
                           <div
@@ -7733,7 +7739,7 @@ function App() {
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '2px', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
                   <div style={{ flex: 1, height: '1px', background: '#E8DFD8' }} />
-                  <span style={{ fontSize: '12px', color: '#A3968C', fontWeight: '500' }}>atau lanjutkan dengan</span>
+                  <span style={{ fontSize: '12px', color: '#A3968C', fontWeight: '500' }}>{t('orContinueWith') || 'or continue with'}</span>
                   <div style={{ flex: 1, height: '1px', background: '#E8DFD8' }} />
                 </div>
 
@@ -7759,7 +7765,7 @@ function App() {
                   }}
                 >
                   <GoogleLogo size={20} />
-                  <span>Lanjutkan dengan Google</span>
+                  <span>{t('continueWithGoogle') || 'Continue with Google'}</span>
                 </button>
 
                 <div style={{ textAlign: 'center', marginTop: '4px' }}>
@@ -7776,7 +7782,7 @@ function App() {
                       padding: '6px 12px'
                     }}
                   >
-                    Sudah punya akun? Masuk / Hubungkan Email
+                    {t('alreadyHaveAccount') || 'Already have an account? Sign in / Connect Email'}
                   </button>
                 </div>
               </div>

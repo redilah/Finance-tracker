@@ -194,7 +194,7 @@ export default function GuidedTourModal({
     let successTimer = null;
 
     const handleError = (e) => {
-      setTourVoiceError(e.detail?.message || 'Teks salah, coba lagi');
+      setTourVoiceError(e.detail?.message || (t && t('tourVoiceErrorRetry')) || 'Wrong text, please try again');
       if (errorTimer) clearTimeout(errorTimer);
       errorTimer = setTimeout(() => {
         setTourVoiceError('');
@@ -536,7 +536,7 @@ export default function GuidedTourModal({
               type="button"
               className="guided-tour-close-btn"
               onClick={handleSkip}
-              aria-label="Tutup Panduan"
+              aria-label={(t && t('tourCloseAria')) || 'Close Guide'}
             >
               ✕
             </button>
@@ -555,9 +555,9 @@ export default function GuidedTourModal({
             {currentStep.id === 'voice_ai' && (
               <div className="tour-voice-trial-wrapper">
                 <div className="tour-voice-trial-box">
-                  <span className="tour-voice-trial-prompt">🎙️ Wajib ucapkan contoh ini:</span>
+                  <span className="tour-voice-trial-prompt">{(t && t('tourVoiceExamplePrompt')) || '🎙️ Please say this example:'}</span>
                   <div className="tour-voice-trial-pill">
-                    "Ketoprak 11.000 pakai BRI"
+                    "{(t && t('tourVoiceExamplePhrase')) || 'Coffee 25.000 with Cash'}"
                   </div>
                 </div>
 
@@ -578,7 +578,7 @@ export default function GuidedTourModal({
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    <span>✅ Transaksi berhasil dicatat!</span>
+                    <span>{(t && t('tourVoiceSuccessMsg')) || '✅ Transaction recorded successfully!'}</span>
                   </div>
                 )}
               </div>
@@ -614,9 +614,9 @@ export default function GuidedTourModal({
                   const micBtn = document.querySelector('.tour-target-voice-btn');
                   if (micBtn) micBtn.click();
                 }}
-                title="Tekan tombol mic untuk mulai bicara"
+                title={(t && t('tourVoicePressAndSpeak')) || '🎙️ Tap Mic & Speak'}
               >
-                🎙️ Tekan Mic & Bicara
+                {(t && t('tourVoicePressAndSpeak')) || '🎙️ Tap Mic & Speak'}
               </button>
             ) : (
               <button

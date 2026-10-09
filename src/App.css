@@ -835,7 +835,10 @@
 .transaction-item.cat-card-sub-icon { background-color: #D7ECE4; }
 
 .transaction-item.cat-card-pesawat,
-.transaction-item.cat-card-pesawat-icon { background-color: #D0E6F5; }
+.transaction-item.cat-card-tranfer,
+.transaction-item.cat-card-transfer,
+.transaction-item.cat-card-pesawat-icon,
+.transaction-item.cat-card-tranfer-icon { background-color: #D0E6F5; }
 
 .transaction-item.cat-card-kost,
 .transaction-item.cat-card-kost-icon { background-color: #F4DFD2; }
@@ -937,6 +940,8 @@
 .book-icon { background-color: #B5D5F5; }
 .bottle-icon { background-color: #B2E8D9; }
 .pesawat-icon { background-color: #A3D8F4; }
+.tranfer-icon,
+.transfer-icon { background-color: #A3D8F4; }
 .kost-icon { background-color: #FFD3B6; }
 .coffee-icon { background-color: #D4A574; }
 .gofood-icon { background-color: #FFC3C3; }
@@ -6713,6 +6718,8 @@ img[src*="Kost"] {
   -webkit-appearance: none;
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 2;
 }
 
 .voice-mic-fab:hover {
@@ -6741,6 +6748,157 @@ img[src*="Kost"] {
 .voice-mic-fab.status-listening .voice-mic-icon {
   color: #ffffff;
   transform: scale(1.1);
+}
+
+/* Live Real-time Voice Bubble Pill (Level 1) */
+.voice-mic-live-bubble {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  right: 0;
+  width: 270px;
+  max-width: calc(100vw - 36px);
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 10px rgba(79, 70, 229, 0.12);
+  border: 1.5px solid rgba(79, 70, 229, 0.25);
+  z-index: 520;
+  animation: liveBubbleSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.voice-mic-live-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 20px;
+  width: 12px;
+  height: 12px;
+  background: #FFFFFF;
+  border-bottom: 1.5px solid rgba(79, 70, 229, 0.25);
+  border-right: 1.5px solid rgba(79, 70, 229, 0.25);
+  transform: rotate(45deg);
+}
+
+@keyframes liveBubbleSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.voice-mic-live-bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+  position: relative;
+  z-index: 525;
+}
+
+.voice-mic-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.voice-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4F46E5;
+  display: inline-block;
+}
+
+.voice-live-dot.active-pulse {
+  animation: liveDotPulse 1.1s infinite ease-in-out;
+}
+
+@keyframes liveDotPulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.6; }
+  50% { transform: scale(1.35); opacity: 1; background: #6366F1; }
+}
+
+.voice-live-dot.spin {
+  animation: spinSlow 1s linear infinite;
+}
+
+.voice-live-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4F46E5;
+}
+
+.voice-live-close-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(160, 130, 100, 0.14);
+  color: #786C64;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 530;
+  padding: 0;
+  margin: -3px -3px -3px 0;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.voice-live-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #DC2626;
+}
+
+.voice-live-close-btn:active {
+  transform: scale(0.9);
+  background: rgba(239, 68, 68, 0.22);
+  color: #B91C1C;
+}
+
+.voice-mic-live-content {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.voice-live-transcript-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1F1914;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.voice-live-placeholder {
+  font-size: 12px;
+  color: #8C7E74;
+  line-height: 1.35;
+}
+
+.voice-live-placeholder i {
+  display: block;
+  font-size: 11px;
+  color: #B5A69B;
+  margin-top: 2px;
 }
 
 /* Status: Processing (Memahami/Menganalisis - Oranye Hangat Berdenyut Halus) */

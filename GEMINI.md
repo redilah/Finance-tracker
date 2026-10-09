@@ -107,13 +107,25 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - Seluruh notifikasi yang menyatakan transaksi gagal, batal, ditolak, kadaluarsa, atau saldo tidak cukup (seperti `pembayaran gagal`, `gak bisa bayar`, `tidak berhasil`, `saldonya kurang`, `saldo tidak cukup`, `saldo tidak mencukupi`, `gagal diproses`, `gagal transfer`, `ditolak`, `declined`, `failed`, `cancelled`, `kadaluarsa`, `expired`, `batal`) **WAJIB LANGSUNG DITOLAK** (`isNonTransactional = true` / `isFailedOrCancelledNotification = true`) dan DILARANG KERAS dicatat atau dimunculkan sebagai notifikasi transaksi berhasil.
 
 ### I. Android Widget & Background Refresh Invariants
-1. **Anti-Wipeout & Nominal Preservation**:
-   - Menekan tombol refresh pada widget Android (2x2 maupun 4x2) **DILARANG KERAS** menghapus atau me-reset nominal pengeluaran hari ini yang sudah tercatat valid menjadi `Rp 0`.
-   - Logika refresh wajib membaca dan mengekstrak nominal yang sudah tersimpan (`todayExpenseAmount` / `todayExpenseRaw`) sebagai basis, dan hanya menjumlahkan transaksi baru dari antrean lokal (`CassielNotifTrackerPrefs`).
-2. **Date-Key Rollover Protection**:
-   - Reset nominal harian ke `Rp 0` hanya diperbolehkan jika tanggal kalender perangkat (`syncedDate` vs `todayDateKey`) sudah benar-benar berganti ke hari berikutnya.
-3. **Dark Modern Theme (`#18181B`)**:
- ### J. Google Play Console Policy, Data Safety & Store Listing Master Blueprint
+1. **Widget Scope & 4x2 Widget Deprecation**:
+   - Aplikasi Cassiel hanya memelihara **1 jenis widget resmi: Widget 2x2 (Small Habit / Jatah Harian)**.
+   - Widget 4x2 (Medium) telah dihapus dari codebase dan tidak boleh dimunculkan atau didaftarkan kembali.
+2. **UI & Layout Preservation Invariant (Strict No-Touch UI)**:
+   - **DILARANG KERAS** mengubah tampilan, styling, ukuran teks, warna, atau berkas layout XML (`widget_cassiel_small.xml`) saat melakukan perbaikan logika backend, jam, atau tanggal widget. Tampilan visual wajib selalu dipertahankan persis seperti aslinya.
+3. **Date & Time Awareness — Midnight Auto-Reset (Lewat Jam 00:00)**:
+   - Widget 2x2 wajib mengenali jam dan tanggal kalender secara mandiri.
+   - Setiap kali widget digambar (`updateAppWidget`), sistem wajib membandingkan tanggal kalender perangkat saat ini dengan `syncedDate`. Jika sudah memasuki hari baru (lewat jam 00:00 tengah malam), nominal pengeluaran hari ini wajib **langsung di-reset menjadi `Rp 0`** secara otomatis.
+   - Sistem wajib mendaftarkan alarm proaktif `AlarmManager` di pukul `00:00:02` (`ACTION_MIDNIGHT_RESET`) dan menangkap event OS (`ACTION_DATE_CHANGED`, `ACTION_TIME_SET`, `ACTION_TIMEZONE_CHANGED`, `ACTION_BOOT_COMPLETED`) agar widget di homescreen langsung ter-update ke `Rp 0` tanpa perlu user membuka aplikasi terlebih dahulu.
+4. **Anti-Wipeout & Nominal Preservation (Same-Day Refresh)**:
+   - Menekan tombol refresh manual pada widget 2x2 pada hari yang sama **DILARANG KERAS** menghapus nominal yang sudah valid menjadi `Rp 0`. Reset ke `Rp 0` HANYA sah terjadi jika tanggal perangkat benar-benar sudah berganti ke hari berikutnya.
+5. **Dark Modern Theme (`#18181B`)**:
+   - Widget 2x2 menggunakan tema gelap modern (`#18181B`) elegan dengan kontras teks dan aksen warna warm amber/emas yang tajam.
+
+
+
+
+
+### J. Google Play Console Policy, Data Safety & Store Listing Master Blueprint
 1. **Financial Features Declaration Invariant**:
    - Sebagai aplikasi *manual personal budgeting & offline expense tracker*, wajib selalu memilih **`Aplikasi saya tidak menyediakan fitur keuangan apa pun`** di form Deklarasi Fitur Keuangan Google Play.
    - **DILARANG KERAS** memilih *"Perbankan"*, *"Pinjaman"*, *"Dompet Digital"*, *"Trading"*, atau *"Saran Keuangan"* karena akan mewajibkan dokumen lisensi OJK/Bank Indonesia dan memicu penolakan review.
@@ -647,4 +659,24 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
 * **No Password/Passcode Gate**:
   - Tampilan `AdminDashboard.jsx` ditujukan sebagai monitor pengembang lokal (*localhost*).
   - **DILARANG KERAS** memasang formulir sandi, passcode SHA-256, session gate, atau tombol kunci/logout yang menghalangi pembukaan dasbor admin. Dasbor wajib selalu dapat diakses secara langsung dan instan.
+
+## 44. Default Onboarding Language & Guided Tour Localization Invariant
+* **English As Primary Default Onboarding Language**:
+  - Untuk pengguna baru (instalasi bersih atau pertama kali buka di Web maupun Android tanpa `user_app_lang` tersimpan), bahasa utama aplikasi **WAJIB** selalu diinisialisasi ke **`'en'` (English)**, bukan `id_id` atau `jv`.
+  - Dropdown pemilih bahasa onboarding (`onboarding-lang-dropdown`) wajib secara default memilih **English (🇬🇧)** dan menempatkan English di urutan paling atas.
+  - Semua elemen formulir onboarding (sambutan selamat datang, placeholder nama panggilan, tombol mulai, tombol Google Sign-In, tombol login email) wajib tampil dalam bahasa English secara default.
+* **Strict Guided Tour Localization Sync**:
+  - Alur panduan aplikasi (`GuidedTourModal.jsx`) wajib secara konsisten dan real-time mengikuti bahasa aktif yang dipilih pengguna.
+  - Dilarang keras menaruh teks hardcoded bahasa Indonesia/Jawa pada dialog contoh suara Voice AI, tombol mic, tombol aksi lanjut/kembali/lewati/selesai, serta banner pesan berhasil/gagal.
+  - Seluruh teks panduan wajib terdaftar di `DICTIONARY` (`src/utils/i18n.js`) untuk semua bahasa yang didukung (`en`, `id`, `id_id`, `jv`, `zh`, `ko`).
+
+## 45. Static Lint Verification & Multi-View Modal Integrity Invariants
+1. **Mandatory Static Linting on Component Changes (Anti-Blank-Screen Invariant)**:
+   - Bundler produksi (`vite build`) tidak selalu mendeteksi variabel JSX yang belum terdefinisi (`ReferenceError`) pada kondisi bersyarat (*conditional sub-views*).
+   - Setiap kali membuat atau memodifikasi komponen/modal React (terutama yang memiliki sub-view seperti `isCreatingGroup`, `isEditing`, dsb.), AI **WAJIB** menjalankan static linting (`npx oxlint <file-path>`) untuk memastikan nol *warning* dan nol *error* sebelum menyatakan pekerjaan selesai.
+2. **Multi-View Hub Modal State & Storage Function Synchronization**:
+   - Seluruh *state* yang direferensikan pada sub-halaman modal (seperti `initialMembers`, `groupAvatar`, `newGroupName`, `inviteCodeInput` di `GroupsHubModal.jsx`) wajib dideklarasikan secara eksplisit dengan `useState` pada level *root* modal.
+   - Seluruh fungsi *storage/ledger action handler* (seperti `updateGroupInfo`, `removeMemberFromGroup`, `recordKasPayment`, `recordGroupExpense`) wajib diimpor secara utuh dari modul pendukungnya (`groupStorage.js`) untuk mencegah runtime crash saat pengguna melakukan manipulasi data di sub-layar.
+
+
 
