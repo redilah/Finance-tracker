@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatMonthLabel } from '../../utils/groupStorage';
+import { formatMonthLabel, getGroupInviteUrl, syncGroupToCloud } from '../../utils/groupStorage';
 
 export default function GroupKasStatusModal({ group, monthKey, currentUserAvatar = null, onClose, onQuickPay }) {
   const [filterTab, setFilterTab] = useState('all'); // 'all' | 'unpaid' | 'paid'
@@ -37,7 +37,9 @@ export default function GroupKasStatusModal({ group, monthKey, currentUserAvatar
   const percentage = totalMembers > 0 ? Math.round((paidCount / totalMembers) * 100) : 0;
 
   const handleShareReminder = (member) => {
-    const text = `Halo ${member.name}! Jangan lupa iuran kas ${group.name} untuk bulan ${formatMonthLabel(activeMonth)} sebesar Rp${(group.monthlyFee || 50000).toLocaleString('id-ID')} ya. Buka Cassiel untuk konfirmasi pembayaran: https://cassiel.app/join?g=${group.inviteCode}`;
+    syncGroupToCloud(group);
+    const inviteUrl = getGroupInviteUrl(group);
+    const text = `Halo ${member.name}! Jangan lupa iuran kas ${group.name} untuk bulan ${formatMonthLabel(activeMonth)} sebesar Rp${(group.monthlyFee || 50000).toLocaleString('id-ID')} ya. Buka Cassiel untuk konfirmasi pembayaran: ${inviteUrl}`;
     if (navigator.share) {
       navigator.share({ title: `Pengingat Kas ${group.name}`, text }).catch(() => {});
     } else {

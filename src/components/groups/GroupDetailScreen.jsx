@@ -7,9 +7,12 @@ import {
   subscribeToGroupRealtime,
   getStoredGroups,
   saveStoredGroups,
-  getCurrentUserId
+  getCurrentUserId,
+  getGroupInviteUrl,
+  syncGroupToCloud
 } from '../../utils/groupStorage';
 import { clearAppBadgeCount } from '../../utils/notifications';
+import { safeStorageGet } from '../../utils/secureStorage';
 import GroupKasStatusModal from './GroupKasStatusModal';
 import GroupAddTxModal from './GroupAddTxModal';
 import GroupInfoScreen from './GroupInfoScreen';
@@ -49,7 +52,7 @@ export default function GroupDetailScreen({
           saveStoredGroups(localList);
         }
       }
-    });
+    }, group);
 
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
@@ -125,7 +128,66 @@ export default function GroupDetailScreen({
 
   const wallpaperGalleryRef = useRef(null);
   const chatBottomRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const chatInputRef = useRef(null);
+  const scrollSpringRafRef = useRef(null);
+  const screenMountTimeRef = useRef(Date.now());
+  const prevMsgCountRef = useRef((group?.messages || []).length);
+  const [isSendingPulse, setIsSendingPulse] = useState(false);
   const currentMonthKey = getCurrentMonthKey();
+
+  // Interruptible critically-damped Apple spring scroll (damping = 1.0, response = 0.32s)
+  const animateScrollToBottom = (instant = false) => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    if (scrollSpringRafRef.current) {
+      cancelAnimationFrame(scrollSpringRafRef.current);
+      scrollSpringRafRef.current = null;
+    }
+    const targetTop = Math.max(0, el.scrollHeight - el.clientHeight);
+    if (instant || Math.abs(targetTop - el.scrollTop) < 2) {
+      el.scrollTop = targetTop;
+      return;
+    }
+
+    let currentPos = el.scrollTop;
+    let velocity = 0;
+    let lastTime = performance.now();
+    const omega = (2 * Math.PI) / 0.32; // critically damped response = 0.32s
+
+    const step = (now) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.032);
+      lastTime = now;
+      const liveTarget = Math.max(0, el.scrollHeight - el.clientHeight);
+      const displacement = currentPos - liveTarget;
+      // Critically damped spring equation: F = -k*x - c*v where c = 2*omega, k = omega^2
+      const accel = -omega * omega * displacement - 2 * omega * velocity;
+      velocity += accel * dt;
+      currentPos += velocity * dt;
+      el.scrollTop = currentPos;
+
+      if (Math.abs(liveTarget - currentPos) > 0.6 || Math.abs(velocity) > 4) {
+        scrollSpringRafRef.current = requestAnimationFrame(step);
+      } else {
+        el.scrollTop = liveTarget;
+        scrollSpringRafRef.current = null;
+      }
+    };
+
+    scrollSpringRafRef.current = requestAnimationFrame(step);
+  };
+
+  const cancelScrollSpring = () => {
+    if (scrollSpringRafRef.current) {
+      cancelAnimationFrame(scrollSpringRafRef.current);
+      scrollSpringRafRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => cancelScrollSpring();
+  }, []);
+
   useEffect(() => {
     if (group?.chatWallpaper !== undefined) {
       setCurrentWallpaper(group.chatWallpaper);
@@ -193,13 +255,20 @@ export default function GroupDetailScreen({
     }
   };
 
+  const currentMessagesList = (activeGroup || group)?.messages;
+
   // Auto-scroll chat to bottom on new messages and clear app badge count (Unconditional Hook)
   useEffect(() => {
     if (activeSubTab === 'chat' && !isGroupInfoOpen) {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      const count = Array.isArray(currentMessagesList) ? currentMessagesList.length : 0;
+      const isNewMessageAdded = count > prevMsgCountRef.current;
+      prevMsgCountRef.current = count;
+      requestAnimationFrame(() => {
+        animateScrollToBottom(!isNewMessageAdded);
+      });
       clearAppBadgeCount();
     }
-  }, [group?.messages, activeSubTab, isGroupInfoOpen]);
+  }, [currentMessagesList, activeSubTab, isGroupInfoOpen]);
 
   // If group is null/undefined, do not crash
   const currentGroup = activeGroup || group;
@@ -253,22 +322,45 @@ export default function GroupDetailScreen({
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!chatInputText.trim()) return;
+    const trimmed = chatInputText.trim();
+    if (!trimmed) return;
+
+    // Multimodal harmony: fire subtle haptic on the exact commit frame
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate(8); } catch {}
+    }
+
+    setIsSendingPulse(true);
+    setTimeout(() => setIsSendingPulse(false), 340);
+
+    setChatInputText('');
     onSendTextMessage({
       groupId: group.id,
-      text: chatInputText,
+      text: trimmed,
       senderName: currentUserName,
       senderId: myUserId
     });
-    setChatInputText('');
+
+    // Sync local state immediately from storage so bubble mounts with zero latency
+    const latestGroups = getStoredGroups(currentUserName);
+    const updated = latestGroups.find(g => g.id === group.id);
+    if (updated) {
+      setActiveGroup(updated);
+    }
+
+    requestAnimationFrame(() => {
+      animateScrollToBottom(false);
+    });
   };
 
   const handleShareGroupLink = () => {
     setIsMenuDropdownOpen(false);
-    const inviteUrl = `https://cassiel.app/join?g=${group.inviteCode || 'CASSIEL'}`;
-    const text = `Yuk gabung ke grup keuangan "${group.name}" di Cassiel untuk transparansi kas bersama! Klik link: ${inviteUrl}`;
+    const targetGroup = activeGroup || group;
+    syncGroupToCloud(targetGroup);
+    const inviteUrl = getGroupInviteUrl(targetGroup);
+    const text = `Yuk gabung ke grup keuangan "${targetGroup.name}" di Cassiel untuk transparansi kas bersama!\n\nKode Undangan: ${targetGroup.inviteCode || 'CASSIEL'}\nKlik link untuk langsung bergabung:\n${inviteUrl}`;
     if (navigator.share) {
-      navigator.share({ title: `Gabung ke ${group.name}`, text, url: inviteUrl }).catch(() => {});
+      navigator.share({ title: `Gabung ke ${targetGroup.name}`, text }).catch(() => {});
     } else {
       navigator.clipboard.writeText(text);
       alert('Tautan invite grup berhasil disalin ke clipboard!');
@@ -712,16 +804,35 @@ export default function GroupDetailScreen({
       {/* TAB 2: CHAT VIEW & FINANCIAL MESSAGES */}
       {activeSubTab === 'chat' && (
         <div className="group-chat-view">
-          <div className="group-chat-messages-scroll">
+          <div
+            ref={chatScrollRef}
+            className="group-chat-messages-scroll"
+            onPointerDown={cancelScrollSpring}
+            onTouchStart={cancelScrollSpring}
+            onWheel={cancelScrollSpring}
+          >
             {safeMessages.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px', color: '#888888', fontSize: '13px' }}>
                 Mulai percakapan atau bagikan transaksi kas bersama! 💬
               </div>
             ) : (
               safeMessages.map(msg => {
-                const isMe = (msg.senderId && (msg.senderId === myUserId || msg.senderId === 'mem_cur')) || msg.senderName === currentUserName;
+                const isCustomMyName = Boolean(
+                  currentUserName &&
+                  currentUserName !== 'Pengguna Cassiel' &&
+                  currentUserName !== 'No Name' &&
+                  currentUserName !== 'Anggota'
+                );
+                const hasExplicitSenderId = Boolean(
+                  msg.senderId && msg.senderId !== 'system' && msg.senderId !== 'mem_cur'
+                );
+                const isMe = hasExplicitSenderId
+                  ? msg.senderId === myUserId
+                  : (msg.senderId === 'mem_cur' || (isCustomMyName && msg.senderName === currentUserName));
                 const hasOtherMembers = (group?.members?.length || 1) > 1;
                 const msgDate = new Date(msg.timestamp);
+                const msgTimeMs = msgDate.getTime() || 0;
+                const isFreshMsg = msgTimeMs >= (screenMountTimeRef.current - 300) && (Date.now() - msgTimeMs < 4000);
                 const hours = String(msgDate.getHours()).padStart(2, '0');
                 const minutes = String(msgDate.getMinutes()).padStart(2, '0');
                 const timeStr = `${hours}.${minutes}`;
@@ -744,12 +855,131 @@ export default function GroupDetailScreen({
                 };
 
                 const isSelected = selectedMessage?.id === msg.id;
+                const matchedMember = (activeGroup?.members || []).find(
+                  m => (msg.senderId && (m.id === msg.senderId || m.userId === msg.senderId))
+                );
+                const displaySenderName = (matchedMember?.name && matchedMember.name !== 'Pengguna Cassiel')
+                  ? matchedMember.name
+                  : (msg.senderName || matchedMember?.name || 'Anggota');
+
+                const rawText = typeof msg.text === 'string' ? msg.text.trim() : '';
+                const isLegacyCreate = /^Grup\s+(.+?)\s+berhasil dibuat\.\s*Selamat mengelola/i.test(rawText) || /membuat grup\s+"/i.test(rawText);
+                const isLegacyJoin = /telah bergabung ke dalam grup/i.test(rawText) || /bergabung via tautan undangan/i.test(rawText);
+                const isLegacyLeave = /telah keluar dari grup/i.test(rawText) || /keluar dari grup/i.test(rawText);
+                const isSystemMsg = msg.type === 'system' || isLegacyCreate || isLegacyJoin || isLegacyLeave;
+
+                if (isSystemMsg) {
+                  const activeLang = safeStorageGet('user_app_lang') || 'en';
+                  const explicitActorId = (msg.actorId && msg.actorId !== 'system')
+                    ? msg.actorId
+                    : (msg.senderId && msg.senderId !== 'system' ? msg.senderId : null);
+
+                  const actorMember = (activeGroup?.members || []).find(
+                    m => explicitActorId && (m.id === explicitActorId || m.userId === explicitActorId)
+                  );
+                  const rawActorName = (actorMember?.name && actorMember.name !== 'Pengguna Cassiel')
+                    ? actorMember.name
+                    : (msg.actorName || (msg.senderName !== 'Sistem Cassiel' ? msg.senderName : '') || actorMember?.name || '');
+
+                  // Jika pesan memiliki explicitActorId (ID unik HP/user), perspektif "You/Anda"
+                  // ditentukan 100% dari kecocokan ID perangkat (explicitActorId === myUserId),
+                  // sehingga di HP orang lain TIDAK AKAN PERNAH tertulis "You".
+                  const isActorMe = explicitActorId
+                    ? (explicitActorId === myUserId || explicitActorId === 'mem_cur')
+                    : Boolean(isCustomMyName && rawActorName && rawActorName === currentUserName);
+
+                  let systemLabel = rawText;
+                  if (msg.systemType === 'group_created' || isLegacyCreate) {
+                    const gName = activeGroup?.name || group?.name || '';
+                    const adminMember = (activeGroup?.members || []).find(m => m.role === 'admin') || (activeGroup?.members || [])[0];
+                    const isCreatorMe = explicitActorId
+                      ? isActorMe
+                      : Boolean(
+                          (adminMember && (adminMember.id === myUserId || adminMember.userId === myUserId)) ||
+                          isActorMe
+                        );
+                    const actor = rawActorName || adminMember?.name || 'Admin';
+                    if (activeLang === 'en') {
+                      systemLabel = isCreatorMe ? `You created group "${gName}"` : `${actor} created group "${gName}"`;
+                    } else if (activeLang === 'jv') {
+                      systemLabel = isCreatorMe ? `Panjenengan damel grup "${gName}"` : `${actor} damel grup "${gName}"`;
+                    } else if (activeLang === 'zh') {
+                      systemLabel = isCreatorMe ? `你创建了群组 "${gName}"` : `${actor} 创建了群组 "${gName}"`;
+                    } else if (activeLang === 'ko') {
+                      systemLabel = isCreatorMe ? `"${gName}" 그룹을 만들었습니다` : `${actor}님이 "${gName}" 그룹을 만들었습니다`;
+                    } else {
+                      systemLabel = isCreatorMe ? `Anda membuat grup "${gName}"` : `${actor} membuat grup "${gName}"`;
+                    }
+                  } else if (msg.systemType === 'member_added') {
+                    const target = msg.targetName || (activeLang === 'en' ? 'a member' : 'anggota baru');
+                    const actor = rawActorName || 'Admin';
+                    if (activeLang === 'en') {
+                      systemLabel = isActorMe ? `You added ${target}` : `${actor} added ${target}`;
+                    } else if (activeLang === 'jv') {
+                      systemLabel = isActorMe ? `Panjenengan nambahaken ${target}` : `${actor} nambahaken ${target}`;
+                    } else if (activeLang === 'zh') {
+                      systemLabel = isActorMe ? `你添加了 ${target}` : `${actor} 添加了 ${target}`;
+                    } else if (activeLang === 'ko') {
+                      systemLabel = isActorMe ? `${target}님을 추가했습니다` : `${actor}님이 ${target}님을 추가했습니다`;
+                    } else {
+                      systemLabel = isActorMe ? `Anda menambahkan ${target}` : `${actor} menambahkan ${target}`;
+                    }
+                  } else if (msg.systemType === 'member_joined_link' || isLegacyJoin) {
+                    let joiner = rawActorName;
+                    if (!joiner && isLegacyJoin) {
+                      const m = rawText.match(/^👋?\s*(.+?)\s+(?:telah bergabung|bergabung via)/i);
+                      if (m && m[1]) joiner = m[1].trim();
+                    }
+                    const isJoinerMe = explicitActorId
+                      ? isActorMe
+                      : Boolean(isActorMe || (isCustomMyName && joiner && joiner === currentUserName));
+                    const displayJoiner = joiner || (activeLang === 'en' ? 'A member' : 'Anggota baru');
+                    if (activeLang === 'en') {
+                      systemLabel = isJoinerMe ? 'You joined via invite link' : `${displayJoiner} joined via invite link`;
+                    } else if (activeLang === 'jv') {
+                      systemLabel = isJoinerMe ? 'Panjenengan gabung lumantar pranala uleman' : `${displayJoiner} gabung lumantar pranala uleman`;
+                    } else if (activeLang === 'zh') {
+                      systemLabel = isJoinerMe ? '你通过邀请链接加入' : `${displayJoiner} 通过邀请链接加入`;
+                    } else if (activeLang === 'ko') {
+                      systemLabel = isJoinerMe ? '초대 링크로 참여했습니다' : `${displayJoiner}님이 초대 링크로 참여했습니다`;
+                    } else {
+                      systemLabel = isJoinerMe ? 'Anda bergabung via tautan undangan' : `${displayJoiner} bergabung via tautan undangan`;
+                    }
+                  } else if (msg.systemType === 'member_left' || isLegacyLeave) {
+                    let leaver = rawActorName;
+                    if (!leaver && isLegacyLeave) {
+                      const m = rawText.match(/^👋?\s*(.+?)\s+(?:telah keluar|keluar dari)/i);
+                      if (m && m[1]) leaver = m[1].trim();
+                    }
+                    const isLeaverMe = explicitActorId
+                      ? isActorMe
+                      : Boolean(isActorMe || (isCustomMyName && leaver && leaver === currentUserName));
+                    const displayLeaver = leaver || (activeLang === 'en' ? 'A member' : 'Anggota');
+                    if (activeLang === 'en') {
+                      systemLabel = isLeaverMe ? 'You left' : `${displayLeaver} left`;
+                    } else if (activeLang === 'jv') {
+                      systemLabel = isLeaverMe ? 'Panjenengan medal saking grup' : `${displayLeaver} medal saking grup`;
+                    } else if (activeLang === 'zh') {
+                      systemLabel = isLeaverMe ? '你退出了群组' : `${displayLeaver} 退出了群组`;
+                    } else if (activeLang === 'ko') {
+                      systemLabel = isLeaverMe ? '그룹에서 나갔습니다' : `${displayLeaver}님이 그룹에서 나갔습니다`;
+                    } else {
+                      systemLabel = isLeaverMe ? 'Anda keluar dari grup' : `${displayLeaver} keluar dari grup`;
+                    }
+                  }
+
+                  return (
+                    <div key={msg.id} className="chat-system-pill-row">
+                      <span className="chat-system-pill">{systemLabel}</span>
+                    </div>
+                  );
+                }
 
                 if (msg.type === 'financial_in') {
                   return (
                     <div
                       key={msg.id}
-                      className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''}`}
+                      className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''} ${isFreshMsg ? 'apple-msg-enter' : ''}`}
                       onTouchStart={() => startLongPress(msg)}
                       onTouchEnd={cancelLongPress}
                       onTouchMove={cancelLongPress}
@@ -762,8 +992,8 @@ export default function GroupDetailScreen({
                       }}
                       onClick={() => handleMessageClick(msg)}
                     >
-                      {!isMe && <span className="chat-sender-name">{msg.senderName}</span>}
                       <div className="chat-financial-card in">
+                        {!isMe && <span className="chat-sender-name in-fin-card">{displaySenderName}</span>}
                         <div className="fin-card-header">
                           <span>✅ Kas Masuk Terverifikasi</span>
                         </div>
@@ -771,7 +1001,7 @@ export default function GroupDetailScreen({
                           +Rp{Number(msg.amount || 0).toLocaleString('id-ID')}
                         </div>
                         <div className="fin-card-meta">
-                          {msg.text || `${msg.senderName} membayar kas`}
+                          {msg.text || `${displaySenderName} membayar kas`}
                         </div>
                         <div className="fin-card-footer">
                           <span className="chat-time-stamp-inside">
@@ -788,7 +1018,7 @@ export default function GroupDetailScreen({
                   return (
                     <div
                       key={msg.id}
-                      className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''}`}
+                      className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''} ${isFreshMsg ? 'apple-msg-enter' : ''}`}
                       onTouchStart={() => startLongPress(msg)}
                       onTouchEnd={cancelLongPress}
                       onTouchMove={cancelLongPress}
@@ -801,8 +1031,8 @@ export default function GroupDetailScreen({
                       }}
                       onClick={() => handleMessageClick(msg)}
                     >
-                      {!isMe && <span className="chat-sender-name">{msg.senderName}</span>}
                       <div className="chat-financial-card out">
+                        {!isMe && <span className="chat-sender-name in-fin-card">{displaySenderName}</span>}
                         <div className="fin-card-header">
                           <span>💸 Pengeluaran Kas Tercatat</span>
                         </div>
@@ -811,7 +1041,7 @@ export default function GroupDetailScreen({
                         </div>
                         <div className="fin-card-meta">
                           <b>Untuk:</b> {msg.purpose || msg.title}<br />
-                          <b>Dibayar oleh:</b> {msg.paidBy || msg.senderName}
+                          <b>Dibayar oleh:</b> {msg.paidBy || displaySenderName}
                         </div>
                         <div className="fin-card-footer">
                           <span className="chat-time-stamp-inside">
@@ -827,7 +1057,7 @@ export default function GroupDetailScreen({
                 return (
                   <div
                     key={msg.id}
-                    className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''}`}
+                    className={`chat-message-row ${isMe ? 'me' : 'other'} ${isSelected ? 'selected' : ''} ${isFreshMsg ? 'apple-msg-enter' : ''}`}
                     onTouchStart={() => startLongPress(msg)}
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
@@ -840,8 +1070,12 @@ export default function GroupDetailScreen({
                     }}
                     onClick={() => handleMessageClick(msg)}
                   >
-                    {!isMe && <span className="chat-sender-name">{msg.senderName}</span>}
                     <div className="chat-bubble-text">
+                      {!isMe && (
+                        <span className="chat-sender-name">
+                          {displaySenderName}
+                        </span>
+                      )}
                       <div className="chat-bubble-body">
                         <span className="chat-message-content">{msg.text}</span>
                         <span className="chat-time-stamp-inside">
@@ -898,6 +1132,7 @@ export default function GroupDetailScreen({
               +
             </button>
             <input
+              ref={chatInputRef}
               type="text"
               className="chat-input-field"
               value={chatInputText}
@@ -906,8 +1141,8 @@ export default function GroupDetailScreen({
             />
             <button
               type="submit"
-              className="chat-send-btn"
-              disabled={!chatInputText.trim()}
+              className={`chat-send-btn ${isSendingPulse ? 'is-sending' : ''} ${chatInputText.trim() ? 'has-text' : ''}`}
+              disabled={!chatInputText.trim() && !isSendingPulse}
               aria-label="Kirim Pesan"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

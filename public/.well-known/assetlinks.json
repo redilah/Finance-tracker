@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.redilah.financetracker",
+      "sha256_cert_fingerprints": [
+        "5E:D1:97:20:86:73:19:07:D6:8C:64:5F:37:3B:07:6F:AB:9A:41:EB:83:C6:D8:8E:F7:D7:6C:E0:4A:28:EF:02",
+        "31:BE:A5:7D:B5:38:56:CB:A3:80:7A:45:D2:DC:37:41:0E:64:A0:73:52:0B:82:F5:1C:C0:25:93:52:BC:96:AE"
+      ]
+    }
+  }
+]

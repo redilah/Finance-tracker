@@ -1767,6 +1767,60 @@ function App() {
         });
     };
 
+    let lastJoinedCode = '';
+    const processGroupInviteCode = (rawCode) => {
+      if (!rawCode || typeof rawCode !== 'string') return;
+      let cleanCode = rawCode.trim();
+      if (cleanCode.includes('?g=') || cleanCode.includes('&g=')) {
+        const m = cleanCode.match(/[?&]g=([a-zA-Z0-9]+)/);
+        if (m && m[1]) cleanCode = m[1];
+      } else if (cleanCode.includes('joinGroup=')) {
+        const m = cleanCode.match(/[?&]joinGroup=([a-zA-Z0-9]+)/);
+        if (m && m[1]) cleanCode = m[1];
+      }
+      cleanCode = cleanCode.trim().toUpperCase();
+      if (!/^[A-Z0-9]{3,16}$/.test(cleanCode)) return;
+      if (lastJoinedCode === cleanCode) return;
+      lastJoinedCode = cleanCode;
+      setTimeout(() => { if (lastJoinedCode === cleanCode) lastJoinedCode = ''; }, 6000);
+
+      import('./utils/groupStorage').then(({ joinGroupByInviteCode }) => {
+        const currentUName = safeStorageGet('user_profile_name', 'Pengguna Cassiel');
+        const currentUAvatar = typeof localStorage !== 'undefined' ? localStorage.getItem('user_profile_image') : null;
+        joinGroupByInviteCode({
+          inviteCode: cleanCode,
+          currentUserName: currentUName,
+          currentUserAvatar: currentUAvatar
+        })
+          .then(res => {
+            if (res && res.group) {
+              if (typeof window !== 'undefined') {
+                window.__LAST_JOINED_GROUP_ID__ = res.group.id;
+                window.__PENDING_GROUP_INVITE__ = null;
+              }
+              showVoiceToast(`🎉 Berhasil bergabung ke grup "${res.group.name}"!`);
+              setIsGroupsModalOpen(true);
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('cassiel_open_joined_group', { detail: { group: res.group } }));
+              }, 120);
+            }
+          })
+          .catch(e => {
+            console.warn('Auto-join from URL failed:', e);
+            showVoiceToast(e?.message || `Gagal bergabung dengan kode "${cleanCode}"`);
+            setIsGroupsModalOpen(true);
+          });
+      }).catch(() => {});
+    };
+
+    const handleNativeJoinEvent = (e) => {
+      const code = e?.detail?.inviteCode || (typeof window !== 'undefined' ? window.__PENDING_GROUP_INVITE__ : null);
+      if (code) processGroupInviteCode(code);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cassiel_join_group', handleNativeJoinEvent);
+    }
+
     // 1. Cek langsung saat mount aplikasi
     setTimeout(() => {
       if (active) {
@@ -1774,29 +1828,25 @@ function App() {
         initNativeBilling();
       }
 
-      // Deteksi jika aplikasi dibuka melalui Link Undangan Grup (?g= atau ?joinGroup=)
+      // Sinkronkan grup lokal ke Firestore & deteksi Link Undangan Grup (?g= atau ?joinGroup= atau Deep Link)
       try {
-        if (typeof window !== 'undefined' && window.location && window.location.search) {
-          const urlParams = new URLSearchParams(window.location.search);
-          const inviteG = urlParams.get('g') || urlParams.get('joinGroup');
-          if (inviteG) {
-            import('./utils/groupStorage').then(({ joinGroupByInviteCode }) => {
-              const currentUName = safeStorageGet('user_profile_name', 'Pengguna Cassiel');
-              joinGroupByInviteCode({ inviteCode: inviteG, currentUserName: currentUName })
-                .then(res => {
-                  if (res && res.group) {
-                    showVoiceToast(`🎉 Berhasil bergabung ke grup "${res.group.name}"!`);
-                    setIsGroupsModalOpen(true);
-                  }
-                })
-                .catch(e => {
-                  console.warn('Auto-join from URL failed:', e);
-                });
-            }).catch(() => {});
+        import('./utils/groupStorage').then(({ syncAllLocalGroupsToCloud }) => {
+          syncAllLocalGroupsToCloud();
+        }).catch(() => {});
+
+        if (typeof window !== 'undefined') {
+          if (window.__PENDING_GROUP_INVITE__) {
+            processGroupInviteCode(window.__PENDING_GROUP_INVITE__);
+          } else if (window.location && window.location.search) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteG = urlParams.get('g') || urlParams.get('joinGroup');
+            if (inviteG) {
+              processGroupInviteCode(inviteG);
+            }
           }
         }
       } catch {}
-    }, 1500); // Beri sedikit jeda agar load UI/splash screen lancar
+    }, 1200); // Beri sedikit jeda agar load UI/splash screen lancar
 
     // 2. Set interval untuk melakukan cek update setiap 1 jam sekali (3600000 ms)
     // Mode HP/Production murni 1 jam.
@@ -1810,14 +1860,35 @@ function App() {
       }
     }, intervalTime);
 
-    // 3. Cek saat aplikasi kembali dari background (resume)
+    // 3. Cek saat aplikasi kembali dari background (resume) & tangkap Deep Link URL
     let appStateListener;
+    let appUrlListener;
     import('@capacitor/app')
       .then(({ App: CapApp }) => {
+        CapApp.getLaunchUrl().then(launchData => {
+          if (launchData && launchData.url) {
+            processGroupInviteCode(launchData.url);
+          }
+        }).catch(() => {});
+
+        CapApp.addListener('appUrlOpen', (data) => {
+          if (data && data.url) {
+            processGroupInviteCode(data.url);
+          }
+        }).then(listener => {
+          appUrlListener = listener;
+        }).catch(() => {});
+
         CapApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive && active) {
             console.log('[App] Aplikasi di-resume, cek update...');
             checkUpdate();
+            import('./utils/groupStorage').then(({ syncAllLocalGroupsToCloud }) => {
+              syncAllLocalGroupsToCloud();
+            }).catch(() => {});
+            if (typeof window !== 'undefined' && window.__PENDING_GROUP_INVITE__) {
+              processGroupInviteCode(window.__PENDING_GROUP_INVITE__);
+            }
           }
         }).then(listener => {
           appStateListener = listener;
@@ -1839,6 +1910,12 @@ function App() {
       if (intervalId) clearInterval(intervalId);
       if (appStateListener) {
         appStateListener.remove();
+      }
+      if (appUrlListener) {
+        appUrlListener.remove();
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('cassiel_join_group', handleNativeJoinEvent);
       }
     };
   }, []);

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, getCurrentUserId } from '../../utils/groupStorage';
+import { calculateGroupLedger, getMonthPaymentStatus, getCurrentMonthKey, getCurrentUserId, getGroupInviteUrl, syncGroupToCloud } from '../../utils/groupStorage';
 
 export default function GroupInfoScreen({
   group,
@@ -125,10 +125,11 @@ export default function GroupInfoScreen({
   };
 
   const handleShareLink = () => {
-    const inviteUrl = `https://cassiel.app/join?g=${group.inviteCode || 'CASSIEL'}`;
-    const text = `Yuk gabung ke grup keuangan "${group.name}" di Cassiel untuk transparansi kas bersama! Klik link: ${inviteUrl}`;
+    syncGroupToCloud(group);
+    const inviteUrl = getGroupInviteUrl(group);
+    const text = `Yuk gabung ke grup keuangan "${group.name}" di Cassiel untuk transparansi kas bersama!\n\nKode Undangan: ${group.inviteCode || 'CASSIEL'}\nKlik link untuk langsung bergabung:\n${inviteUrl}`;
     if (navigator.share) {
-      navigator.share({ title: `Gabung ke ${group.name}`, text, url: inviteUrl }).catch(() => {});
+      navigator.share({ title: `Gabung ke ${group.name}`, text }).catch(() => {});
     } else {
       navigator.clipboard.writeText(text);
       alert('Tautan invite grup berhasil disalin!');

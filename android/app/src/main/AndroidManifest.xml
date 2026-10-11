@@ -27,6 +27,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep Link: Verified Android App Links for Group Invites -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="cassiel-finance.netlify.app"
+                    android:pathPrefix="/join" />
+            </intent-filter>
+
+            <!-- Deep Link: Custom Scheme cassiel://join?g=CODE -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="cassiel"
+                    android:host="join" />
+            </intent-filter>
+
         </activity>
 
         <provider

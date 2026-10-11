@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CassielNativeGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
+        handleDeepLinkIntent(getIntent());
         com.redilah.financetracker.notificationtracker.CassielUpdateReceiver.rebindListenerService(getApplicationContext());
     }
 
@@ -31,6 +32,7 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleWidgetIntent(intent);
+        handleDeepLinkIntent(intent);
     }
 
     // Whitelist aksi widget yang diizinkan untuk mencegah injeksi JavaScript (OWASP MASVS-PLATFORM-2 / MASVS-CODE-4)
@@ -58,4 +60,41 @@ public class MainActivity extends BridgeActivity {
             getBridge().getWebView().post(() -> getBridge().getWebView().evaluateJavascript(js, null));
         }
     }
+
+    private void handleDeepLinkIntent(Intent intent) {
+        if (intent == null) return;
+        String rawCode = null;
+        android.net.Uri data = intent.getData();
+        if (data != null) {
+            rawCode = data.getQueryParameter("g");
+            if (rawCode == null || rawCode.isEmpty()) {
+                rawCode = data.getQueryParameter("joinGroup");
+            }
+        }
+        if ((rawCode == null || rawCode.isEmpty()) && intent.hasExtra("g")) {
+            rawCode = intent.getStringExtra("g");
+        }
+        if (rawCode == null) return;
+
+        String cleanCode = rawCode.trim().toUpperCase();
+        // Validasi ketat: hanya karakter alfanumerik 3-16 karakter (OWASP MASVS-CODE-4)
+        if (!cleanCode.matches("^[A-Z0-9]{3,16}$")) {
+            android.util.Log.w("MainActivity", "Rejected invalid group invite code format from deep link");
+            return;
+        }
+
+        // Bersihkan data intent agar tidak dieksekusi berulang saat rotasi layar
+        intent.setData(null);
+        intent.removeExtra("g");
+
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            String safeCode = org.json.JSONObject.quote(cleanCode);
+            String js = "window.__PENDING_GROUP_INVITE__ = " + safeCode + "; " +
+                        "window.dispatchEvent(new CustomEvent('cassiel_join_group', { detail: { inviteCode: " + safeCode + " } }));";
+            android.webkit.WebView webView = getBridge().getWebView();
+            webView.post(() -> webView.evaluateJavascript(js, null));
+            webView.postDelayed(() -> webView.evaluateJavascript(js, null), 1500);
+        }
+    }
 }
+

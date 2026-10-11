@@ -15,7 +15,8 @@ import {
   deleteGroup,
   calculateGroupLedger,
   getMonthPaymentStatus,
-  getCurrentMonthKey
+  getCurrentMonthKey,
+  syncAllLocalGroupsToCloud
 } from '../../utils/groupStorage';
 import { canCreateGroup } from '../../utils/proManager';
 import GroupDetailScreen from './GroupDetailScreen';
@@ -51,6 +52,49 @@ export default function GroupsHubModal({
   const [newGroupInitBalance, setNewGroupInitBalance] = useState('');
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
+
+  // Refresh groups when modal opens & listen for auto-joined groups via deep link
+  useEffect(() => {
+    if (isOpen) {
+      const latest = getStoredGroups(currentUserName);
+      setGroups(latest);
+      syncAllLocalGroupsToCloud();
+      if (typeof window !== 'undefined' && window.__LAST_JOINED_GROUP_ID__) {
+        const targetId = window.__LAST_JOINED_GROUP_ID__;
+        window.__LAST_JOINED_GROUP_ID__ = null;
+        const found = latest.find(g => g.id === targetId);
+        if (found) {
+          setIsJoiningGroup(false);
+          setIsCreatingGroup(false);
+          setSelectedGroup(found);
+        }
+      }
+    }
+  }, [isOpen, currentUserName]);
+
+  useEffect(() => {
+    const handleGroupsUpdated = () => {
+      const latest = getStoredGroups(currentUserName);
+      setGroups(latest);
+      setSelectedGroup(prev => prev ? (latest.find(g => g.id === prev.id) || prev) : null);
+    };
+    const handleOpenJoinedGroup = (e) => {
+      const joinedGroup = e?.detail?.group;
+      const latest = getStoredGroups(currentUserName);
+      setGroups(latest);
+      if (joinedGroup) {
+        setIsJoiningGroup(false);
+        setIsCreatingGroup(false);
+        setSelectedGroup(latest.find(g => g.id === joinedGroup.id) || joinedGroup);
+      }
+    };
+    window.addEventListener('cassiel_groups_updated', handleGroupsUpdated);
+    window.addEventListener('cassiel_open_joined_group', handleOpenJoinedGroup);
+    return () => {
+      window.removeEventListener('cassiel_groups_updated', handleGroupsUpdated);
+      window.removeEventListener('cassiel_open_joined_group', handleOpenJoinedGroup);
+    };
+  }, [currentUserName]);
 
   // Handle swipe-to-back & back events
   useEffect(() => {
@@ -202,10 +246,13 @@ export default function GroupsHubModal({
     if (e && e.preventDefault) e.preventDefault();
     if (!inviteCodeInput.trim()) return;
 
-    // Bersihkan link jika user paste URL lengkap (e.g. https://cassiel.app/join?g=XYZ123)
+    // Bersihkan link jika user paste URL lengkap (e.g. https://cassiel-finance.netlify.app/join?g=XYZ123)
     let code = inviteCodeInput.trim();
-    if (code.includes('?g=')) {
-      const match = code.match(/\?g=([a-zA-Z0-9]+)/);
+    if (code.includes('?g=') || code.includes('&g=')) {
+      const match = code.match(/[?&]g=([a-zA-Z0-9]+)/);
+      if (match && match[1]) code = match[1];
+    } else if (/kode\s*undangan\s*:\s*([a-zA-Z0-9]+)/i.test(code)) {
+      const match = code.match(/kode\s*undangan\s*:\s*([a-zA-Z0-9]+)/i);
       if (match && match[1]) code = match[1];
     }
 

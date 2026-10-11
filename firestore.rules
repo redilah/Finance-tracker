@@ -19,6 +19,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cassiel Shared Groups (Sinkronisasi kas & chat grup lintas perangkat via kode undangan)
+    match /cassiel_shared_groups/{groupId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.id is string
+                            && request.resource.data.id == groupId
+                            && request.resource.data.inviteCode is string;
+      allow delete: if true;
+    }
+
     // Default Deny untuk semua koleksi/dokumen lainnya
     match /{document=**} {
       allow read, write: if false;
