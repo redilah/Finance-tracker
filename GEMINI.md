@@ -678,5 +678,20 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
    - Seluruh *state* yang direferensikan pada sub-halaman modal (seperti `initialMembers`, `groupAvatar`, `newGroupName`, `inviteCodeInput` di `GroupsHubModal.jsx`) wajib dideklarasikan secara eksplisit dengan `useState` pada level *root* modal.
    - Seluruh fungsi *storage/ledger action handler* (seperti `updateGroupInfo`, `removeMemberFromGroup`, `recordKasPayment`, `recordGroupExpense`) wajib diimpor secara utuh dari modul pendukungnya (`groupStorage.js`) untuk mencegah runtime crash saat pengguna melakukan manipulasi data di sub-layar.
 
-
-
+## 46. Cassiel Groups, Deep-Link Invite (/join), WhatsApp System Pills & Apple Fluid Chat Invariants
+* **Cross-Device Invite Link & Android App Links (`/join`)**:
+  - Seluruh tautan undangan grup wajib dibuat menggunakan `getGroupInviteUrl(group)` di `src/utils/groupStorage.js` dengan format `https://cassiel-finance.netlify.app/join?g=KODE&name=NamaGrup` (dilarang keras menggunakan domain `cassiel.app`).
+  - Halaman `public/join.html` menampilkan logo Cassiel murni tanpa pembungkus kotak/border oranye (`.brand-logo-wrap` transparan) dan otomatis memicu Android Intent (`intent://join?...#Intent;scheme=cassiel;package=com.redilah.financetracker;end`) serta skema `cassiel://join?g=KODE`.
+* **White Card Theme & Chat Bubble Typography (`GroupDetailScreen.jsx` & `groups.css`)**:
+  - Header detail grup (`.group-detail-header-card`), kartu utama tab Keuangan (`.group-hero-balance-card` & `.group-tracker-card`), serta gelembung chat dari anggota lain (`.chat-message-row.other .chat-bubble-text`) wajib menggunakan latar putih bersih (`#FFFFFF`).
+  - Kolom pengetikan pesan bawah (`.chat-input-field`) menggunakan latar `#EAE8E4`, sedangkan tombol `+` dan tombol panah kirim (`.chat-send-btn`) tetap mempertahankan gradien oranye hangat khas Cassiel.
+  - Nama pengirim (`.chat-sender-name`) wajib berada **di dalam** gelembung chat (`.chat-bubble-text` / `.chat-financial-card`) dengan warna gelap tebal (`#1F1C1A`), dilarang ditaruh di luar kotak chat.
+  - Jam pesan (`.chat-time-stamp-inside`) disejajarkan dengan batas bawah huruf teks pesan menggunakan `padding-bottom: 7px` pada `.chat-message-content` dan `line-height: 1; margin-bottom: -1px` pada `.chat-time-stamp-inside`.
+* **WhatsApp-Style Centered System Pills & Strict Per-Device Perspective**:
+  - Aktivitas sistem grup (`group_created`, `member_added`, `member_joined_link`, `member_left`) wajib disimpan dengan `type: 'system'`, `senderId: 'system'`, `actorId: myUserId`, dan `actorName`, serta dirender di tengah layar menggunakan `.chat-system-pill-row` / `.chat-system-pill` (putih semi-transparan `rgba(255, 255, 255, 0.92)` tanpa jam/centang).
+  - **Strict Per-Device Perspective (`explicitActorId === myUserId`)**: Penentuan kata ganti `"You"` / `"Anda"` vs nama anggota (contoh: `"Kimi joined via invite link"`) **WAJIB** ditentukan 100% dari kecocokan ID unik perangkat (`explicitActorId === myUserId`), dilarang di-override oleh kecocokan string nama jika `explicitActorId` tersedia, agar di HP anggota lain tidak pernah tertulis `"You"`.
+  - Teks pil sistem wajib otomatis menyesuaikan bahasa aktif aplikasi (`safeStorageGet('user_app_lang')`: `'en'`, `'id'`/`'id_id'`, `'jv'`, `'zh'`, `'ko'`).
+* **Apple Fluid Interface Chat Send Motion**:
+  - Saat tombol Send ditekan, pesan langsung masuk ke state lokal di frame yang sama (*zero-latency*), gelembung chat baru muncul dari poros sudut bawah (`transform-origin: 100% 100%` untuk `.me`, `0% 100%` untuk `.other`) dengan kurva pegas *critically-damped* (`cubic-bezier(0.22, 1, 0.36, 1)`), disertai *interruptible spring scroll* berbasis `requestAnimationFrame` yang langsung berhenti ketika pengguna menyentuh layar.
+* **Netlify MCP Fast Deployment Invariant**:
+  - Saat melakukan deploy ke Netlify menggunakan tool MCP `netlify-deploy-services-updater` (`siteId: "9e945988-b260-40ae-b97a-b590933d4a55"`), wajib menjalankan `npm run build` terlebih dahulu dan mengisi `deployDirectory` dengan path folder `dist` (`c:\Users\GC\Desktop\finance tracker\dist`), dilarang mengirim *root directory* proyek agar tidak *timeout* saat mengarsipkan folder `android/` dan `.aab`.
