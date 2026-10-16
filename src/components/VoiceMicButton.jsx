@@ -611,7 +611,7 @@ export default function VoiceMicButton({
               </p>
             ) : (
               <p className="voice-live-placeholder">
-                Ucapkan transaksimu... <i>(cth: "kopi 20 ribu bca")</i>
+                Ucapkan transaksimu...
               </p>
             )}
           </div>

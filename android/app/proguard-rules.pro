@@ -28,11 +28,23 @@
 -keep class com.redilah.financetracker.notificationtracker.** { *; }
 -keepclassmembers class com.redilah.financetracker.notificationtracker.** { *; }
 
+# Keep Assistant and Floating Bubble
+-keep class com.redilah.financetracker.assistant.** { *; }
+-keepclassmembers class com.redilah.financetracker.assistant.** { *; }
+
 # Keep Native Billing Plugin & Google Play Billing Library
 -keep class com.redilah.financetracker.billing.** { *; }
 -keepclassmembers class com.redilah.financetracker.billing.** { *; }
 -keep class com.android.billingclient.** { *; }
 -keepclassmembers class com.android.billingclient.** { *; }
+
+# Keep Native Google Auth & Android Credential Manager
+-keep class com.redilah.financetracker.auth.** { *; }
+-keepclassmembers class com.redilah.financetracker.auth.** { *; }
+-keep class androidx.credentials.** { *; }
+-keepclassmembers class androidx.credentials.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+-keepclassmembers class com.google.android.libraries.identity.googleid.** { *; }
 
 # Keep Kotlin stdlib & Coroutines
 -keep class kotlin.** { *; }

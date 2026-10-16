@@ -109,6 +109,12 @@ import {
   drainAndProcessQueuedNotifications,
   NotificationTrackerNative
 } from './utils/notificationTracker';
+import {
+  checkFloatingBubblePermission,
+  requestFloatingBubblePermission,
+  startFloatingBubble,
+  stopFloatingBubble
+} from './utils/floatingBubble';
 
 // Categories: NO icon field stored — icons resolved at runtime via ICON_MAP
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -1730,6 +1736,9 @@ function App() {
   const [isAutoTrackerPref, setIsAutoTrackerPref] = useState(() => isAutoTrackerPreferenceEnabled());
   const [hasNotifPermission, setHasNotifPermission] = useState(false);
   const [isAssistantActive, setIsAssistantActive] = useState(false);
+  const [isFloatingBubbleActive, setIsFloatingBubbleActive] = useState(() => {
+    return localStorage.getItem('cassiel_floating_bubble_pref') === 'true';
+  });
 
   // Web Admin Dashboard URL detection (?admin or /admin)
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -3642,13 +3651,51 @@ function App() {
     }
   }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions]);
 
+  // Sync Floating Bubble status & auto-start if permission and preference are active
+  const syncFloatingBubbleStatus = React.useCallback(async () => {
+    try {
+      const pref = localStorage.getItem('cassiel_floating_bubble_pref') === 'true';
+      const hasPerm = await checkFloatingBubblePermission();
+      if (hasPerm && pref) {
+        await startFloatingBubble();
+        setIsFloatingBubbleActive(true);
+      } else {
+        if (!hasPerm) {
+          setIsFloatingBubbleActive(false);
+        }
+      }
+    } catch (e) {
+      console.warn('[FloatingBubble] sync error:', e);
+    }
+  }, []);
+
+  const handleToggleFloatingBubble = async () => {
+    if (isFloatingBubbleActive) {
+      localStorage.setItem('cassiel_floating_bubble_pref', 'false');
+      await stopFloatingBubble();
+      setIsFloatingBubbleActive(false);
+    } else {
+      const hasPerm = await checkFloatingBubblePermission();
+      if (!hasPerm) {
+        // Langsung arahkan ke setingan Display over other apps tanpa dialog perantara sesuai instruksi
+        localStorage.setItem('cassiel_floating_bubble_pref', 'true');
+        await requestFloatingBubblePermission();
+      } else {
+        localStorage.setItem('cassiel_floating_bubble_pref', 'true');
+        await startFloatingBubble();
+        setIsFloatingBubbleActive(true);
+      }
+    }
+  };
+
   // Sync Notification Access permission & Assistant status when Profile modal opens
   React.useEffect(() => {
     if (isProfileModalOpen) {
       checkNotificationAccessPermission().then(setHasNotifPermission);
       checkAssistantActive().then(setIsAssistantActive);
+      syncFloatingBubbleStatus();
     }
-  }, [isProfileModalOpen]);
+  }, [isProfileModalOpen, syncFloatingBubbleStatus]);
 
   // Auto-drain notification queue on mount and when app resumes from background
   React.useEffect(() => {
@@ -3664,6 +3711,7 @@ function App() {
     });
 
     checkAssistantActive().then(setIsAssistantActive);
+    syncFloatingBubbleStatus();
 
     let notifResumeListener;
     import('@capacitor/app')
@@ -3671,6 +3719,7 @@ function App() {
         CapApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             checkAssistantActive().then(setIsAssistantActive);
+            syncFloatingBubbleStatus();
             processAutoTrackerQueue();
           }
         }).then(listener => {
@@ -3681,6 +3730,7 @@ function App() {
         const handleVisibility = () => {
           if (document.visibilityState === 'visible') {
             checkAssistantActive().then(setIsAssistantActive);
+            syncFloatingBubbleStatus();
             processAutoTrackerQueue();
           }
         };
@@ -3691,7 +3741,7 @@ function App() {
     return () => {
       if (notifResumeListener) notifResumeListener.remove();
     };
-  }, [processAutoTrackerQueue]);
+  }, [processAutoTrackerQueue, syncFloatingBubbleStatus]);
 
   // Save / Delete Voice Transaction
   const handleSaveVoiceTransaction = (result) => {
@@ -8302,6 +8352,36 @@ function App() {
                     </span>
                   </div>
                   <div className={`wa-custom-toggle-track ${isAssistantActive ? 'active' : ''}`}>
+                    <div className="wa-custom-toggle-thumb" />
+                  </div>
+                </div>
+
+                {/* 1d. Tombol Cepat Melayang (Floating Bubble) */}
+                <div 
+                  className="wa-menu-item"
+                  onClick={handleToggleFloatingBubble}
+                >
+                  <div className="wa-menu-icon-box floating-bubble-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M12 3v3" />
+                      <path d="M12 18v3" />
+                      <path d="M3 12h3" />
+                      <path d="M18 12h3" />
+                    </svg>
+                  </div>
+                  <div className="wa-menu-content">
+                    <div className="wa-menu-title-row">
+                      <span className="wa-menu-title">{t('floatingBubbleTitle') || 'Tombol Cepat Melayang'}</span>
+                    </div>
+                    <span className="wa-menu-subtitle">
+                      {isFloatingBubbleActive
+                        ? (t('floatingBubbleSubtitleOn') || 'Tombol aktif di samping layar')
+                        : (t('floatingBubbleSubtitleOff') || 'Akses catat transaksi dari aplikasi apa pun')}
+                    </span>
+                  </div>
+                  <div className={`wa-custom-toggle-track ${isFloatingBubbleActive ? 'active' : ''}`}>
                     <div className="wa-custom-toggle-thumb" />
                   </div>
                 </div>

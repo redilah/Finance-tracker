@@ -1,4 +1,4 @@
-# Developer Guidelines for Cassiel (Finance Tracker)
+﻿# Developer Guidelines for Cassiel (Finance Tracker)
 
 > [!IMPORTANT]
 > ## 🚀 STATUS RILIS: GOOGLE PLAY STORE (AAB / ANDROID APP BUNDLE)
@@ -65,10 +65,17 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - Sistem speech-to-text / voice parser wajib mendaftarkan variasi fonetik sehari-hari dan slang perbankan (seperti `"bang jago"` $\rightarrow$ `"Bank Jago"`, `"bang bca"` $\rightarrow$ `"BCA"`, dll.) ke dalam `ACCOUNT_SYNONYMS`, `ACCOUNT_KEYWORDS`, dan `ACCOUNT_INTERCHANGEABLE_ALIASES`.
    - Kata partikel/preposisi perbankan (`"bang"`, `"bank"`, `"pake"`, `"via"`, `"lewat"`) wajib dimasukkan ke dalam `CONNECTING_WORDS` dan secara otomatis dibersihkan dari catatan akhir transaksi (`note`) agar tidak tertinggal kata residu perbankan pada judul pengeluaran/pemasukan.
 
+4. **Floating Bubble (Tombol Cepat Melayang) & Overlay Invariant**:
+   - Berjalan via Android Service `CassielFloatingBubbleService` berbasis `WindowManager` (`TYPE_APPLICATION_OVERLAY`) dengan izin `SYSTEM_ALERT_WINDOW`.
+   - **Visual**: Wajib berupa lambang siluet CF murni (`ic_stat_icon`) dengan warna warm amber Cassiel (`#F59E0B`) **TANPA BACKGROUND BOX** kaku.
+   - **Interaksi & Fisika**: Mendukung sentuhan drag bebas ke segala posisi layar, auto-snap halus ke tepi terdekat (kiri/kanan) saat dilepas, dan auto-fade ke 55% opacity saat idle agar tidak mengganggu pandangan pengguna saat membaca konten aplikasi lain.
+   - **Direct Settings Redirection**: Saat saklar di menu Akun ditekan pertama kali dan izin belum aktif, sistem **WAJIB LANGSUNG** mengarahkan pengguna ke halaman pengaturan OS *"Display over other apps"* (`Settings.ACTION_MANAGE_OVERLAY_PERMISSION` dengan URI package) tanpa memunculkan dialog/alert perantara.
+   - **Aksi Klik**: Mengetuk ikon CF meluncurkan `CassielAssistActivity` (bottom sheet transparan catat cepat non-full-screen).
+
 ### F. Google Sign-In Native & Firebase Authentication Invariants
 1. **Native 1-Tap Google Sign-In (Strict Ban on Web Popups in Mobile)**:
    - Di lingkungan Android Capacitor, dilarang mengandalkan `signInWithPopup` / `signInWithRedirect` Web SDK karena pembatasan isolasi sesi (*storage partitioning / missing initial state*) pada browser mobile modern.
-   - Autentikasi Google di Android wajib menggunakan plugin native `CassielNativeGoogleAuthPlugin` (`com.google.android.gms:play-services-auth`) yang memanggil dialog pemilih akun 1-Tap Google Play Services bawaan HP.
+   - Autentikasi Google di Android wajib menggunakan plugin native `CassielNativeGoogleAuthPlugin` berbasis **Android Credential Manager API** (`androidx.credentials` + `com.google.android.libraries.identity.googleid:googleid` dengan `GetGoogleIdOption`) yang menampilkan UI *bottom sheet* Google One Tap modern (persis seperti Grammarly) serta fallback otomatis ke `GoogleSignInClient` legacy.
    - Hasil `idToken` dari native ditukarkan ke Firebase melalui `signInWithCredential(auth, GoogleAuthProvider.credential(idToken))`.
    - `signInWithPopup` hanya digunakan sebagai fallback murni pada platform browser web desktop.
 2. **Google Services & Keystore SHA Synchronization**:
