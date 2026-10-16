@@ -695,3 +695,16 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
   - Saat tombol Send ditekan, pesan langsung masuk ke state lokal di frame yang sama (*zero-latency*), gelembung chat baru muncul dari poros sudut bawah (`transform-origin: 100% 100%` untuk `.me`, `0% 100%` untuk `.other`) dengan kurva pegas *critically-damped* (`cubic-bezier(0.22, 1, 0.36, 1)`), disertai *interruptible spring scroll* berbasis `requestAnimationFrame` yang langsung berhenti ketika pengguna menyentuh layar.
 * **Netlify MCP Fast Deployment Invariant**:
   - Saat melakukan deploy ke Netlify menggunakan tool MCP `netlify-deploy-services-updater` (`siteId: "9e945988-b260-40ae-b97a-b590933d4a55"`), wajib menjalankan `npm run build` terlebih dahulu dan mengisi `deployDirectory` dengan path folder `dist` (`c:\Users\GC\Desktop\finance tracker\dist`), dilarang mengirim *root directory* proyek agar tidak *timeout* saat mengarsipkan folder `android/` dan `.aab`.
+
+## 47. Apple Fluid Morphing Pill, Typewriter Rhythm & Web Speech Recognition Invariants
+* **Apple Fluid Morphing Pill (Charging Indicator Motion)**:
+  - **Single Continuous Curve (Anti-Stutter)**: Animasi ekspansi pil/toast dinamis DILARANG menggunakan perhentian bertingkat (seperti `20%`, `50%`, `75%`) dan DILARANG memanipulasi `filter: blur()` atau `border-radius` perantara yang membebani GPU. Animasi wajib berjalan murni dalam 1 tarikan napas `0% -> 100%` dengan kurva fluida Apple `cubic-bezier(0.22, 1, 0.36, 1)`.
+  - **True Circular Origin (`clip-path: inset round 999px`)**: Dilarang memenyet kapsul dengan `scaleX` non-seragam yang mendistorsi sudut bulat menjadi persegi panjang pipih. Gunakan `clip-path: inset(0% 45% 0% 45% round 999px)` di awal agar titik awal selalu berupa lingkaran sempurna di tengah sebelum meregang ke kiri-kanan.
+  - **Symmetric Exit & Smooth Space Collapse**: Animasi keluar dan hapus kartu (`cardFluidDeleteShrink`) wajib menyusut kembali ke bulatan tengah dengan `clip-path` simetris, diikuti penutupan tinggi vertikal (`max-height: 92px -> 0px`) agar kartu di bawahnya mengalir naik secara halus tanpa loncatan kasar.
+* **Structured Typewriter Timing & Tabular-Nums Alignment**:
+  - **Expansion Delay**: Animasi ketik wajib menunggu kartu membuka sebagian (`260ms`) sebelum mulai mengetik karakter pertama.
+  - **Rhythmic Structured Pauses**: Ketikan wajib memiliki jeda napas antar-bagian (Judul -> jeda `~130ms` -> Kategori/Akun -> jeda `~130ms` -> Nominal) dengan kecepatan santai `~42ms` per karakter.
+  - **Layout Jump Prevention**: Kolom nominal wajib dikunci rata kanan (`justify-content: flex-end`) dengan `fontVariantNumeric: tabular-nums` sejak frame pertama pengetikan agar angka tidak melompat posisi saat animasi berganti ke komponen statis.
+* **Desktop Browser (Chrome/Edge) Web Speech Recognition**:
+  - **Multi-Segment Result Iteration**: Pengambilan teks pada `recognition.onresult` wajib melakukan iterasi dari `event.resultIndex` untuk menangkap segmen *interim* dan *final*, agar ucapan berkelanjutan tidak terpotong pada browser desktop.
+  - **Hardware Mic Contention Guard**: Hindari pemanggilan `getUserMedia` yang langsung di-`stop()` persis bersamaan dengan `recognition.start()` untuk mencegah driver audio Windows terkunci di browser.

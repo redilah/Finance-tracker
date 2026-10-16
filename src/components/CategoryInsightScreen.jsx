@@ -82,11 +82,31 @@ export default function CategoryInsightScreen({
     return false;
   }, [year, monthIndex, installInfo]);
 
+  const [isToastExiting, setIsToastExiting] = useState(false);
+  const toastTimerRef = useRef(null);
+  const toastExitTimerRef = useRef(null);
+
   const showToast = (msg) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    if (toastExitTimerRef.current) {
+      clearTimeout(toastExitTimerRef.current);
+      toastExitTimerRef.current = null;
+    }
+    setIsToastExiting(false);
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2800);
+
+    toastTimerRef.current = setTimeout(() => {
+      setIsToastExiting(true);
+      toastExitTimerRef.current = setTimeout(() => {
+        setToastMessage(null);
+        setIsToastExiting(false);
+        toastExitTimerRef.current = null;
+      }, 480);
+      toastTimerRef.current = null;
+    }, 3000);
   };
 
   const handlePrevMonth = () => {
@@ -155,9 +175,11 @@ export default function CategoryInsightScreen({
         
         {/* Toast Notifikasi Feedback */}
         {toastMessage && (
-          <div className="voice-toast-notification category-insight-toast-pill" style={{ top: 24, zIndex: 100002 }}>
-            <span>ℹ️</span>
-            <span>{toastMessage}</span>
+          <div className={`voice-toast-notification category-insight-toast-pill${isToastExiting ? ' toast-exiting' : ''}`} style={{ top: 24, zIndex: 100002 }}>
+            <div className="voice-toast-inner">
+              <span>ℹ️</span>
+              <span>{toastMessage}</span>
+            </div>
           </div>
         )}
 

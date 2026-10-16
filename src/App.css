@@ -6966,71 +6966,118 @@ img[src*="Kost"] {
   75% { transform: translateX(4px); }
 }
 
-/* 3D Sink Backwards Animation for Voice-Command Deletion */
+/* Smooth Symmetric Deletion Animation (Apple Fluid Pill Shrink + Smooth Space Collapse) */
 .transaction-item {
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, filter 0.45s ease;
-  transform-style: preserve-3d;
-  perspective: 800px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes cardFluidDeleteShrink {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    clip-path: inset(0% 0% 0% 0% round 20px);
+    max-height: 92px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 0px;
+  }
+  58% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.84);
+    clip-path: inset(0% 44% 0% 44% round 999px);
+    max-height: 92px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 0px;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.8);
+    clip-path: inset(0% 46% 0% 46% round 999px);
+    max-height: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin-bottom: -4px;
+  }
 }
 
 .transaction-item.deleting-sink {
-  transform: perspective(800px) translateZ(-180px) scale(0.72) !important;
-  opacity: 0 !important;
-  filter: blur(5px) !important;
+  overflow: hidden !important;
   pointer-events: none !important;
+  transform-origin: center center !important;
+  animation: cardFluidDeleteShrink 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+  will-change: clip-path, transform, opacity, max-height, padding;
 }
 
-/* Animasi Timbul dari Belakang saat Input Suara Berhasil */
+.transaction-item.deleting-sink > * {
+  transition: opacity 0.22s ease-out, transform 0.22s ease-out !important;
+  opacity: 0 !important;
+  transform: scale(0.92) !important;
+}
+
+/* Animasi Kartu Transaksi Baru: Muncul Bulat dari Tengah lalu Melebar Mulus ke Kiri-Kanan (Apple Charging Pill Style) */
 @keyframes cardPopFromDepth {
   0% {
     opacity: 0;
-    transform: perspective(800px) translateZ(-70px) scale(0.92);
+    transform: translate3d(0, 6px, 0) scale(0.86);
+    clip-path: inset(0% 42% 0% 42% round 999px);
   }
-  60% {
+  18% {
     opacity: 1;
-    transform: perspective(800px) translateZ(6px) scale(1.015);
   }
   100% {
     opacity: 1;
-    transform: perspective(800px) translateZ(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
+    clip-path: inset(0% 0% 0% 0% round 20px);
   }
 }
 
 @keyframes iconPopTimbul {
   0% {
-    transform: scale(0.65) rotate(-6deg);
+    transform: scale(0.5);
     opacity: 0;
   }
-  60% {
-    transform: scale(1.12) rotate(2deg);
-    opacity: 1;
+  30% {
+    transform: scale(0.65);
+    opacity: 0;
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     opacity: 1;
   }
 }
 
 @keyframes cursorBlink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  50% { opacity: 0.15; }
 }
 
 .transaction-item.voice-card-timbul {
-  animation: cardPopFromDepth 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  /* Satu tarikan kurva mulus 0.64s tanpa pemberhentian di tengah */
+  animation: cardPopFromDepth 0.64s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: clip-path, transform, opacity;
 }
 
 .transaction-item.voice-card-timbul .transaction-icon.voice-icon-pop {
-  animation: iconPopTimbul 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: iconPopTimbul 0.56s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
 }
 
 .typewriter-cursor {
   display: inline-block;
-  font-weight: 300;
-  color: #10B981;
-  margin-left: 2px;
-  animation: cursorBlink 0.55s infinite;
+  width: 2px;
+  height: 1em;
+  background-color: #D97706;
+  color: transparent;
+  border-radius: 99px;
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: cursorBlink 0.5s ease-in-out infinite;
 }
 
 /* Toast Notifikasi Perintah Suara & Feedback (Sesuai dengan bilah notifikasi stats) */
@@ -7038,34 +7085,62 @@ img[src*="Kost"] {
   position: fixed;
   top: 24px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.08);
   color: #0F172A !important;
-  padding: 12px 18px;
-  border-radius: 18px;
-  font-size: 13px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 13.5px;
   font-weight: 700;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
   z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   line-height: 1.45;
-  width: calc(100% - 40px);
-  max-width: 440px;
+  width: max-content;
+  max-width: calc(100vw - 36px);
+  min-height: 44px;
   box-sizing: border-box;
-  gap: 8px;
-  animation: toastPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  /* Satu kurva mulus tanpa multi-step (menghindari patah-patah / berhenti di tengah) */
+  animation: appleChargerPillIn 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: clip-path, transform, opacity;
   pointer-events: none;
 }
 
+/* Animasi Exit: menciut mulus dalam 1 tarikan kurva kembali ke titik bulat tengah */
+.voice-toast-notification.toast-exiting {
+  animation: appleChargerPillOut 0.48s cubic-bezier(0.32, 0, 0.67, 0) forwards !important;
+}
+
+.voice-toast-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: normal;
+  text-align: center;
+  backface-visibility: hidden;
+  /* Muncul halus mengiringi terbukanya kapsul tanpa efek blur berat */
+  animation: appleChargerTextIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+.voice-toast-notification.toast-exiting .voice-toast-inner {
+  animation: appleChargerTextOut 0.22s ease-out forwards;
+}
+
 .voice-toast-notification.category-insight-toast-pill {
-  width: calc(100% - 40px);
-  max-width: 440px;
-  padding: 12px 18px;
-  font-size: 13px;
+  width: max-content;
+  max-width: calc(100vw - 36px);
+  padding: 12px 22px;
+  font-size: 13.5px;
   line-height: 1.45;
   text-align: center;
   justify-content: center;
@@ -7077,9 +7152,73 @@ img[src*="Kost"] {
   font-weight: 700;
 }
 
-@keyframes toastPop {
-  0% { transform: translate(-50%, -15px) scale(0.9); opacity: 0; }
-  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+/* 
+   Apple / Android Charging Pill Expansion:
+   Menggunakan clip-path inset(... round 999px) dari 0% langsung ke 100% (TANPA perhentian keyframe di tengah!).
+   Saat 0%, kiri-kanan dipangkas 44% dengan sudut 999px -> menghasilkan TITIK BULAT SEMPURNA di tengah, bukan kotak!
+   Lalu melebar mulus ke kiri & kanan dalam satu tarikan napas.
+*/
+@keyframes appleChargerPillIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -6px, 0) scale(0.75);
+    clip-path: inset(0% 45% 0% 45% round 999px);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+    clip-path: inset(0% 0% 0% 0% round 999px);
+  }
+}
+
+/* 
+   Smooth Collapse Exit:
+   Menyusut kembali dari kiri-kanan menjadi titik bulat sempurna di tengah lalu hilang.
+*/
+@keyframes appleChargerPillOut {
+  0% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+    clip-path: inset(0% 0% 0% 0% round 999px);
+  }
+  75% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -4px, 0) scale(0.72);
+    clip-path: inset(0% 45% 0% 45% round 999px);
+  }
+}
+
+/* Teks muncul mulus tanpa filter blur yang membebani GPU */
+@keyframes appleChargerTextIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  30% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes appleChargerTextOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
 
 @keyframes spinSlow {

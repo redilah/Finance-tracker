@@ -368,71 +368,105 @@ const isAutoTrackedTx = (tx) => Boolean(
 );
 
 /**
- * Komponen Kartu Transaksi Baru Khusus Input Suara:
- * 1. Pop Timbul dari Belakang (3D Elevation Depth)
- * 2. Animasi Ketik (Typewriter) Mengalir Alami dari Kiri ke Kanan (Single Unified Timer - Anti-Stuck)
+ * Komponen Kartu Transaksi Baru:
+ * 1. Fluid Pill Expansion (Muncul sebagai bulatan kecil di tengah lalu meregang mulus ke kiri-kanan)
+ * 2. Animasi Ketik (Typewriter) Terstruktur & Berirama:
+ *    - Menunggu kartu membuka sebagian (260ms) sebelum mulai mengetik
+ *    - Memiliki jeda napas terstruktur saat berpindah dari Judul -> Kategori/Akun -> Nominal
+ *    - Nominal rata kanan dengan tabular-nums agar tidak bergeser saat diketik
  */
-function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimationComplete, onSelectTx, onEditTx, className = '' }) {
+function VoiceAnimatedTransactionItem({
+  item,
+  resolveIcon,
+  isDeleting,
+  onAnimationComplete,
+  onSelectTx,
+  onEditTx,
+  getCategoryName,
+  appLanguage,
+  fmtHomeMoney,
+  className = ''
+}) {
   const fullTitle = item.title || item.category || 'Transaksi';
-  const fullSubtitle = `${item.category || ''} • ${item.account || 'Cash'}`;
+  const catLabel = getCategoryName ? getCategoryName(item.category, appLanguage) : (item.category || '');
+  const fullSubtitle = `${catLabel} • ${item.account || 'Cash'}`;
   const prefix = item.type === 'expense' ? '-' : '+';
-  const fullAmount = `${prefix}Rp ${item.amount.toLocaleString('id-ID')}`;
+  const formattedAmt = fmtHomeMoney ? fmtHomeMoney(item.amount) : `Rp ${Number(item.amount || 0).toLocaleString('id-ID')}`;
+  const fullAmount = `${prefix}${formattedAmt}`;
 
   const L1 = fullTitle.length;
+  const PAUSE_1 = 3; // Jeda terstruktur setelah selesai ketik Judul (~135ms)
   const L2 = fullSubtitle.length;
+  const PAUSE_2 = 3; // Jeda terstruktur sebelum mulai ketik Nominal (~135ms)
   const L3 = fullAmount.length;
-  const totalChars = L1 + L2 + L3;
+  const totalSteps = L1 + PAUSE_1 + L2 + PAUSE_2 + L3;
 
-  const [charProgress, setCharProgress] = useState(0);
+  const [stepProgress, setStepProgress] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
   useEffect(() => {
     let current = 0;
+    let interval = null;
     let finishTimer = null;
 
-    const interval = setInterval(() => {
-      current++;
-      setCharProgress(current);
-      if (current >= totalChars) {
-        clearInterval(interval);
-        setIsFinished(true);
-        // Setelah selesai mengetik, lepaskan dari state animasi agar menjadi kartu statis permanen
-        finishTimer = setTimeout(() => {
-          if (onAnimationComplete) {
-            onAnimationComplete(item.id);
-          }
-        }, 500);
-      }
-    }, 35); // Kecepatan mengalir 35ms per karakter
+    // Tunggu 260ms saat kartu sedang membuka dari bulatan tengah agar ketikan terlihat jelas & terstruktur
+    const startDelay = setTimeout(() => {
+      interval = setInterval(() => {
+        current++;
+        setStepProgress(current);
+        if (current >= totalSteps) {
+          clearInterval(interval);
+          setIsFinished(true);
+          // Setelah selesai mengetik, lepaskan dari state animasi menjadi kartu statis
+          finishTimer = setTimeout(() => {
+            if (onAnimationComplete) {
+              onAnimationComplete(item.id);
+            }
+          }, 420);
+        }
+      }, 42); // Kecepatan 42ms per langkah: rapi, tenang, dan mudah diikuti mata
+    }, 260);
 
     return () => {
-      clearInterval(interval);
+      clearTimeout(startDelay);
+      if (interval) clearInterval(interval);
       if (finishTimer) clearTimeout(finishTimer);
     };
-  }, [totalChars, item.id, onAnimationComplete]);
+  }, [totalSteps, item.id, onAnimationComplete]);
 
-  // Hitung teks yang tampil berdasarkan progress saat ini
+  // Hitung teks yang tampil berdasarkan step terstruktur saat ini
   let displayedTitle = '';
   let displayedSubtitle = '';
   let displayedAmount = '';
-  let currentCursor = 'title'; // 'title' | 'sub' | 'amount' | 'none'
+  let currentCursor = 'none'; // 'title' | 'sub' | 'amount' | 'none'
 
   if (isFinished) {
     displayedTitle = fullTitle;
     displayedSubtitle = fullSubtitle;
     displayedAmount = fullAmount;
     currentCursor = 'none';
-  } else if (charProgress <= L1) {
-    displayedTitle = fullTitle.slice(0, charProgress);
+  } else if (stepProgress === 0) {
     currentCursor = 'title';
-  } else if (charProgress <= L1 + L2) {
+  } else if (stepProgress <= L1) {
+    displayedTitle = fullTitle.slice(0, stepProgress);
+    currentCursor = 'title';
+  } else if (stepProgress <= L1 + PAUSE_1) {
+    // Jeda tenang di akhir judul sebelum pindah ke baris bawah
     displayedTitle = fullTitle;
-    displayedSubtitle = fullSubtitle.slice(0, charProgress - L1);
+    currentCursor = 'title';
+  } else if (stepProgress <= L1 + PAUSE_1 + L2) {
+    displayedTitle = fullTitle;
+    displayedSubtitle = fullSubtitle.slice(0, stepProgress - L1 - PAUSE_1);
+    currentCursor = 'sub';
+  } else if (stepProgress <= L1 + PAUSE_1 + L2 + PAUSE_2) {
+    // Jeda tenang di akhir subjudul sebelum pindah ke nominal kanan
+    displayedTitle = fullTitle;
+    displayedSubtitle = fullSubtitle;
     currentCursor = 'sub';
   } else {
     displayedTitle = fullTitle;
     displayedSubtitle = fullSubtitle;
-    displayedAmount = fullAmount.slice(0, charProgress - L1 - L2);
+    displayedAmount = fullAmount.slice(0, stepProgress - L1 - PAUSE_1 - L2 - PAUSE_2);
     currentCursor = 'amount';
   }
 
@@ -448,12 +482,12 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimati
         {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
       </div>
       <div className="transaction-details" style={{ textAlign: 'left', direction: 'ltr' }}>
-        <span className="transaction-title" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
-          {displayedTitle}
+        <span className="transaction-title" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', minHeight: '20px' }}>
+          <span>{displayedTitle}</span>
           {currentCursor === 'title' && <span className="typewriter-cursor">|</span>}
         </span>
-        <span className="transaction-category" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center' }}>
-          {displayedSubtitle}
+        <span className="transaction-category" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', minHeight: '16px' }}>
+          <span>{displayedSubtitle}</span>
           {currentCursor === 'sub' && <span className="typewriter-cursor">|</span>}
         </span>
       </div>
@@ -476,7 +510,17 @@ function VoiceAnimatedTransactionItem({ item, resolveIcon, isDeleting, onAnimati
             <span>Edit</span>
           </button>
         )}
-        <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`} style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', minWidth: '105px' }}>
+        <div
+          className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}
+          style={{
+            textAlign: 'right',
+            direction: 'ltr',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            fontVariantNumeric: 'tabular-nums'
+          }}
+        >
           <span>{displayedAmount}</span>
           {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
         </div>
@@ -1491,18 +1535,33 @@ function App() {
   const [deletingTxIds, setDeletingTxIds] = useState([]);
   const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
+  const [isVoiceToastExiting, setIsVoiceToastExiting] = useState(false);
   const toastTimerRef = useRef(null);
+  const toastExitTimerRef = useRef(null);
 
   const showVoiceToast = useCallback((msg) => {
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
       toastTimerRef.current = null;
     }
+    if (toastExitTimerRef.current) {
+      clearTimeout(toastExitTimerRef.current);
+      toastExitTimerRef.current = null;
+    }
+    setIsVoiceToastExiting(false);
     setVoiceToastMessage(msg);
+
+    // Waktu tampil nyaman dibaca sebelum mulai collapse exit (3000ms)
     toastTimerRef.current = setTimeout(() => {
-      setVoiceToastMessage(null);
+      setIsVoiceToastExiting(true);
+      // Hapus dari DOM setelah animasi fluid exit (480ms) selesai tuntas
+      toastExitTimerRef.current = setTimeout(() => {
+        setVoiceToastMessage(null);
+        setIsVoiceToastExiting(false);
+        toastExitTimerRef.current = null;
+      }, 480);
       toastTimerRef.current = null;
-    }, 2800);
+    }, 3000);
   }, []);
 
   const handleSubmitFeedback = async () => {
@@ -3704,7 +3763,7 @@ function App() {
             ? (result.targetCategory || result.targetQuery || (result.timeRange === 'today' ? 'Hari Ini' : result.timeRange === 'yesterday' ? 'Kemarin' : 'semua'))
             : `${targetTxs.length} transaksi terakhir`;
           showVoiceToast(`✅ ${targetTxs.length} transaksi (${labelDesc}) berhasil dihapus`);
-        }, 450);
+        }, 620);
 
         return;
       }
@@ -3800,7 +3859,7 @@ function App() {
       // Catat pembelajaran & evaluasi penghapusan untuk Dashboard Admin
       recordDeletionEvaluation(targetTx, result.targetQuery, result.targetAmount, profileName);
 
-      // Animasi 3D Sink Backwards (Tenggelam ke Belakang)
+      // Animasi Smooth Collapse Exit (Menyempit ke Bulatan Tengah & Merapatkan Baris)
       setDeletingTxId(targetTx.id);
       playPopSound();
       showVoiceToast(`🗑️ Menghapus "${targetTx.title}"...`);
@@ -3809,7 +3868,7 @@ function App() {
         setTransactions(prev => prev.filter(t => t.id !== targetTx.id));
         setDeletingTxId(null);
         showVoiceToast(`✅ Transaksi "${targetTx.title}" berhasil dihapus`);
-      }, 450);
+      }, 620);
 
       return;
     }
@@ -4243,6 +4302,7 @@ function App() {
         playPositiveChime();
         checkAndTriggerBudgetNotifications(newTx, transactions, expenseCategories);
       }
+      setVoiceAnimatingTxIds(prev => new Set(prev).add(newTx.id));
       setTransactions(prev => [newTx, ...prev]);
     }
 
@@ -5319,6 +5379,9 @@ function App() {
                               onAnimationComplete={handleVoiceAnimationComplete}
                               onSelectTx={setActiveTxDetail}
                               onEditTx={handleEditTransaction}
+                              getCategoryName={getCategoryName}
+                              appLanguage={appLanguage}
+                              fmtHomeMoney={fmtHomeMoney}
                               className={firstTxClass}
                             />
                           );
@@ -6877,8 +6940,10 @@ function App() {
 
       {/* Voice Feedback Toast Notification */}
       {voiceToastMessage && (
-        <div className="voice-toast-notification">
-          <span>{voiceToastMessage}</span>
+        <div className={`voice-toast-notification${isVoiceToastExiting ? ' toast-exiting' : ''}`}>
+          <div className="voice-toast-inner">
+            <span>{voiceToastMessage}</span>
+          </div>
         </div>
       )}
 

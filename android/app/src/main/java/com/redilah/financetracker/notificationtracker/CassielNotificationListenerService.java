@@ -156,9 +156,9 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             String fullText = (title + " " + text + " " + bigText + " " + subText + " " + summaryText + " " + tickerText).toLowerCase();
 
-            // Rejection of failed/cancelled transactions (e.g. Pembayaran gagal, saldonya kurang, declined)
-            if (isFailedOrCancelledNotification(fullText)) {
-                Log.i(TAG, "Notification rejected (failed/cancelled transaction) from " + packageName + " | Title: " + title);
+            // Rejection of non-transactional items (failed, cancelled, promo, ads, marketing, OTP, security)
+            if (isNonTransactional(fullText)) {
+                Log.i(TAG, "Notification rejected (non-transactional / promo / failed) from " + packageName + " | Title: " + title);
                 return;
             }
 
@@ -246,36 +246,92 @@ public class CassielNotificationListenerService extends NotificationListenerServ
         return false;
     }
 
+    public static boolean isNonTransactional(String fullText) {
+        if (fullText == null || fullText.isEmpty()) return true;
+        String lower = fullText.toLowerCase();
+
+        // 1. Explicit failure / cancellation keywords or phrases
+        if (isFailedOrCancelledNotification(lower)) {
+            return true;
+        }
+
+        // 2. Pure OTP / Verification / Security / Login alerts
+        if (lower.contains("otp") || lower.contains("kode verifikasi") || lower.contains("verification code")
+                || lower.contains("login baru") || lower.contains("password baru") || lower.contains("kata sandi")
+                || lower.contains("verifikasi perangkat") || lower.contains("aktivasi") || lower.contains("keamanan akun")
+                || lower.contains("security alert") || lower.contains("one time password") || lower.contains("one-time password")) {
+            return true;
+        }
+
+        // 3. Marketing / Promo / Ads / Rewards / Discounts / Contest / Survey / Games / Loans / Investment
+        boolean isMarketingOrPromo = false;
+        if (lower.contains("promo") || lower.contains("promosi") || lower.contains("diskon") || lower.contains("discount")
+                || lower.contains("voucher") || lower.contains("kupon") || lower.contains("coupon")
+                || lower.contains("cashback") || lower.contains("reward") || lower.contains("rewards")
+                || lower.contains("hadiah") || lower.contains("menangkan") || lower.contains("pemenang")
+                || lower.contains("winner") || lower.contains("giveaway") || lower.contains("undian")
+                || lower.contains("lucky draw") || lower.contains("flip card") || lower.contains("spin")
+                || lower.contains("roda putar") || lower.contains("gratis") || lower.contains("free")
+                || lower.contains("khusus buat kamu") || lower.contains("buat kamu") || lower.contains("penawaran")
+                || lower.contains("special offer") || lower.contains("flash sale") || lower.contains("a+ rewards")
+                || lower.contains("kuota terbatas") || lower.contains("jangan lewatkan") || lower.contains("kesempatan")
+                || lower.contains("ajukan pinjaman") || lower.contains("pinjaman") || lower.contains("paylater")
+                || lower.contains("reksa dana") || lower.contains("investasi") || lower.contains("sbr")
+                || lower.contains("sukuk") || lower.contains("obligasi") || lower.contains("deposito")
+                || lower.contains("potongan harga") || lower.contains("iklan") || lower.contains("advertisement")
+                || lower.contains("bunga spesial")) {
+            isMarketingOrPromo = true;
+        }
+
+        // 4. Definite Real Transaction Execution / Completion Signal
+        Pattern definiteTxPattern = Pattern.compile(
+                "(?:(?:pembayaran|transaksi|transfer|debet|debit|top\\s*up|belanja)\\s+[^!?\\n;]*?\\b(?:berhasil|sukses|selesai|dikonfirmasi)"
+                + "|berhasil\\s+(?:dibayar|bayar|transfer|top\\s*up)"
+                + "|kamu\\s+(?:telah\\s*membayar|berhasil\\s*bayar|menerima|telah\\s*mengirim)"
+                + "|top\\s*up\\s+(?:berhasil|sukses)"
+                + "|uang\\s*masuk\\s*dari|dana\\s*masuk\\s*dari"
+                + "|(?:debet|debit|kredit)\\s+sebesar"
+                + "|(?:pembelian|transaksi)\\s+qris\\s+[^!?\\n;]*?\\bberhasil)",
+                Pattern.CASE_INSENSITIVE
+        );
+
+        boolean hasDefiniteTxExecution = definiteTxPattern.matcher(lower).find();
+
+        // If marketing/promo is detected and NO definite transaction execution signal exists -> REJECT!
+        if (isMarketingOrPromo && !hasDefiniteTxExecution) {
+            return true;
+        }
+
+        // 5. Check if there is ANY legitimate transaction action signal
+        // Strict ban on "rp" or "idr" as a transaction signal! Currency alone is never a transaction.
+        Pattern txSignalPattern = Pattern.compile(
+                "(?:\\b(?:debit|debet|kredit|credit)\\b"
+                + "|\\b(?:pembayaran|bayar|membayar|dibayar|terbayar)\\b"
+                + "|\\b(?:transfer|mentransfer|ditransfer|m-transfer)\\b"
+                + "|\\b(?:kirim|mengirim|dikirim)\\s+(?:uang|dana|ke\\b)"
+                + "|\\b(?:tarik\\s*tunai|penarikan)\\b"
+                + "|\\b(?:terima|menerima|diterima)\\b"
+                + "|(?:dana|uang|saldo)\\s*(?:masuk|keluar)"
+                + "|(?:top\\s*up|topup|isi\\s*saldo|tambah\\s*saldo)"
+                + "|\\b(?:berhasil|sukses|selesai)\\b"
+                + "|\\b(?:qris|bi-fast|bifast)\\b)",
+                Pattern.CASE_INSENSITIVE
+        );
+
+        if (!txSignalPattern.matcher(lower).find()) {
+            return true; // No transaction signal -> Discard!
+        }
+
+        return false;
+    }
+
     private void showInstantConfirmationNotification(String packageName, String appLabel, String title, String text, String bigText, String subText, String tickerText) {
         try {
             String fullText = (title + " " + text + " " + bigText + " " + subText + " " + tickerText).toLowerCase();
 
-            // Rejection of failed/cancelled transactions
-            if (isFailedOrCancelledNotification(fullText)) {
+            // Rejection of non-transactional items (failed, cancelled, promo, ads, OTP)
+            if (isNonTransactional(fullText)) {
                 return;
-            }
-
-            // Rejection of non-transactional items (OTP, Pure Login/Security)
-            if (fullText.contains("otp") || fullText.contains("kode verifikasi") || fullText.contains("login baru")
-                    || fullText.contains("password baru") || fullText.contains("verifikasi perangkat")
-                    || fullText.contains("kata sandi") || fullText.contains("aktivasi")) {
-                return;
-            }
-
-            // Rejection of pure promo/marketing without transaction execution
-            boolean hasTransactionSignal = fullText.contains("berhasil") || fullText.contains("sukses")
-                    || fullText.contains("debit") || fullText.contains("debet") || fullText.contains("kredit")
-                    || fullText.contains("credit") || fullText.contains("pembayaran") || fullText.contains("dibayar")
-                    || fullText.contains("transfer") || fullText.contains("belanja") || fullText.contains("terima")
-                    || fullText.contains("rp") || fullText.contains("idr") || fullText.contains("kirim")
-                    || fullText.contains("topup") || fullText.contains("top up") || fullText.contains("keluar")
-                    || fullText.contains("masuk") || fullText.contains("qris") || fullText.contains("bi-fast");
-
-            if (!hasTransactionSignal) {
-                if (fullText.contains("promo") || fullText.contains("diskon") || fullText.contains("cashback hingga")
-                        || fullText.contains("voucher") || fullText.contains("kupon")) {
-                    return;
-                }
             }
 
             // Amount extraction (balance-aware)
@@ -410,7 +466,18 @@ public class CassielNotificationListenerService extends NotificationListenerServ
 
             while (matcher.find()) {
                 int matchIndex = matcher.start();
+                int matchEnd = matcher.end();
                 String rawBefore = fullText.substring(Math.max(0, matchIndex - 40), matchIndex).toLowerCase();
+                String rawAfter = fullText.substring(matchEnd, Math.min(fullText.length(), matchEnd + 20)).toLowerCase();
+
+                // If preceded by promo/limit context (cashback, diskon, hadiah, voucher, maksimal), skip this amount!
+                boolean isPromoContext = rawBefore.contains("cashback") || rawBefore.contains("hadiah")
+                        || rawBefore.contains("diskon") || rawBefore.contains("voucher")
+                        || rawBefore.contains("maksimal") || rawBefore.contains("maks")
+                        || rawBefore.contains("s.d.") || rawBefore.contains("up to") || rawBefore.contains("hingga");
+                if (isPromoContext) {
+                    continue;
+                }
 
                 // If preceded by saldo/sisa saldo/balance keywords, skip (unless accompanied by bertambah)
                 boolean isBalance = (rawBefore.contains("saldo") || rawBefore.contains("sisa") || rawBefore.contains("balance") || rawBefore.contains("limit"))
@@ -426,6 +493,16 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 String rawNum = cleanedNum.replaceAll("[^0-9]", "");
                 if (!rawNum.isEmpty()) {
                     long amount = Long.parseLong(rawNum);
+
+                    // Check multiplier suffix (e.g. Rp 150 ribu, Rp 500 rb, Rp 1,5 juta)
+                    if (rawAfter.matches("^\\s*(?:ribu|rb|k\\b).*")) {
+                        amount *= 1000L;
+                    } else if (rawAfter.matches("^\\s*(?:juta|jt\\b).*")) {
+                        amount *= 1000000L;
+                    } else if (rawAfter.matches("^\\s*(?:miliar|milyar|m\\b).*")) {
+                        amount *= 1000000000L;
+                    }
+
                     if (amount > 0 && amount < 10000000000L) {
                         if (!isBalance) {
                             candidateAmount = amount;
@@ -629,6 +706,17 @@ public class CassielNotificationListenerService extends NotificationListenerServ
                 || lower.startsWith("berhasil") || lower.startsWith("sukses") || lower.startsWith("transaksi")
                 || lower.startsWith("pembayaran") || lower.startsWith("pembelian") || lower.startsWith("rekening")
                 || lower.startsWith("call center") || lower.startsWith("info lebih")) {
+            return false;
+        }
+
+        // Discard prepositions, promo keywords, and stop words
+        if (lower.equals("sini") || lower.equals("sana") || lower.equals("mana")
+                || lower.startsWith("sini") || lower.startsWith("luar negeri") || lower.startsWith("dalam negeri")
+                || lower.equals("merchant") || lower.equals("rekening") || lower.equals("aplikasi")
+                || lower.equals("fitur") || lower.equals("semua") || lower.equals("berikut")
+                || lower.equals("kantong") || lower.equals("pocket") || lower.startsWith("cashback")
+                || lower.startsWith("promo") || lower.startsWith("diskon") || lower.startsWith("hadiah")
+                || lower.startsWith("voucher") || lower.startsWith("kupon")) {
             return false;
         }
 

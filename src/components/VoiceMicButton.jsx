@@ -287,32 +287,40 @@ export default function VoiceMicButton({
     } else {
       // 2. Web / Laptop Browser (Continuous listening with real-time interim results)
       try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              voiceIsolation: true,
-              channelCount: 1
-            }
-          });
-          stream.getTracks().forEach(track => track.stop());
-        }
-
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognitionAPI) {
           cleanupListeners();
-          alert('Browser Anda tidak mendukung Web Speech Recognition. Disarankan menggunakan Google Chrome atau Edge.');
+          alert('Browser Anda tidak mendukung Web Speech Recognition. Disarankan menggunakan Google Chrome atau Microsoft Edge.');
           setStatus('error');
           setTimeout(() => setStatus('idle'), 2000);
           return;
+        }
+
+        // Minta dan pastikan izin mikrofon aktif di browser laptop
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(t => t.stop());
+          } catch (e) {
+            console.warn('Microphone permission denied / not allowed:', e);
+            cleanupListeners();
+            alert('Izin mikrofon belum diberikan pada browser. Silakan klik ikon gembok / izin mikrofon di bilah alamat browser.');
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 2000);
+            return;
+          }
+        }
+
+        if (webRecognitionRef.current) {
+          try { webRecognitionRef.current.abort(); } catch {}
+          webRecognitionRef.current = null;
         }
 
         const recognition = new SpeechRecognitionAPI();
         recognition.lang = 'id-ID';
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
           setStatus('listening');
@@ -322,27 +330,57 @@ export default function VoiceMicButton({
         recognition.onresult = (event) => {
           if (isProcessingRef.current) return;
 
-          let currentTranscript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            currentTranscript += event.results[i][0].transcript + ' ';
-          }
-          const trimmed = currentTranscript.trim();
-          accumulatedTranscriptRef.current = trimmed;
-          setLiveTranscript(trimmed);
+          let interimTranscript = '';
+          let finalTranscript = '';
 
-          // Reset silence timer setiap kali ada kata baru (pada mode tour berikan waktu lebih sabar 2.8s)
-          const silenceDelay = isTourVoiceActiveRef.current ? 2800 : 2000;
-          if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
+            }
           }
-          silenceTimerRef.current = setTimeout(() => {
-            stopListeningAndProcess();
-          }, silenceDelay);
+
+          const combined = (accumulatedTranscriptRef.current + ' ' + finalTranscript + ' ' + interimTranscript).replace(/\s+/g, ' ').trim();
+
+          if (finalTranscript.trim()) {
+            accumulatedTranscriptRef.current = (accumulatedTranscriptRef.current + ' ' + finalTranscript).replace(/\s+/g, ' ').trim();
+          }
+
+          if (combined) {
+            setLiveTranscript(combined);
+
+            const silenceDelay = isTourVoiceActiveRef.current ? 2800 : 2000;
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+            }
+            silenceTimerRef.current = setTimeout(() => {
+              stopListeningAndProcess();
+            }, silenceDelay);
+          }
         };
 
         recognition.onerror = (event) => {
+          console.warn('Web Speech Error:', event.error, event);
+          if (event.error === 'aborted') {
+            return;
+          }
+          if (event.error === 'network') {
+            cleanupListeners();
+            alert('Koneksi pengenalan suara gagal. Pastikan laptop terhubung ke internet karena Microsoft Edge / Chrome membutuhkan koneksi server speech.');
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 2500);
+            return;
+          }
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            cleanupListeners();
+            alert('Izin mikrofon diblokir pada browser Anda. Klik ikon gembok di sebelah URL untuk mengizinkan mikrofon.');
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 2000);
+            return;
+          }
           if (event.error !== 'no-speech') {
-            console.warn('Web Speech Error:', event.error);
             cleanupListeners();
             setStatus('error');
             setTimeout(() => setStatus('idle'), 1500);
@@ -356,7 +394,7 @@ export default function VoiceMicButton({
           }
           if (isProcessingRef.current) return;
 
-          const text = accumulatedTranscriptRef.current.trim();
+          const text = (accumulatedTranscriptRef.current || liveTranscript).trim();
           accumulatedTranscriptRef.current = '';
           if (text) {
             isProcessingRef.current = true;
@@ -371,11 +409,11 @@ export default function VoiceMicButton({
         webRecognitionRef.current = recognition;
         recognition.start();
       } catch (err) {
-        console.warn('Laptop/Browser mic permission error:', err);
+        console.warn('Laptop/Browser mic error:', err);
         cleanupListeners();
-        alert('Izin mikrofon ditolak pada browser Anda.');
+        alert('Gagal mengaktifkan mikrofon pada browser Anda. Pastikan laptop terhubung internet dan mikrofon aktif.');
         setStatus('error');
-        setTimeout(() => setStatus('idle'), 1500);
+        setTimeout(() => setStatus('idle'), 2000);
       }
     }
   };

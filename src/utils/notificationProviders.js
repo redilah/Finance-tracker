@@ -290,10 +290,11 @@ export const FAILED_TRANSACTION_PATTERNS = [
  */
 const NON_TRANSACTION_PATTERNS = [
   ...FAILED_TRANSACTION_PATTERNS,
-  /\b(promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|poin|points?|koin|coins?)\b/i,
+  /\b(promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|poin|points?|koin|coins?|cashback)\b/i,
   /\b(hadiah|menangkan|pemenang|winner|gratis|free|giveaway|undian|lucky\s*draw|flip\s*card|spin|roda\s*putar)\b/i,
-  /\b(cashback\s*(?:s\.?d\.?|hingga|up\s*to|sampai)|potongan\s*(?:hingga|s\.?d\.?|sampai)|diskon\s*(?:hingga|s\.?d\.?|sampai))\b/i,
+  /\b(cashback(?:\s*(?:s\.?d\.?|hingga|up\s*to|sampai))?|potongan\s*(?:hingga|s\.?d\.?|sampai)|diskon\s*(?:hingga|s\.?d\.?|sampai))\b/i,
   /\b(khusus\s*buat\s*kamu|buat\s*kamu|penawaran\s*spesial|special\s*offer|flash\s*sale|mega\s*sale|deals?|a\+\s*rewards)\b/i,
+  /\b(jangan\s*lewatkan|kuota\s*terbatas|kesempatan\s*terbatas|ajukan\s*pinjaman|pinjaman\s*online|paylater|reksa\s*dana|sbr\d*|sukuk|obligasi|deposito)\b/i,
   /\b(otp|kode\s*verifikasi|verification\s*code|one.?time.?password)\b/i,
   /\b(tagihan\s*(?:bulan|anda|kamu)|billing\s*reminder|jatuh\s*tempo)\b/i,
   /\b(limit\s*(?:kartu|kredit|harian)|daily\s*limit)\b/i,
@@ -754,11 +755,11 @@ export function isNonTransactional(fullText) {
   }
 
   // Pure Marketing / Promo / Rewards / Contest / Games — check if marketing terms exist
-  const isMarketingOrPromo = /(?:promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|hadiah|menangkan|pemenang|winner|gratis\b|free\b|giveaway|undian|lucky\s*draw|flip\s*card|spin\b|roda\s*putar|cashback\s*(?:s\.?d\.?|hingga|up\s*to|sampai)|potongan\s*(?:hingga|s\.?d\.?|sampai)|khusus\s*buat\s*kamu|buat\s*kamu|penawaran\s*spesial|special\s*offer|flash\s*sale|a\+\s*rewards)/i.test(fullText);
+  const isMarketingOrPromo = /(?:promo|promosi|diskon|discount|voucher|kupon|coupon|rewards?|hadiah|menangkan|pemenang|winner|gratis\b|free\b|giveaway|undian|lucky\s*draw|flip\s*card|spin\b|roda\s*putar|cashback|potongan\s*(?:hingga|s\.?d\.?|sampai)|khusus\s*buat\s*kamu|buat\s*kamu|penawaran\s*spesial|special\s*offer|flash\s*sale|a\+\s*rewards|jangan\s*lewatkan|kuota\s*terbatas|kesempatan\s*terbatas|ajukan\s*pinjaman|pinjaman\s*online|paylater|reksa\s*dana|sbr\d*|sukuk|obligasi|deposito|iklan|advertisement)/i.test(fullText);
 
   // Check if there is an explicit REAL transaction execution/completion signal
   // E.g. "Pembayaran Rp45.000 di Kopi Kenangan berhasil. Dapatkan cashback hingga Rp5.000", "Kamu berhasil bayar SIMPATI 2.000", "Transfer Berhasil"
-  const hasDefiniteTxExecution = /(?:pembayaran\b[^!?\n;]*\b(?:berhasil|sukses|selesai|dikonfirmasi)|(?:transaksi|transfer|debet|debit)\b[^!?\n;]*\b(?:berhasil|sukses|selesai)|berhasil\s*(?:dibayar|bayar|transfer|top\s*up)|kamu\s*(?:telah\s*membayar|berhasil\s*bayar|menerima)|top\s*up\s*(?:berhasil|sukses)|uang\s*masuk\s*dari|debet\s*sebesar|debit\s*sebesar|kredit\s*sebesar)/i.test(fullText);
+  const hasDefiniteTxExecution = /(?:pembayaran\b[^!?\n;]*\b(?:berhasil|sukses|selesai|dikonfirmasi)|(?:transaksi|transfer|debet|debit|belanja)\b[^!?\n;]*\b(?:berhasil|sukses|selesai)|berhasil\s*(?:dibayar|bayar|transfer|top\s*up)|kamu\s*(?:telah\s*membayar|berhasil\s*bayar|menerima|telah\s*mengirim)|top\s*up\s*(?:berhasil|sukses)|uang\s*masuk\s*dari|dana\s*masuk\s*dari|debet\s*sebesar|debit\s*sebesar|kredit\s*sebesar|(?:pembelian|transaksi)\s+qris\s+[^!?\n;]*?\bberhasil)/i.test(fullText);
 
   if (isMarketingOrPromo && !hasDefiniteTxExecution) {
     return true;
@@ -1418,6 +1419,40 @@ export function runParserTests() {
   // Test 4c: Generic transfer failed / declined
   test('Transfer gagal / ditolak — should be non-transactional (ignored)', () => {
     const text = 'Transfer Rp500.000 ke Budi gagal diproses karena saldo tidak mencukupi.';
+    const isNonTx = isNonTransactional(text);
+    return {
+      passed: isNonTx === true,
+      expected: 'true (ignored)',
+      actual: String(isNonTx),
+    };
+  });
+
+  // Test 4d: Bank Jago SBR015 Cashback Ad (Must be non-transactional / ignored)
+  test('Bank Jago Cashback SBR015 ad — should be non-transactional (ignored)', () => {
+    const text = '👀Jangan lewatkan cashback SBR015! Dapatkan cashback s.d. Rp150 ribu di sini! Kuota terbatas!';
+    const isNonTx = isNonTransactional(text);
+    const hasSig = hasTransactionSignal(text);
+    return {
+      passed: isNonTx === true && hasSig === false,
+      expected: 'true / false',
+      actual: `${isNonTx} / ${hasSig}`,
+    };
+  });
+
+  // Test 4e: Bank Jago Liburan Luar Negeri Cashback Ad (Must be non-transactional / ignored)
+  test('Bank Jago Liburan Luar Negeri ad — should be non-transactional (ignored)', () => {
+    const text = '🌍 Kartu Jago siap nemenin liburanmu Pakai di luar negeri dan nikmati cashback s.d. Rp500 ribu!';
+    const isNonTx = isNonTransactional(text);
+    return {
+      passed: isNonTx === true,
+      expected: 'true (ignored)',
+      actual: String(isNonTx),
+    };
+  });
+
+  // Test 4f: Generic Cashback Promo without s.d. (Must be non-transactional / ignored)
+  test('Generic Cashback Promo without s.d. — should be non-transactional (ignored)', () => {
+    const text = 'Dapatkan cashback Rp50.000 untuk pembelian reksa dana pertamamu!';
     const isNonTx = isNonTransactional(text);
     return {
       passed: isNonTx === true,
