@@ -1110,73 +1110,120 @@ img[src*="Kost"] {
   color: var(--text-muted);
 }
 
-/* Bottom Nav with Curved Notch & Tactile Press Effects */
+/* ==========================================================================
+   Bottom Nav — Apple iOS 26 "Liquid Glass" (Light/Warm Glass + Center Plus)
+   ========================================================================== */
 .bottom-nav {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 85px;
-  background: transparent;
+  height: 86px;
+  padding: 0 12px 12px 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 239, 230, 0) 0%,
+    rgba(248, 239, 230, 0.65) 55%,
+    rgba(248, 239, 230, 0.94) 100%
+  );
   z-index: 100;
   pointer-events: none;
 }
 
-.nav-bg-svg {
+.nav-liquid-svg-defs {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  display: block;
-  filter: drop-shadow(0 -4px 14px rgba(0, 0, 0, 0.05));
+  width: 0;
+  height: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
-/* Animated Floating Bubble (Liquid Indicator - Apple Fluid Design) */
-.nav-floating-bubble {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF9F2 100%);
-  border: 2.5px solid #F59E0B;
-  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.32), 0 2px 6px rgba(0, 0, 0, 0.06);
-  pointer-events: none;
-  z-index: 2;
-  will-change: transform;
-}
-
-.nav-items-container {
+/* Light/Warm Glass Floating Pill Container (with 120fps Cohesive Elastic Bar Bounce) */
+.nav-items-container.nav-glass-pill-shell {
   position: relative;
   z-index: 3;
+  width: 100%;
+  height: 62px;
+  padding: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 253, 250, 0.78) 0%,
+    rgba(246, 235, 222, 0.86) 100%
+  );
+  backdrop-filter: blur(22px) saturate(195%);
+  -webkit-backdrop-filter: blur(22px) saturate(195%);
+  border: 1.2px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 14px 34px rgba(96, 64, 32, 0.14),
+    0 3px 10px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+    inset 0 -1.5px 3px rgba(188, 138, 88, 0.16);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  overflow: visible;
+  will-change: transform;
+  transform-origin: 50% 50%;
+}
+
+.nav-pill-bar-specular {
+  position: absolute;
+  top: 1px;
+  left: 22px;
+  right: 22px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.95) 25%,
+    rgba(255, 255, 255, 0.95) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Shared Coordinate Grid for Base Layer & Magnified Inner Lens World */
+.nav-base-layer,
+.nav-lens-inner-world {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
   height: 100%;
-  padding: 0 16px 14px 16px;
-  pointer-events: auto;
+  padding: 0 6px;
+}
+
+.nav-base-layer {
+  position: relative;
+  z-index: 3;
+  will-change: mask-image, -webkit-mask-image;
 }
 
 .nav-group-left {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  width: calc(50% - 38px);
-  gap: 10px;
-  padding-left: 6px;
+  justify-content: space-between;
+  width: calc(50% - 44px);
+  gap: 2px;
+  padding-left: 2px;
+  padding-right: 4px;
 }
 
 .nav-group-right {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  width: calc(50% - 38px);
-  gap: 10px;
-  padding-right: 6px;
+  justify-content: space-between;
+  width: calc(50% - 44px);
+  gap: 2px;
+  padding-left: 4px;
+  padding-right: 2px;
 }
 
 .nav-item {
@@ -1187,62 +1234,156 @@ img[src*="Kost"] {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
-  padding: 6px 4px;
-  border-radius: 16px;
+  padding: 5px 2px;
+  border-radius: 20px;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   flex: 1;
-  max-width: 68px;
+  max-width: 64px;
   position: relative;
   transition: transform 120ms ease-out;
 }
 
 .nav-icon {
-  width: 24px;
-  height: 24px;
-  opacity: 0.68;
-  transition: transform 0.36s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.22s ease, filter 0.25s ease;
-  will-change: transform, opacity, filter;
+  width: 22px;
+  height: 22px;
+  opacity: 0.66;
+  filter: saturate(0.88);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
 }
 
 .nav-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: #64748B;
+  color: #72655A;
   line-height: 1.1;
-  letter-spacing: -0.1px;
-  transition: color 0.22s ease, transform 0.36s cubic-bezier(0.25, 1, 0.5, 1), font-weight 0.2s ease;
+  letter-spacing: -0.15px;
   font-family: inherit;
   white-space: nowrap;
+  pointer-events: none;
 }
 
-/* Active Nav Item - Keep Vivid Original Colors with Tactile Depth */
-.nav-item.active .nav-icon {
-  opacity: 1;
-  transform: translateY(-16px) scale(1.15);
-  filter: drop-shadow(0 3px 6px rgba(217, 119, 6, 0.26));
-}
-
-.nav-item.active .nav-label {
-  color: #D97706;
-  font-weight: 800;
-  transform: translateY(2px);
-}
-
-/* Apple Design Instant Response on Pointer-Down */
+/* Tactile Press Feedback handled by 2D Hydro-Elastic Spring Physics */
 .nav-item:active {
-  transform: scale(0.92);
+  transform: none;
 }
 
-.nav-item:active .nav-icon {
-  opacity: 1;
-  transform: scale(0.95);
+/* ==========================================================================
+   3D Apple Liquid Glass Bubble (Pure Monochrome Crystal Droplet — Zero Rainbow)
+   ========================================================================== */
+.nav-liquid-glass-bubble {
+  --glass-active: 0;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 64px;
+  height: 48px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 6;
+  will-change: transform;
+  transform-origin: center center;
+  background: radial-gradient(
+    120% 105% at 50% 16%,
+    rgba(255, 255, 255, calc(0.86 - var(--glass-active) * 0.28)) 0%,
+    rgba(255, 253, 250, calc(0.72 - var(--glass-active) * 0.42)) 46%,
+    rgba(247, 238, 226, calc(0.68 - var(--glass-active) * 0.34)) 82%,
+    rgba(255, 255, 255, calc(0.90 - var(--glass-active) * 0.14)) 100%
+  );
+  box-shadow:
+    0 calc(3px + var(--glass-active) * 5px) calc(10px + var(--glass-active) * 10px) rgba(92, 58, 24, calc(0.11 + var(--glass-active) * 0.11)),
+    0 1.5px 4px rgba(0, 0, 0, calc(0.05 + var(--glass-active) * 0.05));
+  transition: opacity 0.18s ease;
 }
 
-.nav-item.active:active .nav-icon {
-  transform: translateY(-16px) scale(1.06);
+/* Optical Clip Stage (Pure GPU Vector Rendering — 100% Sharp Text & Icons) */
+.nav-lens-refraction-stage {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.nav-lens-inner-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  will-change: transform;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.nav-lens-clone-item {
+  pointer-events: none;
+}
+
+/* Crisp Vector Active Icon & Text Inside the Glass Bubble (Zero Blur) */
+.nav-lens-icon {
+  opacity: 1 !important;
+  filter: saturate(1.22) contrast(1.04) !important;
+}
+
+.nav-lens-label {
+  color: #D97706 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.1px;
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Top & Bottom Total Internal Reflection Meniscus Crescents (Monochrome Only) */
+.glass-bubble-pole-top,
+.glass-bubble-pole-bottom {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(38, 28, 18, 0) 0%,
+    rgba(38, 28, 18, calc(0.10 + var(--glass-active) * 0.24)) 25%,
+    rgba(24, 16, 10, calc(0.18 + var(--glass-active) * 0.34)) 50%,
+    rgba(38, 28, 18, calc(0.10 + var(--glass-active) * 0.24)) 75%,
+    rgba(38, 28, 18, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.glass-bubble-pole-top {
+  top: 1.6px;
+}
+
+.glass-bubble-pole-bottom {
+  bottom: 1.6px;
+}
+
+/* Outer 3D Crystal Specular Rim & Surface Glare (Pure White/Neutral Glass Rim — No Rainbow) */
+.glass-bubble-specular-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1.35px solid rgba(255, 255, 255, 0.96);
+  background: linear-gradient(
+    168deg,
+    rgba(255, 255, 255, calc(0.46 + var(--glass-active) * 0.22)) 0%,
+    rgba(255, 255, 255, calc(0.08 + var(--glass-active) * 0.08)) 32%,
+    rgba(255, 255, 255, 0) 58%,
+    rgba(255, 250, 244, calc(0.24 + var(--glass-active) * 0.18)) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 2.5px rgba(255, 255, 255, 0.98),
+    inset 0 -1.5px 2.5px rgba(255, 252, 246, 0.92),
+    inset 2px 0 3.5px rgba(255, 255, 255, calc(0.35 + var(--glass-active) * 0.45)),
+    inset -2px 0 3.5px rgba(120, 90, 60, calc(0.06 + var(--glass-active) * 0.12));
+  pointer-events: none;
+  z-index: 4;
 }
 
 /* Tab View Switch Animation - Apple Synchronized Fluid Slide */
@@ -1297,16 +1438,28 @@ img[src*="Kost"] {
   }
 }
 
-/* Center Floating Plus Button - Perfectly Locked at Center 50% (Exact Notch) */
+/* Center Floating Plus Button - Perfectly Locked at Center 50% (Opsi B) */
 .center-add-wrapper {
   position: absolute;
   left: 50%;
-  top: 0;
-  transform: translate(-50%, -24px);
+  top: 50%;
+  transform: translate(-50%, -62%);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0;
+  padding: 4px;
+  border-radius: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(248, 239, 230, 0.72) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.2px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 8px 20px rgba(120, 78, 32, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
   z-index: 10;
 }
 
@@ -1325,8 +1478,8 @@ img[src*="Kost"] {
 }
 
 .add-icon {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   box-shadow: 0 10px 22px rgba(246, 172, 85, 0.45), 0 4px 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
@@ -1334,7 +1487,7 @@ img[src*="Kost"] {
 
 /* Sinking / Press animation for center Plus button */
 .center-add-btn:active {
-  transform: translateY(6px) scale(0.86);
+  transform: translateY(4px) scale(0.88);
   filter: brightness(0.92);
 }
 
@@ -3774,8 +3927,8 @@ img[src*="Kost"] {
 
 .stats-type-slider-indicator.to-expense::after {
   margin-right: 2px;
-  background: linear-gradient(90deg, #F87171, #EF4444);
-  box-shadow: 0 2px 8px rgba(248, 113, 113, 0.35);
+  background: linear-gradient(90deg, #F59E0B, var(--card-expense-text, #BC6C25));
+  box-shadow: 0 2px 8px rgba(188, 108, 37, 0.35);
 }
 
 .stats-type-tab {
@@ -3834,7 +3987,7 @@ img[src*="Kost"] {
 }
 
 .stats-type-tab.active.expense .stats-total-amount {
-  color: #DC2626;
+  color: var(--card-expense-text, #BC6C25);
 }
 
 /* Apple Fluid Content Transition Wrapper */
@@ -4507,7 +4660,6 @@ img[src*="Kost"] {
 .wa-menu-icon-box.notif-icon,
 .wa-menu-icon-box.auto-tracker-icon,
 .wa-menu-icon-box.assistant-icon,
-.wa-menu-icon-box.floating-bubble-icon,
 .wa-menu-icon-box.font-icon,
 .wa-menu-icon-box.lang-icon,
 .wa-menu-icon-box.currency-icon,
@@ -6216,9 +6368,9 @@ img[src*="Kost"] {
 
 .budget-row-set-btn {
   background: #FFFFFF;
-  border: 1.5px solid #BC6C25;
-  color: #BC6C25;
-  border-radius: 4.5px;
+  border: 1.5px solid #D97706;
+  color: #D97706;
+  border-radius: 5px;
   padding: 3px 14px;
   min-width: 50px;
   font-size: 11.5px;
@@ -6233,7 +6385,9 @@ img[src*="Kost"] {
 
 .budget-row-set-btn:active {
   transform: scale(0.94);
-  background: #FFF8F1;
+  background: #FFFBEB;
+  border-color: #F59E0B;
+  color: #B45309;
 }
 
 .budget-row-chevron {
@@ -7580,18 +7734,116 @@ img[src*="Kost"] {
   color: #B91C1C;
 }
 
-/* Suggestions / Examples */
+/* Suggestions & Custom Chips */
 .quick-text-suggestions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.quick-text-sugg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .quick-text-sugg-title {
   font-size: 11.5px;
   font-weight: 700;
   color: #8C7A6B;
+}
+
+.quick-add-chip-trigger {
+  background: transparent;
+  border: 1px dashed #A5B4FC;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4F46E5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.quick-add-chip-trigger:hover {
+  background: #EEF2FF;
+  border-color: #6366F1;
+}
+
+.quick-add-chip-trigger:active {
+  transform: scale(0.95);
+}
+
+/* Inline Add Chip Box */
+.quick-add-chip-inline-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFFFF;
+  padding: 4px 6px 4px 12px;
+  border-radius: 14px;
+  border: 1.5px solid #C7D2FE;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+  animation: fadeIn 0.2s ease;
+}
+
+.quick-add-chip-inline-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2B1E16;
+  outline: none;
+  font-family: inherit;
+}
+
+.quick-add-chip-inline-input::placeholder {
+  color: #A8A29E;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.quick-add-chip-save-btn {
+  background: #4F46E5;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.quick-add-chip-save-btn:hover {
+  background: #4338CA;
+}
+
+.quick-add-chip-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quick-add-chip-cancel-btn {
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-add-chip-cancel-btn:hover {
+  color: #4B5563;
 }
 
 .quick-text-sugg-chips {
@@ -7602,7 +7854,7 @@ img[src*="Kost"] {
 
 .quick-sugg-pill {
   background: #FFFFFF;
-  border: none;
+  border: 1px solid #E8E0D5;
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 11.5px;
@@ -7612,6 +7864,58 @@ img[src*="Kost"] {
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quick-sugg-pill.is-default {
+  background: #F8F5EE;
+  border-color: #E2D9CC;
+}
+
+.quick-sugg-pill.is-custom {
+  background: #F5F3FF;
+  border-color: #E0E7FF;
+  color: #4338CA;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  padding-right: 8px;
+}
+
+.quick-sugg-pill-custom-wrapper {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(43, 30, 22, 0.04);
+}
+
+.quick-sugg-pill-custom-wrapper .quick-sugg-pill.is-custom {
+  box-shadow: none;
+}
+
+.quick-sugg-chip-delete-btn {
+  background: #F5F3FF;
+  border: 1px solid #E0E7FF;
+  border-left: none;
+  color: #818CF8;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 5px 8px 5px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+
+.quick-sugg-chip-delete-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FECACA;
 }
 
 .quick-sugg-pill:hover {
@@ -7621,6 +7925,34 @@ img[src*="Kost"] {
 
 .quick-sugg-pill:active {
   transform: scale(0.95);
+}
+
+/* Quick Pin Current Input */
+.quick-text-save-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+  margin-bottom: 2px;
+}
+
+.quick-text-pin-chip-btn {
+  background: transparent;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4F46E5;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.quick-text-pin-chip-btn:hover {
+  background: rgba(79, 70, 229, 0.08);
 }
 
 .quick-text-actions {
@@ -11026,7 +11358,7 @@ img[src*="Kost"] {
 }
 
 .stock-inspector-net-pill.deficit .net-pill-amount {
-  color: #DC2626;
+  color: var(--card-expense-text, #BC6C25);
 }
 
 .net-pill-amount {

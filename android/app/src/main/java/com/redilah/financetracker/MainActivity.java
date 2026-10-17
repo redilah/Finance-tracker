@@ -3,7 +3,6 @@ package com.redilah.financetracker;
 import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
-import com.redilah.financetracker.assistant.CassielFloatingBubblePlugin;
 import com.redilah.financetracker.auth.CassielNativeGoogleAuthPlugin;
 import com.redilah.financetracker.billing.CassielNativeBillingPlugin;
 import com.redilah.financetracker.notificationtracker.NotificationTrackerPlugin;
@@ -16,7 +15,6 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotificationTrackerPlugin.class);
         registerPlugin(CassielNativeBillingPlugin.class);
         registerPlugin(CassielNativeGoogleAuthPlugin.class);
-        registerPlugin(CassielFloatingBubblePlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleDeepLinkIntent(getIntent());

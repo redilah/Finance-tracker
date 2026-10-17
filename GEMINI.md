@@ -1,4 +1,4 @@
-﻿# Developer Guidelines for Cassiel (Finance Tracker)
+# Developer Guidelines for Cassiel (Finance Tracker)
 
 > [!IMPORTANT]
 > ## 🚀 STATUS RILIS: GOOGLE PLAY STORE (AAB / ANDROID APP BUNDLE)
@@ -6,7 +6,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.44`** | `versionCode` **`44`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.45`** | `versionCode` **`45`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
@@ -64,13 +64,6 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 3. **Phonetic & Slang Account Synonym Invariant**:
    - Sistem speech-to-text / voice parser wajib mendaftarkan variasi fonetik sehari-hari dan slang perbankan (seperti `"bang jago"` $\rightarrow$ `"Bank Jago"`, `"bang bca"` $\rightarrow$ `"BCA"`, dll.) ke dalam `ACCOUNT_SYNONYMS`, `ACCOUNT_KEYWORDS`, dan `ACCOUNT_INTERCHANGEABLE_ALIASES`.
    - Kata partikel/preposisi perbankan (`"bang"`, `"bank"`, `"pake"`, `"via"`, `"lewat"`) wajib dimasukkan ke dalam `CONNECTING_WORDS` dan secara otomatis dibersihkan dari catatan akhir transaksi (`note`) agar tidak tertinggal kata residu perbankan pada judul pengeluaran/pemasukan.
-
-4. **Floating Bubble (Tombol Cepat Melayang) & Overlay Invariant**:
-   - Berjalan via Android Service `CassielFloatingBubbleService` berbasis `WindowManager` (`TYPE_APPLICATION_OVERLAY`) dengan izin `SYSTEM_ALERT_WINDOW`.
-   - **Visual**: Wajib berupa lambang siluet CF murni (`ic_stat_icon`) dengan warna warm amber Cassiel (`#F59E0B`) **TANPA BACKGROUND BOX** kaku.
-   - **Interaksi & Fisika**: Mendukung sentuhan drag bebas ke segala posisi layar, auto-snap halus ke tepi terdekat (kiri/kanan) saat dilepas, dan auto-fade ke 55% opacity saat idle agar tidak mengganggu pandangan pengguna saat membaca konten aplikasi lain.
-   - **Direct Settings Redirection**: Saat saklar di menu Akun ditekan pertama kali dan izin belum aktif, sistem **WAJIB LANGSUNG** mengarahkan pengguna ke halaman pengaturan OS *"Display over other apps"* (`Settings.ACTION_MANAGE_OVERLAY_PERMISSION` dengan URI package) tanpa memunculkan dialog/alert perantara.
-   - **Aksi Klik**: Mengetuk ikon CF meluncurkan `CassielAssistActivity` (bottom sheet transparan catat cepat non-full-screen).
 
 ### F. Google Sign-In Native & Firebase Authentication Invariants
 1. **Native 1-Tap Google Sign-In (Strict Ban on Web Popups in Mobile)**:
@@ -154,6 +147,22 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 5. **Testing Progression & Live Approval**:
    - Alur rilis: `Internal Testing` $\rightarrow$ `Closed Testing (Alpha)` $\rightarrow$ Checklist Dasbor & Kebijakan $\rightarrow$ `Kirim Perubahan untuk Ditinjau` $\rightarrow$ Status **`Diterbitkan`** (*Published*).
    - Akun developer personal baru wajib memenuhi minimal **20 penguji aktif selama 14 hari berturut-turut** di Pengujian Tertutup sebelum tombol pengajuan ke **Produksi (*Production*)** terbuka.
+
+### K. Sariel Companion Testing Entity (Side-by-Side Sideload APK)
+1. **Entitas & Identitas Terpisah (Side-by-Side Dual Install)**:
+   - **Nama Aplikasi**: **`Sariel`** (label di homescreen HP: `Sariel`).
+   - **Application ID / Package Name**: **`com.redilah.financetracker.sariel`** (varian Gradle `sariel`).
+   - **Tujuan**: Memungkinkan pengujian menyeluruh (*stress test*, UI test, fitur baru) langsung di perangkat fisik pribadi berdampingan dengan Cassiel resmi Play Store tanpa konflik paket atau risiko data tertimpa.
+2. **Penyimpanan & Database Terisolasi 100%**:
+   - Memiliki sandbox penyimpanan (`localStorage`, SQLite/Room, SharedPreferences, cache) terpisah total dari Cassiel. Perubahan atau penghapusan data di Sariel tidak akan pernah mempengaruhi data riil di Cassiel.
+3. **Perintah Build & Auto-Sync**:
+   - **Perintah Build**: Gunakan `.\gradlew assembleSarielRelease --no-daemon` untuk menghasilkan APK bertanda tangan release (`release.keystore`) dengan optimasi R8 shrinker.
+   - **Auto-Sync File APK**: Setiap kali perintah selesai, Gradle otomatis menyalin APK ke:
+     - `apk/Sariel.apk`
+     - `apk/app-sariel-release.apk`
+     - `Sariel.apk` (root workspace)
+4. **Google Sign-In & Firebase Credential Synchronization**:
+   - Paket `com.redilah.financetracker.sariel` terdaftar resmi di Firebase Project `regalia-senpai-app` lengkap dengan fingerprint SHA-1 & SHA-256 (baik release maupun debug) di `android/app/google-services.json` dan Google Cloud OAuth Client ID, sehingga Google Sign-In 1-Tap berfungsi penuh di kedua aplikasi.
 
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
@@ -715,3 +724,46 @@ Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X
 * **Desktop Browser (Chrome/Edge) Web Speech Recognition**:
   - **Multi-Segment Result Iteration**: Pengambilan teks pada `recognition.onresult` wajib melakukan iterasi dari `event.resultIndex` untuk menangkap segmen *interim* dan *final*, agar ucapan berkelanjutan tidak terpotong pada browser desktop.
   - **Hardware Mic Contention Guard**: Hindari pemanggilan `getUserMedia` yang langsung di-`stop()` persis bersamaan dengan `recognition.start()` untuk mencegah driver audio Windows terkunci di browser.
+
+## 48. 🍎 Apple Design & Liquid Glass Master Architecture (Consolidated Apple UI/UX Invariants)
+
+Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pegas, dan arsitektur visual di aplikasi **Cassiel** yang menerapkan standar **Apple Human Interface Guidelines (iOS Fluid Interface & iOS 26 Liquid Glass)**. Seluruh aturan di bawah ini bersifat **LOCKED INVARIANT** dan wajib dipatuhi:
+
+### A. Apple iOS "Liquid Glass" Bottom Navigation Bar (`src/App.jsx` & `src/App.css`)
+1. **Tata Letak Kapsul & Jarak Aman Tombol `+` (Opsi B — Center Plus)**:
+   - Bilah navigasi bawah menggunakan kapsul melayang **Light/Warm Glass** (`.nav-glass-pill-shell`, tinggi `62px`, `border-radius: 999px`, `backdrop-filter: blur(22px) saturate(195%)`) yang menyatu dengan tema krem hangat Cassiel (`#F8EFE6`).
+   - **2 Menu Kiri** (`.nav-group-left`: `Home`, `Accounts`) dan **2 Menu Kanan** (`.nav-group-right`: `Budget`, `Stats`) masing-masing memiliki lebar `calc(50% - 44px)` untuk menjaga zona aman di sekitar tombol `+` tengah.
+   - **Ukuran Balon Kaca (`64px × 48px`)**: Balon kaca (`.nav-liquid-glass-bubble`) wajib pas di dalam tinggi bar `62px` (tidak boleh menonjol keluar atas/bawah) dan **DILARANG KERAS** menyentuh tombol `+` di tengah saat berada di menu `Accounts` maupun `Budget`.
+2. **Murni Kaca Kristal Monokrom (Strict Ban on Rainbow / Chromatic Rim)**:
+   - **DILARANG KERAS** menambahkan cincin warna pelangi (`.glass-bubble-chromatic-rim`, cyan/magenta/orange inset shadows) pada balon kaca.
+   - Balon kaca wajib murni berupa **tetesan kaca kristal bening monokrom** yang dikontrol oleh variabel `--glass-active` (`0` saat diam $\rightarrow$ `1` saat ditekan/meluncur), lengkap dengan lengkung pantulan dalam atas-bawah (*meniscus reflection* `.glass-bubble-pole-top` & `.glass-bubble-pole-bottom`) dan kilau tepi putih bersih (`.glass-bubble-specular-shell`).
+3. **100% Teks & Ikon Tajam Vektor (Dual-Layer Cloned Optical Split-Color)**:
+   - **DILARANG KERAS** memasang `<feDisplacementMap>` SVG filter, `backdrop-filter: blur()`, atau `text-shadow` berwarna pada lapisan teks/ikon di dalam balon kaca karena akan memaksa browser merasterisasi font menjadi bitmap pecah/blur.
+   - Gunakan arsitektur **2 Lapis Vektor GPU**:
+     - **Layer 1 (`.nav-base-layer`)**: Menampilkan ikon & teks tidak aktif (`#72655A`) di luar balon kaca, dan dilubangi secara presisi tepat di bawah area balon kaca menggunakan `radial-gradient(..., transparent 90%, black 98%)` (`mask-image`) agar tidak terjadi bayangan ganda (*ghosting*).
+     - **Layer 2 (`.nav-lens-inner-world` di dalam `.nav-lens-refraction-stage`)**: Menampilkan klon ikon & teks aktif berwarna **Warm Amber (`#D97706`, `font-weight: 800`)** dengan kompensasi skala vektor murni (`netScaleX = iconPulse / finalScaleX`) sehingga teks yang terpotong setengah oleh pinggiran balon kaca terbelah dua warna secara tajam 100%.
+4. **Fisika Membal Balon Kaca — 2D Hydro-Elastic Jelly Bounce (Jangan Diubah!)**:
+   - Balon kaca memiliki pegas 2D independen (`curScaleX` & `curScaleY`) dengan frekuensi alami $\omega = 27.5$ dan redaman rendah $\zeta = 0.34$ (*underdamped spring* yang menghasilkan 2–3 ayunan kenyal).
+   - **Wajib Membal Saat Menekan Menu yang Sama**: Menekan menu yang **sedang aktif** (misal sedang di `Home` lalu menekan `Home` lagi) **WAJIB** tetap memicu efek mengembang kaca bening saat ditekan (`handleNavPointerDown`: `targetScaleX = 1.09, targetScaleY = 1.05, velScaleX += 3.8, velScaleY -= 2.4`) dan membal kenyal saat dilepas/diklik (`handleNavTabClick`: `velScaleX = -4.2, velScaleY = 3.8`).
+5. **Fisika Membal Bar Panjang — Gerakan Smooth "Naik $\rightarrow$ Turun $\rightarrow$ Naik" Menyatu (`curBarSink`)**:
+   - Kapsul bar panjang di bawah (`.nav-glass-pill-shell` / `navContainerRef`) **WAJIB** ikut membal halus menyatu dengan balon kaca setiap kali menu ditekan maupun saat berpindah menu.
+   - **DILARANG KERAS** menggunakan skala horizontal-vertikal berlawanan (`scaleX` vs `scaleY`) yang membuat bar bergetar ke samping, dan **DILARANG** membuat bar tenggelam turun terlebih dahulu.
+   - Gunakan pegas halus tidak berlebihan ($\omega = 21.0, \zeta = 0.46$) dengan titik tumpu terkunci di tengah bawah (`transform-origin: 50% 100%`) dan urutan gerak **Naik dulu $\rightarrow$ Turun $\rightarrow$ Naik**:
+     - **Saat ditekan / mulai berpindah menu ("Naik dulu")**: Bar tetap di posisinya lalu terangkat naik sedikit secara halus (`barTranslateY = -clampedLift * 1.9px`, `barUniformScale = 1 + clampedLift * 0.012`).
+     - **Saat dilepas / mendarat ("Turun $\rightarrow$ Naik")**: Bar turun kembali ke posisi semula lalu memantul naik tipis secara *smooth* tanpa berlebihan (`transform: translate3d(0, ${barTranslateY}px, 0) scale3d(${barUniformScale}, ${barUniformScale}, 1)`).
+6. **Getaran Haptic Fisik Tanpa Suara (Silent Tactile Haptics Only)**:
+   - **DILARANG KERAS** memutar suara klik / synthesizer audio (`AudioContext` atau `playPopSound`) saat menekan atau menggeser menu navigasi utama (kecuali tombol `+` tengah yang memang memanggil modal).
+   - Feedback taktil pada menu navigasi murni menggunakan getaran fisik hening (`navigator.vibrate(8)` saat tekan, `4ms` saat geser lintas tab, dan *elastic double-pulse* `[10, 26, 5]` saat membal).
+
+### B. Komponen Lain di Cassiel yang Menggunakan Teknik Apple Design
+1. **Apple Direction-Aware Page Slide Transitions (`src/App.jsx` & `src/App.css`)**:
+   - Pergantian halaman antar-tab (`Home`, `Accounts`, `Budget`, `Stats`) dihitung secara instan pada *render-pass* React (tanpa jeda `useEffect`) menggunakan kurva `cubic-bezier(0.16, 1, 0.3, 1)`.
+   - Arah luncuran halaman (`tab-slide-forward` / `tab-slide-backward`) dan jarak luncuran (`--slide-dist: 26px..38px`, `--slide-dur: 280ms..390ms`) selalu selaras dengan arah dan jarak lompatan balon kaca.
+2. **Apple Fluid Morphing Pill — Voice & Toast Indicator (`src/App.css`)**:
+   - Ekspansi kartu/pil dinamis menggunakan 1 kurva kontinu `cubic-bezier(0.22, 1, 0.36, 1)` dari titik tengah bulat sempurna (`clip-path: inset(0% 45% 0% 45% round 999px)`) tanpa penyetan `scaleX` yang merusak sudut bulat kapsul, serta menutup kembali secara simetris (`cardFluidDeleteShrink`).
+3. **Apple Fluid Interface Chat Send Motion (`GroupDetailScreen.jsx` & `groups.css`)**:
+   - Pesan grup baru muncul seketika (*zero-latency*) dari poros sudut bawah (`transform-origin: 100% 100%` / `0% 100%`) dengan pegas *critically-damped* `cubic-bezier(0.22, 1, 0.36, 1)` dan *interruptible spring scroll* berbasis `requestAnimationFrame` yang langsung berhenti saat layar disentuh jari.
+4. **Segmented Sliding Pill Indicators & Rolling Cash Counter (`Home`)**:
+   - Tab filter Pemasukan/Pengeluaran di Home menggunakan indikator pil melayang (`.home-tx-filter-indicator`) yang meluncur secara fisik (`translateX`), dipadukan dengan animasi angka bergulir (*rolling cash counter* + `tabular-nums`) saat total nominal berubah.
+5. **Edge-Swipe Back Gesture & Tactile Spring Buttons**:
+   - Seluruh modal mendukung gestur usap tepi kiri bergaya iOS (`touchStartX <= 50px`, `deltaX >= 50px`, `duration < 550ms`), dan tombol aksi di seluruh aplikasi menggunakan respon sentuh elastis Apple (`cubic-bezier(0.34, 1.56, 0.64, 1)`).

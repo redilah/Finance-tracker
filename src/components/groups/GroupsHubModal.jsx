@@ -30,6 +30,7 @@ export default function GroupsHubModal({
 }) {
   const [groups, setGroups] = useState(() => getStoredGroups(currentUserName));
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [initialSubTab, setInitialSubTab] = useState('finance');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isJoiningGroup, setIsJoiningGroup] = useState(false);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
@@ -59,6 +60,18 @@ export default function GroupsHubModal({
       const latest = getStoredGroups(currentUserName);
       setGroups(latest);
       syncAllLocalGroupsToCloud();
+      if (typeof window !== 'undefined' && window.__PENDING_CHAT_GROUP__) {
+        const pending = window.__PENDING_CHAT_GROUP__;
+        window.__PENDING_CHAT_GROUP__ = null;
+        const found = latest.find(g => (pending.groupId && g.id === pending.groupId) || (pending.groupName && g.name === pending.groupName));
+        if (found) {
+          setIsJoiningGroup(false);
+          setIsCreatingGroup(false);
+          setInitialSubTab('chat');
+          setSelectedGroup(found);
+          return;
+        }
+      }
       if (typeof window !== 'undefined' && window.__LAST_JOINED_GROUP_ID__) {
         const targetId = window.__LAST_JOINED_GROUP_ID__;
         window.__LAST_JOINED_GROUP_ID__ = null;
@@ -66,6 +79,7 @@ export default function GroupsHubModal({
         if (found) {
           setIsJoiningGroup(false);
           setIsCreatingGroup(false);
+          setInitialSubTab('finance');
           setSelectedGroup(found);
         }
       }
@@ -85,14 +99,29 @@ export default function GroupsHubModal({
       if (joinedGroup) {
         setIsJoiningGroup(false);
         setIsCreatingGroup(false);
+        setInitialSubTab('finance');
         setSelectedGroup(latest.find(g => g.id === joinedGroup.id) || joinedGroup);
+      }
+    };
+    const handleOpenChatGroup = (e) => {
+      const { groupId, groupName } = e?.detail || {};
+      const latest = getStoredGroups(currentUserName);
+      setGroups(latest);
+      const found = latest.find(g => (groupId && g.id === groupId) || (groupName && g.name === groupName));
+      if (found) {
+        setIsJoiningGroup(false);
+        setIsCreatingGroup(false);
+        setInitialSubTab('chat');
+        setSelectedGroup(found);
       }
     };
     window.addEventListener('cassiel_groups_updated', handleGroupsUpdated);
     window.addEventListener('cassiel_open_joined_group', handleOpenJoinedGroup);
+    window.addEventListener('cassiel_open_chat_group', handleOpenChatGroup);
     return () => {
       window.removeEventListener('cassiel_groups_updated', handleGroupsUpdated);
       window.removeEventListener('cassiel_open_joined_group', handleOpenJoinedGroup);
+      window.removeEventListener('cassiel_open_chat_group', handleOpenChatGroup);
     };
   }, [currentUserName]);
 
@@ -334,7 +363,11 @@ export default function GroupsHubModal({
             group={selectedGroup}
             currentUserName={currentUserName}
             currentUserAvatar={currentUserAvatar}
-            onBack={() => setSelectedGroup(null)}
+            initialSubTab={initialSubTab}
+            onBack={() => {
+              setSelectedGroup(null);
+              setInitialSubTab('finance');
+            }}
             onRecordKas={handleRecordKas}
             onRecordExpense={handleRecordExpense}
             onSendTextMessage={handleSendTextMessage}

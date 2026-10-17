@@ -589,9 +589,6 @@ export const DICTIONARY = {
     notifAutoTrackerDescReq: 'Akses notifikasi diperlukan.',
     quickAssistTitle: 'Cassiel Quick Assist',
     quickAssistSubtitle: 'Tahan tombol Power untuk catat transaksi',
-    floatingBubbleTitle: 'Tombol Cepat Melayang',
-    floatingBubbleSubtitleOn: 'Tombol aktif di samping layar',
-    floatingBubbleSubtitleOff: 'Akses catat transaksi dari aplikasi apa pun',
 
     fontSettingTitle: 'Gaya Tulisan',
     fontSettingSubtitle: 'Pilih font tampilan aplikasi & catatan',
@@ -1359,9 +1356,6 @@ export const DICTIONARY = {
     notifAutoTrackerDescReq: 'Notification access is required.',
     quickAssistTitle: 'Cassiel Quick Assist',
     quickAssistSubtitle: 'Hold Power button to track transactions',
-    floatingBubbleTitle: 'Floating Assistant Button',
-    floatingBubbleSubtitleOn: 'Active on edge of screen',
-    floatingBubbleSubtitleOff: 'Quick expense logging from any app',
 
     fontSettingTitle: 'Typography',
     fontSettingSubtitle: 'Choose font family for app UI',

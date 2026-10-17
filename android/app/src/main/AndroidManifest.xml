@@ -38,13 +38,16 @@
                     android:pathPrefix="/join" />
             </intent-filter>
 
-            <!-- Deep Link: Custom Scheme cassiel://join?g=CODE -->
+            <!-- Deep Link: Custom Scheme cassiel://join?g=CODE and sariel://join?g=CODE -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="cassiel"
+                    android:host="join" />
+                <data
+                    android:scheme="sariel"
                     android:host="join" />
             </intent-filter>
 
@@ -139,7 +142,7 @@
             android:theme="@style/AppTheme.TransparentAssistant"
             android:launchMode="singleInstance"
             android:excludeFromRecents="true"
-            android:taskAffinity="com.redilah.financetracker.assistant"
+            android:taskAffinity="${applicationId}.assistant"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:exported="true">
@@ -165,11 +168,6 @@
             </intent-filter>
         </service>
 
-        <!-- 6. Floating Bubble Service — Draggable Pure CF Icon on top of other apps -->
-        <service
-            android:name=".assistant.CassielFloatingBubbleService"
-            android:exported="false" />
-
     </application>
 
     <!-- Permissions -->
@@ -179,7 +177,6 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Queries for Android 11+ Speech Recognition -->
     <queries>

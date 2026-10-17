@@ -1,4 +1,4 @@
-﻿{
+{
   "project_info": {
     "project_number": "799596292912",
     "project_id": "regalia-senpai-app",
@@ -19,6 +19,51 @@
           "android_info": {
             "package_name": "com.redilah.financetracker",
             "certificate_hash": "e1a0383d3e1a0b17d688a7523a7d5fae3d526f5b"
+          }
+        },
+        {
+          "client_id": "799596292912-lglcj9rg074qkao5r0ftd22d2lc7a1ai.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDudmch4uJRgRTiYBRSPG7vLN41-q3vXt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "799596292912-lglcj9rg074qkao5r0ftd22d2lc7a1ai.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:799596292912:android:156bda6c3d9ab66e3136f5",
+        "android_client_info": {
+          "package_name": "com.redilah.financetracker.sariel"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "799596292912-3309jd9fdcbqfghohkhaf409v522ck5m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.redilah.financetracker.sariel",
+            "certificate_hash": "e1a0383d3e1a0b17d688a7523a7d5fae3d526f5b"
+          }
+        },
+        {
+          "client_id": "799596292912-afsd34dfhu6fq1qlt9c9m7r2evf2459o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.redilah.financetracker.sariel",
+            "certificate_hash": "b3a630ce34a539d5617c50432d41075576385c89"
           }
         },
         {

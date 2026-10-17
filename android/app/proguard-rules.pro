@@ -28,7 +28,7 @@
 -keep class com.redilah.financetracker.notificationtracker.** { *; }
 -keepclassmembers class com.redilah.financetracker.notificationtracker.** { *; }
 
-# Keep Assistant and Floating Bubble
+# Keep Assistant
 -keep class com.redilah.financetracker.assistant.** { *; }
 -keepclassmembers class com.redilah.financetracker.assistant.** { *; }
 

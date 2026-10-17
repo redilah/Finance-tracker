@@ -79,6 +79,77 @@ export default function QuickTextModal({
     }
   };
 
+  const STORAGE_KEY = 'cassiel_custom_quick_texts';
+  const DEFAULT_SUGGESTION = 'kopi 18k gopay';
+
+  // Load custom shortcuts from localStorage
+  const [customChips, setCustomChips] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.filter(item => typeof item === 'string' && item.trim().length > 0);
+      }
+    } catch (e) {
+      console.warn('Failed reading custom quick texts', e);
+    }
+    return [];
+  });
+
+  const [isAddingChip, setIsAddingChip] = useState(false);
+  const [newChipInput, setNewChipInput] = useState('');
+  const newChipInputRef = useRef(null);
+
+  // Sync custom chips to localStorage
+  const saveCustomChips = (updated) => {
+    setCustomChips(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed saving custom quick texts', e);
+    }
+  };
+
+  const handleAddChipSubmit = (e) => {
+    if (e) e.preventDefault();
+    const clean = (newChipInput || '').trim();
+    if (!clean) {
+      setIsAddingChip(false);
+      return;
+    }
+    // Prevent duplicate with default or existing
+    if (clean.toLowerCase() === DEFAULT_SUGGESTION.toLowerCase() || customChips.some(c => c.toLowerCase() === clean.toLowerCase())) {
+      if (showVoiceToast) showVoiceToast('Aksi cepat ini sudah ada!');
+      setNewChipInput('');
+      setIsAddingChip(false);
+      return;
+    }
+    const next = [...customChips, clean];
+    saveCustomChips(next);
+    setNewChipInput('');
+    setIsAddingChip(false);
+    if (showVoiceToast) showVoiceToast('Aksi cepat berhasil ditambahkan ✨');
+  };
+
+  const handleDeleteCustomChip = (chipText, e) => {
+    if (e) e.stopPropagation();
+    const next = customChips.filter(c => c !== chipText);
+    saveCustomChips(next);
+    if (showVoiceToast) showVoiceToast('Aksi cepat dihapus');
+  };
+
+  const handleSaveCurrentAsChip = () => {
+    const clean = (textInput || '').trim();
+    if (!clean) return;
+    if (clean.toLowerCase() === DEFAULT_SUGGESTION.toLowerCase() || customChips.some(c => c.toLowerCase() === clean.toLowerCase())) {
+      if (showVoiceToast) showVoiceToast('Aksi cepat ini sudah ada!');
+      return;
+    }
+    const next = [...customChips, clean];
+    saveCustomChips(next);
+    if (showVoiceToast) showVoiceToast('Tersimpan ke Aksi Cepat 📌');
+  };
+
   const handleApplySuggestion = (exampleText) => {
     setTextInput(exampleText);
     if (inputRef.current) {
@@ -87,6 +158,11 @@ export default function QuickTextModal({
   };
 
   if (!isOpen) return null;
+
+  const isCurrentTextAlreadySaved = textInput.trim().length > 2 && (
+    textInput.trim().toLowerCase() === DEFAULT_SUGGESTION.toLowerCase() ||
+    customChips.some(c => c.toLowerCase() === textInput.trim().toLowerCase())
+  );
 
   return (
     <div className="quick-text-modal-overlay" onClick={onClose}>
@@ -136,6 +212,19 @@ export default function QuickTextModal({
             )}
           </div>
 
+          {/* Quick Save Current Input to Action Chip */}
+          {parsedPreview && !isCurrentTextAlreadySaved && (
+            <div className="quick-text-save-action-row">
+              <button
+                type="button"
+                className="quick-text-pin-chip-btn"
+                onClick={handleSaveCurrentAsChip}
+              >
+                <span>📌</span> Simpan teks ini ke Aksi Cepat
+              </button>
+            </div>
+          )}
+
           {/* Live Interpretation Preview Chips */}
           {parsedPreview && (
             <div className="quick-text-preview-box">
@@ -184,42 +273,101 @@ export default function QuickTextModal({
             </div>
           )}
 
-          {/* Quick Suggestions / Examples */}
-          {!textInput && (
-            <div className="quick-text-suggestions">
-              <span className="quick-text-sugg-title">Contoh Cepat:</span>
-              <div className="quick-text-sugg-chips">
+          {/* Quick Suggestions & Custom User Chips */}
+          <div className="quick-text-suggestions">
+            <div className="quick-text-sugg-header">
+              <span className="quick-text-sugg-title">Aksi Cepat:</span>
+              {!isAddingChip && (
                 <button
                   type="button"
-                  className="quick-sugg-pill"
-                  onClick={() => handleApplySuggestion('kopi 18k gopay')}
+                  className="quick-add-chip-trigger"
+                  onClick={() => {
+                    setIsAddingChip(true);
+                    setTimeout(() => {
+                      if (newChipInputRef.current) newChipInputRef.current.focus();
+                    }, 80);
+                  }}
                 >
-                  ☕ kopi 18k gopay
+                  + Tambah
+                </button>
+              )}
+            </div>
+
+            {/* Inline Add Chip Form */}
+            {isAddingChip && (
+              <div className="quick-add-chip-inline-box">
+                <input
+                  ref={newChipInputRef}
+                  type="text"
+                  className="quick-add-chip-inline-input"
+                  placeholder="Cth: makan siang 20k bca..."
+                  value={newChipInput}
+                  onChange={(e) => setNewChipInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddChipSubmit();
+                    } else if (e.key === 'Escape') {
+                      setIsAddingChip(false);
+                      setNewChipInput('');
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="quick-add-chip-save-btn"
+                  onClick={handleAddChipSubmit}
+                  disabled={!newChipInput.trim()}
+                >
+                  Simpan
                 </button>
                 <button
                   type="button"
-                  className="quick-sugg-pill"
-                  onClick={() => handleApplySuggestion('bensin 30rb tunai')}
+                  className="quick-add-chip-cancel-btn"
+                  onClick={() => {
+                    setIsAddingChip(false);
+                    setNewChipInput('');
+                  }}
                 >
-                  ⛽ bensin 30rb tunai
-                </button>
-                <button
-                  type="button"
-                  className="quick-sugg-pill"
-                  onClick={() => handleApplySuggestion('gaji 5jt bca')}
-                >
-                  💵 gaji 5jt bca
-                </button>
-                <button
-                  type="button"
-                  className="quick-sugg-pill"
-                  onClick={() => handleApplySuggestion('makan siang 25k')}
-                >
-                  🍛 makan siang 25k
+                  ✕
                 </button>
               </div>
+            )}
+
+            <div className="quick-text-sugg-chips">
+              {/* Default Single Example */}
+              <button
+                type="button"
+                className="quick-sugg-pill is-default"
+                onClick={() => handleApplySuggestion(DEFAULT_SUGGESTION)}
+                title="Contoh bawaan"
+              >
+                ☕ {DEFAULT_SUGGESTION}
+              </button>
+
+              {/* User Custom Chips */}
+              {customChips.map((chipText, idx) => (
+                <div key={`${chipText}-${idx}`} className="quick-sugg-pill-custom-wrapper">
+                  <button
+                    type="button"
+                    className="quick-sugg-pill is-custom"
+                    onClick={() => handleApplySuggestion(chipText)}
+                  >
+                    ✨ {chipText}
+                  </button>
+                  <button
+                    type="button"
+                    className="quick-sugg-chip-delete-btn"
+                    onClick={(e) => handleDeleteCustomChip(chipText, e)}
+                    title="Hapus aksi cepat ini"
+                    aria-label={`Hapus ${chipText}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
           <div className="quick-text-actions">
             <button

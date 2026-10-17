@@ -244,6 +244,72 @@ export async function joinGroupByInviteCode({ inviteCode, currentUserName = 'Red
   }
 }
 
+const notifiedMessageIds = new Set();
+
+function isMessageFromCurrentUser(msg, myUserId, currentUserName) {
+  if (!msg) return true;
+  if (msg.senderId === 'system' || msg.type === 'system') return true;
+  if (msg.senderId === myUserId || msg.actorId === myUserId || msg.senderId === 'mem_cur') return true;
+  const isCustomName = Boolean(
+    currentUserName &&
+    currentUserName !== 'Pengguna Cassiel' &&
+    currentUserName !== 'No Name' &&
+    currentUserName !== 'Anggota'
+  );
+  if (!msg.senderId && isCustomName && msg.senderName === currentUserName) return true;
+  return false;
+}
+
+export function checkAndNotifyIncomingGroupMessages(oldGroup, newGroup, currentUserName = 'Pengguna Cassiel') {
+  if (!newGroup || !Array.isArray(newGroup.messages) || newGroup.messages.length === 0) return;
+
+  const myUserId = getCurrentUserId();
+  const oldMsgIds = new Set(
+    Array.isArray(oldGroup?.messages) ? oldGroup.messages.map(m => m.id) : []
+  );
+
+  // If we had no local messages snapshot for this group before (first time loading),
+  // seed notifiedMessageIds so old history doesn't spam notifications, unless a message is brand new (< 15s old)
+  const hadOldSnapshot = Boolean(oldGroup && Array.isArray(oldGroup.messages));
+  const nowMs = Date.now();
+
+  newGroup.messages.forEach(msg => {
+    if (!msg || !msg.id) return;
+    if (notifiedMessageIds.has(msg.id)) return;
+
+    const existedBefore = oldMsgIds.has(msg.id);
+    notifiedMessageIds.add(msg.id);
+
+    if (existedBefore) return;
+
+    // If first time seeding without old snapshot, only notify if message was just sent within last 15 seconds
+    if (!hadOldSnapshot) {
+      const msgTime = msg.timestamp ? new Date(msg.timestamp).getTime() : 0;
+      if (!msgTime || (nowMs - msgTime > 15000)) return;
+    }
+
+    if (isMessageFromCurrentUser(msg, myUserId, currentUserName)) return;
+
+    // Resolve sender display name from group members list if available
+    const matchedMember = Array.isArray(newGroup.members)
+      ? newGroup.members.find(m => msg.senderId && (m.id === msg.senderId || m.userId === msg.senderId))
+      : null;
+    const resolvedSenderName = (matchedMember?.name && matchedMember.name !== 'Pengguna Cassiel')
+      ? matchedMember.name
+      : (msg.senderName || matchedMember?.name || 'Anggota');
+
+    sendGroupChatNotification({
+      groupId: newGroup.id,
+      groupName: newGroup.name || 'Grup Kas',
+      senderName: resolvedSenderName,
+      text: msg.text || '',
+      amount: msg.amount || null,
+      type: msg.type || 'text',
+      isMe: false
+    });
+  });
+}
+
 /**
  * Realtime Listener untuk mensinkronkan perubahan grup antar anggota secara instan
  */
@@ -254,6 +320,10 @@ export function subscribeToGroupRealtime(groupId, onUpdate, localFallbackGroup =
     return onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const cloudData = docSnap.data();
+        const currentUName = safeStorageGet('user_profile_name') || 'Pengguna Cassiel';
+        const localGroups = getStoredGroups(currentUName);
+        const existingLocal = localGroups.find(g => g.id === groupId) || localFallbackGroup;
+        checkAndNotifyIncomingGroupMessages(existingLocal, cloudData, currentUName);
         if (typeof onUpdate === 'function') {
           onUpdate(cloudData);
         }
@@ -266,6 +336,105 @@ export function subscribeToGroupRealtime(groupId, onUpdate, localFallbackGroup =
     console.warn('Subscription to group warning:', e);
     return () => {};
   }
+}
+
+let globalGroupUnsubscribers = new Map();
+
+/**
+ * Global Background Listener untuk seluruh grup yang diikuti user.
+ * Memastikan pesan chat dari teman tetap masuk sebagai notifikasi sistem (seperti WA)
+ * walaupun user sedang di halaman Home, tab lain, atau layar grup tertutup.
+ */
+export function startGlobalGroupsRealtimeSync() {
+  if (typeof window === 'undefined' || !db) return () => {};
+
+  const syncSubscriptions = () => {
+    const currentUName = safeStorageGet('user_profile_name') || 'Pengguna Cassiel';
+    const localGroups = getStoredGroups(currentUName);
+    const activeIds = new Set(localGroups.map(g => g?.id).filter(Boolean));
+
+    // Seed existing message IDs on initial attach so history doesn't re-notify
+    localGroups.forEach(grp => {
+      if (Array.isArray(grp?.messages)) {
+        grp.messages.forEach(m => {
+          if (m?.id) notifiedMessageIds.add(m.id);
+        });
+      }
+    });
+
+    // Unsubscribe from groups user left/deleted
+    for (const [gid, unsub] of globalGroupUnsubscribers.entries()) {
+      if (!activeIds.has(gid)) {
+        try { unsub(); } catch {}
+        globalGroupUnsubscribers.delete(gid);
+      }
+    }
+
+    // Subscribe to each active group
+    localGroups.forEach(grp => {
+      if (!grp?.id || globalGroupUnsubscribers.has(grp.id)) return;
+      try {
+        const docRef = doc(db, SHARED_GROUPS_COLLECTION, grp.id);
+        const unsub = onSnapshot(docRef, (docSnap) => {
+          if (!docSnap.exists()) return;
+          const cloudGroup = docSnap.data();
+          if (!cloudGroup || !cloudGroup.id) return;
+
+          const latestUName = safeStorageGet('user_profile_name') || 'Pengguna Cassiel';
+          const currentStored = getStoredGroups(latestUName);
+          const idx = currentStored.findIndex(g => g.id === cloudGroup.id);
+          const oldGroup = idx !== -1 ? currentStored[idx] : grp;
+
+          // Cek apakah ada pesan baru dari anggota lain -> picu notifikasi sistem
+          checkAndNotifyIncomingGroupMessages(oldGroup, cloudGroup, latestUName);
+
+          // Simpan perubahan ke localStorage jika ada pembaruan pesan/transaksi/anggota
+          const oldSig = JSON.stringify({
+            m: (oldGroup?.messages || []).length,
+            lastId: oldGroup?.messages?.[oldGroup.messages.length - 1]?.id,
+            t: (oldGroup?.transactions || []).length,
+            mem: (oldGroup?.members || []).length,
+            name: oldGroup?.name
+          });
+          const newSig = JSON.stringify({
+            m: (cloudGroup?.messages || []).length,
+            lastId: cloudGroup?.messages?.[cloudGroup.messages.length - 1]?.id,
+            t: (cloudGroup?.transactions || []).length,
+            mem: (cloudGroup?.members || []).length,
+            name: cloudGroup?.name
+          });
+
+          if (oldSig !== newSig) {
+            const nextList = [...currentStored];
+            if (idx !== -1) {
+              nextList[idx] = cloudGroup;
+            } else {
+              nextList.unshift(cloudGroup);
+            }
+            saveStoredGroups(nextList);
+          }
+        });
+        globalGroupUnsubscribers.set(grp.id, unsub);
+      } catch (err) {
+        console.warn('[Global Group Sync] Error subscribing to group:', grp.id, err);
+      }
+    });
+  };
+
+  syncSubscriptions();
+
+  const handleGroupsUpdated = () => {
+    syncSubscriptions();
+  };
+  window.addEventListener('cassiel_groups_updated', handleGroupsUpdated);
+
+  return () => {
+    window.removeEventListener('cassiel_groups_updated', handleGroupsUpdated);
+    for (const unsub of globalGroupUnsubscribers.values()) {
+      try { unsub(); } catch {}
+    }
+    globalGroupUnsubscribers.clear();
+  };
 }
 
 export function createNewGroup({
@@ -434,6 +603,7 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
 
   group.transactions = [newTx, ...(group.transactions || [])];
   group.messages = [...(group.messages || []), newMsg];
+  notifiedMessageIds.add(newMsg.id);
 
   currentList[groupIndex] = group;
   saveStoredGroups(currentList);
@@ -441,6 +611,7 @@ export function recordKasPayment({ groupId, memberId, memberName, amount, monthK
 
   const isMe = activeMemberId === myUserId || (memberName || currentUserName) === currentUserName;
   sendGroupChatNotification({
+    groupId: group.id,
     groupName: group.name,
     senderName: memberName || currentUserName,
     text: newMsg.text,
@@ -493,6 +664,7 @@ export function recordGroupExpense({ groupId, title, amount, paidBy, purpose, ca
 
   group.transactions = [newTx, ...(group.transactions || [])];
   group.messages = [...(group.messages || []), newMsg];
+  notifiedMessageIds.add(newMsg.id);
 
   currentList[groupIndex] = group;
   saveStoredGroups(currentList);
@@ -500,6 +672,7 @@ export function recordGroupExpense({ groupId, title, amount, paidBy, purpose, ca
 
   const isMe = (paidBy || currentUserName) === currentUserName;
   sendGroupChatNotification({
+    groupId: group.id,
     groupName: group.name,
     senderName: paidBy || currentUserName,
     text: newMsg.text,
@@ -530,12 +703,14 @@ export function sendGroupTextMessage({ groupId, text, senderName = 'Redilah', se
   };
 
   group.messages = [...(group.messages || []), newMsg];
+  notifiedMessageIds.add(newMsg.id);
   currentList[groupIndex] = group;
   saveStoredGroups(currentList);
   syncGroupToCloud(group);
 
   const isMe = effectiveSenderId === myUserId;
   sendGroupChatNotification({
+    groupId: group.id,
     groupName: group.name,
     senderName: senderName || 'Pengguna Cassiel',
     text: text.trim(),

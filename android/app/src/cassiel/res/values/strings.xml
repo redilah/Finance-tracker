@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cassiel</string>
+    <string name="title_activity_main">Cassiel</string>
+    <string name="package_name">com.redilah.financetracker</string>
+    <string name="custom_url_scheme">com.redilah.financetracker</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sariel</string>
+    <string name="title_activity_main">Sariel</string>
+    <string name="package_name">com.redilah.financetracker.sariel</string>
+    <string name="custom_url_scheme">com.redilah.financetracker.sariel</string>
+</resources>

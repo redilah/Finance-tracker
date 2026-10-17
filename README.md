@@ -14,6 +14,10 @@
 - [🌍 Sistem Mata Uang Dunia & Kurs Real-Time](#-sistem-mata-uang-dunia--kurs-real-time)
 - [🌐 Multi-Bahasa (i18n)](#-multi-bahasa-i18n)
 - [🎙️ Input Transaksi Suara (Voice AI Engine)](#️-input-transaksi-suara-voice-ai-engine)
+- [⚡ Teks Cepat & Pintasan Aksi Kustom](#-teks-cepat--pintasan-aksi-kustom)
+- [✨ Apple Charging Pill Toast & Fluid Card Animations](#-apple-charging-pill-toast--fluid-card-animations)
+- [✨ Google One Tap & Android Credential Manager](#-google-one-tap--android-credential-manager)
+- [🎈 Tombol Cepat Melayang (Floating Assistant Bubble)](#-tombol-cepat-melayang-floating-assistant-bubble)
 - [🔒 Keamanan PIN & Biometrik Sidik Jari](#-keamanan-pin--biometrik-sidik-jari)
 - [💾 Cadangan & Pemulihan Data (Google Drive Support)](#-cadangan--pemulihan-data-google-drive-support)
 - [🎯 Direct In-Place Budget & Gaming EXP Bar](#-direct-in-place-budget--gaming-exp-bar)
@@ -85,6 +89,29 @@ Cassiel tersedia dalam dua platform:
 - **Scored Relevance Token Matcher**: Penghapusan transaksi via suara cukup dengan menyebutkan kata kunci parsial.
 - **Self-Repair & Ralat**: Deteksi otomatis koreksi ucapan pengguna (*"beli mie ayam ralat bakso 15 ribu"*).
 - **Seamless Native Mic**: Tombol mic berdenyut halus (*pulsing wave*) langsung di dalam aplikasi tanpa popup dialog Google.
+
+### ⚡ Teks Cepat & Pintasan Aksi Kustom (Quick Text Shortcuts)
+- **Natural Language Text Ingestion**: Pencatatan transaksi via teks bebas dengan pemrosesan natural language lokal instan (kategori, akun, tipe transaksi, nominal, dan catatan otomatis terdeteksi).
+- **Single Default Example**: Panduan bawaan minimalis satu contoh standar (`☕ kopi 18k gopay`).
+- **Kustomisasi Pintasan Mandiri**: Pengguna bebas membuat dan menyimpan pintasan transaksi harian sendiri (`+ Tambah` atau `📌 Simpan ke Aksi Cepat`) tersimpan permanen di `localStorage`.
+- **Manajemen Fleksibel**: Hapus pintasan kustom dengan tombol `✕` sekali sentuh.
+
+### ✨ Apple Charging Pill Toast & Fluid Card Animations
+- **Apple Charging Pill Notification Toast**: Notifikasi in-app global yang bertransisi dari kapsul kompak (*compact pill*) mengembang halus ke kartu informasi penuh menggunakan `clip-path: inset round 999px` dan pegas Apple tanpa distorsi atau *stutter*.
+- **Rhythmic Typewriter & Reveal on Entry**: Kartu transaksi baru muncul dengan animasi ekspansi melingkar halus dan efek pengetikan ritmis berbobot waktu terstruktur.
+- **Fluid Space-Collapse on Delete**: Penghapusan transaksi menganimasikan kartu menyusut ke dalam (*space collapse shrink*) dengan transisi mulus tanpa loncatan layout.
+
+### ✨ Google One Tap & Android Credential Manager
+- **Modern Bottom Sheet UI**: Autentikasi Google modern resmi sistem operasi Android menggunakan library `androidx.credentials` dan `googleid` (persis standar global kelas atas seperti Grammarly).
+- **1-Tap Instant Sign-In**: Menampilkan tombol instan *"Continue as [Nama]"* lengkap dengan ringkasan persetujuan privasi yang jelas tanpa pop-up browser atau dialog akun vertikal kaku.
+- **Fail-Safe Fallback**: Dilengkapi fallback otomatis ke `GoogleSignInClient` legacy agar perangkat Android versi lama tetap 100% dapat login dengan lancar.
+
+### 🎈 Tombol Cepat Melayang (Floating Assistant Bubble)
+- **Overlay Window ("Display over other apps")**: Tombol pintasan mengambang berbasis Android `WindowManager` yang selalu siap di tepi layar saat membuka aplikasi lain (Shopee, Tokopedia, M-Banking, dll.).
+- **Pure CF Silhouette**: Mengusung desain bersih siluet logo `CF` murni warna Warm Amber Cassiel (`#F59E0B`) **tanpa kotak background kaku**.
+- **Smooth Drag & Auto-Snap**: Bebas digeser ke mana saja, otomatis meluncur menempel ke tepi terdekat (*dock to edge*), dan otomatis memudar (*auto-fade 55%*) saat idle agar tidak mengganggu penglihatan.
+- **Direct Settings Redirection**: Saklar toggle oranye di menu Akun langsung mengarahkan pengguna ke halaman izin OS tanpa dialog perantara yang berbelit-belit.
+- **Compact Bottom Sheet**: Mengetuk tombol melayang memunculkan *Cassiel Assistant* transparan di bagian bawah layar (bukan layar penuh) untuk catat cepat via suara atau teks.
 
 ### 🔒 Keamanan PIN & Biometrik Native
 - **PIN 6 Digit**: Layar kunci PIN elegan dengan proteksi brute-force, konfirmasi ganda saat setup, dan opsi ubah PIN kapan saja.
@@ -371,6 +398,33 @@ Panel admin (`/?admin`) memisahkan ranah teknis dan privasi secara ketat:
 
 ---
 
+## ✨ Google One Tap & Android Credential Manager
+
+Cassiel mengadopsi standar autentikasi terbaru dari Google menggunakan **Android Credential Manager API** (`androidx.credentials` + `com.google.android.libraries.identity.googleid:googleid`):
+
+```
+┌────────────────────────────────────────────────────────┐
+│               Android Credential Manager               │
+│               [ Google Identity Services ]             │
+├────────────────────────────────────────────────────────┤
+│  [G]  Sign in to Cassiel                               │
+│       By continuing, Google will share your name,      │
+│       email address, and profile picture with Cassiel. │
+│                                                        │
+│  (S)  Stevanus Redi                                    │
+│       stevanusredi199@gmail.com                        │
+│                                                        │
+│         [  Continue as Stevanus  ]                     │
+└────────────────────────────────────────────────────────┘
+```
+
+1. **Modern Bottom Sheet UI**: Menghadirkan dialog melayang resmi sistem Android (persis seperti standar aplikasi global modern seperti Grammarly) menggantikan dialog pemilihan akun legacy yang kaku dan memanjang satu layar penuh.
+2. **1-Tap Quick Action**: Jika pengguna memiliki 1 akun dominan atau pernah login sebelumnya, sistem otomatis memunculkan tombol instan *"Continue as [Nama]"* lengkap dengan ringkasan privasi.
+3. **Fail-Safe Fallback**: Jika perangkat pengguna menjalankan sistem Android versi terdahulu yang belum mendukung Credential Manager secara penuh, plugin otomatis beralih ke `GoogleSignInClient` (`play-services-auth:21.3.0`) sehingga proses login dijamin 100% selalu berhasil.
+4. **Firebase Auth Token Exchange**: Hasil `idToken` dari native langsung ditukarkan ke Firebase melalui `signInWithCredential(auth, GoogleAuthProvider.credential(idToken))`.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Teknologi |
@@ -519,6 +573,7 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 | `user_biometric_enabled` | `Boolean` | Status proteksi sidik jari / biometrik |
 | `user_budget_cap` | `Number` | Nominal batas pengeluaran bulanan aktif |
 | `user_learned_voice_aliases` | `Object` | Kamus asosiasi kata suara hasil pembelajaran lokal |
+| `cassiel_custom_quick_texts` | `Array<String>` | Daftar pintasan teks aksi cepat kustom buatan pengguna |
 | `user_expense_categories` | `Array<Object>` | Daftar kategori pengeluaran kustom |
 | `user_income_categories` | `Array<Object>` | Daftar kategori pemasukan kustom |
 | `user_profile_name` | `String` | Nama profil pengguna |
@@ -533,7 +588,7 @@ File APK release yang sudah di-optimize dengan R8 shrinker dan ditandatangani ak
 
 | Versi | Version Code | Tanggal Rilis | Fitur Utama & Keterangan |
 |---|---|---|---|
-| **1.0.44** | **44** | **September 2026** | **Liquid Curved Dynamic Navigation Bar** (Parametric Bezier Notch & Apple Fluid Spring Physics), **Apple Direction-Aware Page Slide Transitions** (Synchronized Zero-Lag Layout Sweeps), Visualisasi Ikon Penuh Warna Asli, Optimasi Header Statistik Bersih |
+| **1.0.44** | **44** | **Oktober 2026** | **Google One Tap Native Login** (Android Credential Manager & Google ID), **Sariel Companion Testing Entity (Side-by-Side Sideload APK)**, **Liquid Curved Dynamic Navigation Bar** (Parametric Bezier Notch & Apple Fluid Spring Physics), **Apple Direction-Aware Page Slide Transitions**, **Custom Teks Cepat & Pintasan Aksi Pengguna**, **Apple Charging Pill In-App Notification Toast**, **Fluid Transaction Card Reveal & Delete Animations**, Visualisasi Ikon Penuh Warna Asli, Optimasi Header Statistik Bersih |
 | 1.0.28 | 29 | Agustus 2026 | **Manajemen Multi-Akun & Saldo Rekening Terpisah Real-Time**, Filter Cepat & Pemantauan Arus Kas per Sumber Dana, Animasi Cash Counter Rolling, Notifikasi Personal Cerdas |
 | 1.0.27 | 28 | Agustus 2026 | Auto Expense Listener Service & Izin Notifikasi Android Background |
 | 1.0.26 | 27 | Agustus 2026 | Sinkronisasi APK Folder `./apk/`, Dynamic Target APK Routing, SHA-256 Checksum Verification |

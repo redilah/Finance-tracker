@@ -1,7 +1,7 @@
 import { App } from '@capacitor/app';
 
-export const CURRENT_VERSION_CODE = 44;
-export const CURRENT_VERSION_NAME = '1.0.44';
+export const CURRENT_VERSION_CODE = 45;
+export const CURRENT_VERSION_NAME = '1.0.45';
 
 /**
  * Rebuilt In-App Update Checker with Integrity Verification
@@ -82,6 +82,7 @@ const formatUpdateResult = async (data) => {
   console.log(`[UpdateCheck] Versi lokal: ${CURRENT_VERSION_CODE}, Versi server: ${latestVersionCode}`);
 
   if (latestVersionCode > CURRENT_VERSION_CODE) {
+    let isSarielApp = false;
     let isUdinApp = false;
     let isDebugOrTestApp = false;
 
@@ -90,7 +91,9 @@ const formatUpdateResult = async (data) => {
       if (appInfo) {
         const id = (appInfo.id || '').toLowerCase();
         const name = (appInfo.name || '').toLowerCase();
-        if (id.includes('udin') || name.includes('udin')) {
+        if (id.includes('sariel') || name.includes('sariel')) {
+          isSarielApp = true;
+        } else if (id.includes('udin') || name.includes('udin')) {
           isUdinApp = true;
         } else if (id.includes('debug') || name.includes('debug') || id.includes('cassielll1')) {
           isDebugOrTestApp = true;
@@ -102,7 +105,9 @@ const formatUpdateResult = async (data) => {
 
     // Web / Storage fallback check
     if (typeof window !== 'undefined') {
-      if (window.location.hostname.includes('udin') || window.localStorage.getItem('cassiel_apk_track') === 'udin') {
+      if (window.location.hostname.includes('sariel') || window.localStorage.getItem('cassiel_apk_track') === 'sariel') {
+        isSarielApp = true;
+      } else if (window.location.hostname.includes('udin') || window.localStorage.getItem('cassiel_apk_track') === 'udin') {
         isUdinApp = true;
       } else if (window.__IS_DEBUG_BUILD__ || window.localStorage.getItem('cassiel_apk_track') === 'debug') {
         isDebugOrTestApp = true;
@@ -114,7 +119,10 @@ const formatUpdateResult = async (data) => {
     const playStoreUrl = data.playStoreUrl || 'https://play.google.com/store/apps/details?id=com.redilah.financetracker';
     const playStoreMarketUrl = 'market://details?id=com.redilah.financetracker';
     
-    if (isUdinApp) {
+    if (isSarielApp) {
+      baseApkName = 'Sariel.apk';
+      downloadUrl = data.sarielDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Sariel.apk?v=${latestVersionCode}&t=${Date.now()}`;
+    } else if (isUdinApp) {
       baseApkName = 'Udin.apk';
       downloadUrl = data.udinDownloadUrl || `https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=${latestVersionCode}&t=${Date.now()}`;
     } else if (isDebugOrTestApp) {
@@ -137,8 +145,9 @@ const formatUpdateResult = async (data) => {
       downloadUrl: downloadUrl,
       playStoreUrl: playStoreUrl,
       playStoreMarketUrl: playStoreMarketUrl,
-      isPlayStoreEligible: !isUdinApp && !isDebugOrTestApp,
+      isPlayStoreEligible: !isSarielApp && !isUdinApp && !isDebugOrTestApp,
       sha256: data.sha256 || null,
+      isSarielApp: isSarielApp,
       isUdinApp: isUdinApp,
       isDebugApp: isDebugOrTestApp,
       apkName: baseApkName

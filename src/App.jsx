@@ -109,12 +109,6 @@ import {
   drainAndProcessQueuedNotifications,
   NotificationTrackerNative
 } from './utils/notificationTracker';
-import {
-  checkFloatingBubblePermission,
-  requestFloatingBubblePermission,
-  startFloatingBubble,
-  stopFloatingBubble
-} from './utils/floatingBubble';
 
 // Categories: NO icon field stored — icons resolved at runtime via ICON_MAP
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -612,35 +606,225 @@ function App() {
     });
   }
 
-  // Animated Liquid Curved Notch & Floating Indicator (Apple Fluid Physics)
+  // Apple iOS "Liquid Glass" 2D Hydro-Elastic Jelly Spring & Haptic Engine (Silent Haptics Only)
   const navContainerRef = useRef(null);
+  const navBaseLayerRef = useRef(null);
+  const navBubbleRef = useRef(null);
+  const navLensWorldRef = useRef(null);
   const tabButtonRefs = useRef({});
   const [navIndicatorX, setNavIndicatorX] = useState(null);
-  const [navNotchCx, setNavNotchCx] = useState(null);
+  const navDragStateRef = useRef({
+    active: false,
+    dragging: false,
+    pointerId: null,
+    startX: 0,
+    suppressClickUntil: 0,
+  });
   const navPhysicsRef = useRef({
     curPixel: null,
-    curSvg: null,
+    targetPixel: null,
     velPixel: 0,
-    velSvg: 0,
+    // Independent 2D Hydro-Elastic Jelly Springs for the Glass Bubble (Untouched!)
+    curScaleX: 1,
+    targetScaleX: 1,
+    velScaleX: 0,
+    curScaleY: 1,
+    targetScaleY: 1,
+    velScaleY: 0,
+    curGlass: 0,
+    targetGlass: 0,
+    velGlass: 0,
+    // Synchronized Vertical & Depth "Mundur-Naik" Spring for the Long Bottom Navigation Bar
+    curBarSink: 0,
+    targetBarSink: 0,
+    velBarSink: 0,
     lastTime: null,
+    isDragging: false,
+    isPressed: false,
+    landingBounceArmed: false,
+    lastCrossedTab: null,
   });
   const navAnimFrameRef = useRef(null);
 
-  const getNavPath = useCallback((cx) => {
-    if (cx === null || isNaN(cx)) {
-      cx = 50;
-    }
-    const leftStart = Math.max(20, cx - 58);
-    const rightEnd = Math.min(380, cx + 58);
-    return (
-      `M 0,16 Q 0,0 20,0 L ${leftStart.toFixed(1)},0 ` +
-      `C ${(cx - 42).toFixed(1)},0 ${(cx - 34).toFixed(1)},6 ${(cx - 26).toFixed(1)},14 ` +
-      `C ${(cx - 17).toFixed(1)},23 ${(cx - 11).toFixed(1)},25 ${cx.toFixed(1)},25 ` +
-      `C ${(cx + 11).toFixed(1)},25 ${(cx + 17).toFixed(1)},23 ${(cx + 26).toFixed(1)},14 ` +
-      `C ${(cx + 34).toFixed(1)},6 ${(cx + 42).toFixed(1)},0 ${rightEnd.toFixed(1)},0 ` +
-      `L 380,0 Q 400,0 400,16 L 400,85 L 0,85 Z`
-    );
+  // Silent Physical Haptic Feedback Only (Zero Sound — Pure Tactile Elastic Vibration)
+  const triggerNavHaptic = useCallback((type = 'press') => {
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        if (type === 'press') navigator.vibrate(8);
+        else if (type === 'tick') navigator.vibrate(4);
+        else if (type === 'bounce') navigator.vibrate([10, 26, 5]);
+      }
+    } catch {}
   }, []);
+
+  // Synchronize DOM transforms directly at 120fps for zero-latency optical split-color & unified bar + bubble elastic bounce
+  const applyNavLensVisuals = useCallback((
+    pixelX,
+    velocityX = 0,
+    scaleXSpring = 1,
+    scaleYSpring = 1,
+    glassMorph = 0,
+    barSinkSpring = 0
+  ) => {
+    const container = navContainerRef.current;
+    if (!container || pixelX === null || isNaN(pixelX)) return;
+    const width = container.clientWidth || 380;
+    const height = container.clientHeight || 62;
+
+    // 1. Long Navigation Bar Capsule Smooth "Naik -> Turun -> Naik" Bounce (Lifts Up First, Never Excess)
+    const clampedLift = Math.max(-0.45, Math.min(1.0, barSinkSpring));
+    const barUniformScale = 1 + clampedLift * 0.012; // Gently swells/lifts when > 0 ("naik")
+    const barTranslateY = -clampedLift * 1.9; // Negative Y = Rises UP first when > 0, then settles down -> up
+    container.style.transformOrigin = '50% 100%';
+    if (Math.abs(clampedLift) < 0.001) {
+      container.style.transform = 'translate3d(0, 0, 0) scale3d(1, 1, 1)';
+    } else {
+      container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
+    }
+
+    // 2. Compact Glass Bubble (64x48) — Exact Same Beloved Elastic Bounce Physics
+    const Bw = 64;
+    const Bh = 48;
+
+    const speedRatio = Math.min(Math.abs(velocityX) / 1450, 0.13);
+    const finalScaleX = Math.max(0.84, Math.min(1.22, scaleXSpring + speedRatio));
+    const finalScaleY = Math.max(0.84, Math.min(1.12, scaleYSpring - speedRatio * 0.16));
+    const clampedGlass = Math.max(0, Math.min(1, glassMorph));
+
+    if (navBubbleRef.current) {
+      navBubbleRef.current.style.transform = `translate3d(${(pixelX - Bw / 2).toFixed(2)}px, -50%, 0) scale(${finalScaleX.toFixed(4)}, ${finalScaleY.toFixed(4)})`;
+      navBubbleRef.current.style.setProperty('--glass-active', clampedGlass.toFixed(3));
+    }
+
+    if (navLensWorldRef.current) {
+      // Subtle crisp vector zoom (up to 1.06x when inflated, plus gentle elastic icon pulse) while counter-scaling bubble distortion
+      const iconPulse = 1 + (scaleXSpring - 1) * 0.35 + clampedGlass * 0.04;
+      const netScaleX = (iconPulse / finalScaleX).toFixed(4);
+      const netScaleY = (iconPulse / finalScaleY).toFixed(4);
+      navLensWorldRef.current.style.width = `${width}px`;
+      navLensWorldRef.current.style.height = `${height}px`;
+      navLensWorldRef.current.style.transformOrigin = `${pixelX.toFixed(2)}px ${(height / 2).toFixed(2)}px`;
+      navLensWorldRef.current.style.transform = `translate3d(${(Bw / 2 - pixelX).toFixed(2)}px, ${((Bh - height) / 2).toFixed(2)}px, 0) scale(${netScaleX}, ${netScaleY})`;
+    }
+
+    if (navBaseLayerRef.current) {
+      // Cleanly cut out the base layer inside the bubble footprint so there is zero double-vision or ghosting
+      const rx = (Bw / 2 - 1.5) * finalScaleX;
+      const ry = (Bh / 2 - 1.5) * finalScaleY;
+      const maskStr = `radial-gradient(${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${pixelX.toFixed(1)}px 50%, transparent 0%, transparent 90%, black 98%)`;
+      navBaseLayerRef.current.style.webkitMaskImage = maskStr;
+      navBaseLayerRef.current.style.maskImage = maskStr;
+    }
+  }, []);
+
+  const startNavSpringLoop = useCallback(() => {
+    if (navAnimFrameRef.current) {
+      cancelAnimationFrame(navAnimFrameRef.current);
+    }
+
+    const phys = navPhysicsRef.current;
+    phys.lastTime = performance.now();
+
+    const step = (now) => {
+      const dt = Math.min((now - (phys.lastTime || now)) / 1000, 0.030) || 0.016;
+      phys.lastTime = now;
+
+      // 1. Horizontal Position Spring (with subtle iPhone magnetic overshoot on arrival)
+      const omegaPos = phys.isDragging ? 28.0 : 16.2;
+      const zetaPos = phys.isDragging ? 0.90 : 0.72;
+      const kPos = omegaPos * omegaPos;
+      const cPos = 2 * zetaPos * omegaPos;
+
+      const dispPos = phys.curPixel - phys.targetPixel;
+      const forcePos = -kPos * dispPos - cPos * phys.velPixel;
+      phys.velPixel += forcePos * dt;
+      phys.curPixel += phys.velPixel * dt;
+
+      // Trigger elastic landing squish & haptic bounce right as the gliding bubble arrives at target tab
+      if (phys.landingBounceArmed && !phys.isDragging && Math.abs(dispPos) < 10) {
+        phys.landingBounceArmed = false;
+        phys.targetScaleX = 1.0;
+        phys.targetScaleY = 1.0;
+        phys.targetGlass = 0.0;
+        phys.velScaleX -= 3.4;
+        phys.velScaleY += 3.0;
+        // Smooth "Naik -> Turun -> Naik" landing wave on the long navigation bar
+        phys.targetBarSink = 0.0;
+        phys.velBarSink = 5.6;
+        triggerNavHaptic('bounce');
+      }
+
+      // 2. Underdamped 2D Hydro-Elastic Jelly Springs for Bubble ScaleX & ScaleY (Untouched!)
+      const omegaScale = 27.5;
+      const zetaScale = 0.34;
+      const kScale = omegaScale * omegaScale;
+      const cScale = 2 * zetaScale * omegaScale;
+
+      const dispSX = phys.curScaleX - phys.targetScaleX;
+      phys.velScaleX += (-kScale * dispSX - cScale * phys.velScaleX) * dt;
+      phys.curScaleX += phys.velScaleX * dt;
+
+      const dispSY = phys.curScaleY - phys.targetScaleY;
+      phys.velScaleY += (-kScale * dispSY - cScale * phys.velScaleY) * dt;
+      phys.curScaleY += phys.velScaleY * dt;
+
+      // 3. Smooth, Non-Excessive "Naik -> Turun -> Naik" Spring for the Long Bottom Navigation Bar
+      const omegaBar = 21.0;
+      const zetaBar = 0.46;
+      const kBar = omegaBar * omegaBar;
+      const cBar = 2 * zetaBar * omegaBar;
+      const dispBarSink = phys.curBarSink - phys.targetBarSink;
+      phys.velBarSink += (-kBar * dispBarSink - cBar * phys.velBarSink) * dt;
+      phys.curBarSink += phys.velBarSink * dt;
+
+      // 4. Clear Glass Lens Morph Spring (0 = resting soft pill, 1 = clear 3D glass droplet)
+      const omegaGlass = 18.0;
+      const zetaGlass = 0.85;
+      const dispG = phys.curGlass - phys.targetGlass;
+      phys.velGlass += (-omegaGlass * omegaGlass * dispG - 2 * zetaGlass * omegaGlass * phys.velGlass) * dt;
+      phys.curGlass += phys.velGlass * dt;
+
+      applyNavLensVisuals(
+        phys.curPixel,
+        phys.velPixel,
+        phys.curScaleX,
+        phys.curScaleY,
+        phys.curGlass,
+        phys.curBarSink
+      );
+
+      const posMoving = Math.abs(dispPos) > 0.08 || Math.abs(phys.velPixel) > 0.5;
+      const scaleMoving =
+        Math.abs(dispSX) > 0.002 ||
+        Math.abs(phys.velScaleX) > 0.015 ||
+        Math.abs(dispSY) > 0.002 ||
+        Math.abs(phys.velScaleY) > 0.015 ||
+        Math.abs(dispBarSink) > 0.002 ||
+        Math.abs(phys.velBarSink) > 0.015 ||
+        Math.abs(dispG) > 0.005 ||
+        Math.abs(phys.velGlass) > 0.02;
+
+      if (posMoving || scaleMoving || phys.isDragging || phys.isPressed) {
+        navAnimFrameRef.current = requestAnimationFrame(step);
+      } else {
+        phys.curPixel = phys.targetPixel;
+        phys.velPixel = 0;
+        phys.curScaleX = phys.targetScaleX;
+        phys.velScaleX = 0;
+        phys.curScaleY = phys.targetScaleY;
+        phys.velScaleY = 0;
+        phys.curBarSink = phys.targetBarSink;
+        phys.velBarSink = 0;
+        phys.curGlass = phys.targetGlass;
+        phys.velGlass = 0;
+        navAnimFrameRef.current = null;
+        applyNavLensVisuals(phys.curPixel, 0, 1, 1, 0, 0);
+        setNavIndicatorX(phys.curPixel);
+      }
+    };
+
+    navAnimFrameRef.current = requestAnimationFrame(step);
+  }, [applyNavLensVisuals, triggerNavHaptic]);
 
   const updateNavIndicator = useCallback((immediate = false) => {
     const container = navContainerRef.current;
@@ -651,67 +835,234 @@ function App() {
     const targetRect = targetEl.getBoundingClientRect();
     if (containerRect.width === 0) return;
 
-    const targetPixelX = (targetRect.left + targetRect.width / 2) - containerRect.left;
-    const targetSvgCx = (targetPixelX / containerRect.width) * 400;
-
+    // Normalize by current bar scale so targetPixelX is always in unscaled container coordinates
+    const scaleFactorX = containerRect.width / (container.clientWidth || containerRect.width || 1);
+    const targetPixelX = ((targetRect.left + targetRect.width / 2) - containerRect.left) / scaleFactorX;
     const phys = navPhysicsRef.current;
 
     if (immediate || phys.curPixel === null) {
-      if (navAnimFrameRef.current) cancelAnimationFrame(navAnimFrameRef.current);
+      if (navAnimFrameRef.current) {
+        cancelAnimationFrame(navAnimFrameRef.current);
+        navAnimFrameRef.current = null;
+      }
       phys.curPixel = targetPixelX;
-      phys.curSvg = targetSvgCx;
+      phys.targetPixel = targetPixelX;
       phys.velPixel = 0;
-      phys.velSvg = 0;
+      phys.curScaleX = 1;
+      phys.targetScaleX = 1;
+      phys.velScaleX = 0;
+      phys.curScaleY = 1;
+      phys.targetScaleY = 1;
+      phys.velScaleY = 0;
+      phys.curBarSink = 0;
+      phys.targetBarSink = 0;
+      phys.velBarSink = 0;
+      phys.curGlass = 0;
+      phys.targetGlass = 0;
+      phys.velGlass = 0;
       phys.lastTime = null;
       setNavIndicatorX(targetPixelX);
-      setNavNotchCx(targetSvgCx);
+      applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0);
       return;
     }
 
-    if (navAnimFrameRef.current) {
-      cancelAnimationFrame(navAnimFrameRef.current);
+    const dist = Math.abs(targetPixelX - phys.curPixel);
+    phys.targetPixel = targetPixelX;
+    if (dist > 8) {
+      // Morph into crystal-clear glass lens while gliding to the new tab
+      phys.targetGlass = 1.0;
+      phys.velGlass = 3.0;
+      phys.landingBounceArmed = true;
     }
 
-    // Apple Design: Response = 0.38s, Damping Ratio = 0.94 (Silky, critically damped fluid glide)
-    const omega = 16.53; // 2 * PI / 0.38
-    const k = omega * omega; // ~273.2
-    const c = 2 * 0.94 * omega; // ~31.08
+    startNavSpringLoop();
+  }, [activeTab, applyNavLensVisuals, startNavSpringLoop]);
 
-    phys.lastTime = performance.now();
+  // Interactive Finger Press & Drag across the Liquid Glass Navigation Bar
+  const handleNavPointerDown = useCallback((e) => {
+    if (e.target && e.target.closest && e.target.closest('.center-add-wrapper')) return;
+    if (e.button !== undefined && e.button !== 0) return;
 
-    const step = (now) => {
-      const dt = Math.min((now - (phys.lastTime || now)) / 1000, 0.032) || 0.016;
-      phys.lastTime = now;
+    const phys = navPhysicsRef.current;
+    phys.isPressed = true;
+    // 1. Glass Bubble squish-and-swell on pointer-down (Untouched!)
+    phys.targetScaleX = 1.09;
+    phys.targetScaleY = 1.05;
+    phys.velScaleX += 3.8;
+    phys.velScaleY -= 2.4;
+    phys.targetGlass = 1.0;
+    phys.velGlass += 4.0;
 
-      // Spring displacement & forces
-      const dispPixel = phys.curPixel - targetPixelX;
-      const forcePixel = -k * dispPixel - c * phys.velPixel;
-      phys.velPixel += forcePixel * dt;
-      phys.curPixel += phys.velPixel * dt;
+    // 2. Long Bottom Navigation Bar lifts UP first ("naik dulu") smoothly from its current position
+    phys.targetBarSink = 0.45;
+    phys.velBarSink = 6.2;
 
-      const dispSvg = phys.curSvg - targetSvgCx;
-      const forceSvg = -k * dispSvg - c * phys.velSvg;
-      phys.velSvg += forceSvg * dt;
-      phys.curSvg += phys.velSvg * dt;
+    triggerNavHaptic('press');
+    startNavSpringLoop();
 
-      setNavIndicatorX(phys.curPixel);
-      setNavNotchCx(phys.curSvg);
-
-      // Settle check (sub-pixel threshold for imperceptible rest)
-      if (Math.abs(dispPixel) > 0.05 || Math.abs(phys.velPixel) > 0.5) {
-        navAnimFrameRef.current = requestAnimationFrame(step);
-      } else {
-        phys.curPixel = targetPixelX;
-        phys.curSvg = targetSvgCx;
-        phys.velPixel = 0;
-        phys.velSvg = 0;
-        setNavIndicatorX(targetPixelX);
-        setNavNotchCx(targetSvgCx);
-      }
+    navDragStateRef.current = {
+      active: true,
+      dragging: false,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      suppressClickUntil: navDragStateRef.current.suppressClickUntil,
     };
+  }, [startNavSpringLoop, triggerNavHaptic]);
 
-    navAnimFrameRef.current = requestAnimationFrame(step);
-  }, [activeTab]);
+  const handleNavPointerMove = useCallback((e) => {
+    const drag = navDragStateRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
+    const container = navContainerRef.current;
+    if (!container) return;
+
+    const dx = e.clientX - drag.startX;
+    if (!drag.dragging && Math.abs(dx) > 6) {
+      drag.dragging = true;
+      navPhysicsRef.current.isDragging = true;
+      navPhysicsRef.current.lastCrossedTab = activeTab;
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {}
+    }
+
+    if (drag.dragging) {
+      const rect = container.getBoundingClientRect();
+      const unscaledWidth = container.clientWidth || rect.width || 380;
+      const scaleFactorX = rect.width / unscaledWidth;
+      const rawX = (e.clientX - rect.left) / scaleFactorX;
+      const minX = 36;
+      const maxX = Math.max(minX, unscaledWidth - 36);
+      let clampedX = rawX;
+      if (rawX < minX) clampedX = minX - (minX - rawX) * 0.25;
+      if (rawX > maxX) clampedX = maxX + (rawX - maxX) * 0.25;
+
+      const phys = navPhysicsRef.current;
+      phys.targetPixel = clampedX;
+      phys.targetGlass = 1.0;
+      phys.targetScaleX = 1.10;
+      phys.targetScaleY = 1.06;
+      phys.targetBarSink = 0.38;
+
+      // Detect crossing over another tab during finger scrub for Selection Haptic Tick + micro-pulse
+      const tabs = ['home', 'accounts', 'budget', 'stats'];
+      let nearest = null;
+      let minDist = Infinity;
+      tabs.forEach((tk) => {
+        const btn = tabButtonRefs.current[tk];
+        if (btn) {
+          const r = btn.getBoundingClientRect();
+          const cx = ((r.left + r.width / 2) - rect.left) / scaleFactorX;
+          const d = Math.abs(cx - clampedX);
+          if (d < minDist) {
+            minDist = d;
+            nearest = tk;
+          }
+        }
+      });
+      if (nearest && minDist < 28 && nearest !== phys.lastCrossedTab) {
+        phys.lastCrossedTab = nearest;
+        phys.velScaleX += 1.8;
+        phys.velScaleY -= 1.2;
+        phys.velBarSink += 3.2;
+        triggerNavHaptic('tick');
+      }
+
+      if (!navAnimFrameRef.current) {
+        startNavSpringLoop();
+      }
+    }
+  }, [activeTab, startNavSpringLoop, triggerNavHaptic]);
+
+  const handleNavPointerUpOrCancel = useCallback((e) => {
+    const drag = navDragStateRef.current;
+    if (!drag.active || drag.pointerId !== e.pointerId) return;
+    const wasDragging = drag.dragging;
+    drag.active = false;
+    drag.dragging = false;
+
+    const phys = navPhysicsRef.current;
+    phys.isDragging = false;
+    phys.isPressed = false;
+    phys.targetScaleX = 1.0;
+    phys.targetScaleY = 1.0;
+    phys.targetBarSink = 0.0;
+    phys.targetGlass = 0.0;
+
+    const container = navContainerRef.current;
+    if (container) {
+      try {
+        if (container.hasPointerCapture && container.hasPointerCapture(e.pointerId)) {
+          container.releasePointerCapture(e.pointerId);
+        }
+      } catch {}
+    }
+
+    if (wasDragging && container) {
+      drag.suppressClickUntil = performance.now() + 260;
+      const containerRect = container.getBoundingClientRect();
+      const scaleFactorX = containerRect.width / (container.clientWidth || containerRect.width || 1);
+      const projectedX = (phys.curPixel ?? 0) + (phys.velPixel || 0) * 0.065;
+      const tabs = ['home', 'accounts', 'budget', 'stats'];
+      let bestTab = activeTab;
+      let bestDist = Infinity;
+
+      tabs.forEach((tabKey) => {
+        const btn = tabButtonRefs.current[tabKey];
+        if (btn) {
+          const r = btn.getBoundingClientRect();
+          const cx = ((r.left + r.width / 2) - containerRect.left) / scaleFactorX;
+          const dist = Math.abs(cx - projectedX);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestTab = tabKey;
+          }
+        }
+      });
+
+      if (bestTab !== activeTab) {
+        phys.landingBounceArmed = true;
+        setActiveTab(bestTab);
+      } else {
+        // Released back on the same tab -> Smooth "Naik -> Turun -> Naik" bounce on Long Bar & Bubble
+        phys.velScaleX -= 3.6;
+        phys.velScaleY += 3.2;
+        phys.curBarSink = Math.max(phys.curBarSink, 0.35);
+        phys.velBarSink = 4.8;
+        triggerNavHaptic('bounce');
+        updateNavIndicator(false);
+      }
+    } else {
+      startNavSpringLoop();
+    }
+  }, [activeTab, startNavSpringLoop, triggerNavHaptic, updateNavIndicator]);
+
+  const handleNavTabClick = useCallback((tabKey, e) => {
+    if (performance.now() < navDragStateRef.current.suppressClickUntil) {
+      if (e) e.preventDefault();
+      return;
+    }
+    const phys = navPhysicsRef.current;
+    phys.isPressed = false;
+    phys.targetScaleX = 1.0;
+    phys.targetScaleY = 1.0;
+    phys.targetBarSink = 0.0;
+
+    // Smooth "Naik -> Turun -> Naik" sequence: rises up first from rest, then settles down -> up
+    phys.curBarSink = Math.max(phys.curBarSink, 0.40);
+    phys.velBarSink = 5.0;
+
+    if (tabKey === activeTab) {
+      // Clicking the ALREADY active menu -> Juicy Elastic Jelly Bounce on Bubble + Smooth Naik-Turun-Naik on Bar!
+      phys.targetGlass = 0.0;
+      phys.velGlass = 2.5;
+      phys.velScaleX = -4.2;
+      phys.velScaleY = 3.8;
+      triggerNavHaptic('bounce');
+      startNavSpringLoop();
+    } else {
+      setActiveTab(tabKey);
+    }
+  }, [activeTab, startNavSpringLoop, triggerNavHaptic]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1736,9 +2087,6 @@ function App() {
   const [isAutoTrackerPref, setIsAutoTrackerPref] = useState(() => isAutoTrackerPreferenceEnabled());
   const [hasNotifPermission, setHasNotifPermission] = useState(false);
   const [isAssistantActive, setIsAssistantActive] = useState(false);
-  const [isFloatingBubbleActive, setIsFloatingBubbleActive] = useState(() => {
-    return localStorage.getItem('cassiel_floating_bubble_pref') === 'true';
-  });
 
   // Web Admin Dashboard URL detection (?admin or /admin)
   const [isAdminView, setIsAdminView] = useState(() => {
@@ -1885,9 +2233,23 @@ function App() {
       const code = e?.detail?.inviteCode || (typeof window !== 'undefined' ? window.__PENDING_GROUP_INVITE__ : null);
       if (code) processGroupInviteCode(code);
     };
+    const handleOpenChatGroupFromNotif = (e) => {
+      const { groupId, groupName } = e?.detail || {};
+      if (typeof window !== 'undefined') {
+        window.__PENDING_CHAT_GROUP__ = { groupId, groupName };
+      }
+      setIsGroupsModalOpen(true);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { detail: { groupId, groupName } }));
+      }, 100);
+    };
     if (typeof window !== 'undefined') {
       window.addEventListener('cassiel_join_group', handleNativeJoinEvent);
+      window.addEventListener('cassiel_open_chat_group', handleOpenChatGroupFromNotif);
     }
+
+    let stopGlobalGroupsSync = null;
+    let localNotifActionListener = null;
 
     // 1. Cek langsung saat mount aplikasi
     setTimeout(() => {
@@ -1896,10 +2258,29 @@ function App() {
         initNativeBilling();
       }
 
-      // Sinkronkan grup lokal ke Firestore & deteksi Link Undangan Grup (?g= atau ?joinGroup= atau Deep Link)
+      // Sinkronkan grup lokal ke Firestore & aktifkan Global Realtime Listener untuk semua grup (Notifikasi Chat WA-style)
       try {
-        import('./utils/groupStorage').then(({ syncAllLocalGroupsToCloud }) => {
+        import('./utils/groupStorage').then(({ syncAllLocalGroupsToCloud, startGlobalGroupsRealtimeSync }) => {
           syncAllLocalGroupsToCloud();
+          if (active && typeof startGlobalGroupsRealtimeSync === 'function') {
+            stopGlobalGroupsSync = startGlobalGroupsRealtimeSync();
+          }
+        }).catch(() => {});
+
+        import('@capacitor/local-notifications').then(({ LocalNotifications }) => {
+          LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
+            const extra = notificationAction?.notification?.extra;
+            if (extra && extra.type === 'group_chat') {
+              handleOpenChatGroupFromNotif({
+                detail: {
+                  groupId: extra.groupId || null,
+                  groupName: extra.groupName || null
+                }
+              });
+            }
+          }).then(listener => {
+            localNotifActionListener = listener;
+          }).catch(() => {});
         }).catch(() => {});
 
         if (typeof window !== 'undefined') {
@@ -1976,6 +2357,12 @@ function App() {
     return () => {
       active = false;
       if (intervalId) clearInterval(intervalId);
+      if (typeof stopGlobalGroupsSync === 'function') {
+        stopGlobalGroupsSync();
+      }
+      if (localNotifActionListener) {
+        localNotifActionListener.remove();
+      }
       if (appStateListener) {
         appStateListener.remove();
       }
@@ -1984,6 +2371,7 @@ function App() {
       }
       if (typeof window !== 'undefined') {
         window.removeEventListener('cassiel_join_group', handleNativeJoinEvent);
+        window.removeEventListener('cassiel_open_chat_group', handleOpenChatGroupFromNotif);
       }
     };
   }, []);
@@ -3651,51 +4039,13 @@ function App() {
     }
   }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions]);
 
-  // Sync Floating Bubble status & auto-start if permission and preference are active
-  const syncFloatingBubbleStatus = React.useCallback(async () => {
-    try {
-      const pref = localStorage.getItem('cassiel_floating_bubble_pref') === 'true';
-      const hasPerm = await checkFloatingBubblePermission();
-      if (hasPerm && pref) {
-        await startFloatingBubble();
-        setIsFloatingBubbleActive(true);
-      } else {
-        if (!hasPerm) {
-          setIsFloatingBubbleActive(false);
-        }
-      }
-    } catch (e) {
-      console.warn('[FloatingBubble] sync error:', e);
-    }
-  }, []);
-
-  const handleToggleFloatingBubble = async () => {
-    if (isFloatingBubbleActive) {
-      localStorage.setItem('cassiel_floating_bubble_pref', 'false');
-      await stopFloatingBubble();
-      setIsFloatingBubbleActive(false);
-    } else {
-      const hasPerm = await checkFloatingBubblePermission();
-      if (!hasPerm) {
-        // Langsung arahkan ke setingan Display over other apps tanpa dialog perantara sesuai instruksi
-        localStorage.setItem('cassiel_floating_bubble_pref', 'true');
-        await requestFloatingBubblePermission();
-      } else {
-        localStorage.setItem('cassiel_floating_bubble_pref', 'true');
-        await startFloatingBubble();
-        setIsFloatingBubbleActive(true);
-      }
-    }
-  };
-
   // Sync Notification Access permission & Assistant status when Profile modal opens
   React.useEffect(() => {
     if (isProfileModalOpen) {
       checkNotificationAccessPermission().then(setHasNotifPermission);
       checkAssistantActive().then(setIsAssistantActive);
-      syncFloatingBubbleStatus();
     }
-  }, [isProfileModalOpen, syncFloatingBubbleStatus]);
+  }, [isProfileModalOpen]);
 
   // Auto-drain notification queue on mount and when app resumes from background
   React.useEffect(() => {
@@ -3711,7 +4061,6 @@ function App() {
     });
 
     checkAssistantActive().then(setIsAssistantActive);
-    syncFloatingBubbleStatus();
 
     let notifResumeListener;
     import('@capacitor/app')
@@ -3719,7 +4068,6 @@ function App() {
         CapApp.addListener('appStateChange', ({ isActive }) => {
           if (isActive) {
             checkAssistantActive().then(setIsAssistantActive);
-            syncFloatingBubbleStatus();
             processAutoTrackerQueue();
           }
         }).then(listener => {
@@ -3730,7 +4078,6 @@ function App() {
         const handleVisibility = () => {
           if (document.visibilityState === 'visible') {
             checkAssistantActive().then(setIsAssistantActive);
-            syncFloatingBubbleStatus();
             processAutoTrackerQueue();
           }
         };
@@ -3741,7 +4088,7 @@ function App() {
     return () => {
       if (notifResumeListener) notifResumeListener.remove();
     };
-  }, [processAutoTrackerQueue, syncFloatingBubbleStatus]);
+  }, [processAutoTrackerQueue]);
 
   // Save / Delete Voice Transaction
   const handleSaveVoiceTransaction = (result) => {
@@ -6997,51 +7344,132 @@ function App() {
         </div>
       )}
 
-      {/* Bottom Nav (Hidden when editing main budget or searching budget to prevent keyboard pushup) */}
+      {/* Bottom Nav — Apple iOS 26 "Liquid Glass" (Light/Warm Glass + Center Plus Opsi B) */}
       {!isEditingMainBudget && !isSearchingBudget && (
         <nav className="bottom-nav">
-          <svg className="nav-bg-svg" viewBox="0 0 400 85" preserveAspectRatio="none">
-            <path
-              d={getNavPath(navNotchCx)}
-              fill="#F8EFE6"
-            />
-          </svg>
+          <div
+            className="nav-items-container nav-glass-pill-shell"
+            ref={(el) => {
+              navContainerRef.current = el;
+              if (el && navPhysicsRef.current.curPixel !== null) {
+                const phys = navPhysicsRef.current;
+                applyNavLensVisuals(
+                  phys.curPixel,
+                  phys.velPixel || 0,
+                  phys.curScaleX || 1,
+                  phys.curScaleY || 1,
+                  phys.curGlass || 0,
+                  phys.curBarSink || 0
+                );
+              }
+            }}
+            onPointerDown={handleNavPointerDown}
+            onPointerMove={handleNavPointerMove}
+            onPointerUp={handleNavPointerUpOrCancel}
+            onPointerCancel={handleNavPointerUpOrCancel}
+          >
+            {/* Subtle Inner Top Specular Sheen of the Warm Glass Capsule Bar */}
+            <div className="nav-pill-bar-specular" aria-hidden="true" />
 
-          {/* Animated Floating Active Indicator Bubble */}
-          {navIndicatorX !== null && (
-            <div
-              className="nav-floating-bubble"
-              style={{
-                transform: `translate3d(${navIndicatorX}px, 0, 0) translate3d(-50%, -10px, 0)`
-              }}
-            />
-          )}
+            {/* LAYER 1: Base Menu Items (Outside the Glass Bubble) */}
+            <div className="nav-base-layer" ref={navBaseLayerRef}>
+              <div className="nav-group-left">
+                <button
+                  ref={(el) => { if (el) tabButtonRefs.current['home'] = el; }}
+                  type="button"
+                  className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
+                  onClick={(e) => handleNavTabClick('home', e)}
+                  aria-label={t('home')}
+                >
+                  <img src={houseSvg} alt="Home" className="nav-icon" draggable="false" />
+                  <span className="nav-label">{t('home')}</span>
+                </button>
 
-          <div className="nav-items-container" ref={navContainerRef}>
-            <div className="nav-group-left">
-              <button
-                ref={(el) => { if (el) tabButtonRefs.current['home'] = el; }}
-                type="button"
-                className={`nav-item tour-target-home ${activeTab === 'home' ? 'active' : ''}`}
-                onClick={() => setActiveTab('home')}
-                aria-label={t('home')}
-              >
-                <img src={houseSvg} alt="Home" className="nav-icon" />
-                <span className="nav-label">{t('home')}</span>
-              </button>
+                <button
+                  ref={(el) => { if (el) tabButtonRefs.current['accounts'] = el; }}
+                  type="button"
+                  className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
+                  onClick={(e) => handleNavTabClick('accounts', e)}
+                  aria-label={t('accounts')}
+                >
+                  <img src={akunSvg} alt="Account" className="nav-icon" draggable="false" />
+                  <span className="nav-label">{t('accounts')}</span>
+                </button>
+              </div>
 
-              <button
-                ref={(el) => { if (el) tabButtonRefs.current['accounts'] = el; }}
-                type="button"
-                className={`nav-item tour-target-account ${activeTab === 'accounts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('accounts')}
-                aria-label={t('accounts')}
-              >
-                <img src={akunSvg} alt="Account" className="nav-icon" />
-                <span className="nav-label">{t('accounts')}</span>
-              </button>
+              <div className="nav-group-right">
+                <button
+                  ref={(el) => { if (el) tabButtonRefs.current['budget'] = el; }}
+                  type="button"
+                  className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
+                  onClick={(e) => handleNavTabClick('budget', e)}
+                  aria-label={t('budget')}
+                >
+                  <img src={budgetSvg} alt="Budget" className="nav-icon" draggable="false" />
+                  <span className="nav-label">{t('budget')}</span>
+                </button>
+
+                <button
+                  ref={(el) => { if (el) tabButtonRefs.current['stats'] = el; }}
+                  type="button"
+                  className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
+                  onClick={(e) => handleNavTabClick('stats', e)}
+                  aria-label={t('stats')}
+                >
+                  <img src={diagramSvg} alt="Stats" className="nav-icon" draggable="false" />
+                  <span className="nav-label">{t('stats')}</span>
+                </button>
+              </div>
             </div>
 
+            {/* LAYER 2: 3D Apple Liquid Glass Bubble (Pure Crystal Glass Droplet & Elastic Bounce) */}
+            <div
+              ref={navBubbleRef}
+              className="nav-liquid-glass-bubble"
+              style={{
+                opacity: navIndicatorX !== null ? 1 : 0,
+                transform: navIndicatorX !== null
+                  ? `translate3d(${(navIndicatorX - 32).toFixed(2)}px, -50%, 0)`
+                  : 'translate3d(12px, -50%, 0)',
+              }}
+              aria-hidden="true"
+            >
+              {/* Optical Clip Stage (Pure GPU Vector Rendering — 100% Razor Sharp Text & Icons) */}
+              <div className="nav-lens-refraction-stage">
+                <div className="nav-lens-inner-world" ref={navLensWorldRef}>
+                  <div className="nav-group-left">
+                    <div className="nav-item nav-lens-clone-item">
+                      <img src={houseSvg} alt="" className="nav-icon nav-lens-icon" draggable="false" />
+                      <span className="nav-label nav-lens-label">{t('home')}</span>
+                    </div>
+                    <div className="nav-item nav-lens-clone-item">
+                      <img src={akunSvg} alt="" className="nav-icon nav-lens-icon" draggable="false" />
+                      <span className="nav-label nav-lens-label">{t('accounts')}</span>
+                    </div>
+                  </div>
+
+                  <div className="nav-group-right">
+                    <div className="nav-item nav-lens-clone-item">
+                      <img src={budgetSvg} alt="" className="nav-icon nav-lens-icon" draggable="false" />
+                      <span className="nav-label nav-lens-label">{t('budget')}</span>
+                    </div>
+                    <div className="nav-item nav-lens-clone-item">
+                      <img src={diagramSvg} alt="" className="nav-icon nav-lens-icon" draggable="false" />
+                      <span className="nav-label nav-lens-label">{t('stats')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top & Bottom Internal Reflection Meniscus Crescents (Monochrome Crystal Glass) */}
+              <div className="glass-bubble-pole-top" />
+              <div className="glass-bubble-pole-bottom" />
+
+              {/* Outer 3D Crystal Specular Rim & Surface Glare (Zero Rainbow Colors) */}
+              <div className="glass-bubble-specular-shell" />
+            </div>
+
+            {/* Center Floating Plus Button (Opsi B — Tetap di Tengah) */}
             <div className="center-add-wrapper tour-target-add">
               <button
                 type="button"
@@ -7052,31 +7480,7 @@ function App() {
                 }}
                 aria-label="Add transaction"
               >
-                <img src={addSvg} alt="Add" className="add-icon" />
-              </button>
-            </div>
-
-            <div className="nav-group-right">
-              <button
-                ref={(el) => { if (el) tabButtonRefs.current['budget'] = el; }}
-                type="button"
-                className={`nav-item tour-target-budget ${activeTab === 'budget' ? 'active' : ''}`}
-                onClick={() => setActiveTab('budget')}
-                aria-label={t('budget')}
-              >
-                <img src={budgetSvg} alt="Budget" className="nav-icon" />
-                <span className="nav-label">{t('budget')}</span>
-              </button>
-
-              <button
-                ref={(el) => { if (el) tabButtonRefs.current['stats'] = el; }}
-                type="button"
-                className={`nav-item tour-target-stats ${activeTab === 'stats' ? 'active' : ''}`}
-                onClick={() => setActiveTab('stats')}
-                aria-label={t('stats')}
-              >
-                <img src={diagramSvg} alt="Stats" className="nav-icon" />
-                <span className="nav-label">{t('stats')}</span>
+                <img src={addSvg} alt="Add" className="add-icon" draggable="false" />
               </button>
             </div>
           </div>
@@ -8356,35 +8760,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 1d. Tombol Cepat Melayang (Floating Bubble) */}
-                <div 
-                  className="wa-menu-item"
-                  onClick={handleToggleFloatingBubble}
-                >
-                  <div className="wa-menu-icon-box floating-bubble-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="9" />
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M12 3v3" />
-                      <path d="M12 18v3" />
-                      <path d="M3 12h3" />
-                      <path d="M18 12h3" />
-                    </svg>
-                  </div>
-                  <div className="wa-menu-content">
-                    <div className="wa-menu-title-row">
-                      <span className="wa-menu-title">{t('floatingBubbleTitle') || 'Tombol Cepat Melayang'}</span>
-                    </div>
-                    <span className="wa-menu-subtitle">
-                      {isFloatingBubbleActive
-                        ? (t('floatingBubbleSubtitleOn') || 'Tombol aktif di samping layar')
-                        : (t('floatingBubbleSubtitleOff') || 'Akses catat transaksi dari aplikasi apa pun')}
-                    </span>
-                  </div>
-                  <div className={`wa-custom-toggle-track ${isFloatingBubbleActive ? 'active' : ''}`}>
-                    <div className="wa-custom-toggle-thumb" />
-                  </div>
-                </div>
 
                 {/* ========================================================
                     2. TAMPILAN & PREFERENSI (Posisi No. 2)

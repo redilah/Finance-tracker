@@ -21,6 +21,7 @@ export default function GroupDetailScreen({
   group,
   currentUserName = 'Redilah',
   currentUserAvatar = null,
+  initialSubTab = 'finance',
   onBack,
   onRecordKas,
   onRecordExpense,
@@ -58,7 +59,13 @@ export default function GroupDetailScreen({
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, [group?.id, currentUserName]);
-  const [activeSubTab, setActiveSubTab] = useState('finance'); // 'finance' | 'chat'
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab || 'finance'); // 'finance' | 'chat'
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab, group?.id]);
   const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
   const [isKasStatusOpen, setIsKasStatusOpen] = useState(false);
   const [isAddTxOpen, setIsAddTxOpen] = useState(false);

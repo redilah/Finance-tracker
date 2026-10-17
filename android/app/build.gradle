@@ -7,13 +7,24 @@ android {
         applicationId "com.redilah.financetracker"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 44
-        versionName "1.0.44"
+        versionCode 45
+        versionName "1.0.45"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    flavorDimensions = ["mode"]
+    productFlavors {
+        cassiel {
+            dimension "mode"
+            applicationId "com.redilah.financetracker"
+        }
+        sariel {
+            dimension "mode"
+            applicationId "com.redilah.financetracker.sariel"
         }
     }
     signingConfigs {
@@ -89,3 +100,60 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+
+tasks.register('copySarielApk') {
+    doLast {
+        def srcApk = layout.buildDirectory.file("outputs/apk/sariel/release/app-sariel-release.apk").get().asFile
+        if (srcApk.exists()) {
+            def targets = [
+                rootProject.file("../apk/Sariel.apk"),
+                rootProject.file("../apk/app-sariel-release.apk"),
+                rootProject.file("../Sariel.apk")
+            ]
+            targets.each { target ->
+                target.parentFile.mkdirs()
+                srcApk.withInputStream { ins ->
+                    target.withOutputStream { outs ->
+                        outs << ins
+                    }
+                }
+                println ">> [AUTO-SYNC SARIEL] Copied to: ${target.absolutePath}"
+            }
+        }
+    }
+}
+
+tasks.register('copyCassielBundle') {
+    doLast {
+        def srcAab = layout.buildDirectory.file("outputs/bundle/cassielRelease/app-cassiel-release.aab").get().asFile
+        if (srcAab.exists()) {
+            def targets = [
+                layout.buildDirectory.file("outputs/bundle/release/app-release.aab").get().asFile,
+                rootProject.file("../apk/app-release.aab"),
+                rootProject.file("../apk/Cassiel.aab"),
+                rootProject.file("../apk/Cassiel-Release.aab"),
+                rootProject.file("../Cassiel.aab"),
+                rootProject.file("../Cassiel-Release.aab")
+            ]
+            targets.each { target ->
+                target.parentFile.mkdirs()
+                srcAab.withInputStream { ins ->
+                    target.withOutputStream { outs ->
+                        outs << ins
+                    }
+                }
+                println ">> [AUTO-SYNC CASSIEL AAB] Copied to: ${target.absolutePath}"
+            }
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    tasks.matching { it.name == 'assembleSarielRelease' }.configureEach { task ->
+        task.finalizedBy('copySarielApk')
+    }
+    tasks.matching { it.name == 'bundleCassielRelease' || it.name == 'bundleRelease' }.configureEach { task ->
+        task.finalizedBy('copyCassielBundle')
+    }
+}
+

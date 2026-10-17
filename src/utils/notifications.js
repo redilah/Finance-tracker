@@ -1009,6 +1009,7 @@ export const clearAppBadgeCount = async () => {
 };
 
 export const sendGroupChatNotification = async ({
+  groupId = null,
   groupName = 'Grup Kas',
   senderName = 'Anggota',
   text = '',
@@ -1034,6 +1035,12 @@ export const sendGroupChatNotification = async ({
 
   if (Capacitor.isNativePlatform()) {
     try {
+      const permStatus = await LocalNotifications.checkPermissions().catch(() => ({ display: 'prompt' }));
+      if (permStatus.display !== 'granted') {
+        const req = await LocalNotifications.requestPermissions().catch(() => ({ display: 'denied' }));
+        if (req.display !== 'granted') return;
+      }
+
       await LocalNotifications.createChannel({
         id: 'group_chat_channel',
         name: 'Chat & Kas Grup',
@@ -1050,13 +1057,14 @@ export const sendGroupChatNotification = async ({
             id: notifId,
             title: title,
             body: body,
-            schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
+            schedule: { at: new Date(Date.now() + 150), allowWhileIdle: true },
             channelId: 'group_chat_channel',
             sound: 'notification',
             smallIcon: 'ic_stat_icon',
             largeIcon: 'ic_launcher',
             extra: {
               type: 'group_chat',
+              groupId,
               groupName,
               senderName
             }
@@ -1066,13 +1074,26 @@ export const sendGroupChatNotification = async ({
     } catch (e) {
       console.warn('Native group chat notification error:', e);
     }
-  } else if ('Notification' in window && Notification.permission === 'granted') {
+  } else if ('Notification' in window) {
     try {
-      new Notification(title, {
-        body: body,
-        icon: '/app-icon.png',
-        badge: '/app-icon.png'
-      });
+      let perm = Notification.permission;
+      if (perm === 'default') {
+        perm = await Notification.requestPermission().catch(() => 'denied');
+      }
+      if (perm === 'granted') {
+        const n = new Notification(title, {
+          body: body,
+          icon: '/app-icon.png',
+          badge: '/app-icon.png'
+        });
+        n.onclick = () => {
+          try { window.focus(); } catch {}
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { detail: { groupId, groupName } }));
+          }
+          n.close();
+        };
+      }
       playSound('notification');
     } catch (e) {
       console.warn('Web notification error:', e);
