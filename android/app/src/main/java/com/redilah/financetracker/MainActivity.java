@@ -107,9 +107,11 @@ public class MainActivity extends BridgeActivity {
         if ("ACTION_OPEN_CHAT_GROUP".equals(action) || intent.hasExtra("groupId")) {
             String groupId = intent.getStringExtra("groupId");
             String groupName = intent.getStringExtra("groupName");
+            intent.setAction(null);
+            intent.removeExtra("groupId");
+            intent.removeExtra("groupName");
+            setIntent(new Intent());
             if (groupId != null && !groupId.trim().isEmpty()) {
-                intent.removeExtra("groupId");
-                intent.removeExtra("groupName");
                 if (getBridge() != null && getBridge().getWebView() != null) {
                     String safeGroupId = org.json.JSONObject.quote(groupId);
                     String safeGroupName = groupName != null ? org.json.JSONObject.quote(groupName) : "null";
@@ -117,7 +119,6 @@ public class MainActivity extends BridgeActivity {
                                 "window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { detail: { groupId: " + safeGroupId + ", groupName: " + safeGroupName + " } }));";
                     android.webkit.WebView webView = getBridge().getWebView();
                     webView.post(() -> webView.evaluateJavascript(js, null));
-                    webView.postDelayed(() -> webView.evaluateJavascript(js, null), 1200);
                 }
             }
         }

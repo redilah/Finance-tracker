@@ -105,6 +105,9 @@ export default function GroupsHubModal({
     };
     const handleOpenChatGroup = (e) => {
       const { groupId, groupName } = e?.detail || {};
+      if (typeof window !== 'undefined') {
+        window.__PENDING_CHAT_GROUP__ = null;
+      }
       const latest = getStoredGroups(currentUserName);
       setGroups(latest);
       const found = latest.find(g => (groupId && g.id === groupId) || (groupName && g.name === groupName));
@@ -130,8 +133,12 @@ export default function GroupsHubModal({
     if (!isOpen) return;
 
     const handleBack = () => {
+      if (typeof window !== 'undefined') {
+        window.__PENDING_CHAT_GROUP__ = null;
+      }
       if (selectedGroup) {
         setSelectedGroup(null);
+        setInitialSubTab('finance');
         return;
       }
       if (isCreatingGroup) {
@@ -146,8 +153,12 @@ export default function GroupsHubModal({
     };
 
     const handleBackEvent = (e) => {
+      if (typeof window !== 'undefined') {
+        window.__PENDING_CHAT_GROUP__ = null;
+      }
       if (selectedGroup) {
         setSelectedGroup(null);
+        setInitialSubTab('finance');
         if (e && e.preventDefault) e.preventDefault();
       } else if (isCreatingGroup) {
         setIsCreatingGroup(false);
@@ -365,6 +376,9 @@ export default function GroupsHubModal({
             currentUserAvatar={currentUserAvatar}
             initialSubTab={initialSubTab}
             onBack={() => {
+              if (typeof window !== 'undefined') {
+                window.__PENDING_CHAT_GROUP__ = null;
+              }
               setSelectedGroup(null);
               setInitialSubTab('finance');
             }}

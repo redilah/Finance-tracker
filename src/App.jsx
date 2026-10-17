@@ -2234,13 +2234,17 @@ function App() {
       if (code) processGroupInviteCode(code);
     };
     const handleOpenChatGroupFromNotif = (e) => {
+      // Cegah recursion loop tak terhingga jika event berasal dari relay internal
+      if (e?.detail?._fromAppRelay) return;
       const { groupId, groupName } = e?.detail || {};
       if (typeof window !== 'undefined') {
         window.__PENDING_CHAT_GROUP__ = { groupId, groupName };
       }
       setIsGroupsModalOpen(true);
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { detail: { groupId, groupName } }));
+        window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { 
+          detail: { groupId, groupName, _fromAppRelay: true } 
+        }));
       }, 100);
     };
     if (typeof window !== 'undefined') {

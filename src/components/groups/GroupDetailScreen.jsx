@@ -195,6 +195,81 @@ export default function GroupDetailScreen({
     return () => cancelScrollSpring();
   }, []);
 
+  // Handle tiered Android hardware back button and modal back for internal sub-modals
+  useEffect(() => {
+    const handleDetailBack = (e) => {
+      if (selectedProofPreview) {
+        setSelectedProofPreview(null);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isDeleteModalOpen) {
+        setIsDeleteModalOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (selectedMessage) {
+        setSelectedMessage(null);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isPlusMenuOpen) {
+        setIsPlusMenuOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isMenuDropdownOpen) {
+        setIsMenuDropdownOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isAddMemberModalOpen) {
+        setIsAddMemberModalOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isAddTxOpen) {
+        setIsAddTxOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isKasStatusOpen) {
+        setIsKasStatusOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+      if (isGroupInfoOpen) {
+        setIsGroupInfoOpen(false);
+        if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e && e.preventDefault) e.preventDefault();
+        return;
+      }
+    };
+
+    window.addEventListener('cassiel_groups_modal_back', handleDetailBack, true);
+    return () => {
+      window.removeEventListener('cassiel_groups_modal_back', handleDetailBack, true);
+    };
+  }, [
+    selectedProofPreview,
+    isDeleteModalOpen,
+    selectedMessage,
+    isPlusMenuOpen,
+    isMenuDropdownOpen,
+    isAddMemberModalOpen,
+    isAddTxOpen,
+    isKasStatusOpen,
+    isGroupInfoOpen
+  ]);
+
   useEffect(() => {
     if (group?.chatWallpaper !== undefined) {
       setCurrentWallpaper(group.chatWallpaper);
