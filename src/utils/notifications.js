@@ -1011,10 +1011,14 @@ export const clearAppBadgeCount = async () => {
 export const sendGroupChatNotification = async ({
   groupId = null,
   groupName = 'Grup Kas',
+  groupAvatar = null,
+  senderId = null,
   senderName = 'Anggota',
+  senderAvatar = null,
   text = '',
   amount = null,
   type = 'text',
+  timestamp = null,
   isMe = false
 }) => {
   // If sent by me, do not push notification to ourselves
@@ -1023,17 +1027,37 @@ export const sendGroupChatNotification = async ({
   // Increment App Icon Badge (Angka Merah di Layar Utama)
   await incrementAppBadgeCount(1);
 
-  let title = `${groupName} • ${senderName}`;
-  let body = text;
+  let formattedBody = text;
   if (type === 'financial_in') {
-    body = `✅ Kas Masuk: +Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Iuran Kas'})`;
+    formattedBody = `✅ Kas Masuk: +Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Iuran Kas'})`;
   } else if (type === 'financial_out') {
-    body = `💸 Kas Keluar: -Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Pengeluaran'})`;
+    formattedBody = `💸 Kas Keluar: -Rp${Number(amount || 0).toLocaleString('id-ID')} (${text || 'Pengeluaran'})`;
   }
 
-  const notifId = Math.floor(Date.now() % 100000) + 7000;
+  const effectiveTimestamp = timestamp ? Number(timestamp) : Date.now();
 
   if (Capacitor.isNativePlatform()) {
+    try {
+      const { registerPlugin } = await import('@capacitor/core');
+      const CassielGroupNotif = registerPlugin('CassielGroupNotification');
+
+      if (CassielGroupNotif && typeof CassielGroupNotif.notifyChatMessage === 'function') {
+        await CassielGroupNotif.notifyChatMessage({
+          groupId: groupId || 'grp_general',
+          groupName: groupName || 'Grup Kas',
+          groupAvatar: groupAvatar || null,
+          senderId: senderId || 'sender_other',
+          senderName: senderName || 'Anggota',
+          senderAvatar: senderAvatar || null,
+          text: formattedBody || '',
+          timestamp: effectiveTimestamp
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('Native CassielGroupNotification plugin failed, fallback to LocalNotifications:', e);
+    }
+
     try {
       const permStatus = await LocalNotifications.checkPermissions().catch(() => ({ display: 'prompt' }));
       if (permStatus.display !== 'granted') {
@@ -1051,12 +1075,14 @@ export const sendGroupChatNotification = async ({
         vibration: true
       }).catch(() => {});
 
+      const notifId = groupId ? Math.abs(groupId.hashCode ? groupId.hashCode() : 88888) : (Math.floor(Date.now() % 100000) + 7000);
+
       await LocalNotifications.schedule({
         notifications: [
           {
             id: notifId,
-            title: title,
-            body: body,
+            title: `${groupName} • ${senderName}`,
+            body: formattedBody,
             schedule: { at: new Date(Date.now() + 150), allowWhileIdle: true },
             channelId: 'group_chat_channel',
             sound: 'notification',
@@ -1081,10 +1107,11 @@ export const sendGroupChatNotification = async ({
         perm = await Notification.requestPermission().catch(() => 'denied');
       }
       if (perm === 'granted') {
-        const n = new Notification(title, {
-          body: body,
-          icon: '/app-icon.png',
-          badge: '/app-icon.png'
+        const n = new Notification(`${groupName} • ${senderName}`, {
+          body: formattedBody,
+          icon: groupAvatar || senderAvatar || '/app-icon.png',
+          badge: '/app-icon.png',
+          tag: `group_${groupId}` // WhatsApp-style: updates existing notification for the same group
         });
         n.onclick = () => {
           try { window.focus(); } catch {}

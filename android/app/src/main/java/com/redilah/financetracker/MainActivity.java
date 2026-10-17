@@ -5,6 +5,7 @@ import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 import com.redilah.financetracker.auth.CassielNativeGoogleAuthPlugin;
 import com.redilah.financetracker.billing.CassielNativeBillingPlugin;
+import com.redilah.financetracker.groupnotification.CassielGroupNotificationPlugin;
 import com.redilah.financetracker.notificationtracker.NotificationTrackerPlugin;
 import com.redilah.financetracker.widget.WidgetBridgePlugin;
 
@@ -15,9 +16,11 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NotificationTrackerPlugin.class);
         registerPlugin(CassielNativeBillingPlugin.class);
         registerPlugin(CassielNativeGoogleAuthPlugin.class);
+        registerPlugin(CassielGroupNotificationPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleDeepLinkIntent(getIntent());
+        handleChatIntent(getIntent());
         com.redilah.financetracker.notificationtracker.CassielUpdateReceiver.rebindListenerService(getApplicationContext());
     }
 
@@ -33,6 +36,7 @@ public class MainActivity extends BridgeActivity {
         setIntent(intent);
         handleWidgetIntent(intent);
         handleDeepLinkIntent(intent);
+        handleChatIntent(intent);
     }
 
     // Whitelist aksi widget yang diizinkan untuk mencegah injeksi JavaScript (OWASP MASVS-PLATFORM-2 / MASVS-CODE-4)
@@ -94,6 +98,28 @@ public class MainActivity extends BridgeActivity {
             android.webkit.WebView webView = getBridge().getWebView();
             webView.post(() -> webView.evaluateJavascript(js, null));
             webView.postDelayed(() -> webView.evaluateJavascript(js, null), 1500);
+        }
+    }
+
+    private void handleChatIntent(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if ("ACTION_OPEN_CHAT_GROUP".equals(action) || intent.hasExtra("groupId")) {
+            String groupId = intent.getStringExtra("groupId");
+            String groupName = intent.getStringExtra("groupName");
+            if (groupId != null && !groupId.trim().isEmpty()) {
+                intent.removeExtra("groupId");
+                intent.removeExtra("groupName");
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    String safeGroupId = org.json.JSONObject.quote(groupId);
+                    String safeGroupName = groupName != null ? org.json.JSONObject.quote(groupName) : "null";
+                    String js = "window.__PENDING_CHAT_GROUP__ = { groupId: " + safeGroupId + ", groupName: " + safeGroupName + " }; " +
+                                "window.dispatchEvent(new CustomEvent('cassiel_open_chat_group', { detail: { groupId: " + safeGroupId + ", groupName: " + safeGroupName + " } }));";
+                    android.webkit.WebView webView = getBridge().getWebView();
+                    webView.post(() -> webView.evaluateJavascript(js, null));
+                    webView.postDelayed(() -> webView.evaluateJavascript(js, null), 1200);
+                }
+            }
         }
     }
 }

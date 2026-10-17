@@ -298,13 +298,19 @@ export function checkAndNotifyIncomingGroupMessages(oldGroup, newGroup, currentU
       ? matchedMember.name
       : (msg.senderName || matchedMember?.name || 'Anggota');
 
+    const resolvedSenderAvatar = matchedMember?.avatar || msg.senderAvatar || null;
+
     sendGroupChatNotification({
       groupId: newGroup.id,
       groupName: newGroup.name || 'Grup Kas',
+      groupAvatar: newGroup.avatar || null,
+      senderId: msg.senderId || (matchedMember ? matchedMember.id : null),
       senderName: resolvedSenderName,
+      senderAvatar: resolvedSenderAvatar,
       text: msg.text || '',
       amount: msg.amount || null,
       type: msg.type || 'text',
+      timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
       isMe: false
     });
   });

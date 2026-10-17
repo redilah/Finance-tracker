@@ -2283,6 +2283,37 @@ function App() {
           }).catch(() => {});
         }).catch(() => {});
 
+        // Listen for Native Direct Replies from notification tray (Reply button in status bar)
+        import('@capacitor/core').then(({ registerPlugin }) => {
+          const CassielGroupNotif = registerPlugin('CassielGroupNotification');
+          if (CassielGroupNotif) {
+            const processDirectReply = ({ groupId, text }) => {
+              if (!groupId || !text) return;
+              import('./utils/groupStorage').then(({ sendGroupTextMessage, getCurrentUserId }) => {
+                const uName = safeStorageGet('user_profile_name', 'Pengguna Cassiel');
+                const myUid = getCurrentUserId();
+                sendGroupTextMessage({
+                  groupId,
+                  text,
+                  senderName: uName,
+                  senderId: myUid
+                });
+              }).catch(() => {});
+            };
+
+            CassielGroupNotif.addListener('directReplyReceived', (data) => {
+              processDirectReply(data);
+            }).catch(() => {});
+
+            // Check if there are queued direct replies sent while app was asleep
+            CassielGroupNotif.getPendingReplies().then(res => {
+              if (res && Array.isArray(res.replies)) {
+                res.replies.forEach(r => processDirectReply(r));
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+
         if (typeof window !== 'undefined') {
           if (window.__PENDING_GROUP_INVITE__) {
             processGroupInviteCode(window.__PENDING_GROUP_INVITE__);
@@ -2334,6 +2365,28 @@ function App() {
             checkUpdate();
             import('./utils/groupStorage').then(({ syncAllLocalGroupsToCloud }) => {
               syncAllLocalGroupsToCloud();
+            }).catch(() => {});
+            import('@capacitor/core').then(({ registerPlugin }) => {
+              const CassielGroupNotif = registerPlugin('CassielGroupNotification');
+              if (CassielGroupNotif) {
+                CassielGroupNotif.getPendingReplies().then(res => {
+                  if (res && Array.isArray(res.replies)) {
+                    res.replies.forEach(r => {
+                      if (!r.groupId || !r.text) return;
+                      import('./utils/groupStorage').then(({ sendGroupTextMessage, getCurrentUserId }) => {
+                        const uName = safeStorageGet('user_profile_name', 'Pengguna Cassiel');
+                        const myUid = getCurrentUserId();
+                        sendGroupTextMessage({
+                          groupId: r.groupId,
+                          text: r.text,
+                          senderName: uName,
+                          senderId: myUid
+                        });
+                      }).catch(() => {});
+                    });
+                  }
+                }).catch(() => {});
+              }
             }).catch(() => {});
             if (typeof window !== 'undefined' && window.__PENDING_GROUP_INVITE__) {
               processGroupInviteCode(window.__PENDING_GROUP_INVITE__);

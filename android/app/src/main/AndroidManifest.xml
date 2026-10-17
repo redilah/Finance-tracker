@@ -104,6 +104,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- BroadcastReceiver: Native WhatsApp-Style Group Chat Actions (Reply, Mark as read, Mute) -->
+        <receiver
+            android:name=".groupnotification.CassielChatActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.redilah.financetracker.groupnotification.ACTION_REPLY" />
+                <action android:name="com.redilah.financetracker.groupnotification.ACTION_MARK_AS_READ" />
+                <action android:name="com.redilah.financetracker.groupnotification.ACTION_MUTE" />
+            </intent-filter>
+        </receiver>
+
         <!-- ═══ Cassiel Digital Assistant (Settings → Default Apps → Assist & Voice Input) ═══ -->
 
         <!-- 1. VoiceInteractionService — registers Cassiel in the Digital Assistant picker -->

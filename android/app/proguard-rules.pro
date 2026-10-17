@@ -46,6 +46,10 @@
 -keep class com.google.android.libraries.identity.googleid.** { *; }
 -keepclassmembers class com.google.android.libraries.identity.googleid.** { *; }
 
+# Keep Group Chat Notification Plugin and Receivers
+-keep class com.redilah.financetracker.groupnotification.** { *; }
+-keepclassmembers class com.redilah.financetracker.groupnotification.** { *; }
+
 # Keep Kotlin stdlib & Coroutines
 -keep class kotlin.** { *; }
 -keep interface kotlin.** { *; }
