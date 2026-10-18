@@ -258,6 +258,20 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
     - Perpindahan 1 langkah (tab bertetangga): `--slide-dist: 40px; --slide-dur: 260ms;`.
     - Perpindahan melompati tombol Add / multi-langkah: `--slide-dist: 70px; --slide-dur: 320ms;`.
   - **Apple Standard Easing**: Menggunakan kurva `cubic-bezier(0.16, 1, 0.3, 1)` dengan akselerasi GPU (`will-change: transform, opacity; transform: translate3d(...)`) pada setiap kontainer halaman tab.
+* **Apple Liquid Glass (visionOS / iOS 26) Navigation Bar & GPU Shader Invariants**:
+  - **Exact 1:1 Resting Scale & Baseline Alignment Invariant**:
+    - Saat balon kaca berada dalam posisi diam (*idle / at rest* pada satu tab):
+      - Skala pembesaran lensa (`snellMagnification`) wajib bernilai tepat `1.0000` murni (1:1 terhadap item menu lain di luar balon).
+      - Elevasi sumbu vertikal (`lensIconLiftY`) dan pergeseran optik wajib `0.0px`, sehingga titik tumpu (*baseline*) ikon dan label teks berada pada garis horizontal yang rata sempurna dengan menu-menu di sebelahnya.
+      - Pembesaran dinamis (`scale` hingga ~1.18x), efek elevasi maju 3D, dan bayangan jatuh (*drop-shadow*) HANYA boleh aktif saat terjadi interaksi membal (`bounceActivity > 0`), sentuhan jari (*drag/press*), atau saat berpindah antar tab.
+  - **Strict Ban on SVG feDisplacementMap & Mandatory Clip-Path Containment**:
+    - DILARANG KERAS menggunakan filter raster SVG (`<feDisplacementMap>`) pada elemen DOM navbar karena peramban merendernya sebagai kotak persegi 90° (*bounding-box leak*) yang menyembul di luar lengkungan kapsul dan memicu pikselasi bergerigi pada ikon SVG.
+    - Wadah lensa (`.nav-lens-refraction-stage`) wajib selalu diproteksi dengan `clip-path: inset(0 round 999px)` dan `-webkit-clip-path: inset(0 round 999px)` agar batas optik lensa selalu 100% identik dengan bentuk kapsul balon kaca (`72px × 48px`).
+  - **Dual-SDF WebGL2 Hardware Shader Architecture**:
+    - Shader GLSL WebGL2 (`src/utils/liquidGlassWebGL.js`) wajib merender perhitungan 3D SDF ganda:
+      - **Container Capsule SDF**: Menghasilkan *crystal edge bevel*, *top specular lip*, dan *dynamic condensation caustics track* yang bergerak mengikuti `--bubble-x-pct`.
+      - **Bubble Droplet SDF**: Menghasilkan refraksi Hukum Snellius (`refract(I, N, 0.6579)` untuk kaca mahkota $n = 1.52$), reflektansi Fresnel Schlick, dan sorotan *specular* PBR Blinn-Phong multi-arah.
+    - Output warna wajib menggunakan *premultiplied alpha* untuk menjamin zero black/gray smudges, zero blue tint, dan zero rainbow chromatic aberration.
 * **Home Segmented Filter Tabs & Quick Dropdown Invariants**:
   - **Click Isolation & Independent Dropdown Trigger**:
     - Menekan tab **Expense** murni hanya berpindah filter kategori transaksi (`homeTxFilter = 'expense'`) dan **WAJIB** menutup dropdown (`isExpenseDropdownOpen = false`). Dilarang keras otomatis memunculkan dropdown saat berpindah tab.
