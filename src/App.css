@@ -301,36 +301,109 @@
 }
 
 .balance-card {
+  position: relative;
   flex: 1;
-  border-radius: 16px;
-  padding: 11px 8px;
+  border-radius: 18px;
+  padding: 11px 9px 10px 9px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  /* 1. Kaca Bening Berlapis Cahaya (PBR Dome Light): pantulan sumber cahaya atas */
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.25) 45%,
+    rgba(255, 255, 255, 0.08) 80%,
+    rgba(255, 255, 255, 0.20) 100%
+  );
+  /* 2. Refraksi Kristal Jernih (Hukum Snellius) */
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  /* 3. Meniscus Refractive Rim (Batas Kaca Bening) */
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  /* 4. Bevel Bias Cahaya & Bayangan Elevasi Kaca (Mencegah Menyatu dengan Latar) */
+  box-shadow:
+    0 4px 12px -1px rgba(88, 52, 18, 0.07),
+    0 10px 24px -3px rgba(92, 58, 24, 0.08),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.80),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+  overflow: hidden;
+  will-change: transform, box-shadow;
+}
+
+/* 5. Convex Apex Specular Glare (Pendar Cahaya Lengkung di Permukaan Kaca) */
+.balance-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.50) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-radius: 17px 17px 35% 35% / 17px 17px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .balance-card-clickable {
   cursor: pointer;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.balance-card-clickable:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 6px 16px -1px rgba(88, 52, 18, 0.09),
+    0 14px 28px -3px rgba(92, 58, 24, 0.10),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.90),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
 }
 
 .balance-card-clickable:active {
-  transform: scale(0.93);
+  transform: scale(0.95) translateY(1px);
+  box-shadow:
+    0 2px 6px -1px rgba(88, 52, 18, 0.05),
+    0 4px 10px -2px rgba(92, 58, 24, 0.06),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease;
 }
 
-.expenses-card {
-  background-color: var(--card-expense-bg);
+.expenses-card .amount {
+  color: #BC6C25;
 }
 
-.income-card {
-  background-color: var(--card-income-bg);
+.expenses-card .icon-down {
+  color: #BC6C25;
+  font-size: 8.5px;
+  opacity: 0.85;
 }
 
-.total-card {
-  background-color: #E6EEFA;
+.income-card .amount {
+  color: #2D6A43;
+}
+
+.income-card .icon-up {
+  color: #2D6A43;
+  font-size: 8.5px;
+  opacity: 0.85;
+}
+
+.total-card .amount {
+  color: #1E293B;
+}
+
+.total-card .icon-total {
+  color: #2563EB;
+  font-size: 11px;
 }
 
 .card-label-row {
@@ -339,13 +412,15 @@
   justify-content: space-between;
   gap: 2px;
   min-width: 0;
+  position: relative;
+  z-index: 3;
 }
 
 .card-label {
   font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: -0.1px;
+  font-weight: 700;
+  color: #5C4D42;
+  letter-spacing: -0.15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -356,36 +431,20 @@
   align-items: baseline;
   min-width: 0;
   width: 100%;
+  position: relative;
+  z-index: 3;
 }
 
 .amount {
-  font-size: clamp(12px, 3.4vw, 14px);
+  font-size: clamp(12.5px, 3.5vw, 14.5px);
   font-weight: 800;
   white-space: nowrap;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.45px;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: block;
-}
-
-.expenses-card .amount,
-.expenses-card .icon-down {
-  color: var(--card-expense-text);
-}
-
-.income-card .amount,
-.income-card .icon-up {
-  color: var(--card-income-text);
-}
-
-.total-card .amount {
-  color: var(--text-main, #333333);
-}
-
-.total-card .icon-total {
-  color: #2D5284;
 }
 
 .icon-down, .icon-up, .icon-total {
@@ -515,6 +574,7 @@
 }
 
 .balance-pop-card {
+  position: relative;
   width: 100%;
   max-width: 330px;
   border-radius: 28px;
@@ -522,11 +582,57 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: none !important;
+  background-color: rgba(255, 255, 255, 0.82);
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.25) 45%,
+    rgba(255, 255, 255, 0.08) 80%,
+    rgba(255, 255, 255, 0.20) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
   outline: none !important;
-  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.18),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
   animation: balancePopIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   transform-origin: center center;
+  overflow: hidden;
+}
+
+.balance-pop-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border-radius: 27px 27px 35% 35% / 27px 27px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.balance-pop-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+.balance-pop-card.tx-pop-card {
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0.02) 80%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
 }
 
 @keyframes balancePopIn {
@@ -782,22 +888,86 @@
 .date-group-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .transaction-item {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  border-radius: 20px;
+  padding: 9px 14px;
+  border-radius: 17px;
   cursor: pointer;
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  /* 1. Liquid Glass Optical PBR Sheen:
+     Lapisan kilau kubah PBR di atas warna kategori (Food, Coffee, Bensin, dll).
+     Warna pastel asli setiap kategori tetap 100% utuh dan tampak sebagai body kaca berwarna (tinted liquid glass). */
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0.02) 80%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+  background-color: #F6EADB;
+
+  /* 2. Refraksi Kristal Jernih (Hukum Snellius) */
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+
+  /* 3. Meniscus Refractive Rim (Batas Kaca Bening) */
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  /* 4. Bevel Bias Cahaya & Bayangan Elevasi Kaca (Mencegah Menyatu dengan Latar) */
+  box-shadow:
+    0 3px 10px -1px rgba(88, 52, 18, 0.06),
+    0 8px 20px -3px rgba(92, 58, 24, 0.07),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+
+  overflow: hidden;
+  will-change: transform, box-shadow;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 5. Convex Apex Specular Glare (Pendar Cahaya Lengkung di Permukaan Kaca Transaksi) */
+.transaction-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border-radius: 16px 16px 35% 35% / 16px 16px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.transaction-item:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 6px 16px -1px rgba(88, 52, 18, 0.09),
+    0 14px 28px -3px rgba(92, 58, 24, 0.10),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.90),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
 }
 
 .transaction-item:active {
-  transform: scale(0.96);
+  transform: scale(0.97) translateY(1px);
+  box-shadow:
+    0 2px 6px -1px rgba(88, 52, 18, 0.05),
+    0 4px 10px -2px rgba(92, 58, 24, 0.06),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease;
 }
 
 /* Category-Bound Card Background Colors (100% Unique Per Category, Soft Muted Luxury Pastel Tones) */
@@ -919,14 +1089,17 @@
 .transaction-item.cat-card-freelance-icon { background-color: #D6E8EE; }
 
 .transaction-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 14px;
+  margin-right: 12px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.45), 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 
 .food-icon { background-color: #F9D5AB; }
@@ -974,8 +1147,8 @@ img[src*="Kost"] {
 }
 
 .transaction-icon img {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
@@ -983,15 +1156,17 @@ img[src*="Kost"] {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2.5px;
   min-width: 0;
   overflow: hidden;
-  padding-right: 8px;
+  padding-right: 6px;
+  position: relative;
+  z-index: 2;
 }
 
 .transaction-title {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   color: #333;
   white-space: nowrap;
   overflow: hidden;
@@ -999,7 +1174,7 @@ img[src*="Kost"] {
 }
 
 .transaction-category {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: #777;
   white-space: nowrap;
@@ -1008,7 +1183,7 @@ img[src*="Kost"] {
 }
 
 .transaction-amount {
-  font-size: clamp(14px, 4.2vw, 19px);
+  font-size: clamp(13.5px, 3.8vw, 16.5px);
   font-weight: 700;
   white-space: nowrap;
   letter-spacing: -0.3px;
@@ -1031,6 +1206,8 @@ img[src*="Kost"] {
   gap: 3px;
   flex-shrink: 0;
   margin-left: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .tx-edit-capsule-btn {
@@ -4249,27 +4426,93 @@ img[src*="Kost"] {
 }
 
 .stats-breakdown-item {
-  background-color: rgba(255, 255, 255, 0.65);
-  border-radius: 16px;
-  padding: 12px 14px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, box-shadow 0.16s ease;
-  animation: appleListItemEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  padding: 12px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+
+  /* 1. Kaca Bening Berlapis Cahaya (PBR Dome Light) */
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 0.45) 45%,
+    rgba(255, 255, 255, 0.18) 80%,
+    rgba(255, 255, 255, 0.32) 100%
+  );
+
+  /* 2. Refraksi Kristal Jernih (Hukum Snellius) */
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+
+  /* 3. Meniscus Refractive Rim (Batas Kaca Bening) */
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  /* 4. Bevel Bias Cahaya & Bayangan Elevasi Kaca */
+  box-shadow:
+    0 4px 12px -1px rgba(88, 52, 18, 0.06),
+    0 8px 20px -3px rgba(92, 58, 24, 0.07),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+
+  overflow: hidden;
+  will-change: transform, box-shadow;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: appleListItemEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* 5. Convex Apex Specular Glare (Pendar Cahaya Lengkung di Permukaan Kaca Stats) */
+.stats-breakdown-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border-radius: 17px 17px 35% 35% / 17px 17px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stats-breakdown-item > * {
+  position: relative;
+  z-index: 2;
 }
 
 .stats-breakdown-item:hover {
-  background-color: #FFFFFF;
   transform: translateY(-1.5px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.55) 45%,
+    rgba(255, 255, 255, 0.22) 80%,
+    rgba(255, 255, 255, 0.40) 100%
+  );
+  box-shadow:
+    0 6px 16px -1px rgba(88, 52, 18, 0.09),
+    0 12px 24px -3px rgba(92, 58, 24, 0.09),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
 }
 
 .stats-breakdown-item:active {
-  transform: scale(0.985);
-  background-color: rgba(255, 255, 255, 0.85);
+  transform: scale(0.98) translateY(1px);
+  box-shadow:
+    0 2px 6px -1px rgba(88, 52, 18, 0.05),
+    0 4px 10px -2px rgba(92, 58, 24, 0.06),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease;
 }
 
 @keyframes appleListItemEnter {
@@ -4292,14 +4535,15 @@ img[src*="Kost"] {
 .stats-percent-badge {
   min-width: 42px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
   font-weight: 800;
   font-size: 11px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.45), 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .stats-cat-info {
@@ -7230,7 +7474,7 @@ img[src*="Kost"] {
 
 /* Smooth Symmetric Deletion Animation (Apple Fluid Pill Shrink + Smooth Space Collapse) */
 .transaction-item {
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -7239,7 +7483,7 @@ img[src*="Kost"] {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
-    clip-path: inset(0% 0% 0% 0% round 20px);
+    clip-path: inset(0% 0% 0% 0% round 17px);
     max-height: 92px;
     padding-top: 12px;
     padding-bottom: 12px;
@@ -7292,7 +7536,7 @@ img[src*="Kost"] {
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
-    clip-path: inset(0% 0% 0% 0% round 20px);
+    clip-path: inset(0% 0% 0% 0% round 17px);
   }
 }
 
@@ -8098,18 +8342,6 @@ img[src*="Kost"] {
 
 .stats-breakdown-item.interactive {
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.stats-breakdown-item.interactive:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-.stats-breakdown-item.interactive:active {
-  transform: scale(0.985);
 }
 
 /* Pulsating Month-End Insight CTA Badge */
@@ -10727,18 +10959,61 @@ img[src*="Kost"] {
    ======================================================== */
 
 .home-insight-card {
-  background: #F4E8DC;
-  border-radius: 22px;
-  padding: 16px 14px;
-  margin: 12px 0 16px 0;
-  box-shadow: 0 10px 28px rgba(140, 95, 60, 0.14), 0 3px 8px rgba(70, 45, 30, 0.07);
-  border: none !important;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  position: relative;
+  padding: 16px 14px;
+  margin: 12px 0 16px 0;
+  border-radius: 22px;
   overflow: hidden;
   animation: fadeIn 0.35s ease-out;
+
+  /* 1. Liquid Glass Optical PBR Dome Light */
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.60) 0%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(255, 255, 255, 0.04) 80%,
+    rgba(255, 255, 255, 0.16) 100%
+  );
+  background-color: #F5EAE0;
+
+  /* 2. Refraksi Kristal Jernih (Hukum Snellius) */
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+
+  /* 3. Meniscus Refractive Rim */
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+
+  /* 4. Bevel Bias Cahaya & Bayangan Elevasi Kaca */
+  box-shadow:
+    0 4px 14px -1px rgba(88, 52, 18, 0.07),
+    0 10px 28px -3px rgba(92, 58, 24, 0.08),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+}
+
+.home-insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border-radius: 21px 21px 35% 35% / 21px 21px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-insight-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .home-insight-top-badge-row {
@@ -10769,9 +11044,11 @@ img[src*="Kost"] {
 
 .home-insight-period-pill {
   font-size: 11px;
-  font-weight: 600;
-  color: #8C7E75;
-  background: rgba(235, 222, 211, 0.9);
+  font-weight: 700;
+  color: #7A695C;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.80), 0 1px 3px rgba(0, 0, 0, 0.03);
   padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: -0.1px;
@@ -10784,9 +11061,10 @@ img[src*="Kost"] {
   width: 22px;
   height: 22px;
   padding: 0;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.60) !important;
   outline: none;
-  background: rgba(235, 222, 211, 0.75);
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.80), 0 1px 3px rgba(0, 0, 0, 0.03);
   color: #8C7E75;
   border-radius: 50%;
   cursor: pointer;
@@ -10794,14 +11072,14 @@ img[src*="Kost"] {
 }
 
 .home-insight-dismiss-btn:hover {
-  background: rgba(215, 200, 185, 0.95);
+  background: rgba(255, 255, 255, 0.90);
   color: #4A3E39;
   transform: scale(1.06);
 }
 
 .home-insight-dismiss-btn:active {
   transform: scale(0.92);
-  background: rgba(200, 185, 170, 1);
+  background: #FFFFFF;
 }
 
 .home-insight-content-row {
@@ -10901,31 +11179,86 @@ img[src*="Kost"] {
 }
 
 .home-insight-metric-chip {
+  position: relative;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.72);
-  border-radius: 14px;
-  padding: 8px 10px;
+  border-radius: 16px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 120px;
-  box-shadow: 0 2px 8px rgba(90, 70, 55, 0.07);
-  transition: transform 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* 1. Kaca Bening Berlapis Cahaya (PBR Dome Light) */
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.48) 45%,
+    rgba(255, 255, 255, 0.20) 80%,
+    rgba(255, 255, 255, 0.38) 100%
+  );
+
+  /* 2. Refraksi Kristal Jernih (Hukum Snellius) */
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+
+  /* 3. Meniscus Refractive Rim (Batas Kaca Bening) */
+  border: 1px solid rgba(255, 255, 255, 0.72);
+
+  /* 4. Bevel Bias Cahaya & Bayangan Elevasi Kaca */
+  box-shadow:
+    0 3px 10px -1px rgba(88, 52, 18, 0.06),
+    0 6px 16px -2px rgba(92, 58, 24, 0.07),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.90),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+/* 5. Convex Apex Specular Glare (Pendar Cahaya Lengkung di Permukaan Kaca Chip) */
+.home-insight-metric-chip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.50) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-radius: 15px 15px 35% 35% / 15px 15px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-insight-metric-chip > * {
+  position: relative;
+  z-index: 2;
 }
 
 .home-insight-metric-chip:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.9);
+  transform: scale(0.96) translateY(1px);
+  box-shadow:
+    0 2px 5px -1px rgba(88, 52, 18, 0.05),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
 }
 
 .metric-chip-icon-box {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.50), 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 
 .metric-chip-icon-box img {
@@ -10981,9 +11314,14 @@ img[src*="Kost"] {
 }
 
 .home-insight-cta-btn {
-  background: #EEDCCE;
-  border: none;
-  border-radius: 12px;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.10) 100%
+  ), #EEDCCE;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 14px;
   padding: 10px 14px;
   display: flex;
   align-items: center;
@@ -10993,6 +11331,7 @@ img[src*="Kost"] {
   color: #4A3E36;
   font-size: 12.5px;
   font-weight: 700;
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.80), 0 2px 6px rgba(88, 52, 18, 0.05);
   transition: all 0.2s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -11000,7 +11339,12 @@ img[src*="Kost"] {
 
 .home-insight-cta-btn:active {
   transform: scale(0.98);
-  background: #E5D0BF;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.50) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  ), #E5D0BF;
 }
 
 .home-insight-cta-left {
@@ -11017,16 +11361,53 @@ img[src*="Kost"] {
    STATS HEADER INSIGHT V1 CARD
    ======================================================== */
 .stats-discovery-card {
-  background: #F4E8DC;
+  position: relative;
+  background-image: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(255, 255, 255, 0.60) 0%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(255, 255, 255, 0.04) 80%,
+    rgba(255, 255, 255, 0.16) 100%
+  );
+  background-color: #F5EAE0;
+  backdrop-filter: blur(14px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(14px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
   border-radius: 18px;
   padding: 14px 16px;
   margin-bottom: 14px;
-  box-shadow: 0 8px 24px rgba(140, 95, 60, 0.12), 0 3px 6px rgba(70, 45, 30, 0.06);
-  border: none !important;
+  box-shadow:
+    0 4px 14px -1px rgba(88, 52, 18, 0.07),
+    0 10px 28px -3px rgba(92, 58, 24, 0.08),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 6px;
   animation: fadeIn 0.3s ease-out;
+}
+
+.stats-discovery-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  border-radius: 17px 17px 35% 35% / 17px 17px 15% 15%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stats-discovery-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .stats-discovery-header {

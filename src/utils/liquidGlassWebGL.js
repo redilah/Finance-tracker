@@ -140,9 +140,11 @@ void main() {
   float barEdgeAA = 1.0 - smoothstep(0.0, 1.2, distBar);
   // Crisp top specular lip along the entire container bar (0.9px to 1.8px)
   float barTopLip = (1.0 - smoothstep(0.0, 1.8, fragPx.y - 0.5)) * 0.40;
-  // Dynamic traveling condensation caustics on the container bar, focused right above the bubble
-  float distToBubbleX = abs(fragPx.x - u_bubblePos.x);
-  float causticTrack = exp(-pow(distToBubbleX / 44.0, 2.0));
+  // Dynamic traveling condensation caustics on the container bar, focused along the liquid droplet body
+  float rPillBar = min(u_bubbleHalfSize.x, u_bubbleHalfSize.y);
+  float bPillXBar = max(u_bubbleHalfSize.x - rPillBar, 0.0);
+  float distToCapsuleX = max(0.0, abs(fragPx.x - u_bubblePos.x) - bPillXBar);
+  float causticTrack = exp(-pow(distToCapsuleX / 38.0, 2.0));
   float barCausticGleam = barTopLip * (0.80 + causticTrack * 1.20);
   // Subtle warm bottom bounce highlight on container
   float barBottomGleam = (1.0 - smoothstep(0.0, 1.5, u_resolution.y - 0.5 - fragPx.y)) * 0.22;

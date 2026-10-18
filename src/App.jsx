@@ -643,6 +643,14 @@ function App() {
     velPixel: 0,
     accPixel: 0,
     flightStartDist: 0,
+    // Unbroken Viscous Fluid Dual-Spring Edge Tracking (Stretching Liquid Bridge)
+    leadPixel: null,
+    trailPixel: null,
+    velLead: 0,
+    velTrail: 0,
+    flightOriginPixel: null,
+    flightTargetPixel: null,
+    fluidSpan: 0,
     // Independent 2D Hydro-Elastic Jelly Springs for the Glass Bubble (Hooke + Navier-Stokes Coupled)
     curScaleX: 1,
     targetScaleX: 1,
@@ -703,7 +711,8 @@ function App() {
     glassMorph = 0,
     barSinkSpring = 0,
     liftSpring = 0,
-    tiltSpring = 0
+    tiltSpring = 0,
+    fluidSpan = 0
   ) => {
     const container = navContainerRef.current;
     if (!container || pixelX === null || isNaN(pixelX)) return;
@@ -723,9 +732,15 @@ function App() {
       container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
     }
 
-    // 2. Wider Liquid Glass Bubble (72x48) — Navier-Stokes Volume Conservation + 3D Buoyant Levitation
+    // 2. Wider Liquid Glass Bubble (72x48) — Viscous Continuous Stretch & Navier-Stokes Volume Conservation
     const Bw = 72;
     const Bh = 48;
+
+    // Viscous Fluid Elongation: stretchRatio based on span between lead & trail edge
+    const stretchRatio = Math.max(0, fluidSpan) / Bw;
+    const fluidStretchX = 1 + stretchRatio;
+    // Volume conservation: as fluid stretches horizontally, height thins gracefully (necking)
+    const neckFactor = 1 / Math.sqrt(1 + 0.36 * Math.min(2.5, stretchRatio));
 
     const clampedGlass = Math.max(0, Math.min(1, glassMorph));
     const clampedLift = Math.max(0, Math.min(1.15, liftSpring));
@@ -738,8 +753,10 @@ function App() {
     // 3D Convex Droplet Buoyancy Swell when lifted into a thick magnifying lens
     const lensBuoyancySwell = 1 + clampedLift * 0.075;
 
-    const finalScaleX = Math.max(0.84, Math.min(1.26, scaleXSpring * stretchX * lensBuoyancySwell));
-    const finalScaleY = Math.max(0.84, Math.min(1.16, scaleYSpring * compressY * lensBuoyancySwell));
+    // finalScaleX combines base jelly spring, fluid elongation (fluidStretchX), and Weber swell
+    const finalScaleX = Math.max(0.70, scaleXSpring * fluidStretchX * stretchX * lensBuoyancySwell);
+    // finalScaleY conserves volume by thinning proportionally (neckFactor)
+    const finalScaleY = Math.max(0.55, scaleYSpring * neckFactor * compressY * lensBuoyancySwell);
 
     // 3D Vertical Levitation Offset (Droplet physically lifts up off the track as it glides, then settles down)
     const liftOffsetY = -clampedLift * 2.15;
@@ -747,8 +764,8 @@ function App() {
     const shearDeg = Math.max(-2.6, Math.min(2.6, clampedTilt * 1.85));
 
     // Interactive Membal & Dynamic Bounce Activity
-    // At rest: scaleDeviation=0, lift=0, glass=0, weber=0 -> bounceActivity = 0.000!
-    // When pressing/tapping or gliding: bounceActivity rises dynamically to scale lens & elevate icon!
+    // At rest: scaleDeviation=0, lift=0, glass=0, weber=0, stretchRatio=0 -> bounceActivity = 0.000!
+    // When pressing/tapping, gliding or stretching: bounceActivity rises dynamically!
     const scaleDeviation = Math.abs(scaleXSpring - 1) + Math.abs(scaleYSpring - 1);
     const bounceActivity = Math.max(
       0,
@@ -757,7 +774,8 @@ function App() {
         scaleDeviation * 2.2 +
         clampedLift * 1.0 +
         clampedGlass * 0.65 +
-        weber * 1.15
+        weber * 1.15 +
+        Math.min(1.0, stretchRatio * 0.75)
       )
     );
 
@@ -843,40 +861,84 @@ function App() {
       const dt = rawDt / subSteps;
 
       for (let s = 0; s < subSteps; s++) {
-        // 1. Horizontal Position Spring (Apple Damping Ratio & Response conversion)
-        const omegaPos = phys.isDragging ? 29.0 : 16.5;
-        const zetaPos = phys.isDragging ? 0.90 : 0.73;
-        const kPos = omegaPos * omegaPos;
-        const cPos = 2 * zetaPos * omegaPos;
+        // 1. Viscous Stretch Fluid Dual Springs (Unbroken Viscoelastic Droplet Transit)
+        if (phys.leadPixel === null) phys.leadPixel = phys.curPixel;
+        if (phys.trailPixel === null) phys.trailPixel = phys.curPixel;
 
+        if (phys.isDragging) {
+          // Pointer drag mode: lead edge tracks finger directly
+          const dragTarget = phys.targetPixel;
+          const omegaDragL = 29.0;
+          const zetaDragL = 0.90;
+          const fDragL = -omegaDragL * omegaDragL * (phys.leadPixel - dragTarget) - 2 * zetaDragL * omegaDragL * phys.velLead;
+          phys.velLead += fDragL * dt;
+          phys.leadPixel += phys.velLead * dt;
+
+          // Trail edge follows with slight viscous lag (elastic tail behind finger)
+          const omegaDragT = 21.0;
+          const zetaDragT = 0.84;
+          const fDragT = -omegaDragT * omegaDragT * (phys.trailPixel - phys.leadPixel) - 2 * zetaDragT * omegaDragT * phys.velTrail;
+          phys.velTrail += fDragT * dt;
+          phys.trailPixel += phys.velTrail * dt;
+        } else {
+          // Autonomous Fluid Transit (Stretch -> Anchor -> Catch-up -> Coalesce)
+          const origin = phys.flightOriginPixel ?? phys.trailPixel ?? phys.curPixel;
+          const target = phys.targetPixel;
+          const totalDist = Math.max(1, Math.abs(target - origin));
+
+          // Head Spring: smooth, graceful advance to target (melar perlahan, tidak tiba-tiba)
+          const distFactor = Math.min(1.0, totalDist / 200);
+          const omegaLead = 13.5 - 2.0 * distFactor; // 11.5 for long jumps (Home->Stats), 13.5 for short jumps
+          const zetaLead = 0.90;
+          const fLead = -omegaLead * omegaLead * (phys.leadPixel - target) - 2 * zetaLead * omegaLead * phys.velLead;
+          phys.velLead += fLead * dt;
+          phys.leadPixel += phys.velLead * dt;
+
+          // Tail Spring: anchors at origin until head advances, then releases & accelerates to target
+          const headTraveled = Math.abs(phys.leadPixel - origin);
+          const progress = Math.min(1.0, headTraveled / totalDist);
+
+          // Tail stays anchored at origin until head travels ~35% of the distance, then smoothly pulls forward
+          const releaseThreshold = 0.35;
+          const tailRelease = Math.max(0, (progress - releaseThreshold) / (1 - releaseThreshold));
+          const tension = Math.pow(tailRelease, 1.6);
+
+          const omegaTrail = 5.0 + 19.0 * tension;
+          const zetaTrail = 0.78 + 0.14 * tension;
+          const fTrail = -omegaTrail * omegaTrail * (phys.trailPixel - target) * tension - 2 * zetaTrail * omegaTrail * phys.velTrail;
+          phys.velTrail += fTrail * dt;
+          phys.trailPixel += phys.velTrail * dt;
+        }
+
+        phys.curPixel = (phys.leadPixel + phys.trailPixel) / 2;
+        phys.velPixel = (phys.velLead + phys.velTrail) / 2;
+        phys.fluidSpan = Math.abs(phys.leadPixel - phys.trailPixel);
         const dispPos = phys.curPixel - phys.targetPixel;
-        const forcePos = -kPos * dispPos - cPos * phys.velPixel;
-        phys.accPixel = forcePos;
-        phys.velPixel += forcePos * dt;
-        phys.curPixel += phys.velPixel * dt;
+        phys.accPixel = (phys.velLead + phys.velTrail) / Math.max(0.001, dt);
 
-        // Parabolic Flight Buoyancy Coupling: keeps the droplet levitated in an arc while traveling between tabs
+        // Parabolic Flight Buoyancy Coupling: keeps the stretched droplet levitated in an arc while traveling between tabs
         if (!phys.isDragging && !phys.isPressed && phys.flightStartDist > 12) {
-          const progress = 1 - Math.min(1, Math.abs(dispPos) / phys.flightStartDist);
+          const dispToTarget = Math.abs(phys.curPixel - phys.targetPixel);
+          const progress = 1 - Math.min(1, dispToTarget / phys.flightStartDist);
           const flightArcLift = Math.sin(progress * Math.PI);
-          if (Math.abs(dispPos) > 10) {
+          if (dispToTarget > 6) {
             phys.targetLift = Math.max(0.45, flightArcLift * 0.95);
             phys.targetGlass = Math.max(0.65, flightArcLift);
           }
         }
 
-        // Trigger hydro-elastic capillary coalescence & haptic bounce right as the gliding bubble arrives at target tab
-        if (phys.landingBounceArmed && !phys.isDragging && Math.abs(dispPos) < 11) {
+        // Trigger hydro-elastic capillary coalescence & haptic bounce right as the arriving tail snaps and coalesces at target tab
+        if (phys.landingBounceArmed && !phys.isDragging && phys.fluidSpan < 9 && Math.abs(phys.leadPixel - phys.targetPixel) < 10) {
           phys.landingBounceArmed = false;
           phys.flightStartDist = 0;
           phys.targetScaleX = 1.0;
           phys.targetScaleY = 1.0;
           phys.targetGlass = 0.0;
           phys.targetLift = 0.0;
-          // Scale landing squish proportionally to arrival momentum (bounded for refined elegance)
-          const impactRatio = Math.max(0.85, Math.min(1.22, Math.abs(phys.velPixel) / 360));
-          phys.velScaleX -= 3.55 * impactRatio;
-          phys.velScaleY += 3.15 * impactRatio;
+          // Scale landing squish proportionally to arrival tail momentum
+          const impactRatio = Math.max(0.85, Math.min(1.35, Math.abs(phys.velTrail) / 360));
+          phys.velScaleX -= 4.2 * impactRatio;
+          phys.velScaleY += 3.8 * impactRatio;
           phys.velLift -= 2.2 * impactRatio;
           // Smooth "Naik -> Turun -> Naik" landing wave on the long navigation bar
           phys.targetBarSink = 0.0;
@@ -947,10 +1009,12 @@ function App() {
         phys.curGlass,
         phys.curBarSink,
         phys.curLift,
-        phys.curTilt
+        phys.curTilt,
+        phys.fluidSpan
       );
 
-      const posMoving = Math.abs(dispPos) > 0.08 || Math.abs(phys.velPixel) > 0.5;
+      const spanMoving = phys.fluidSpan > 0.5;
+      const posMoving = Math.abs(dispPos) > 0.08 || Math.abs(phys.velPixel) > 0.5 || Math.abs(phys.velLead) > 0.5 || Math.abs(phys.velTrail) > 0.5 || spanMoving;
       const scaleMoving =
         Math.abs(dispSX) > 0.002 ||
         Math.abs(phys.velScaleX) > 0.015 ||
@@ -969,7 +1033,12 @@ function App() {
         navAnimFrameRef.current = requestAnimationFrame(step);
       } else {
         phys.curPixel = phys.targetPixel;
+        phys.leadPixel = phys.targetPixel;
+        phys.trailPixel = phys.targetPixel;
+        phys.fluidSpan = 0;
         phys.velPixel = 0;
+        phys.velLead = 0;
+        phys.velTrail = 0;
         phys.accPixel = 0;
         phys.flightStartDist = 0;
         phys.curScaleX = phys.targetScaleX;
@@ -986,8 +1055,8 @@ function App() {
         phys.targetTilt = 0;
         phys.velTilt = 0;
         navAnimFrameRef.current = null;
-        applyNavLensVisuals(phys.curPixel, 0, 1, 1, 0, 0, 0, 0);
-        setNavIndicatorX(phys.curPixel);
+        applyNavLensVisuals(phys.targetPixel, 0, 1, 1, 0, 0, 0, 0, 0);
+        setNavIndicatorX(phys.targetPixel);
       }
     };
 
@@ -1016,7 +1085,14 @@ function App() {
       }
       phys.curPixel = targetPixelX;
       phys.targetPixel = targetPixelX;
+      phys.leadPixel = targetPixelX;
+      phys.trailPixel = targetPixelX;
+      phys.flightOriginPixel = targetPixelX;
+      phys.flightTargetPixel = targetPixelX;
+      phys.fluidSpan = 0;
       phys.velPixel = 0;
+      phys.velLead = 0;
+      phys.velTrail = 0;
       phys.accPixel = 0;
       phys.flightStartDist = 0;
       phys.curScaleX = 1;
@@ -1039,13 +1115,19 @@ function App() {
       phys.velTilt = 0;
       phys.lastTime = null;
       setNavIndicatorX(targetPixelX);
-      applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0, 0, 0);
+      applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0, 0, 0, 0);
       return;
     }
 
-    const dist = Math.abs(targetPixelX - phys.curPixel);
+    const currentPos = phys.curPixel ?? targetPixelX;
+    const dist = Math.abs(targetPixelX - currentPos);
     phys.targetPixel = targetPixelX;
     if (dist > 8) {
+      // Viscous liquid stretch: set flight origin to trailing edge or current position
+      phys.flightOriginPixel = phys.trailPixel ?? currentPos;
+      phys.flightTargetPixel = targetPixelX;
+      if (phys.leadPixel === null) phys.leadPixel = currentPos;
+      if (phys.trailPixel === null) phys.trailPixel = currentPos;
       // Levitate & morph into crystal-clear 3D convex droplet while gliding across the bar
       phys.flightStartDist = Math.max(phys.flightStartDist || 0, dist);
       phys.targetGlass = 1.0;
@@ -1289,12 +1371,11 @@ function App() {
       phys.velLift = 3.2;
       phys.velScaleX = -4.2;
       phys.velScaleY = 3.8;
+      phys.fluidSpan = 0;
       triggerNavHaptic('bounce');
       startNavSpringLoop();
     } else {
-      // Zero-latency Takeoff: Launch the 3D Liquid Glass Droplet on the EXACT same frame as tap!
-      phys.velScaleX += 2.2;
-      phys.velScaleY -= 1.5;
+      // Zero-latency Takeoff: Launch the unbroken 3D Liquid Glass Droplet on the EXACT same frame as tap!
       updateNavIndicator(false, tabKey);
       setActiveTab(tabKey);
     }
@@ -7661,7 +7742,8 @@ function App() {
                   phys.curGlass || 0,
                   phys.curBarSink || 0,
                   phys.curLift || 0,
-                  phys.curTilt || 0
+                  phys.curTilt || 0,
+                  phys.fluidSpan || 0
                 );
               }
             }}
@@ -7793,7 +7875,8 @@ function App() {
                       phys.curGlass || 0,
                       phys.curBarSink || 0,
                       phys.curLift || 0,
-                      phys.curTilt || 0
+                      phys.curTilt || 0,
+                      phys.fluidSpan || 0
                     );
                   }
                 }
@@ -11606,8 +11689,7 @@ function App() {
           onClick={() => setActiveBalanceDetail(null)}
         >
           <div 
-            className="balance-pop-card"
-            style={{ backgroundColor: activeBalanceDetail.bgColor }}
+            className={`balance-pop-card balance-pop-${activeBalanceDetail.type}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="balance-pop-header">

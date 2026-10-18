@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   generateCategoryInsight, 
   isEndOfMonthOrTesting, 
@@ -85,6 +85,13 @@ export default function CategoryInsightScreen({
   const [isToastExiting, setIsToastExiting] = useState(false);
   const toastTimerRef = useRef(null);
   const toastExitTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      if (toastExitTimerRef.current) clearTimeout(toastExitTimerRef.current);
+    };
+  }, []);
 
   const showToast = (msg) => {
     if (toastTimerRef.current) {
