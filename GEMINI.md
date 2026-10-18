@@ -272,6 +272,15 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
       - **Container Capsule SDF**: Menghasilkan *crystal edge bevel*, *top specular lip*, dan *dynamic condensation caustics track* yang bergerak mengikuti `--bubble-x-pct`.
       - **Bubble Droplet SDF**: Menghasilkan refraksi Hukum Snellius (`refract(I, N, 0.6579)` untuk kaca mahkota $n = 1.52$), reflektansi Fresnel Schlick, dan sorotan *specular* PBR Blinn-Phong multi-arah.
     - Output warna wajib menggunakan *premultiplied alpha* untuk menjamin zero black/gray smudges, zero blue tint, dan zero rainbow chromatic aberration.
+  - **Unbroken Viscoelastic Liquid Stretch & Coalescence Invariant**:
+    - **Larangan Pemutusan Wujud (*Strict Zero-Breakage Rule*)**: Saat berpindah antar tab (baik jarak dekat maupun jarak jauh seperti Home ke Stats), balon kaca **DILARANG KERAS** terputus menjadi gelembung terpisah atau melompat kaku sebagai benda padat. Tubuh cairan wajib membentang sebagai satu kapsul kaca elastis yang terus menyambung utuh (*continuous liquid bridge*) dari tab asal hingga tab tujuan.
+    - **Dual-Spring Lead-Trail Dynamic Flow**:
+      - Ujung depan (*leadPixel*) meluncur halus dengan pegas $\omega_{\text{lead}} \approx 11.5 - 13.5$ rad/s.
+      - Ujung belakang (*trailPixel*) menahan diri di tab asal (*viscous anchoring*) sampai kepala mencapai $\ge 35\%$ perjalanan, kemudian ditarik menyusul oleh tegangan cairan non-linear ($\text{tension} = \text{tailRelease}^{1.6}$, $\omega_{\text{trail}} \approx 5.0 + 19.0 \cdot \text{tension}$).
+    - **Inkompresibilitas Fluida (Necking Ratio)**:
+      - Peregangan horizontal: $S_{\text{fluidX}} = 1 + \frac{\text{span}}{B_w}$.
+      - Penipisan leher vertikal: $S_{\text{neckY}} = \frac{1}{\sqrt{1 + 0.36 \min(2.5, \text{span} / B_w)}}$.
+    - **Coalescence Landing Bounce**: Begitu ekor tiba di target ($\text{span} < 9\text{px}$), balon kaca menyatu kembali dan memicu impuls pantulan kenyal $\Delta v_{sx} \approx -4.2$, $\Delta v_{sy} \approx +3.8$ sebelum stabil 100% pada ukuran asli $72 \times 48\text{px}$.
 * **Home Segmented Filter Tabs & Quick Dropdown Invariants**:
   - **Click Isolation & Independent Dropdown Trigger**:
     - Menekan tab **Expense** murni hanya berpindah filter kategori transaksi (`homeTxFilter = 'expense'`) dan **WAJIB** menutup dropdown (`isExpenseDropdownOpen = false`). Dilarang keras otomatis memunculkan dropdown saat berpindah tab.
