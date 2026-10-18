@@ -1141,7 +1141,7 @@ img[src*="Kost"] {
   overflow: hidden;
 }
 
-/* Light/Warm Glass Floating Pill Container (with 120fps Cohesive Elastic Bar Bounce) */
+/* Light/Warm Glass Floating Pill Container (Apple Liquid Glass Dock with 120fps Elastic Bar Bounce) */
 .nav-items-container.nav-glass-pill-shell {
   position: relative;
   z-index: 3;
@@ -1151,17 +1151,22 @@ img[src*="Kost"] {
   border-radius: 999px;
   background: linear-gradient(
     180deg,
-    rgba(255, 253, 250, 0.78) 0%,
-    rgba(246, 235, 222, 0.86) 100%
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(254, 251, 246, 0.82) 42%,
+    rgba(247, 238, 226, 0.88) 100%
   );
-  backdrop-filter: blur(22px) saturate(195%);
-  -webkit-backdrop-filter: blur(22px) saturate(195%);
-  border: 1.2px solid rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(28px) saturate(210%) contrast(102%);
+  -webkit-backdrop-filter: blur(28px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 14px 34px rgba(96, 64, 32, 0.14),
-    0 3px 10px rgba(0, 0, 0, 0.05),
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
-    inset 0 -1.5px 3px rgba(188, 138, 88, 0.16);
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 3px 8px -1px rgba(88, 52, 18, 0.08),
+    0 16px 38px -4px rgba(92, 58, 24, 0.14),
+    0 26px 48px -10px rgba(217, 119, 6, 0.07),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -2.5px 4px rgba(195, 145, 95, 0.18);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
@@ -1174,15 +1179,43 @@ img[src*="Kost"] {
 .nav-pill-bar-specular {
   position: absolute;
   top: 1px;
-  left: 22px;
-  right: 22px;
-  height: 1.5px;
+  left: 18px;
+  right: 18px;
+  height: 1.8px;
+  border-radius: 999px;
+  background:
+    /* Dynamic Condensation Caustic Light Beam centered above the moving bubble */
+    radial-gradient(
+      72px 3.5px at var(--bubble-x-pct, 18%) 50%,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 253, 248, 0.85) 45%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    /* Global Ambient Studio Ceiling Light Sheen across the capsule bar */
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.95) 18%,
+      rgba(255, 255, 255, 0.95) 82%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.9));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.nav-pill-bar-bottom-specular {
+  position: absolute;
+  bottom: 1px;
+  left: 28px;
+  right: 28px;
+  height: 1px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.95) 25%,
-    rgba(255, 255, 255, 0.95) 75%,
+    rgba(255, 255, 255, 0.65) 25%,
+    rgba(255, 255, 255, 0.65) 75%,
     rgba(255, 255, 255, 0) 100%
   );
   pointer-events: none;
@@ -1272,39 +1305,71 @@ img[src*="Kost"] {
 }
 
 /* ==========================================================================
-   3D Apple Liquid Glass Bubble (Pure Monochrome Crystal Droplet — Zero Rainbow)
+   3D Apple Liquid Glass Bubble (Hydro-Optical Continuum — Zero Rainbow)
    ========================================================================== */
 .nav-liquid-glass-bubble {
   --glass-active: 0;
+  --glass-lift: 0;
+  --glass-tilt-x: 0;
+  --glass-weber: 0;
   position: absolute;
   top: 50%;
   left: 0;
-  width: 64px;
+  width: 72px;
   height: 48px;
   border-radius: 999px;
   pointer-events: none;
   z-index: 6;
   will-change: transform;
   transform-origin: center center;
-  background: radial-gradient(
-    120% 105% at 50% 16%,
-    rgba(255, 255, 255, calc(0.86 - var(--glass-active) * 0.28)) 0%,
-    rgba(255, 253, 250, calc(0.72 - var(--glass-active) * 0.42)) 46%,
-    rgba(247, 238, 226, calc(0.68 - var(--glass-active) * 0.34)) 82%,
-    rgba(255, 255, 255, calc(0.90 - var(--glass-active) * 0.14)) 100%
-  );
+  /* Dynamic 3D Convex Volume Dome: shifts focal light & clarifies into pure crystal water/glass on lift */
+  background:
+    radial-gradient(
+      95% 75% at calc(50% - var(--glass-tilt-x) * 18%) calc(84% + var(--glass-lift) * 4%),
+      rgba(255, 252, 245, calc(0.24 + var(--glass-lift) * 0.28)) 0%,
+      rgba(255, 250, 242, 0) 70%
+    ),
+    radial-gradient(
+      122% 108% at calc(50% - var(--glass-tilt-x) * 16%) calc(16% - var(--glass-lift) * 4%),
+      rgba(255, 255, 255, calc(0.84 - var(--glass-active) * 0.64)) 0%,
+      rgba(255, 253, 250, calc(0.70 - var(--glass-active) * 0.58)) 44%,
+      rgba(246, 236, 224, calc(0.64 - var(--glass-active) * 0.52)) 80%,
+      rgba(255, 255, 255, calc(0.90 - var(--glass-active) * 0.32)) 100%
+    );
+  /* Coupled 3D Buoyant Elevation Shadow + Snellius Subsurface Caustic Light Focus */
   box-shadow:
-    0 calc(3px + var(--glass-active) * 5px) calc(10px + var(--glass-active) * 10px) rgba(92, 58, 24, calc(0.11 + var(--glass-active) * 0.11)),
-    0 1.5px 4px rgba(0, 0, 0, calc(0.05 + var(--glass-active) * 0.05));
+    0 calc(3px + var(--glass-lift) * 6.5px) calc(10px + var(--glass-lift) * 12px) rgba(92, 58, 24, calc(0.11 + var(--glass-lift) * 0.12)),
+    0 calc(1.5px + var(--glass-lift) * 2px) calc(4px + var(--glass-lift) * 5px) rgba(0, 0, 0, calc(0.05 + var(--glass-lift) * 0.05)),
+    0 calc(2px + var(--glass-lift) * 4px) calc(8px + var(--glass-lift) * 10px) rgba(255, 251, 242, calc(0.45 * var(--glass-lift)));
   transition: opacity 0.18s ease;
 }
 
-/* Optical Clip Stage (Pure GPU Vector Rendering — 100% Sharp Text & Icons) */
+/* Subsurface Refractive Meniscus Wall (Simulates Crown Crystal Index of Refraction n = 1.52) */
+.nav-liquid-glass-bubble::before {
+  content: '';
+  position: absolute;
+  inset: 1.2px;
+  border-radius: 999px;
+  background: radial-gradient(
+    88% 82% at calc(50% + var(--glass-tilt-x) * 12%) 50%,
+    rgba(255, 255, 255, 0) 58%,
+    rgba(255, 255, 255, calc(0.24 + var(--glass-lift) * 0.36)) 88%,
+    rgba(240, 228, 214, calc(0.18 + var(--glass-active) * 0.22)) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Optical Clip Stage (3D Capsule Meniscus Lens Stage — 100% Exact Pill Boundary) */
 .nav-lens-refraction-stage {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 999px;
   overflow: hidden;
+  clip-path: inset(0 round 999px);
+  -webkit-clip-path: inset(0 round 999px);
   z-index: 1;
 }
 
@@ -1322,36 +1387,41 @@ img[src*="Kost"] {
   pointer-events: none;
 }
 
-/* Crisp Vector Active Icon & Text Inside the Glass Bubble (Zero Blur) */
+/* Crisp Vector Active Icon & Text Inside the Glass Bubble (1:1 Exact Baseline at Rest, Dynamic Zoom on Membal) */
 .nav-lens-icon {
   opacity: 1 !important;
-  filter: saturate(1.22) contrast(1.04) !important;
+  filter: drop-shadow(0 calc(var(--bounce-activity, 0) * 4px) calc(var(--bounce-activity, 0) * 6px) rgba(180, 83, 9, calc(var(--bounce-activity, 0) * 0.38))) saturate(1.22) contrast(1.04) !important;
+  transform: translateZ(0) scale(calc(1 + var(--bounce-activity, 0) * 0.10));
+  will-change: transform, filter;
 }
 
 .nav-lens-label {
   color: #D97706 !important;
   font-weight: 800 !important;
   letter-spacing: -0.1px;
-  text-shadow: none !important;
+  text-shadow: 0 calc(var(--bounce-activity, 0) * 1.6px) calc(var(--bounce-activity, 0) * 3px) rgba(217, 119, 6, calc(var(--bounce-activity, 0) * 0.35)) !important;
+  transform: translateZ(0) scale(calc(1 + var(--bounce-activity, 0) * 0.06));
   -webkit-font-smoothing: antialiased;
+  will-change: transform, text-shadow;
 }
 
-/* Top & Bottom Total Internal Reflection Meniscus Crescents (Monochrome Only) */
+/* Top & Bottom Pure Crystal Specular Crescents (100% Luminous White — Zero Dark/Black Smudge) */
 .glass-bubble-pole-top,
 .glass-bubble-pole-bottom {
   position: absolute;
   left: 22%;
   right: 22%;
-  height: 2px;
+  height: 1.8px;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    rgba(38, 28, 18, 0) 0%,
-    rgba(38, 28, 18, calc(0.10 + var(--glass-active) * 0.24)) 25%,
-    rgba(24, 16, 10, calc(0.18 + var(--glass-active) * 0.34)) 50%,
-    rgba(38, 28, 18, calc(0.10 + var(--glass-active) * 0.24)) 75%,
-    rgba(38, 28, 18, 0) 100%
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, calc(0.55 + var(--glass-active) * 0.35)) 25%,
+    rgba(255, 255, 255, calc(0.85 + var(--glass-active) * 0.15)) 50%,
+    rgba(255, 255, 255, calc(0.55 + var(--glass-active) * 0.35)) 75%,
+    rgba(255, 255, 255, 0) 100%
   );
+  transform: translate3d(calc(var(--glass-tilt-x) * -3.2px), 0, 0) scaleX(calc(1 + var(--glass-weber) * 0.14));
   pointer-events: none;
   z-index: 3;
 }
@@ -1364,26 +1434,63 @@ img[src*="Kost"] {
   bottom: 1.6px;
 }
 
-/* Outer 3D Crystal Specular Rim & Surface Glare (Pure White/Neutral Glass Rim — No Rainbow) */
+/* Outer 3D Schlick-Fresnel Specular Rim & Dynamic Dome Glare (Pure Crystal — Zero Black, Zero Rainbow) */
 .glass-bubble-specular-shell {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  border: 1.35px solid rgba(255, 255, 255, 0.96);
+  border: 1.35px solid rgba(255, 255, 255, calc(0.95 + var(--glass-lift) * 0.05));
   background: linear-gradient(
-    168deg,
-    rgba(255, 255, 255, calc(0.46 + var(--glass-active) * 0.22)) 0%,
-    rgba(255, 255, 255, calc(0.08 + var(--glass-active) * 0.08)) 32%,
+    calc(168deg - var(--glass-tilt-x) * 18deg),
+    rgba(255, 255, 255, calc(0.52 + var(--glass-active) * 0.24)) 0%,
+    rgba(255, 255, 255, calc(0.12 + var(--glass-active) * 0.10)) 34%,
     rgba(255, 255, 255, 0) 58%,
-    rgba(255, 250, 244, calc(0.24 + var(--glass-active) * 0.18)) 100%
+    rgba(255, 252, 246, calc(0.28 + var(--glass-active) * 0.20)) 100%
   );
   box-shadow:
-    inset 0 1.5px 2.5px rgba(255, 255, 255, 0.98),
-    inset 0 -1.5px 2.5px rgba(255, 252, 246, 0.92),
-    inset 2px 0 3.5px rgba(255, 255, 255, calc(0.35 + var(--glass-active) * 0.45)),
-    inset -2px 0 3.5px rgba(120, 90, 60, calc(0.06 + var(--glass-active) * 0.12));
+    inset 0 1.6px 2.6px rgba(255, 255, 255, 0.99),
+    inset 0 -1.6px 2.6px rgba(255, 252, 246, 0.95),
+    inset calc(2.2px - var(--glass-tilt-x) * 2.4px) 0 3.8px rgba(255, 255, 255, calc(0.45 + var(--glass-active) * 0.45)),
+    inset calc(-2.2px - var(--glass-tilt-x) * 1.8px) 0 3.8px rgba(255, 250, 242, calc(0.35 + var(--glass-active) * 0.35));
   pointer-events: none;
   z-index: 4;
+}
+
+/* Convex Apex Specular Crown Highlight (Rolls organically across the liquid dome during motion) */
+.glass-bubble-specular-shell::after {
+  content: '';
+  position: absolute;
+  top: 2.6px;
+  left: 20%;
+  right: 20%;
+  height: 5.5px;
+  border-radius: 999px;
+  background: radial-gradient(
+    50% 100% at 50% 0%,
+    rgba(255, 255, 255, calc(0.62 + var(--glass-lift) * 0.32)) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translate3d(calc(var(--glass-tilt-x) * -4.2px), calc(var(--glass-lift) * -0.6px), 0);
+  pointer-events: none;
+}
+
+/* Real-Time WebGL2 GLSL Fragment Shader Layer (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel) */
+.nav-webgl-shader-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 8;
+}
+
+/* When WebGL2 GLSL Shader is active, delegate top/bottom TIR poles & outer specular rim to the GPU shader */
+.nav-liquid-glass-bubble.webgl-shader-active::before,
+.nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-pole-top,
+.nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-pole-bottom,
+.nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-specular-shell {
+  opacity: 0;
 }
 
 /* Tab View Switch Animation - Apple Synchronized Fluid Slide */

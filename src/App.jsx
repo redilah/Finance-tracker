@@ -48,6 +48,7 @@ import kalenderSvg from './assets/kalender.svg';
 import dompetSvg from './assets/dompet.svg';
 
 import { playPositiveChime } from './utils/soundFeedback';
+import { LiquidGlassWebGLRenderer } from './utils/liquidGlassWebGL';
 import { checkForAppUpdates, CURRENT_VERSION_NAME, CURRENT_VERSION_CODE } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
@@ -582,6 +583,16 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [periodFilter, setPeriodFilter] = useState('monthly'); // 'monthly' | 'weekly' | 'yearly'
 
+  // Language Settings & Translation Helper (Must be declared before nav & WebGL callbacks)
+  const [appLanguage, setAppLanguage] = useState(() => {
+    const savedLang = safeStorageGet('user_app_lang');
+    return savedLang || 'en';
+  });
+  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'en');
+  const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const t = useCallback((key, vars) => getTranslation(appLanguage, key, vars), [appLanguage]);
+
   // Apple Design Direction-Aware Page Transitions (Synchronized with Nav Bubble)
   const TAB_ORDER_MAP = useRef({ home: 0, accounts: 1, budget: 2, stats: 3 });
   const [tabMotion, setTabMotion] = useState({
@@ -606,11 +617,13 @@ function App() {
     });
   }
 
-  // Apple iOS "Liquid Glass" 2D Hydro-Elastic Jelly Spring & Haptic Engine (Silent Haptics Only)
+  // Apple iOS "Liquid Glass" Unified Hydro-Optical Continuum Physics + WebGL2 GLSL Fragment Shader Engine
   const navContainerRef = useRef(null);
   const navBaseLayerRef = useRef(null);
   const navBubbleRef = useRef(null);
   const navLensWorldRef = useRef(null);
+  const navShaderCanvasRef = useRef(null);
+  const navWebGLRendererRef = useRef(null);
   const tabButtonRefs = useRef({});
   const [navIndicatorX, setNavIndicatorX] = useState(null);
   const navDragStateRef = useRef({
@@ -618,23 +631,37 @@ function App() {
     dragging: false,
     pointerId: null,
     startX: 0,
+    grabOffsetX: 0,
+    lastMoveX: 0,
+    lastMoveTime: 0,
+    pointerVelX: 0,
     suppressClickUntil: 0,
   });
   const navPhysicsRef = useRef({
     curPixel: null,
     targetPixel: null,
     velPixel: 0,
-    // Independent 2D Hydro-Elastic Jelly Springs for the Glass Bubble (Untouched!)
+    accPixel: 0,
+    flightStartDist: 0,
+    // Independent 2D Hydro-Elastic Jelly Springs for the Glass Bubble (Hooke + Navier-Stokes Coupled)
     curScaleX: 1,
     targetScaleX: 1,
     velScaleX: 0,
     curScaleY: 1,
     targetScaleY: 1,
     velScaleY: 0,
+    // Optical Crystal Clarity & 3D Buoyant Levitation Springs (0 = resting soft droplet, 1 = levitated convex lens)
     curGlass: 0,
     targetGlass: 0,
     velGlass: 0,
-    // Synchronized Vertical & Depth "Mundur-Naik" Spring for the Long Bottom Navigation Bar
+    curLift: 0,
+    targetLift: 0,
+    velLift: 0,
+    // Dynamic Meniscus & Fresnel Specular Tilt Spring (-1..1 driven by inertial fluid acceleration)
+    curTilt: 0,
+    targetTilt: 0,
+    velTilt: 0,
+    // Synchronized Vertical & Depth "Naik -> Turun -> Naik" Wave for the Long Bottom Navigation Bar
     curBarSink: 0,
     targetBarSink: 0,
     velBarSink: 0,
@@ -657,61 +684,143 @@ function App() {
     } catch {}
   }, []);
 
-  // Synchronize DOM transforms directly at 120fps for zero-latency optical split-color & unified bar + bubble elastic bounce
+  // Apple Hyperbolic Rubber-Band Formula: f(x, d, c) = (x * d * c) / (d + c * |x|)
+  const computeAppleRubberBand = (overshoot, dimension, constant = 0.55) => {
+    return (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
+  };
+
+  // Apple Exponential Momentum Projection: x_proj = x + (v / 1000) * d / (1 - d)
+  const projectAppleMomentum = (initialVelocity, decelerationRate = 0.991) => {
+    return ((initialVelocity / 1000) * decelerationRate) / (1 - decelerationRate);
+  };
+
+  // Synchronize DOM transforms & WebGL2 GLSL optical shader uniforms directly at 120fps
   const applyNavLensVisuals = useCallback((
     pixelX,
     velocityX = 0,
     scaleXSpring = 1,
     scaleYSpring = 1,
     glassMorph = 0,
-    barSinkSpring = 0
+    barSinkSpring = 0,
+    liftSpring = 0,
+    tiltSpring = 0
   ) => {
     const container = navContainerRef.current;
     if (!container || pixelX === null || isNaN(pixelX)) return;
     const width = container.clientWidth || 380;
     const height = container.clientHeight || 62;
 
-    // 1. Long Navigation Bar Capsule Smooth "Naik -> Turun -> Naik" Bounce (Lifts Up First, Never Excess)
-    const clampedLift = Math.max(-0.45, Math.min(1.0, barSinkSpring));
-    const barUniformScale = 1 + clampedLift * 0.012; // Gently swells/lifts when > 0 ("naik")
-    const barTranslateY = -clampedLift * 1.9; // Negative Y = Rises UP first when > 0, then settles down -> up
+    // 1. Long Navigation Bar Capsule Smooth "Naik -> Turun -> Naik" Bounce + Coupled Fresnel Specular Tracking
+    const clampedBarLift = Math.max(-0.45, Math.min(1.0, barSinkSpring));
+    const barUniformScale = 1 + clampedBarLift * 0.012;
+    const barTranslateY = -clampedBarLift * 1.9;
+    const bubbleXPct = Math.max(6, Math.min(94, (pixelX / width) * 100));
     container.style.transformOrigin = '50% 100%';
-    if (Math.abs(clampedLift) < 0.001) {
+    container.style.setProperty('--bubble-x-pct', `${bubbleXPct.toFixed(1)}%`);
+    if (Math.abs(clampedBarLift) < 0.001) {
       container.style.transform = 'translate3d(0, 0, 0) scale3d(1, 1, 1)';
     } else {
       container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
     }
 
-    // 2. Compact Glass Bubble (64x48) — Exact Same Beloved Elastic Bounce Physics
-    const Bw = 64;
+    // 2. Wider Liquid Glass Bubble (72x48) — Navier-Stokes Volume Conservation + 3D Buoyant Levitation
+    const Bw = 72;
     const Bh = 48;
 
-    const speedRatio = Math.min(Math.abs(velocityX) / 1450, 0.13);
-    const finalScaleX = Math.max(0.84, Math.min(1.22, scaleXSpring + speedRatio));
-    const finalScaleY = Math.max(0.84, Math.min(1.12, scaleYSpring - speedRatio * 0.16));
     const clampedGlass = Math.max(0, Math.min(1, glassMorph));
+    const clampedLift = Math.max(0, Math.min(1.15, liftSpring));
+    const clampedTilt = Math.max(-1, Math.min(1, tiltSpring));
+
+    // Dimensionless Weber Flow Number We = tanh(|v_x| / v_char) for incompressible fluid deformation
+    const weber = Math.tanh(Math.abs(velocityX) / 1180);
+    const stretchX = Math.sqrt(1 + 0.28 * weber);
+    const compressY = 1 / Math.sqrt(1 + 0.14 * weber);
+    // 3D Convex Droplet Buoyancy Swell when lifted into a thick magnifying lens
+    const lensBuoyancySwell = 1 + clampedLift * 0.075;
+
+    const finalScaleX = Math.max(0.84, Math.min(1.26, scaleXSpring * stretchX * lensBuoyancySwell));
+    const finalScaleY = Math.max(0.84, Math.min(1.16, scaleYSpring * compressY * lensBuoyancySwell));
+
+    // 3D Vertical Levitation Offset (Droplet physically lifts up off the track as it glides, then settles down)
+    const liftOffsetY = -clampedLift * 2.15;
+    // Subtle hydrodynamic liquid shear along direction of motion
+    const shearDeg = Math.max(-2.6, Math.min(2.6, clampedTilt * 1.85));
+
+    // Interactive Membal & Dynamic Bounce Activity
+    // At rest: scaleDeviation=0, lift=0, glass=0, weber=0 -> bounceActivity = 0.000!
+    // When pressing/tapping or gliding: bounceActivity rises dynamically to scale lens & elevate icon!
+    const scaleDeviation = Math.abs(scaleXSpring - 1) + Math.abs(scaleYSpring - 1);
+    const bounceActivity = Math.max(
+      0,
+      Math.min(
+        1.5,
+        scaleDeviation * 2.2 +
+        clampedLift * 1.0 +
+        clampedGlass * 0.65 +
+        weber * 1.15
+      )
+    );
 
     if (navBubbleRef.current) {
-      navBubbleRef.current.style.transform = `translate3d(${(pixelX - Bw / 2).toFixed(2)}px, -50%, 0) scale(${finalScaleX.toFixed(4)}, ${finalScaleY.toFixed(4)})`;
+      navBubbleRef.current.style.transform = `translate3d(${(pixelX - Bw / 2).toFixed(2)}px, calc(-50% + ${liftOffsetY.toFixed(2)}px), 0) scale(${finalScaleX.toFixed(4)}, ${finalScaleY.toFixed(4)}) skewX(${shearDeg.toFixed(2)}deg)`;
       navBubbleRef.current.style.setProperty('--glass-active', clampedGlass.toFixed(3));
+      navBubbleRef.current.style.setProperty('--glass-lift', clampedLift.toFixed(3));
+      navBubbleRef.current.style.setProperty('--glass-tilt-x', clampedTilt.toFixed(3));
+      navBubbleRef.current.style.setProperty('--glass-weber', weber.toFixed(3));
+      navBubbleRef.current.style.setProperty('--bounce-activity', bounceActivity.toFixed(3));
+    }
+
+    // 3. Execute Real-Time WebGL2 GLSL Fragment Shader Pass (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel)
+    if (navWebGLRendererRef.current && navWebGLRendererRef.current.isReady) {
+      const shearRad = (shearDeg * Math.PI) / 180;
+      const rendered = navWebGLRendererRef.current.render({
+        width,
+        height,
+        pixelX,
+        liftOffsetY,
+        halfWidth: Bw / 2,
+        halfHeight: Bh / 2,
+        scaleX: finalScaleX,
+        scaleY: finalScaleY,
+        glassActive: clampedGlass,
+        glassLift: clampedLift,
+        tiltX: clampedTilt,
+        weber,
+        shearRad,
+      });
+      if (rendered && navBubbleRef.current) {
+        navBubbleRef.current.classList.add('webgl-shader-active');
+      }
     }
 
     if (navLensWorldRef.current) {
-      // Subtle crisp vector zoom (up to 1.06x when inflated, plus gentle elastic icon pulse) while counter-scaling bubble distortion
-      const iconPulse = 1 + (scaleXSpring - 1) * 0.35 + clampedGlass * 0.04;
-      const netScaleX = (iconPulse / finalScaleX).toFixed(4);
-      const netScaleY = (iconPulse / finalScaleY).toFixed(4);
+      // At rest: snellMagnification is EXACTLY 1.0000 (100% 1:1 scale with other menu items!)
+      // When pressed / membal: magnifies dynamically in sync with the bubble bounce!
+      const snellMagnification = 1.0 + Math.min(0.24, bounceActivity * 0.18);
+      const netScaleX = (snellMagnification / finalScaleX).toFixed(4);
+      const netScaleY = (snellMagnification / finalScaleY).toFixed(4);
+      const refractParallaxX = (clampedTilt * 1.45).toFixed(2);
+      // At rest: lensIconLiftY is 0.0 (perfectly level horizontal baseline!)
+      // During membal / lift: lifts forward along Z axis
+      const lensIconLiftY = (-bounceActivity * 1.6).toFixed(2);
       navLensWorldRef.current.style.width = `${width}px`;
       navLensWorldRef.current.style.height = `${height}px`;
       navLensWorldRef.current.style.transformOrigin = `${pixelX.toFixed(2)}px ${(height / 2).toFixed(2)}px`;
-      navLensWorldRef.current.style.transform = `translate3d(${(Bw / 2 - pixelX).toFixed(2)}px, ${((Bh - height) / 2).toFixed(2)}px, 0) scale(${netScaleX}, ${netScaleY})`;
+      navLensWorldRef.current.style.transform = `skewX(${(-shearDeg).toFixed(2)}deg) translate3d(${(Bw / 2 - pixelX + parseFloat(refractParallaxX)).toFixed(2)}px, ${((Bh - height) / 2 - liftOffsetY / finalScaleY + parseFloat(lensIconLiftY)).toFixed(2)}px, 0) scale(${netScaleX}, ${netScaleY})`;
     }
 
     if (navBaseLayerRef.current) {
-      // Cleanly cut out the base layer inside the bubble footprint so there is zero double-vision or ghosting
-      const rx = (Bw / 2 - 1.5) * finalScaleX;
-      const ry = (Bh / 2 - 1.5) * finalScaleY;
-      const maskStr = `radial-gradient(${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${pixelX.toFixed(1)}px 50%, transparent 0%, transparent 90%, black 98%)`;
+      // Dual-Plane Depth Separation:
+      // At rest on active tab: mask cuts out 100% directly under center so there is zero double vision;
+      // While gliding between tabs (clampedGlass > 0), the floor reveals at 28% opacity, allowing
+      // the base icon on the dock floor to be seen beneath the elevated, magnified amber lens icon,
+      // creating the authentic 3D optical depth separation ("bayangan menu yang naik ke depan")!
+      const rx = (Bw / 2 - 1.2) * finalScaleX;
+      const ry = (Bh / 2 - 1.2) * finalScaleY;
+      const maskCenterY = 50 + (liftOffsetY / height) * 100;
+      const floorAlpha = (clampedGlass * 0.28).toFixed(3);
+      const innerStop = Math.round(84 - clampedGlass * 24);
+      const maskStr = `radial-gradient(${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${pixelX.toFixed(1)}px ${maskCenterY.toFixed(1)}%, rgba(0, 0, 0, ${floorAlpha}) 0%, rgba(0, 0, 0, ${floorAlpha}) ${innerStop}%, black 98%)`;
       navBaseLayerRef.current.style.webkitMaskImage = maskStr;
       navBaseLayerRef.current.style.maskImage = maskStr;
     }
@@ -726,63 +835,109 @@ function App() {
     phys.lastTime = performance.now();
 
     const step = (now) => {
-      const dt = Math.min((now - (phys.lastTime || now)) / 1000, 0.030) || 0.016;
+      const rawDt = Math.min((now - (phys.lastTime || now)) / 1000, 0.030) || 0.016;
       phys.lastTime = now;
 
-      // 1. Horizontal Position Spring (with subtle iPhone magnetic overshoot on arrival)
-      const omegaPos = phys.isDragging ? 28.0 : 16.2;
-      const zetaPos = phys.isDragging ? 0.90 : 0.72;
-      const kPos = omegaPos * omegaPos;
-      const cPos = 2 * zetaPos * omegaPos;
+      // Sub-stepped Symplectic Velocity-Verlet / RK2 Integration for 120Hz/60Hz invariance
+      const subSteps = 2;
+      const dt = rawDt / subSteps;
 
-      const dispPos = phys.curPixel - phys.targetPixel;
-      const forcePos = -kPos * dispPos - cPos * phys.velPixel;
-      phys.velPixel += forcePos * dt;
-      phys.curPixel += phys.velPixel * dt;
+      for (let s = 0; s < subSteps; s++) {
+        // 1. Horizontal Position Spring (Apple Damping Ratio & Response conversion)
+        const omegaPos = phys.isDragging ? 29.0 : 16.5;
+        const zetaPos = phys.isDragging ? 0.90 : 0.73;
+        const kPos = omegaPos * omegaPos;
+        const cPos = 2 * zetaPos * omegaPos;
 
-      // Trigger elastic landing squish & haptic bounce right as the gliding bubble arrives at target tab
-      if (phys.landingBounceArmed && !phys.isDragging && Math.abs(dispPos) < 10) {
-        phys.landingBounceArmed = false;
-        phys.targetScaleX = 1.0;
-        phys.targetScaleY = 1.0;
-        phys.targetGlass = 0.0;
-        phys.velScaleX -= 3.4;
-        phys.velScaleY += 3.0;
-        // Smooth "Naik -> Turun -> Naik" landing wave on the long navigation bar
-        phys.targetBarSink = 0.0;
-        phys.velBarSink = 5.6;
-        triggerNavHaptic('bounce');
+        const dispPos = phys.curPixel - phys.targetPixel;
+        const forcePos = -kPos * dispPos - cPos * phys.velPixel;
+        phys.accPixel = forcePos;
+        phys.velPixel += forcePos * dt;
+        phys.curPixel += phys.velPixel * dt;
+
+        // Parabolic Flight Buoyancy Coupling: keeps the droplet levitated in an arc while traveling between tabs
+        if (!phys.isDragging && !phys.isPressed && phys.flightStartDist > 12) {
+          const progress = 1 - Math.min(1, Math.abs(dispPos) / phys.flightStartDist);
+          const flightArcLift = Math.sin(progress * Math.PI);
+          if (Math.abs(dispPos) > 10) {
+            phys.targetLift = Math.max(0.45, flightArcLift * 0.95);
+            phys.targetGlass = Math.max(0.65, flightArcLift);
+          }
+        }
+
+        // Trigger hydro-elastic capillary coalescence & haptic bounce right as the gliding bubble arrives at target tab
+        if (phys.landingBounceArmed && !phys.isDragging && Math.abs(dispPos) < 11) {
+          phys.landingBounceArmed = false;
+          phys.flightStartDist = 0;
+          phys.targetScaleX = 1.0;
+          phys.targetScaleY = 1.0;
+          phys.targetGlass = 0.0;
+          phys.targetLift = 0.0;
+          // Scale landing squish proportionally to arrival momentum (bounded for refined elegance)
+          const impactRatio = Math.max(0.85, Math.min(1.22, Math.abs(phys.velPixel) / 360));
+          phys.velScaleX -= 3.55 * impactRatio;
+          phys.velScaleY += 3.15 * impactRatio;
+          phys.velLift -= 2.2 * impactRatio;
+          // Smooth "Naik -> Turun -> Naik" landing wave on the long navigation bar
+          phys.targetBarSink = 0.0;
+          phys.velBarSink = 5.6;
+          triggerNavHaptic('bounce');
+        }
+
+        // 2. Underdamped 2D Hydro-Elastic Jelly Springs for Bubble ScaleX & ScaleY
+        const omegaScale = 27.5;
+        const zetaScale = 0.34;
+        const kScale = omegaScale * omegaScale;
+        const cScale = 2 * zetaScale * omegaScale;
+
+        const dispSX = phys.curScaleX - phys.targetScaleX;
+        phys.velScaleX += (-kScale * dispSX - cScale * phys.velScaleX) * dt;
+        phys.curScaleX += phys.velScaleX * dt;
+
+        const dispSY = phys.curScaleY - phys.targetScaleY;
+        phys.velScaleY += (-kScale * dispSY - cScale * phys.velScaleY) * dt;
+        phys.curScaleY += phys.velScaleY * dt;
+
+        // 3. Smooth, Non-Excessive "Naik -> Turun -> Naik" Spring for the Long Bottom Navigation Bar
+        const omegaBar = 21.0;
+        const zetaBar = 0.46;
+        const kBar = omegaBar * omegaBar;
+        const cBar = 2 * zetaBar * omegaBar;
+        const dispBarSink = phys.curBarSink - phys.targetBarSink;
+        phys.velBarSink += (-kBar * dispBarSink - cBar * phys.velBarSink) * dt;
+        phys.curBarSink += phys.velBarSink * dt;
+
+        // 4. Clear Glass Lens Morph Spring (0 = resting soft pill, 1 = clear 3D glass droplet)
+        const omegaGlass = 18.5;
+        const zetaGlass = 0.82;
+        const dispG = phys.curGlass - phys.targetGlass;
+        phys.velGlass += (-omegaGlass * omegaGlass * dispG - 2 * zetaGlass * omegaGlass * phys.velGlass) * dt;
+        phys.curGlass += phys.velGlass * dt;
+
+        // 5. 3D Buoyant Levitation Spring (Controls vertical droplet detachment & optical lens elevation)
+        const omegaLift = 20.0;
+        const zetaLift = 0.68;
+        const dispL = phys.curLift - phys.targetLift;
+        phys.velLift += (-omegaLift * omegaLift * dispL - 2 * zetaLift * omegaLift * phys.velLift) * dt;
+        phys.curLift += phys.velLift * dt;
+
+        // 6. Navier-Stokes Meniscus & Specular Tilt Spring (Driven by fluid velocity + inertial acceleration)
+        const targetFluidTilt = Math.tanh((phys.velPixel * 0.75 + phys.accPixel * 0.018) / 680);
+        phys.targetTilt = (phys.isDragging || Math.abs(phys.velPixel) > 8) ? targetFluidTilt : 0;
+        const omegaTilt = 26.0;
+        const zetaTilt = 0.62;
+        const dispT = phys.curTilt - phys.targetTilt;
+        phys.velTilt += (-omegaTilt * omegaTilt * dispT - 2 * zetaTilt * omegaTilt * phys.velTilt) * dt;
+        phys.curTilt += phys.velTilt * dt;
       }
 
-      // 2. Underdamped 2D Hydro-Elastic Jelly Springs for Bubble ScaleX & ScaleY (Untouched!)
-      const omegaScale = 27.5;
-      const zetaScale = 0.34;
-      const kScale = omegaScale * omegaScale;
-      const cScale = 2 * zetaScale * omegaScale;
-
+      const dispPos = phys.curPixel - phys.targetPixel;
       const dispSX = phys.curScaleX - phys.targetScaleX;
-      phys.velScaleX += (-kScale * dispSX - cScale * phys.velScaleX) * dt;
-      phys.curScaleX += phys.velScaleX * dt;
-
       const dispSY = phys.curScaleY - phys.targetScaleY;
-      phys.velScaleY += (-kScale * dispSY - cScale * phys.velScaleY) * dt;
-      phys.curScaleY += phys.velScaleY * dt;
-
-      // 3. Smooth, Non-Excessive "Naik -> Turun -> Naik" Spring for the Long Bottom Navigation Bar
-      const omegaBar = 21.0;
-      const zetaBar = 0.46;
-      const kBar = omegaBar * omegaBar;
-      const cBar = 2 * zetaBar * omegaBar;
       const dispBarSink = phys.curBarSink - phys.targetBarSink;
-      phys.velBarSink += (-kBar * dispBarSink - cBar * phys.velBarSink) * dt;
-      phys.curBarSink += phys.velBarSink * dt;
-
-      // 4. Clear Glass Lens Morph Spring (0 = resting soft pill, 1 = clear 3D glass droplet)
-      const omegaGlass = 18.0;
-      const zetaGlass = 0.85;
       const dispG = phys.curGlass - phys.targetGlass;
-      phys.velGlass += (-omegaGlass * omegaGlass * dispG - 2 * zetaGlass * omegaGlass * phys.velGlass) * dt;
-      phys.curGlass += phys.velGlass * dt;
+      const dispL = phys.curLift - phys.targetLift;
+      const dispT = phys.curTilt - phys.targetTilt;
 
       applyNavLensVisuals(
         phys.curPixel,
@@ -790,7 +945,9 @@ function App() {
         phys.curScaleX,
         phys.curScaleY,
         phys.curGlass,
-        phys.curBarSink
+        phys.curBarSink,
+        phys.curLift,
+        phys.curTilt
       );
 
       const posMoving = Math.abs(dispPos) > 0.08 || Math.abs(phys.velPixel) > 0.5;
@@ -802,13 +959,19 @@ function App() {
         Math.abs(dispBarSink) > 0.002 ||
         Math.abs(phys.velBarSink) > 0.015 ||
         Math.abs(dispG) > 0.005 ||
-        Math.abs(phys.velGlass) > 0.02;
+        Math.abs(phys.velGlass) > 0.02 ||
+        Math.abs(dispL) > 0.004 ||
+        Math.abs(phys.velLift) > 0.02 ||
+        Math.abs(dispT) > 0.004 ||
+        Math.abs(phys.velTilt) > 0.02;
 
       if (posMoving || scaleMoving || phys.isDragging || phys.isPressed) {
         navAnimFrameRef.current = requestAnimationFrame(step);
       } else {
         phys.curPixel = phys.targetPixel;
         phys.velPixel = 0;
+        phys.accPixel = 0;
+        phys.flightStartDist = 0;
         phys.curScaleX = phys.targetScaleX;
         phys.velScaleX = 0;
         phys.curScaleY = phys.targetScaleY;
@@ -817,8 +980,13 @@ function App() {
         phys.velBarSink = 0;
         phys.curGlass = phys.targetGlass;
         phys.velGlass = 0;
+        phys.curLift = phys.targetLift;
+        phys.velLift = 0;
+        phys.curTilt = 0;
+        phys.targetTilt = 0;
+        phys.velTilt = 0;
         navAnimFrameRef.current = null;
-        applyNavLensVisuals(phys.curPixel, 0, 1, 1, 0, 0);
+        applyNavLensVisuals(phys.curPixel, 0, 1, 1, 0, 0, 0, 0);
         setNavIndicatorX(phys.curPixel);
       }
     };
@@ -826,9 +994,10 @@ function App() {
     navAnimFrameRef.current = requestAnimationFrame(step);
   }, [applyNavLensVisuals, triggerNavHaptic]);
 
-  const updateNavIndicator = useCallback((immediate = false) => {
+  const updateNavIndicator = useCallback((immediate = false, overrideTabKey = null) => {
     const container = navContainerRef.current;
-    const targetEl = tabButtonRefs.current[activeTab];
+    const targetTab = overrideTabKey || activeTab;
+    const targetEl = tabButtonRefs.current[targetTab];
     if (!container || !targetEl) return;
 
     const containerRect = container.getBoundingClientRect();
@@ -848,6 +1017,8 @@ function App() {
       phys.curPixel = targetPixelX;
       phys.targetPixel = targetPixelX;
       phys.velPixel = 0;
+      phys.accPixel = 0;
+      phys.flightStartDist = 0;
       phys.curScaleX = 1;
       phys.targetScaleX = 1;
       phys.velScaleX = 0;
@@ -860,18 +1031,27 @@ function App() {
       phys.curGlass = 0;
       phys.targetGlass = 0;
       phys.velGlass = 0;
+      phys.curLift = 0;
+      phys.targetLift = 0;
+      phys.velLift = 0;
+      phys.curTilt = 0;
+      phys.targetTilt = 0;
+      phys.velTilt = 0;
       phys.lastTime = null;
       setNavIndicatorX(targetPixelX);
-      applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0);
+      applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0, 0, 0);
       return;
     }
 
     const dist = Math.abs(targetPixelX - phys.curPixel);
     phys.targetPixel = targetPixelX;
     if (dist > 8) {
-      // Morph into crystal-clear glass lens while gliding to the new tab
+      // Levitate & morph into crystal-clear 3D convex droplet while gliding across the bar
+      phys.flightStartDist = Math.max(phys.flightStartDist || 0, dist);
       phys.targetGlass = 1.0;
-      phys.velGlass = 3.0;
+      phys.velGlass = Math.max(phys.velGlass, 3.6);
+      phys.targetLift = 1.0;
+      phys.velLift = Math.max(phys.velLift, 4.2);
       phys.landingBounceArmed = true;
     }
 
@@ -885,13 +1065,33 @@ function App() {
 
     const phys = navPhysicsRef.current;
     phys.isPressed = true;
-    // 1. Glass Bubble squish-and-swell on pointer-down (Untouched!)
+    // 1. Glass Bubble buoyant detachment, squish-and-swell on pointer-down
     phys.targetScaleX = 1.09;
     phys.targetScaleY = 1.05;
     phys.velScaleX += 3.8;
     phys.velScaleY -= 2.4;
     phys.targetGlass = 1.0;
-    phys.velGlass += 4.0;
+    phys.velGlass += 4.2;
+    phys.targetLift = 0.85;
+    phys.velLift += 4.8;
+
+    // Capillary Surface-Tension Attraction: if pressing towards another tab, lean the droplet slightly toward the finger
+    const container = navContainerRef.current;
+    let grabOffsetX = 0;
+    if (container && phys.curPixel !== null) {
+      const rect = container.getBoundingClientRect();
+      const unscaledWidth = container.clientWidth || rect.width || 380;
+      const scaleFactorX = rect.width / unscaledWidth;
+      const touchX = (e.clientX - rect.left) / scaleFactorX;
+      const deltaTouch = touchX - phys.curPixel;
+      if (Math.abs(deltaTouch) <= 42) {
+        // Grabbed directly on the bubble — respect exact finger grab offset (Apple Principle #2)
+        grabOffsetX = deltaTouch;
+      } else {
+        // Pressed on a distant menu tab — impart subtle capillary magnetic tug toward the finger
+        phys.velPixel += Math.sign(deltaTouch) * Math.min(115, Math.abs(deltaTouch) * 0.65);
+      }
+    }
 
     // 2. Long Bottom Navigation Bar lifts UP first ("naik dulu") smoothly from its current position
     phys.targetBarSink = 0.45;
@@ -900,11 +1100,16 @@ function App() {
     triggerNavHaptic('press');
     startNavSpringLoop();
 
+    const now = performance.now();
     navDragStateRef.current = {
       active: true,
       dragging: false,
       pointerId: e.pointerId,
       startX: e.clientX,
+      grabOffsetX,
+      lastMoveX: e.clientX,
+      lastMoveTime: now,
+      pointerVelX: 0,
       suppressClickUntil: navDragStateRef.current.suppressClickUntil,
     };
   }, [startNavSpringLoop, triggerNavHaptic]);
@@ -914,6 +1119,13 @@ function App() {
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     const container = navContainerRef.current;
     if (!container) return;
+
+    const now = performance.now();
+    const dtMove = Math.max(1, now - (drag.lastMoveTime || now));
+    const instVelX = ((e.clientX - drag.lastMoveX) / dtMove) * 1000;
+    drag.pointerVelX = drag.pointerVelX * 0.45 + instVelX * 0.55;
+    drag.lastMoveX = e.clientX;
+    drag.lastMoveTime = now;
 
     const dx = e.clientX - drag.startX;
     if (!drag.dragging && Math.abs(dx) > 6) {
@@ -929,21 +1141,26 @@ function App() {
       const rect = container.getBoundingClientRect();
       const unscaledWidth = container.clientWidth || rect.width || 380;
       const scaleFactorX = rect.width / unscaledWidth;
-      const rawX = (e.clientX - rect.left) / scaleFactorX;
+      const rawX = (e.clientX - rect.left) / scaleFactorX - (drag.grabOffsetX * 0.5);
       const minX = 36;
       const maxX = Math.max(minX, unscaledWidth - 36);
       let clampedX = rawX;
-      if (rawX < minX) clampedX = minX - (minX - rawX) * 0.25;
-      if (rawX > maxX) clampedX = maxX + (rawX - maxX) * 0.25;
+      // Apple Non-Linear Hyperbolic Rubber-Banding at the capsule boundaries
+      if (rawX < minX) {
+        clampedX = minX - computeAppleRubberBand(minX - rawX, 48, 0.42);
+      } else if (rawX > maxX) {
+        clampedX = maxX + computeAppleRubberBand(rawX - maxX, 48, 0.42);
+      }
 
       const phys = navPhysicsRef.current;
       phys.targetPixel = clampedX;
       phys.targetGlass = 1.0;
+      phys.targetLift = 1.0;
       phys.targetScaleX = 1.10;
       phys.targetScaleY = 1.06;
       phys.targetBarSink = 0.38;
 
-      // Detect crossing over another tab during finger scrub for Selection Haptic Tick + micro-pulse
+      // Detect crossing over another tab during finger scrub for Selection Haptic Tick + surface tension pulse
       const tabs = ['home', 'accounts', 'budget', 'stats'];
       let nearest = null;
       let minDist = Infinity;
@@ -961,8 +1178,9 @@ function App() {
       });
       if (nearest && minDist < 28 && nearest !== phys.lastCrossedTab) {
         phys.lastCrossedTab = nearest;
-        phys.velScaleX += 1.8;
-        phys.velScaleY -= 1.2;
+        phys.velScaleX += 1.85;
+        phys.velScaleY -= 1.25;
+        phys.velLift += 1.6;
         phys.velBarSink += 3.2;
         triggerNavHaptic('tick');
       }
@@ -977,6 +1195,7 @@ function App() {
     const drag = navDragStateRef.current;
     if (!drag.active || drag.pointerId !== e.pointerId) return;
     const wasDragging = drag.dragging;
+    const releaseFingerVel = drag.pointerVelX || 0;
     drag.active = false;
     drag.dragging = false;
 
@@ -986,7 +1205,6 @@ function App() {
     phys.targetScaleX = 1.0;
     phys.targetScaleY = 1.0;
     phys.targetBarSink = 0.0;
-    phys.targetGlass = 0.0;
 
     const container = navContainerRef.current;
     if (container) {
@@ -1001,7 +1219,12 @@ function App() {
       drag.suppressClickUntil = performance.now() + 260;
       const containerRect = container.getBoundingClientRect();
       const scaleFactorX = containerRect.width / (container.clientWidth || containerRect.width || 1);
-      const projectedX = (phys.curPixel ?? 0) + (phys.velPixel || 0) * 0.065;
+
+      // Apple Velocity Handoff & Exponential Momentum Projection
+      const combinedVel = (phys.velPixel * 0.55) + (releaseFingerVel / scaleFactorX) * 0.45;
+      phys.velPixel = Math.max(-1400, Math.min(1400, combinedVel));
+      const projectedX = (phys.curPixel ?? 0) + projectAppleMomentum(phys.velPixel, 0.988);
+
       const tabs = ['home', 'accounts', 'budget', 'stats'];
       let bestTab = activeTab;
       let bestDist = Infinity;
@@ -1021,17 +1244,24 @@ function App() {
 
       if (bestTab !== activeTab) {
         phys.landingBounceArmed = true;
+        updateNavIndicator(false, bestTab);
         setActiveTab(bestTab);
       } else {
         // Released back on the same tab -> Smooth "Naik -> Turun -> Naik" bounce on Long Bar & Bubble
+        phys.targetGlass = 0.0;
+        phys.targetLift = 0.0;
         phys.velScaleX -= 3.6;
         phys.velScaleY += 3.2;
         phys.curBarSink = Math.max(phys.curBarSink, 0.35);
         phys.velBarSink = 4.8;
         triggerNavHaptic('bounce');
-        updateNavIndicator(false);
+        updateNavIndicator(false, bestTab);
       }
     } else {
+      // Non-drag pointer release: if staying on same tab, let glass settle smoothly
+      // (If switching tabs, handleNavTabClick will immediately elevate & launch the droplet!)
+      phys.targetGlass = 0.0;
+      phys.targetLift = 0.0;
       startNavSpringLoop();
     }
   }, [activeTab, startNavSpringLoop, triggerNavHaptic, updateNavIndicator]);
@@ -1055,27 +1285,52 @@ function App() {
       // Clicking the ALREADY active menu -> Juicy Elastic Jelly Bounce on Bubble + Smooth Naik-Turun-Naik on Bar!
       phys.targetGlass = 0.0;
       phys.velGlass = 2.5;
+      phys.targetLift = 0.0;
+      phys.velLift = 3.2;
       phys.velScaleX = -4.2;
       phys.velScaleY = 3.8;
       triggerNavHaptic('bounce');
       startNavSpringLoop();
     } else {
+      // Zero-latency Takeoff: Launch the 3D Liquid Glass Droplet on the EXACT same frame as tap!
+      phys.velScaleX += 2.2;
+      phys.velScaleY -= 1.5;
+      updateNavIndicator(false, tabKey);
       setActiveTab(tabKey);
     }
-  }, [activeTab, startNavSpringLoop, triggerNavHaptic]);
+  }, [activeTab, startNavSpringLoop, triggerNavHaptic, updateNavIndicator]);
+
+  const syncNavWebGLSceneTexture = useCallback(() => {
+    if (navWebGLRendererRef.current && navContainerRef.current) {
+      navWebGLRendererRef.current.updateSceneTexture(
+        navContainerRef.current,
+        tabButtonRefs.current,
+        [
+          { key: 'home', iconSrc: houseSvg, label: t('home') },
+          { key: 'accounts', iconSrc: akunSvg, label: t('accounts') },
+          { key: 'budget', iconSrc: budgetSvg, label: t('budget') },
+          { key: 'stats', iconSrc: diagramSvg, label: t('stats') },
+        ]
+      );
+    }
+  }, [t]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      syncNavWebGLSceneTexture();
       updateNavIndicator(navPhysicsRef.current.curPixel === null);
     }, 16);
-    const handleResize = () => updateNavIndicator(true);
+    const handleResize = () => {
+      syncNavWebGLSceneTexture();
+      updateNavIndicator(true);
+    };
     window.addEventListener('resize', handleResize);
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       if (navAnimFrameRef.current) cancelAnimationFrame(navAnimFrameRef.current);
     };
-  }, [activeTab, updateNavIndicator]);
+  }, [activeTab, syncNavWebGLSceneTexture, updateNavIndicator]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chartPeriodFilter, setChartPeriodFilter] = useState('1year'); // '1year' | '6months' | '3months'
   const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false);
@@ -1644,15 +1899,6 @@ function App() {
   // Home Transaction Type Filter ('expense' | 'income')
   const [homeTxFilter, setHomeTxFilter] = useState('expense');
 
-  // Language Settings
-  const [appLanguage, setAppLanguage] = useState(() => {
-    const savedLang = safeStorageGet('user_app_lang');
-    return savedLang || 'en';
-  });
-  const [tempLanguage, setTempLanguage] = useState(() => safeStorageGet('user_app_lang') || 'en');
-  const [isOnboardingLangOpen, setIsOnboardingLangOpen] = useState(false);
-  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
-  
   // Currency State
   const [appCurrency, setAppCurrency] = useState(() => safeStorageGet('user_app_currency') || 'IDR');
   const [tempCurrency, setTempCurrency] = useState(() => safeStorageGet('user_app_currency') || 'IDR');
@@ -1873,9 +2119,6 @@ function App() {
     setTourMode('full_guide');
     setIsTourOpen(true);
   };
-
-  // Translation helper
-  const t = useCallback((key, vars) => getTranslation(appLanguage, key, vars), [appLanguage]);
 
   const handleOpenLangModal = () => {
     setTempLanguage(appLanguage);
@@ -7416,7 +7659,9 @@ function App() {
                   phys.curScaleX || 1,
                   phys.curScaleY || 1,
                   phys.curGlass || 0,
-                  phys.curBarSink || 0
+                  phys.curBarSink || 0,
+                  phys.curLift || 0,
+                  phys.curTilt || 0
                 );
               }
             }}
@@ -7425,8 +7670,9 @@ function App() {
             onPointerUp={handleNavPointerUpOrCancel}
             onPointerCancel={handleNavPointerUpOrCancel}
           >
-            {/* Subtle Inner Top Specular Sheen of the Warm Glass Capsule Bar */}
+            {/* Subtle Inner Top & Bottom Specular Sheens of the Warm Glass Capsule Bar */}
             <div className="nav-pill-bar-specular" aria-hidden="true" />
+            <div className="nav-pill-bar-bottom-specular" aria-hidden="true" />
 
             {/* LAYER 1: Base Menu Items (Outside the Glass Bubble) */}
             <div className="nav-base-layer" ref={navBaseLayerRef}>
@@ -7479,19 +7725,19 @@ function App() {
               </div>
             </div>
 
-            {/* LAYER 2: 3D Apple Liquid Glass Bubble (Pure Crystal Glass Droplet & Elastic Bounce) */}
+            {/* LAYER 2: 3D Apple Liquid Glass Bubble (72x48 Pure Crystal Meniscus Lens & Elastic Bounce) */}
             <div
               ref={navBubbleRef}
               className="nav-liquid-glass-bubble"
               style={{
                 opacity: navIndicatorX !== null ? 1 : 0,
                 transform: navIndicatorX !== null
-                  ? `translate3d(${(navIndicatorX - 32).toFixed(2)}px, -50%, 0)`
+                  ? `translate3d(${(navIndicatorX - 36).toFixed(2)}px, -50%, 0)`
                   : 'translate3d(12px, -50%, 0)',
               }}
               aria-hidden="true"
             >
-              {/* Optical Clip Stage (Pure GPU Vector Rendering — 100% Razor Sharp Text & Icons) */}
+              {/* Optical Clip Stage (3D Capsule Meniscus Barrel Refraction + Crisp Vector Core) */}
               <div className="nav-lens-refraction-stage">
                 <div className="nav-lens-inner-world" ref={navLensWorldRef}>
                   <div className="nav-group-left">
@@ -7525,6 +7771,35 @@ function App() {
               {/* Outer 3D Crystal Specular Rim & Surface Glare (Zero Rainbow Colors) */}
               <div className="glass-bubble-specular-shell" />
             </div>
+
+            {/* LAYER 3: Real-Time WebGL2 GLSL Fragment Shader (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel) */}
+            <canvas
+              className="nav-webgl-shader-canvas"
+              ref={(canvasEl) => {
+                navShaderCanvasRef.current = canvasEl;
+                if (canvasEl && (!navWebGLRendererRef.current || navWebGLRendererRef.current.canvas !== canvasEl)) {
+                  if (navWebGLRendererRef.current) {
+                    navWebGLRendererRef.current.destroy();
+                  }
+                  navWebGLRendererRef.current = new LiquidGlassWebGLRenderer(canvasEl);
+                  syncNavWebGLSceneTexture();
+                  const phys = navPhysicsRef.current;
+                  if (phys.curPixel !== null) {
+                    applyNavLensVisuals(
+                      phys.curPixel,
+                      phys.velPixel || 0,
+                      phys.curScaleX || 1,
+                      phys.curScaleY || 1,
+                      phys.curGlass || 0,
+                      phys.curBarSink || 0,
+                      phys.curLift || 0,
+                      phys.curTilt || 0
+                    );
+                  }
+                }
+              }}
+              aria-hidden="true"
+            />
 
             {/* Center Floating Plus Button (Opsi B — Tetap di Tengah) */}
             <div className="center-add-wrapper tour-target-add">
