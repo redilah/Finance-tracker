@@ -49,6 +49,7 @@ import dompetSvg from './assets/dompet.svg';
 
 import { playPositiveChime } from './utils/soundFeedback';
 import { LiquidGlassWebGLRenderer } from './utils/liquidGlassWebGL';
+import { LGRHeroGlassRenderer } from './utils/lgrHeroGlass';
 import { checkForAppUpdates, CURRENT_VERSION_NAME, CURRENT_VERSION_CODE } from './utils/version';
 import { safeStorageGet, safeStorageSet } from './utils/secureStorage';
 import VoiceMicButton from './components/VoiceMicButton';
@@ -624,7 +625,38 @@ function App() {
   const navLensWorldRef = useRef(null);
   const navShaderCanvasRef = useRef(null);
   const navWebGLRendererRef = useRef(null);
+  const accountHeroCardRef = useRef(null);
+  const accountHeroCanvasRef = useRef(null);
+  const accountHeroLGRRef = useRef(null);
   const tabButtonRefs = useRef({});
+
+  useEffect(() => {
+    if (activeTab !== 'account') {
+      if (accountHeroLGRRef.current) {
+        accountHeroLGRRef.current.destroy();
+        accountHeroLGRRef.current = null;
+      }
+      return;
+    }
+    const timer = requestAnimationFrame(() => {
+      if (accountHeroCanvasRef.current && accountHeroCardRef.current) {
+        if (accountHeroLGRRef.current) {
+          accountHeroLGRRef.current.destroy();
+        }
+        accountHeroLGRRef.current = new LGRHeroGlassRenderer(
+          accountHeroCanvasRef.current,
+          accountHeroCardRef.current
+        );
+      }
+    });
+    return () => {
+      cancelAnimationFrame(timer);
+      if (accountHeroLGRRef.current) {
+        accountHeroLGRRef.current.destroy();
+        accountHeroLGRRef.current = null;
+      }
+    };
+  }, [activeTab]);
   const [navIndicatorX, setNavIndicatorX] = useState(null);
   const navDragStateRef = useRef({
     active: false,
@@ -6333,9 +6365,18 @@ function App() {
 
             return (
               <>
-                {/* 1. Hero Summary Card (Identical Gradient to Budget Hero + dompet.svg) */}
-                <div className="account-hero-card floating-hero-card">
-                  <div className="account-hero-top-row">
+                {/* 1. Hero Summary Card (LGR Liquid Glass Redi 3D Crystal Slab + dompet.svg) */}
+                <div
+                  ref={accountHeroCardRef}
+                  className="account-hero-card floating-hero-card lgr-liquid-glass-hero"
+                >
+                  {/* Layer 1: Subsurface Optical Light Orbs for True Glass Depth */}
+                  <div className="lgr-hero-subsurface-aura" aria-hidden="true" />
+
+                  {/* Layer 2: Travelling Top Specular Caustic Lip */}
+                  <div className="lgr-hero-top-specular" aria-hidden="true" />
+
+                  <div className="account-hero-top-row lgr-hero-content-layer">
                     <div className="account-hero-title-group">
                       <span className="account-hero-subtitle-top">
                         {t('totalBalanceInCassiel') || 'Total saldo di Cassiel'}
@@ -6354,10 +6395,10 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="account-hero-dotted-divider" />
+                  <div className="account-hero-dotted-divider lgr-hero-content-layer" />
 
                   {/* Multi Stats Row (Rekening Bank vs E-Wallet vs Kartu Kredit) */}
-                  <div className="account-hero-dual-stats">
+                  <div className="account-hero-dual-stats lgr-hero-content-layer">
                     <div className="account-dual-stat-col">
                       <div className="account-dual-stat-label-wrap">
                         <span className="account-dual-stat-dot bank" />
@@ -6392,6 +6433,13 @@ function App() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Layer 5: Hardware WebGL2 LGR Optical Shader Overlay */}
+                  <canvas
+                    ref={accountHeroCanvasRef}
+                    className="lgr-hero-shader-canvas"
+                    aria-hidden="true"
+                  />
                 </div>
 
                 {/* 2. Section Header: Daftar Akun */}

@@ -238,17 +238,8 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 * **Pie Chart Leader Line & Label Alignment Invariant**:
   - Garis penunjuk horizontal (*leader line*) pada diagram lingkaran Pie Chart Stats wajib mengarah dan berhenti lurus tepat di tengah vertikal teks **[Nama Kategori]** (`dominantBaseline="central"` pada ketinggian `slice.pLabel.y`).
   - Teks persentase diletakkan rapi di bawah nama kategori, dengan jarak bebas tabrakan vertikal antar-label (`minYSpacing`) minimal 26px.
-* **Bottom Navigation GPU Solid Backing & Soft Keyboard Avoidance**:
-  - **Solid Opaque Backing**: Siluet lengkungan `<path>` pada `.nav-bg-svg` wajib menggunakan warna solid `fill="#F8EFE6"` (bukan variabel CSS mentah di inline SVG path) agar GPU Android me-rendernya 100% kedap dan tidak tembus ke konten yang di-scroll di belakangnya.
-  - **Shadow Layer Isolation**: Properti `filter: drop-shadow` wajib ditempelkan langsung pada elemen `.nav-bg-svg`, bukan pada kontainer pembungkus `.bottom-nav`, guna mencegah artefak kotak bayangan bolong (*bounding box clipping*) pada tombol Add dan ikon.
-  - **Soft Keyboard Avoidance**: Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`) atau saat kolom pencarian kategori difokuskan (`isSearchingBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi antarmuka pencarian dan tombol aksi.
-* **Liquid Curved Navigation Bar & Apple Fluid Spring Physics Invariant**:
-  - **Dynamic Parametric SVG Bezier Notch**: Lekukan lengkungan bar bawah (`getNavPath`) dihitung secara dinamis berbasis posisi tengah tab aktif (`navNotchCx`). Dilarang menggunakan notch statis kaku yang memotong atau menutupi tombol Add.
-  - **Critically Damped Spring Loop**: Pergerakan notch dan gelembung melayang (`.nav-floating-bubble`) wajib dihitung melalui loop `requestAnimationFrame` menggunakan rumus fisika pegas teredam kritis (`omega = 16.5`, `damping = 0.98`) dengan penghitungan delta-time (`dt`) dan preservasi kecepatan antar-interupsi (`velocityRef`).
-  - **Active Icon Full-Color Invariant (Strict Ban on White Silhouette Washout)**:
-    - Ikon tab navigasi aktif **DILARANG KERAS** menggunakan filter monokrom atau pemutihan siluet (`filter: brightness(0) invert(1)` atau `fill: #FFFFFF`).
-    - Ikon aktif wajib mempertahankan warna asli ilustrasi SVG (`houseSvg`, `akunSvg`, `budgetSvg`, `diagramSvg`) dengan bayangan halus 3D warm amber di atas gelembung melayang warm ivory (`linear-gradient(180deg, #FFFFFF 0%, #FFF9F2 100%)`) bergaris tepi oranye amber 2.5px (`border: 2.5px solid #F59E0B;`).
-  - **Independent Floating Add Button**: Tombol `[ + ] Catat Transaksi` di tengah wajib tetap mengapung bebas (*independent floating button*) tanpa terikat animasi kurva tab kiri/kanan.
+* **Bottom Navigation Soft Keyboard Avoidance**:
+  - Saat pengguna mengedit nominal budget di kartu Hero (`isEditingMainBudget === true`) atau saat kolom pencarian kategori difokuskan (`isSearchingBudget === true`), bilah Bottom Nav wajib disembunyikan otomatis agar keyboard HP tidak mendorong bilah navigasi ke atas menutupi antarmuka pencarian dan tombol aksi. (Arsitektur bilah navigasi dan balon kaca bawah diatur terpusat pada **Section 48: Apple iOS Liquid Glass Navigation Bar**).
 * **Apple Direction-Aware Page Slide Transitions Invariant**:
   - **Zero-Lag Render-Pass Derivation**: Penentuan arah geser tab (`direction: 'forward' | 'backward'`), jumlah langkah (`steps`), jarak geser (`distance`), dan durasi (`duration`) **WAJIB** dihitung langsung pada siklus render React saat `activeTab` berubah (`if (prevTabRef.current !== activeTab) setTabMotion(...)`), **DILARANG** mengandalkan `useEffect` yang menyebabkan jeda render 1–2 frame.
   - **Directional Alignment Invariant**:
@@ -344,10 +335,7 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 ## 7. In-App Update Anti-Cache & Dynamic Routing Invariants
 * **GitHub API Zero-Cache Priority**: Pengecekan pembaruan wajib memanggil GitHub API Contents Endpoint (`https://api.github.com/repos/redilah/Finance-tracker/contents/public/version.json`) dengan header `{ 'Accept': 'application/vnd.github.v3+json', cache: 'no-store' }` sebagai jalur utama untuk melewati jeda cache Fastly CDN (5–10 menit) pada URL raw.
 * **Fetch Anti-Cache Fallback**: Jika fallback ke `version.json` raw/jsdelivr, wajib menyertakan opsi `{ method: 'GET', cache: 'no-store' }` dan parameter timestamp `?t=${Date.now()}`.
-* **Dynamic Target APK Routing (Cassiel vs Udin)**: Pengecekan update wajib mendeteksi package ID runtime (`App.getInfo()`). Jika aplikasi berjalan dengan `applicationId "com.redilah.udin"`, tautan update diarahkan secara otomatis ke `udin.apk`, bukan `Cassiel.apk`.
-
-## 8. Sideload Test Build (Debug Ramping)
-* **Debug Build dengan R8 Shrinker**: Untuk build pengujian lokal agar tidak terjadi konflik keystore ("package invalid"), gunakan `./gradlew assembleDebug` dengan `minifyEnabled true` & `shrinkResources true` di `buildTypes.debug` agar file APK tetap berukuran ~5 MB namun menggunakan kunci debug bawaan Android.
+* **Dynamic Target APK Routing (Cassiel vs Sariel)**: Pengecekan update wajib mendeteksi package ID runtime (`App.getInfo()`). Jika aplikasi berjalan sebagai entitas pendamping pengujian Sariel (`applicationId "com.redilah.financetracker.sariel"`), tautan update diarahkan secara otomatis ke `Sariel.apk` / `app-sariel-release.apk`, bukan `Cassiel.apk`. Sideload testing dikelola penuh secara terisolasi via varian **Sariel** (lihat **Section 2.K**).
 
 ## 9. Pola Pikir Tugas Kompleks & Goal-Driven Autonomous Loop
 * **Prinsip Utama**: Jika menghadapi tugas yang rumit, membutuhkan banyak iterasi kamus, akurasi logika, pemetaan ratusan variasi kata/slang, atau perbaikan parser—**JANGAN membuang waktu user dengan iterasi chat manual kata-per-kata**.
@@ -384,9 +372,6 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 * **Strict Left-to-Right Flow**: Seluruh pengetikan teks dan nominal angka (`-Rp xx.xxx`) wajib mengalir dari kiri ke kanan dengan anchor kiri (`justify-content: flex-start`).
 * **Synchronous Speech Processing Lock**: Kunci `isProcessingRef.current = true` secara sinkron sebelum memproses transkrip untuk mencegah pemicuan ganda dari `silenceTimer` dan event `recognition.onend`.
 
-## 15. Feature Introduction Notification Workflow & 5-Second Delay
-* **Proactive Feature Intro Proposal**: Setiap kali user meminta rilis atau push kode APK baru ke GitHub, asisten **wajib** terlebih dahulu menyiapkan dan mengusulkan draf ringkas teks Notifikasi Perkenalan Fitur Baru yang spesifik (hanya menyebutkan fitur inti baru rilis tersebut tanpa menyebutkan seluruh riwayat lama).
-* **5-Second Post-Update Delay**: Notifikasi perkenalan lokal Android wajib dijadwalkan muncul tepat **5 detik** (`Date.now() + 5000 ms`) setelah aplikasi selesai di-update dan dibuka pertama kali oleh pengguna.
 
 ## 16. Transaction Form 3-Column Category Grid Invariant
 * **Strict 3-Column Grid**: Susunan ikon dan label kategori pada panel bawah form transaksi (`.category-grid`) bersifat mutlak **3 kolom ke samping** (`grid-template-columns: repeat(3, 1fr)`) agar nama kategori (termasuk terjemahan daerah seperti Basa Jawa) memiliki ruang baca yang proporsional dan tidak terpotong.
@@ -417,10 +402,10 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 ## 20. Bottom Navigation & Seamless UI Invariants
 * **5-Tab Symmetrical Bottom Navigation**:
   - Sisi Kiri (`.nav-group-left`): `Home` dan `Account` (`akun.svg`).
-  - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks, **DIKUNCI MATI (KRITIS & TIDAK BOLEH DIUBAH)** di posisi tengah `left: 50%; top: 0; transform: translate(-50%, -24px); z-index: 10;`.
-  - **Kurva Lekukan Notch SVG Bottom Nav (Locked Invariant)**: Lekukan notch pada SVG background bottom navigation (`.nav-bg-svg path`) wajib selalu disinkronkan memeluk tombol Add di `transform: translate(-50%, -24px)` dengan path `d="M 0,16 Q 0,0 20,0 L 142,0 C 158,0 166,6 174,14 C 183,23 189,25 200,25 C 211,25 217,23 226,14 C 234,6 242,0 258,0 L 380,0 Q 400,0 400,16 L 400,80 L 0,80 Z" fill="var(--bg-app, #F8EFE6)"` tanpa menyisakan celah kosong di bawah tombol. Dilarang mengubah posisi vertikal tombol Add menjadi lebih turun/naik.
+  - Tengah (`.center-add-wrapper`): Tombol `(+)` tanpa label teks di posisi tengah melayang bebas (*independent floating button*).
   - Sisi Kanan (`.nav-group-right`): `Budget` (`budget.svg`) dan `Stats` (`diagram.svg`).
   - Label tab statistik menggunakan `Stats` di semua bahasa.
+  - Arsitektur visual, kapsul kaca melayang, dan fisika membal balon kaca diatur penuh secara terpusat pada **Section 48: Apple iOS Liquid Glass Navigation Bar**.
 * **Borderless Period Filter**: Tombol filter periode pada menu Stats dan Account (`.stats-period-btn`) wajib tanpa garis tepi/border kaku (`border: none !important; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);`).
 * **Seamless & Borderless Content Lists**: Daftar akun (`.account-card-item`), daftar budget (`.budget-item-card`), menu profil (`.wa-menu-item`), dan grup opsi layar penuh (`.full-page-settings-group`) wajib menempel langsung pada latar belakang aplikasi tanpa kotak putih terpisah (`background: transparent; border: none; box-shadow: none; border-bottom: 1px solid rgba(0, 0, 0, 0.05);`). Item terakhir wajib `border-bottom: none`.
 
@@ -529,36 +514,11 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 * **Automated 10:00 AM Reminder**: Jika pengguna belum pernah mengatur Budget Utama (`mainMonthlyBudget === null` atau `<= 0`), scheduler notifikasi wajib menjadwalkan notifikasi ramah & personal pada jam **10:00 Pagi** (`notifSetMainBudget` / `notifSetMainBudgetBody`).
 * **Multi-Language Synchronization**: Teks notifikasi pengingat budget utama wajib disinkronkan secara konsisten di seluruh kamus bahasa (`id`, `id_id`, `en`, `jv`, `zh`, `ko`).
 
-## 32. Bottom Navigation Notch Background & Anti-Bleed Invariant
-* **No Open Notch Gaps (Anti-Fragment/Pecahan)**:
-  - Elemen SVG background navigasi bawah (`nav-bg-svg`) dilarang membiarkan celah lekukan notch bolong 100% tembus pandang ke halaman di belakangnya.
-  - Wajib menyertakan lapisan dasar (*base backing layer*) bernuansa krim lembut (`<rect fill="rgba(248, 239, 230, 0.95)" rx="20" />`) di balik lekukan notch agar elemen kartu, teks, atau bayangan di seluruh tab (Home, Account, Budget, Stats) tidak mengintip sebagai serpihan/pecahan janggal saat di-scroll.
-* **Preserve Translucent Aesthetic (No 100% Solid Box)**:
-  - Bar navigasi tetap mengusung nuansa transparan lembut dengan `backdrop-filter: blur(...)` dan `rgba(...)`, dilarang diubah menjadi kotak 100% solid kaku.
-* **Untouched `add.svg` Stroke Width**:
-  - Garis tepi / stroke pada `add.svg` wajib dipertahankan tipis dan rapi (`stroke-width="0.25"`), dilarang dipertebal.
 
 ## 34. Explain-First & User Confirmation Gate
 * **Strict Clarification Rule**: Jika user meminta *"Jelaskan dulu"*, *"Coba jelaskan"*, atau bertanya bagaimana mekanismenya sebelum perbaikan, asisten **DILARANG KERAS** langsung mengubah file kode atau menjalankan proses *build* di latar belakang.
 * **Prosedur Wajib**: Berikan penjelasan teknis dan logis secara mendalam terlebih dahulu, lalu tunggu konfirmasi/arahan eksplisit dari user (*"ya"*, *"kerjakan"*, *"lanjut"*) sebelum mengeksekusi perubahan kode.
 
-## 35. Financial Notification Auto-Tracker & Anti-Promo Filter Invariants
-* **Two-Tier Architecture**: Pemrosesan notifikasi keuangan wajib disinkronkan secara konsisten di 2 lapis:
-  1. **Native Android Listener** (`AutoExpenseListenerService.java`)
-  2. **JavaScript Engine** (`src/utils/notificationTracker.js`)
-* **Strict Anti-Promo / Noise Filter (Zero False-Positives)**:
-  - **Blacklist Kata Kunci Promo**: Segera buang (*discard*) notifikasi jika mengandung pola diskon/marketing (`diskon`, `discount`, `promo`, `cashback`, `voucher`, `kupon`, `hemat hingga`, `s.d.`, `up to`, persentase diskon `\b\d{1,2}%\b`, `special offer`, `penawaran`, `hadiah`, `ajukan pinjaman`, `paylater`, `kartu kredit`, `investasi`, `kode otp`, dll.).
-  - **Whitelist Transaksi Sah**: Notifikasi hanya diproses jika secara eksplisit mengandung indikator transaksi valid (`berhasil`, `sukses`, `selesai`, `pembayaran`, `pembelian`, `transfer`, `terima`, `top up`, `qris`, `debit`, `kredit`) dan memiliki nominal uang `Rp` / `IDR` yang valid.
-* **Standardized Account Mapping**:
-  - BRI / BRImo wajib dipetakan ke nama akun standar **`BRImo`** (bukan "BRI" atau "Lainnya").
-  - Mandiri / Livin wajib dipetakan ke **`Livin' by Mandiri`** (dilarang menggunakan "Mandiri").
-  - BNI / Wondr wajib dipetakan ke **`Wondr by BNI`** (dilarang menggunakan "BNI").
-  - BCA -> `BCA`, Jago -> `Bank Jago` / `Jago`, SeaBank -> `SeaBank`, DANA -> `DANA`, GoPay -> `GoPay`, OVO -> `OVO`, ShopeePay -> `ShopeePay`.
-* **Smart Fallback for Merchant Names**:
-  - Jika notifikasi dari bank tidak menyertakan nama merchant (seperti notifikasi QRIS BRImo), gunakan format fallback yang rapi dan informatif: `QRIS [Nama Akun]` (misal: `"QRIS BRImo"`), bukan string generik `"Transaksi Otomatis..."`.
-  - Notifikasi push Cassiel wajib berformat: `"[Nama Merchant / Fallback] ([Nominal]) berhasil disimpan otomatis ke Cassiel."`
-* **Smart Category Guessing**:
-  - Klasifikasikan kategori secara cerdas berdasarkan kata kunci nama merchant (ayam/nasi/makan -> `Food`, kopi/cafe -> `Coffee`, pulsa/kuota -> `Internet`, alfamart/indomaret -> `Groceries`, dll.).
 
 ## 36. Standardized Category Addition Runbook (Expense & Income)
 Setiap kali pengguna meminta penambahan kategori baru (misal: "tambah kategori X"), asisten **WAJIB** secara otomatis menyelesaikan seluruh 6 titik integrasi berikut tanpa ada yang terlewat:

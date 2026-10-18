@@ -25,9 +25,13 @@ dist-ssr
 
 # Build and credentials artifacts
 *.apk
+!Sariel.apk
+!apk/Sariel.apk
+!apk/app-sariel-release.apk
 *.keystore
 *.jks
 keystore-info.txt
 public/Screenshot 2026-08-10 215727.png
 .netlify/
 .netlify
+liquid-glass-redi/
