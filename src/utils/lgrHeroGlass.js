@@ -101,13 +101,17 @@ uniform float u_weber;
 uniform float u_shear;
 uniform float u_time;
 uniform vec3 u_bgColor;
+uniform vec3 u_lightPos;
+uniform vec2 u_gyroTilt;
 uniform vec4 u_ripples[6];
 
-// Compile-Time Baked LGR CrownCrystalRedi Constants
+// Compile-Time Baked LGR CrownCrystalRedi Constants & Snellius Deflection
 const float LGR_ETA_RED    = 0.660015;
 const float LGR_ETA_GREEN  = 0.657895;
 const float LGR_ETA_BLUE   = 0.654241;
 const float LGR_FRESNEL_F0 = 0.042580;
+const float LGR_OPTICAL_DEPTH = 14.5;
+const vec3  LGR_SNELL_KAPPA_RGB = vec3(-0.339985, -0.342105, -0.345759);
 
 float fresnelSchlick(float cosTheta, float F0) {
   float c = clamp(1.0 - cosTheta, 0.0, 1.0);
@@ -235,7 +239,7 @@ void main() {
   vec2 N_cardXY = cardGrad2D * cardSlope * (0.88 + u_glassLift * 0.24)
                 + normCoord * 0.16
                 + rippleGrad * 2.15;
-  N_cardXY -= u_tiltXY * 0.28 * (0.45 + 0.55 * tCardRim);
+  N_cardXY -= (u_tiltXY + u_gyroTilt * 0.65) * 0.28 * (0.45 + 0.55 * tCardRim);
   vec3 N_card = normalize(vec3(N_cardXY, 1.0));
   vec3 V = vec3(0.0, 0.0, 1.0);
   vec3 I = vec3(0.0, 0.0, -1.0);
@@ -250,12 +254,19 @@ void main() {
   // Zone 3: Inner Caustic Convergence Ring (12.0..18.5px)
   float cardInnerCaustic = exp(-pow((-distCard - 14.2) / 3.4, 2.0)) * 0.72;
 
-  vec3 L_key = normalize(vec3(-u_tiltXY.x * 0.52, -0.72 - u_tiltXY.y * 0.38, 0.65));
+  // Pilar 1: 3D Gyroscope & Accelerometer Light Direction Vector
+  vec3 defaultLight = vec3(0.0, -0.72, 0.65);
+  vec3 activeLight = length(u_lightPos) > 0.01 ? u_lightPos : defaultLight;
+  vec3 L_key = normalize(vec3(
+    activeLight.x - u_tiltXY.x * 0.52,
+    activeLight.y - u_tiltXY.y * 0.38,
+    max(0.28, activeLight.z)
+  ));
   vec3 H_key = normalize(L_key + V);
   float specKey = pow(max(0.0, dot(N_card, H_key)), 44.0) * (0.85 + u_glassLift * 0.25);
 
-  // Travelling Specular Caustic along Top & Bottom Crystal Lips
-  float distToPtrX = abs(fragPx.x - u_pointerPos.x);
+  // Travelling Specular Caustic along Top & Bottom Crystal Lips (sweeps with pointer + Gyro tilt)
+  float distToPtrX = abs(fragPx.x - u_pointerPos.x - u_gyroTilt.x * 58.0);
   float causticTrackX = exp(-pow(distToPtrX / 96.0, 2.0));
   float topLipMask = 1.0 - smoothstep(0.0, 3.0, fragPx.y - 0.8);
   float botLipMask = 1.0 - smoothstep(0.0, 2.6, u_resolution.y - 0.8 - fragPx.y);
@@ -265,10 +276,11 @@ void main() {
   // -------------------------------------------------------------------------
   // 2. CAPILLARY WATER-RIPPLE DIPOLE RENDERING (HIGH-CONTRAST CREST + TROUGH)
   // -------------------------------------------------------------------------
-  float rippleLightFocus = clamp(rippleH * 0.95 + dot(rippleGrad, vec2(-0.65, -0.75)) * 2.8, -1.0, 1.0);
+  vec2 rippleLightDir = normalize(vec2(-0.65 + u_gyroTilt.x * 0.70, -0.75 + u_gyroTilt.y * 0.70));
+  float rippleLightFocus = clamp(rippleH * 0.95 + dot(rippleGrad, rippleLightDir) * 2.8, -1.0, 1.0);
   float rippleCrestAlpha = clamp(rippleLightFocus, 0.0, 1.0) * 0.88;
   float rippleTroughAlpha = clamp(-rippleLightFocus, 0.0, 1.0) * 0.52 * troughPolarity;
-  vec3 ripplePrismCol = mix(prismCoolTint, prismWarmTint, clamp(0.5 + rippleGrad.x * 3.2, 0.0, 1.0));
+  vec3 ripplePrismCol = mix(prismCoolTint, prismWarmTint, clamp(0.5 + rippleGrad.x * 3.2 + u_gyroTilt.x * 0.4, 0.0, 1.0));
 
   // -------------------------------------------------------------------------
   // 3. INTERACTIVE 3D LIQUID GLASS CAPSULE DROPLET (OVER STAT COLUMNS / TOUCH)
@@ -286,14 +298,15 @@ void main() {
 
   if (distLens < 22.0) {
     if (distLens > 0.0) {
-      // Exterior 3D Drop Shadow & Focused Caustic Halo around the Liquid Pill
-      vec2 shadowRel = relLens - vec2(-u_tiltXY.x * 2.5, 3.4 + u_glassLift * 3.5);
+      // Exterior 3D Drop Shadow & Focused Caustic Halo around the Liquid Pill (swept by Gyro tilt)
+      vec2 gyroShadowShift = vec2(u_gyroTilt.x * 3.8, u_gyroTilt.y * 3.2);
+      vec2 shadowRel = relLens - vec2(-u_tiltXY.x * 2.5, 3.4 + u_glassLift * 3.5) - gyroShadowShift;
       float sDist = roundBoxSDF(shadowRel, u_lensHalfSize, rLens);
       float pillDropShadow = exp(-max(0.0, sDist) * 0.24) * (0.36 + u_glassLift * 0.16) * troughPolarity * smoothstep(0.0, 1.8, distLens);
       lensDarkAlpha += pillDropShadow;
 
       // Bright Jacobian Caustic Ring just outside the pill rim
-      float outerCaustic = exp(-pow(max(0.0, distLens - 1.5) * 0.42, 2.0)) * (0.62 + u_glassLift * 0.32);
+      float outerCaustic = exp(-pow(max(0.0, distLens - 1.5) * 0.42, 2.0)) * (0.62 + u_glassLift * 0.32 + length(u_gyroTilt) * 0.18);
       lensWhiteAlpha += outerCaustic;
     } else {
       // Inside the 3D Liquid Glass Capsule Droplet:
@@ -310,7 +323,7 @@ void main() {
         : (qBoxLens.x > qBoxLens.y ? vec2(sign(qLens.x), 0.0) : vec2(0.0, sign(qLens.y)));
 
       vec2 domeLens = qLens / max(vec2(1.0), u_lensHalfSize);
-      vec3 N_lens = normalize(vec3(gradLens * slopeLens * 0.88 + domeLens * 0.24 + rippleGrad * 1.6 - u_tiltXY * 0.22, 1.0));
+      vec3 N_lens = normalize(vec3(gradLens * slopeLens * 0.88 + domeLens * 0.24 + rippleGrad * 1.6 - (u_tiltXY + u_gyroTilt * 0.65) * 0.22, 1.0));
 
       // Biphasic 4-Zone Meniscus of the 3D Liquid Pill:
       // 1) Crisp outer boundary step (0..1.3px)
@@ -329,7 +342,11 @@ void main() {
 
       vec3 R_lensR = refract(I, N_lens, LGR_ETA_RED);
       vec3 R_lensB = refract(I, N_lens, LGR_ETA_BLUE);
-      float dispMag = length(R_lensB.xy - R_lensR.xy) * 32.0 * (0.75 + u_weber + u_glassLift * 0.7);
+      // Pilar 2: Snellius gradient optical deflection Delta p = d_eff * ((1 - n)/n) * gradZ
+      float effDepth = LGR_OPTICAL_DEPTH * (1.0 + u_glassLift * 0.55);
+      vec2 gradZ_lens = -N_lens.xy / max(0.25, N_lens.z);
+      float snellWarp = length(gradZ_lens) * (LGR_SNELL_KAPPA_RGB.x - LGR_SNELL_KAPPA_RGB.z) * 0.28;
+      float dispMag = (length(R_lensB.xy - R_lensR.xy) + snellWarp) * 32.0 * (0.75 + u_weber + u_glassLift * 0.7 + length(u_gyroTilt) * 0.35);
       lensPrismAdd = mix(prismCoolTint, prismWarmTint, clamp(0.5 + N_lens.x * 1.4, 0.0, 1.0))
                    * clamp(dispMag, 0.0, 0.52) * (1.0 - tLens);
 
@@ -408,6 +425,16 @@ export class LGRHeroGlassRenderer {
     this.springScaleX = new RK4Spring(1, 400, 22);
     this.springScaleY = new RK4Spring(1, 400, 22);
 
+    // Pilar 1: 3D Gyroscope & Accelerometer RK4 Harmonic Filter Springs
+    // (\omega_n = 18.5 rad/s -> k = 342.25, \zeta = 0.92 -> c = 34.04)
+    this.springGyroX = new RK4Spring(0, 342.25, 34.04);
+    this.springGyroY = new RK4Spring(0, 342.25, 34.04);
+    this.gyroCalibrated = false;
+    this.gyroBaselinePitch = 35.0;
+    this.lastGyroTargetX = 0;
+    this.lastGyroTargetY = 0;
+    this.lightPosVec = [0.0, -0.72, 0.65];
+
     if (!this.gl) return;
     this.initGL();
     this.detectBackgroundLuminance();
@@ -439,6 +466,16 @@ export class LGRHeroGlassRenderer {
     }
   }
 
+  triggerHapticPulse(pattern = [8]) {
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(pattern);
+      }
+    } catch {
+      // non-blocking fallback for desktop or unsupported devices
+    }
+  }
+
   spawnCapillaryRipple(x, y, amplitude = 1.0) {
     const r = this.ripples[this.nextRippleIdx];
     r.x = x;
@@ -447,6 +484,10 @@ export class LGRHeroGlassRenderer {
     r.amp = amplitude;
     this.nextRippleIdx = (this.nextRippleIdx + 1) % this.ripples.length;
     this.lastRippleSpawnPos = { x, y };
+
+    if (amplitude >= 1.0) {
+      this.triggerHapticPulse([8]);
+    }
   }
 
   initGL() {
@@ -486,6 +527,8 @@ export class LGRHeroGlassRenderer {
       u_shear: gl.getUniformLocation(this.program, 'u_shear'),
       u_time: gl.getUniformLocation(this.program, 'u_time'),
       u_bgColor: gl.getUniformLocation(this.program, 'u_bgColor'),
+      u_lightPos: gl.getUniformLocation(this.program, 'u_lightPos'),
+      u_gyroTilt: gl.getUniformLocation(this.program, 'u_gyroTilt'),
       u_ripples: gl.getUniformLocation(this.program, 'u_ripples[0]'),
     };
   }
@@ -536,6 +579,7 @@ export class LGRHeroGlassRenderer {
     this.springScaleY.impulse(-0.34);
     this.springLift.setTarget(1.0);
     this.spawnCapillaryRipple(t.x, t.y, 1.05);
+    this.triggerHapticPulse([12, 18, 8]);
     this.wakeUp();
   }
 
@@ -621,11 +665,40 @@ export class LGRHeroGlassRenderer {
       this.wakeUp();
     };
 
+    // Pilar 1: Passive Hardware Gyroscope & Accelerometer Orientation Listener
+    this._onDeviceOrientation = (ev) => {
+      if (ev.gamma === null && ev.beta === null) return;
+      const rawGamma = Math.max(-45, Math.min(45, Number(ev.gamma) || 0));
+      const rawBeta = Math.max(-20, Math.min(85, Number(ev.beta) || 35));
+      if (!this.gyroCalibrated) {
+        this.gyroBaselinePitch = rawBeta;
+        this.gyroCalibrated = true;
+      }
+      const normX = Math.max(-1, Math.min(1, (rawGamma / 38.0) * 0.82));
+      const normY = Math.max(-1, Math.min(1, ((rawBeta - this.gyroBaselinePitch) / 38.0) * 0.82));
+
+      // Deadzone filter (0.015) so resting phone on table auto-sleeps with 0% CPU/GPU drain
+      if (
+        Math.abs(normX - this.lastGyroTargetX) > 0.015 ||
+        Math.abs(normY - this.lastGyroTargetY) > 0.015
+      ) {
+        this.lastGyroTargetX = normX;
+        this.lastGyroTargetY = normY;
+        this.springGyroX.setTarget(normX);
+        this.springGyroY.setTarget(normY);
+        this.wakeUp();
+      }
+    };
+
     el.addEventListener('pointerdown', this._onPointerDown, { passive: true });
     el.addEventListener('pointermove', this._onPointerMove, { passive: true });
     el.addEventListener('pointerup', this._onPointerUpOrLeave, { passive: true });
     el.addEventListener('pointercancel', this._onPointerUpOrLeave, { passive: true });
     el.addEventListener('pointerleave', this._onPointerUpOrLeave, { passive: true });
+
+    if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+      window.addEventListener('deviceorientation', this._onDeviceOrientation, { passive: true });
+    }
   }
 
   wakeUp() {
@@ -662,8 +735,21 @@ export class LGRHeroGlassRenderer {
       const s7 = this.springLift.step(subDt);
       const s8 = this.springScaleX.step(subDt);
       const s9 = this.springScaleY.step(subDt);
-      springsSettled = s1 && s2 && s3 && s4 && s5 && s6 && s7 && s8 && s9;
+      const s10 = this.springGyroX.step(subDt);
+      const s11 = this.springGyroY.step(subDt);
+      springsSettled = s1 && s2 && s3 && s4 && s5 && s6 && s7 && s8 && s9 && s10 && s11;
     }
+
+    // Update 3D unit light vector from smoothed Gyroscope roll & pitch
+    const gx = this.springGyroX.value;
+    const gy = this.springGyroY.value;
+    const rawLx = -gx * 0.62;
+    const rawLy = -0.72 + gy * 0.48;
+    const rawLz = 0.65;
+    const invLen = 1.0 / Math.hypot(rawLx, rawLy, rawLz);
+    this.lightPosVec[0] = rawLx * invLen;
+    this.lightPosVec[1] = rawLy * invLen;
+    this.lightPosVec[2] = rawLz * invLen;
 
     let anyRippleActive = false;
     for (let i = 0; i < this.ripples.length; i++) {
@@ -680,11 +766,11 @@ export class LGRHeroGlassRenderer {
 
     if (this.containerEl) {
       const w = this.containerEl.clientWidth || 340;
-      const pctX = Math.max(8, Math.min(92, (this.springX.value / w) * 100));
+      const pctX = Math.max(8, Math.min(92, (this.springX.value / w) * 100 + gx * 14.0));
       this.containerEl.style.setProperty('--lgr-ptr-x', `${pctX.toFixed(1)}%`);
       this.containerEl.style.setProperty('--lgr-lift', this.springLift.value.toFixed(3));
-      this.containerEl.style.setProperty('--lgr-tilt-x', `${(this.springTiltX.value * 1.6).toFixed(2)}deg`);
-      this.containerEl.style.setProperty('--lgr-tilt-y', `${(-this.springTiltY.value * 1.6).toFixed(2)}deg`);
+      this.containerEl.style.setProperty('--lgr-tilt-x', `${((this.springTiltX.value + gx * 0.7) * 1.6).toFixed(2)}deg`);
+      this.containerEl.style.setProperty('--lgr-tilt-y', `${((-this.springTiltY.value - gy * 0.7) * 1.6).toFixed(2)}deg`);
     }
 
     return springsSettled && !anyRippleActive;
@@ -742,6 +828,17 @@ export class LGRHeroGlassRenderer {
       this.bgColorRGB[1],
       this.bgColorRGB[2]
     );
+    gl.uniform3f(
+      this.uLocs.u_lightPos,
+      this.lightPosVec[0],
+      this.lightPosVec[1],
+      this.lightPosVec[2]
+    );
+    gl.uniform2f(
+      this.uLocs.u_gyroTilt,
+      this.springGyroX.value,
+      this.springGyroY.value
+    );
     gl.uniform4fv(this.uLocs.u_ripples, flatRipples);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -759,6 +856,9 @@ export class LGRHeroGlassRenderer {
       el.removeEventListener('pointerup', this._onPointerUpOrLeave);
       el.removeEventListener('pointercancel', this._onPointerUpOrLeave);
       el.removeEventListener('pointerleave', this._onPointerUpOrLeave);
+    }
+    if (typeof window !== 'undefined' && this._onDeviceOrientation) {
+      window.removeEventListener('deviceorientation', this._onDeviceOrientation);
     }
     if (this.gl && this.program) {
       this.gl.deleteProgram(this.program);

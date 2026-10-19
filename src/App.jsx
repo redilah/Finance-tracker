@@ -7409,9 +7409,15 @@ function App() {
                   </div>
                 </div>
 
-                {/* 2. Main Floating Hero Budget Card */}
-                <div className="budget-hero-card floating-hero-card">
-                  <div className="budget-hero-top-row">
+                {/* 2. Main Floating Hero Budget Card (LGR Liquid Glass Redi 3D Crystal Slab + kalender.svg) */}
+                <div className="budget-hero-card floating-hero-card lgr-liquid-glass-hero">
+                  {/* Layer 1: Subsurface Optical Light Orbs for True Glass Depth */}
+                  <div className="budget-hero-subsurface-aura" aria-hidden="true" />
+
+                  {/* Layer 2: Travelling Top Specular Caustic Lip */}
+                  <div className="lgr-hero-top-specular" aria-hidden="true" />
+
+                  <div className="budget-hero-top-row lgr-hero-content-layer">
                     <div className="budget-hero-title-group">
                       <span className="budget-hero-subtitle">
                         {getTranslation(appLanguage, 'budgetThisMonth') || 'Budget bulan ini'}
@@ -7462,10 +7468,10 @@ function App() {
                   </div>
 
                   {/* Dotted Divider */}
-                  <div className="budget-hero-dotted-divider" />
+                  <div className="budget-hero-dotted-divider lgr-hero-content-layer" />
 
                   {/* Stats Breakdown (Terpakai vs Sisa with Vertical Line) */}
-                  <div className="budget-hero-dual-stats">
+                  <div className="budget-hero-dual-stats lgr-hero-content-layer">
                     <div className="budget-dual-stat-col">
                       <span className="budget-dual-stat-label">{t('usedThisMonth') || 'Terpakai'}</span>
                       <strong className="budget-dual-stat-val spent">{fmtMoney(spent)}</strong>
@@ -7480,7 +7486,7 @@ function App() {
                   </div>
 
                   {/* Main Progress Bar */}
-                  <div className="budget-game-bar-wrapper">
+                  <div className="budget-game-bar-wrapper lgr-hero-content-layer">
                     <div className="budget-game-bar-frame borderless">
                       <div 
                         className={`budget-game-bar-fill ${barStatus}`}
@@ -7503,7 +7509,7 @@ function App() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="budget-hero-actions">
+                  <div className="budget-hero-actions lgr-hero-content-layer">
                     {isEditingMainBudget ? (
                       <>
                         <button 
