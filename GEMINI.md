@@ -804,37 +804,41 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
 
 ---
 
-## 50. Viscoelastic Jelly Continuum Physics & Shake Detection (HP Goyang Membal Kenyal)
+## 50. Viscoelastic Jelly Continuum Physics & Shake Detection (HP Goyang Membal Kenyal Smooth)
 
 > [!NOTE]
-> **SISTEM FISIKA JELLY KENYAL (GOYANG HP MEMBAL)**
+> **SISTEM FISIKA JELLY KENYAL SMOOTH (GOYANG HP MEMBAL & MELAR)**
 > 
-> Seluruh komponen kunci antarmuka Cassiel (Top Bar, Hero Balance Card, Middle Cards, Daftar Transaksi, dan Bottom Nav) terhubung ke dalam kisi osilator viskoelastik kontinu berjenjang yang merefleksikan getaran dan goyangan fisik perangkat dengan gerakan membal kenyal layaknya jelly/puding.
+> Seluruh komponen antarmuka (terutama Menu Bar dan Balon Kaca) merespons goyangan fisik perangkat dengan gerakan mikro responsif, membal kenyal, dan melar elastis menggunakan hukum deformasi viskoelastik Navier-Stokes dan kekekalan volume Poisson. Sistem hanya aktif saat perangkat digoyang, dan langsung kembali setimbang mutlak saat diam.
 
-### A. Kisi Gelombang Viskoelastik Berjenjang (*Layered Lattice Propagation*)
-1. **Perambatan Gelombang Berfasa (*Acoustic Wave Delay*)**:
-   - Gelombang guncangan merambat dari atas ke bawah dengan jeda fase fisik:
-     - **Top Bar**: $\omega = 21.0\text{ rad/s}, \zeta = 0.44$, jeda `0ms`.
-     - **Hero Balance Card**: $\omega = 16.8\text{ rad/s}, \zeta = 0.35$ (massa inersia tinggi, squish membal paling kenyal), jeda `25ms`.
-     - **Middle Cards (Insight/Budget)**: $\omega = 18.5\text{ rad/s}, \zeta = 0.39$, jeda `45ms`.
-     - **Daftar Transaksi**: $\omega = 15.8\text{ rad/s}, \zeta = 0.41$, jeda `70ms`.
-     - **Bottom Navigation Dock**: $\omega = 19.5\text{ rad/s}, \zeta = 0.37$, jeda `85ms`.
-2. **Kekekalan Volume Poisson Non-Linear (Squish-and-Stretch)**:
-   - Deformasi vertikal memicu pemampatan/peregangan horizontal berdasarkan rasio Poisson ($\nu \approx 0.46$):
-     - Saat terlempar ke bawah: komponen memipih dan melebar ke samping (`scaleY < 1, scaleX > 1`).
-     - Saat membal ke atas: komponen menegang dan memanjang (`scaleY > 1, scaleX < 1`).
-     - Disertai kemiringan rotasi inersial dan pergeseran gesek hidrodinamik (`skewX`).
-3. **Efisiensi Daya 120 FPS & Auto-Sleep**:
-   - Integrasi numerik menggunakan metode Symplectic Verlet 2 sub-langkah.
-   - Loop `requestAnimationFrame` otomatis berhenti total dan mengembalikan seluruh variabel CSS ke titik setimbang (`0px`, skala `1`) saat energi kinetik mereda ($E < 0.02$), menjamin 0% beban CPU/baterai saat diam (*idle*).
+### A. Kisi Gelombang Viskoelastik & Deformasi Melar (*Smooth Strain Lattice*)
+1. **Perambatan Gelombang & Mikro-Gerakan Responsif (*Subtle Micro-Motion*)**:
+   - Elemen antarmuka bergoyang sedikit secara terkontrol (mikro 2.8px - 5.0px max, tidak terpental liar) dengan redaman kenyal lembut ($\zeta \approx 0.50 - 0.58$) dan frekuensi alami ($\omega \approx 16.5 - 20.0\text{ rad/s}$):
+     - **Top Bar**: $\omega = 20.0\text{ rad/s}, \zeta = 0.58$, jeda `0ms`, batas displacement $\pm 2.8\text{px}$.
+     - **Hero Balance Card**: $\omega = 16.5\text{ rad/s}, \zeta = 0.52$, jeda `18ms`, batas displacement $\pm 4.5\text{px}$, inersia rotasi $\pm 0.75^\circ$.
+     - **Middle Cards (Insight/Budget)**: $\omega = 17.5\text{ rad/s}, \zeta = 0.55$, jeda `35ms`, batas $\pm 3.5\text{px}$.
+     - **Daftar Transaksi**: $\omega = 16.0\text{ rad/s}, \zeta = 0.56$, jeda `50ms`, batas $\pm 3.2\text{px}$.
+     - **Menu Bar Dock (Kapsul Kaca)**: $\omega = 18.0\text{ rad/s}, \zeta = 0.50$, jeda `60ms`, batas $\pm 5.0\text{px}$, elevasi lift $\pm 3.5\text{px}$.
+2. **Kekekalan Volume Poisson & Deformasi Melar (*Liquid Glass Stretch & Squish*)**:
+   - Sesuai prinsip balon kaca yang melar, regangan horizontal menghasilkan pemipihan vertikal berbasis rasio Poisson ($\nu \approx 0.48$):
+     - Saat disentak horizontal: kapsul menu bar melar melebar ($S_x \approx 1.00 \dots 1.05$) dan memipih vertikal ($S_y \approx 0.96 \dots 1.00$).
+     - Disertai kemiringan fluida halus (*hydrodynamic shear* $\pm 1.35^\circ$) tanpa rotasi kaku.
+3. **Kopling Dinamis Balon Kaca Menu Bar (`navPhysicsRef`)**:
+   - Balon kaca di tab aktif (`nav-liquid-glass-bubble` 69x48) terhubung langsung melalui `registerJellyShakeListener`:
+     - Impuls akselerasi goyangan tangan mengalir langsung ke pegas 2D hydro-elastis balon kaca (`velScaleX`, `velScaleY`, `velTilt`, `velBarSink`, `velLift`).
+     - Balon kaca melar dan membal kenyal secara real-time pada 120 FPS dengan refraksi optik Snellius aktif.
+4. **Efisiensi Daya 120 FPS & Auto-Sleep Mutlak**:
+   - Menggunakan integrasi numerik Symplectic Verlet 2 sub-langkah.
+   - Loop `requestAnimationFrame` otomatis berhenti total dan mengembalikan seluruh CSS variable ke titik netral (`0px`, skala `1.000`) saat energi kinetik mereda ($E < 0.008$), menjamin 0% beban CPU/baterai saat HP diam.
 
-### B. Sensor Goyang Perangkat & Tombol Segitiga Penguji Localhost
+### B. Sensor Goyang Perangkat & Refleksi Goyangan di Localhost
 1. **Deteksi Goyangan HP Fisik (`devicemotion`)**:
-   - Menggunakan filter lolos-tinggi (*high-pass jerk filter*) pada akselerometer perangkat untuk mengabaikan gravitasi bumi 1G konstan.
-   - Goyangan sengaja dengan $\text{jerk} > 7.0\text{ m/s}^2$ otomatis memicu impuls jelly sesuai sudut vektor goyangan tangan.
-2. **Tombol Segitiga Penguji Khusus Localhost (`JellyShakeTestButton.jsx`)**:
-   - Tampil eksklusif di lingkungan development/localhost (`isDevOrLocalhost()`) melayang di sebelah kanan bingkai HP (`left: calc(50% + 228px)`).
-   - Berupa 1 tombol segitiga emas melengkung (`▲`) yang merefleksikan goyangan HP manusia dengan impuls multi-arah dan akumulasi energi saat diklik cepat maupun saat ditekan-tahan.
+   - Filter lolos-tinggi (*high-pass jerk filter*) pada sensor gerak mendeteksi sentakan tangan disengaja ($\text{jerk} > 5.5\text{ m/s}^2$).
+   - Menghasilkan getaran haptik responsif (`navigator.vibrate([8, 16, 6])`).
+2. **Refleksi Goyangan HP di Desktop Localhost (`#root` Chassis Shake & Tombol Segitiga)**:
+   - Di desktop preview, bingkai HP `#root` bergoyang secara responsif ($\pm 7.5\text{px}, \pm 1.4^\circ$) saat tombol segitiga ditekan, merefleksikan HP yang sedang digoyang tangan manusia di dunia nyata.
+   - Tombol segitiga emas melengkung (`▲`) di samping kanan frame (`left: calc(50% + 228px)`) mendukung sentakan klik instan, getaran kontinu saat ditekan-tahan, dan pantulan balik saat dilepas.
+
 
 
 

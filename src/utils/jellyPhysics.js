@@ -1,6 +1,7 @@
 /**
  * Viscoelastic Jelly Continuum Physics Engine
- * Multi-layer damped harmonic lattice with Navier-Stokes Poisson volume conservation & DeviceMotion shake detection
+ * Multi-layer damped harmonic lattice with Navier-Stokes Poisson volume conservation,
+ * subtle responsive micro-motion, and active DeviceMotion / Desktop chassis shake reflection.
  */
 
 export function isDevOrLocalhost() {
@@ -16,18 +17,27 @@ export function isDevOrLocalhost() {
   );
 }
 
+// Subscribed listeners for coupled UI components (e.g. Nav Liquid Glass Bubble in App.jsx)
+const shakeListeners = new Set();
+
+export function registerJellyShakeListener(callback) {
+  if (typeof callback === 'function') {
+    shakeListeners.add(callback);
+    return () => shakeListeners.delete(callback);
+  }
+  return () => {};
+}
+
 // Viscoelastic lattice parameters:
-// omega: natural frequency (rad/s)
-// zeta: underdamped ratio (0.35 - 0.44) for juicy, jiggly bounce
-// mass: inertial mass factor
-// delayMs: phase velocity delay (propagating gelatin shockwave)
-// maxDisp: clamp threshold in px to prevent clipping
+// - Subtle micro-displacement (maxDispX / maxDispY clamped tight: 2.8px - 5.0px)
+// - Underdamped silky ratios (zeta: 0.50 - 0.58) for smooth, elastic jelly rebound
+// - High natural frequencies (omega: 16.5 - 20.0 rad/s) for responsive instant settling (~350ms)
 const LAYER_CONFIGS = {
-  top:  { omega: 21.0, zeta: 0.44, mass: 0.85, delayMs: 0,   maxDisp: 18 },
-  hero: { omega: 16.8, zeta: 0.35, mass: 1.45, delayMs: 25,  maxDisp: 32 },
-  mid:  { omega: 18.5, zeta: 0.39, mass: 1.05, delayMs: 45,  maxDisp: 24 },
-  body: { omega: 15.8, zeta: 0.41, mass: 1.25, delayMs: 70,  maxDisp: 26 },
-  dock: { omega: 19.5, zeta: 0.37, mass: 0.95, delayMs: 85,  maxDisp: 22 }
+  top:  { omega: 20.0, zeta: 0.58, mass: 1.00, delayMs: 0,   maxDispX: 2.8, maxDispY: 2.2 },
+  hero: { omega: 16.5, zeta: 0.52, mass: 1.35, delayMs: 18,  maxDispX: 4.5, maxDispY: 3.5 },
+  mid:  { omega: 17.5, zeta: 0.55, mass: 1.10, delayMs: 35,  maxDispX: 3.5, maxDispY: 2.6 },
+  body: { omega: 16.0, zeta: 0.56, mass: 1.25, delayMs: 50,  maxDispX: 3.2, maxDispY: 2.5 },
+  dock: { omega: 18.0, zeta: 0.50, mass: 0.95, delayMs: 60,  maxDispX: 5.0, maxDispY: 3.8 }
 };
 
 const layerStates = {
@@ -38,46 +48,73 @@ const layerStates = {
   dock: { x: 0, vx: 0, y: 0, vy: 0 }
 };
 
+// Desktop chassis shake (reflecting physical phone held in hand on localhost)
+const chassisState = {
+  x: 0,
+  vx: 0,
+  rot: 0,
+  vRot: 0,
+  omega: 22.0,
+  zeta: 0.48,
+  maxDispX: 7.5,
+  maxRot: 1.4
+};
+
 let animFrameId = null;
 let lastTime = null;
 let isAnimating = false;
 let pendingTimeouts = [];
 
-function applyLayerTransforms() {
+function applyTransforms() {
   const root = document.documentElement;
   if (!root) return;
 
   const rootStyle = root.style;
 
+  // 1. Layer Deformations: subtle responsive micro-motion + Poisson volume conservation (melar kenyal)
   Object.keys(LAYER_CONFIGS).forEach((key) => {
     const s = layerStates[key];
     const cfg = LAYER_CONFIGS[key];
 
-    // Clamping to physical elastic boundary
-    const cx = Math.max(-cfg.maxDisp, Math.min(cfg.maxDisp, s.x));
-    const cy = Math.max(-cfg.maxDisp, Math.min(cfg.maxDisp, s.y));
+    // Tight micro-displacement clamp
+    const cx = Math.max(-cfg.maxDispX, Math.min(cfg.maxDispX, s.x));
+    const cy = Math.max(-cfg.maxDispY, Math.min(cfg.maxDispY, s.y));
 
-    // Non-linear Poisson volume conservation (Squish-and-stretch)
-    const squishY = Math.tanh(cy / 55) * 0.16;
-    const scaleY = Math.max(0.82, Math.min(1.22, 1.0 + squishY));
-    const scaleX = Math.max(0.82, Math.min(1.25, 1.0 - 0.46 * squishY + Math.abs(Math.tanh(cx / 70)) * 0.08));
+    // Elastic strain tensors (Poisson squish & stretch: melar horizontal, memipih vertikal)
+    const strainX = Math.tanh(cx / 26) * 0.042;
+    const strainY = Math.tanh(cy / 22) * 0.036;
 
-    // Dynamic hydrodynamic rotational tilt & shear
-    const rotDeg = Math.tanh(cx / 40) * 3.4 + Math.tanh(s.vx / 450) * 2.0;
-    const skewDeg = -Math.tanh(cx / 60) * 2.8;
+    // Volume-conserving scales (nu = 0.48)
+    const scaleX = Math.max(0.96, Math.min(1.052, 1.0 + Math.abs(strainX) - 0.48 * strainY));
+    const scaleY = Math.max(0.96, Math.min(1.045, 1.0 + strainY - 0.48 * Math.abs(strainX)));
+
+    // Hydrodynamic shear & gentle floating tilt
+    const skewDeg = -Math.tanh(s.vx / 280) * 1.35;
+    const rotDeg = Math.tanh(cx / 30) * 0.75;
 
     rootStyle.setProperty(`--jelly-${key}-x`, `${cx.toFixed(2)}px`);
     rootStyle.setProperty(`--jelly-${key}-y`, `${cy.toFixed(2)}px`);
     rootStyle.setProperty(`--jelly-${key}-sx`, scaleX.toFixed(4));
     rootStyle.setProperty(`--jelly-${key}-sy`, scaleY.toFixed(4));
     rootStyle.setProperty(`--jelly-${key}-rot`, `${rotDeg.toFixed(2)}deg`);
-    if (key === 'hero') {
-      rootStyle.setProperty(`--jelly-${key}-skew`, `${skewDeg.toFixed(2)}deg`);
+    rootStyle.setProperty(`--jelly-${key}-skew`, `${skewDeg.toFixed(2)}deg`);
+
+    // Special dock lift for menu bar container
+    if (key === 'dock') {
+      const dockLift = -cy * 0.65;
+      rootStyle.setProperty('--jelly-dock-lift', `${dockLift.toFixed(2)}px`);
     }
   });
+
+  // 2. Chassis Shake (for desktop preview reflection of phone being shaken by hand)
+  const chassisX = Math.max(-chassisState.maxDispX, Math.min(chassisState.maxDispX, chassisState.x));
+  const chassisRot = Math.max(-chassisState.maxRot, Math.min(chassisState.maxRot, chassisState.rot));
+
+  rootStyle.setProperty('--phone-shake-x', `${chassisX.toFixed(2)}px`);
+  rootStyle.setProperty('--phone-shake-rot', `${chassisRot.toFixed(2)}deg`);
 }
 
-function resetLayerTransforms() {
+function resetTransforms() {
   const root = document.documentElement;
   if (!root) return;
   const rootStyle = root.style;
@@ -93,10 +130,18 @@ function resetLayerTransforms() {
     rootStyle.setProperty(`--jelly-${key}-sx`, '1');
     rootStyle.setProperty(`--jelly-${key}-sy`, '1');
     rootStyle.setProperty(`--jelly-${key}-rot`, '0deg');
-    if (key === 'hero') {
-      rootStyle.setProperty(`--jelly-${key}-skew`, '0deg');
+    rootStyle.setProperty(`--jelly-${key}-skew`, '0deg');
+    if (key === 'dock') {
+      rootStyle.setProperty('--jelly-dock-lift', '0px');
     }
   });
+
+  chassisState.x = 0;
+  chassisState.vx = 0;
+  chassisState.rot = 0;
+  chassisState.vRot = 0;
+  rootStyle.setProperty('--phone-shake-x', '0px');
+  rootStyle.setProperty('--phone-shake-rot', '0deg');
 
   if (typeof document !== 'undefined' && document.body) {
     document.body.classList.remove('jelly-animating');
@@ -104,21 +149,21 @@ function resetLayerTransforms() {
 }
 
 function physicsStep(now) {
-  const rawDt = Math.min((now - (lastTime || now)) / 1000, 0.032) || 0.016;
+  const rawDt = Math.min((now - (lastTime || now)) / 1000, 0.030) || 0.016;
   lastTime = now;
 
-  // RK2 / Symplectic Verlet integration (2 sub-steps for smooth 120Hz stability)
+  // Sub-stepped Symplectic Verlet integration (2 sub-steps)
   const subSteps = 2;
   const dt = rawDt / subSteps;
 
   let totalEnergy = 0;
 
   for (let step = 0; step < subSteps; step++) {
+    // 1. Update layers
     Object.keys(LAYER_CONFIGS).forEach((key) => {
       const cfg = LAYER_CONFIGS[key];
       const s = layerStates[key];
 
-      // Second-order damped harmonic spring: f = -omega^2 * x - 2 * zeta * omega * v
       const k = cfg.omega * cfg.omega;
       const c = 2 * cfg.zeta * cfg.omega;
 
@@ -132,21 +177,37 @@ function physicsStep(now) {
       s.y += s.vy * dt;
 
       if (step === subSteps - 1) {
-        totalEnergy += 0.5 * (s.x * s.x + s.y * s.y) + 0.001 * (s.vx * s.vx + s.vy * s.vy);
+        totalEnergy += (s.x * s.x + s.y * s.y) + 0.002 * (s.vx * s.vx + s.vy * s.vy);
       }
     });
+
+    // 2. Update chassis phone shake
+    const kChassis = chassisState.omega * chassisState.omega;
+    const cChassis = 2 * chassisState.zeta * chassisState.omega;
+
+    const fChassisX = -kChassis * chassisState.x - cChassis * chassisState.vx;
+    chassisState.vx += fChassisX * dt;
+    chassisState.x += chassisState.vx * dt;
+
+    const fChassisRot = -kChassis * chassisState.rot - cChassis * chassisState.vRot;
+    chassisState.vRot += fChassisRot * dt;
+    chassisState.rot += chassisState.vRot * dt;
+
+    if (step === subSteps - 1) {
+      totalEnergy += (chassisState.x * chassisState.x) + 0.002 * (chassisState.vx * chassisState.vx);
+    }
   }
 
-  applyLayerTransforms();
+  applyTransforms();
 
-  // Energy settling threshold
-  if (totalEnergy > 0.02) {
+  // Smooth settling threshold: only active when shaking, drops to 0 when settled
+  if (totalEnergy > 0.008) {
     animFrameId = requestAnimationFrame(physicsStep);
   } else {
     isAnimating = false;
     animFrameId = null;
     lastTime = null;
-    resetLayerTransforms();
+    resetTransforms();
   }
 }
 
@@ -162,25 +223,27 @@ function ensureAnimationRunning() {
 }
 
 export function triggerJellyShake(intensity = 1.0, angleDeg = null) {
-  // Clear any pending delayed phase wave timers
   pendingTimeouts.forEach((t) => clearTimeout(t));
   pendingTimeouts = [];
 
-  // Determine shake angle: random natural hand flick or specified angle
   const theta = angleDeg !== null
     ? (angleDeg * Math.PI) / 180
-    : (Math.random() * Math.PI * 2);
+    : (Math.random() > 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.45; // Natural left-right hand flick
 
-  // Velocity impulse magnitude
-  const baseAmp = 380 * Math.max(0.4, Math.min(2.5, intensity));
-  const ix = Math.cos(theta) * baseAmp * (0.85 + Math.random() * 0.3);
-  const iy = Math.sin(theta) * baseAmp * (0.85 + Math.random() * 0.3);
+  // Controlled, smooth velocity impulse magnitude (subtle, non-jarring)
+  const baseAmp = 160 * Math.max(0.4, Math.min(1.8, intensity));
+  const ix = Math.cos(theta) * baseAmp;
+  const iy = Math.sin(theta) * baseAmp * 0.65; // Horizontal shake dominant
 
-  // Propagate shockwave down the gelatinous lattice with phase delays
+  // 1. Excite desktop chassis shake (simulating hand-held phone shake)
+  chassisState.vx += ix * 0.85;
+  chassisState.vRot += (ix / 160) * 18.0;
+
+  // 2. Propagate smooth gelatinous wave across UI layers with phase delays
   Object.keys(LAYER_CONFIGS).forEach((key) => {
     const cfg = LAYER_CONFIGS[key];
-    const layerIx = (ix / cfg.mass) * (1 + (Math.random() - 0.5) * 0.15);
-    const layerIy = (iy / cfg.mass) * (1 + (Math.random() - 0.5) * 0.15);
+    const layerIx = (ix / cfg.mass) * (0.9 + Math.random() * 0.2);
+    const layerIy = (iy / cfg.mass) * (0.9 + Math.random() * 0.2);
 
     if (cfg.delayMs === 0) {
       layerStates[key].vx += layerIx;
@@ -195,12 +258,19 @@ export function triggerJellyShake(intensity = 1.0, angleDeg = null) {
     }
   });
 
+  // 3. Notify coupled subscribers (such as Nav Liquid Glass Bubble in App.jsx)
+  shakeListeners.forEach((fn) => {
+    try {
+      fn(intensity, angleDeg, ix, iy);
+    } catch {}
+  });
+
   ensureAnimationRunning();
 
   // Tactile haptic vibration for real mobile devices
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
     try {
-      navigator.vibrate([10, 24, 6]);
+      navigator.vibrate([8, 16, 6]);
     } catch {}
   }
 }
@@ -217,7 +287,7 @@ export function initDeviceMotionListener() {
     if (!acc) return;
 
     const now = performance.now();
-    if (now - lastShakeTimestamp < 150) return; // Debounce sensor flutter
+    if (now - lastShakeTimestamp < 160) return; // Debounce sensor flutter
 
     const currentX = acc.x || 0;
     const currentY = acc.y || 0;
@@ -236,11 +306,10 @@ export function initDeviceMotionListener() {
 
     const jerk = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Dynamic threshold: deliberate hand shake
-    if (jerk > 7.0) {
+    // Natural deliberate hand shake threshold
+    if (jerk > 5.5) {
       lastShakeTimestamp = now;
-      const normalizedIntensity = Math.min(2.2, Math.max(0.65, jerk / 8.5));
-      // Invert Y because device accelerometer Y goes down
+      const normalizedIntensity = Math.min(1.8, Math.max(0.6, jerk / 9.0));
       const angle = Math.atan2(-dy, dx);
       triggerJellyShake(normalizedIntensity, (angle * 180) / Math.PI);
     }
@@ -261,5 +330,6 @@ export function cleanupJellyPhysics() {
   pendingTimeouts = [];
   isAnimating = false;
   lastTime = null;
-  resetLayerTransforms();
+  shakeListeners.clear();
+  resetTransforms();
 }

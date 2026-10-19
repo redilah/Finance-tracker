@@ -21,14 +21,14 @@ export default function JellyShakeTestButton() {
   const handlePointerDown = (e) => {
     e.preventDefault();
     setIsPressing(true);
-    // Initial immediate shake impulse
-    triggerJellyShake(1.3);
+    // Smooth immediate hand-shake impulse
+    triggerJellyShake(1.15);
 
-    // Continuous jiggle if held down
+    // Continuous responsive jiggle if held down
     if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
     holdIntervalRef.current = setInterval(() => {
-      triggerJellyShake(0.85);
-    }, 120);
+      triggerJellyShake(0.75);
+    }, 135);
   };
 
   const handlePointerUp = () => {
@@ -38,8 +38,8 @@ export default function JellyShakeTestButton() {
     }
     if (isPressing) {
       setIsPressing(false);
-      // Final release rebound
-      triggerJellyShake(1.6);
+      // Gentle settling release rebound
+      triggerJellyShake(1.2);
     }
   };
 

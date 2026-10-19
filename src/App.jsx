@@ -56,7 +56,7 @@ import VoiceMicButton from './components/VoiceMicButton';
 import QuickTextModal from './components/QuickTextModal';
 import VoiceQueryResultModal from './components/VoiceQueryResultModal';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
-import { initDeviceMotionListener, cleanupJellyPhysics } from './utils/jellyPhysics';
+import { initDeviceMotionListener, cleanupJellyPhysics, registerJellyShakeListener } from './utils/jellyPhysics';
 import JellyShakeTestButton from './components/JellyShakeTestButton';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 import { generateFinancialInsights, formatActivePeriodRange } from './utils/financialInsightEngine';
@@ -659,14 +659,6 @@ function App() {
       }
     };
   }, [activeTab]);
-
-  // Viscoelastic Jelly Continuum Physics (HP Goyang Membal Kenyal Sensor)
-  useEffect(() => {
-    initDeviceMotionListener();
-    return () => {
-      cleanupJellyPhysics();
-    };
-  }, []);
 
   const [navIndicatorX, setNavIndicatorX] = useState(null);
   const navDragStateRef = useRef({
@@ -1506,6 +1498,32 @@ function App() {
       if (navAnimFrameRef.current) cancelAnimationFrame(navAnimFrameRef.current);
     };
   }, [activeTab, syncNavWebGLSceneTexture, updateNavIndicator]);
+
+  // Viscoelastic Jelly Continuum Physics (HP Goyang Membal Kenyal Smooth Sensor)
+  useEffect(() => {
+    initDeviceMotionListener();
+    const unsubscribe = registerJellyShakeListener((intensity, angleDeg, ix, iy) => {
+      const phys = navPhysicsRef.current;
+      if (!phys) return;
+      // Responsively excite the liquid glass bubble springs (melar elastis kenyal smooth)
+      const normIx = Math.max(-1.5, Math.min(1.5, ix / 150));
+      const normIy = Math.max(-1.5, Math.min(1.5, iy / 150));
+
+      phys.velScaleX += Math.abs(normIx) * 2.8 * intensity;
+      phys.velScaleY -= Math.abs(normIx) * 2.0 * intensity; // Poisson volume conservation
+      phys.velTilt += normIx * 1.25;
+      phys.velBarSink += normIy * 2.4;
+      phys.velLift += Math.abs(normIy) * 1.8;
+
+      startNavSpringLoop();
+    });
+
+    return () => {
+      unsubscribe();
+      cleanupJellyPhysics();
+    };
+  }, [startNavSpringLoop]);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chartPeriodFilter, setChartPeriodFilter] = useState('1year'); // '1year' | '6months' | '3months'
   const [isChartDropdownOpen, setIsChartDropdownOpen] = useState(false);
