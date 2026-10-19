@@ -710,6 +710,8 @@ function App() {
     isPressed: false,
     landingBounceArmed: false,
     lastCrossedTab: null,
+    lastTapTime: 0,
+    cadenceMultiplier: 1.0,
   });
   const navAnimFrameRef = useRef(null);
 
@@ -764,8 +766,8 @@ function App() {
       container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
     }
 
-    // 2. Wider Liquid Glass Bubble (72x48) — Viscous Continuous Stretch & Navier-Stokes Volume Conservation
-    const Bw = 72;
+    // 2. Wider Liquid Glass Bubble (69x48) — Viscous Continuous Stretch & Navier-Stokes Volume Conservation
+    const Bw = 69;
     const Bh = 48;
 
     // Viscous Fluid Elongation: stretchRatio based on span between lead & trail edge
@@ -918,25 +920,31 @@ function App() {
           const target = phys.targetPixel;
           const totalDist = Math.max(1, Math.abs(target - origin));
 
-          // Head Spring: smooth, graceful advance to target (melar perlahan, tidak tiba-tiba)
-          const distFactor = Math.min(1.0, totalDist / 200);
-          const omegaLead = 13.5 - 2.0 * distFactor; // 11.5 for long jumps (Home->Stats), 13.5 for short jumps
-          const zetaLead = 0.90;
+          // 1. Cadence & Hand-Speed Dynamic Balancer (Penyeimbang 350ms vs Kecepatan Cepat):
+          // Basis frekuensi ω_base = 15.2 rad/s memberikan durasi transit santai/pelan tepat di ~350ms.
+          // Saat gerakan cepat beruntun, cadence multiplier Φ(Δt) menaikkan frekuensi secara mulus.
+          const cadence = phys.cadenceMultiplier || 1.0;
+          const distFactor = Math.min(1.0, totalDist / 220);
+          const omegaBase = 15.2; // Waktu tempuh santai pas di ~350ms
+          const omegaLead = (omegaBase + 2.6 * distFactor) * cadence;
+          const zetaLead = 0.89; // Critically damped untuk pendaratan super smooth tanpa overshoot
           const fLead = -omegaLead * omegaLead * (phys.leadPixel - target) - 2 * zetaLead * omegaLead * phys.velLead;
           phys.velLead += fLead * dt;
           phys.leadPixel += phys.velLead * dt;
 
-          // Tail Spring: anchors at origin until head advances, then releases & accelerates to target
+          // 2. Tail Spring: Menjaga 100% keutuhan kelenturan & proporsi melar elastis (Navier-Stokes Anchor & Snap)
           const headTraveled = Math.abs(phys.leadPixel - origin);
           const progress = Math.min(1.0, headTraveled / totalDist);
 
-          // Tail stays anchored at origin until head travels ~35% of the distance, then smoothly pulls forward
+          // Ekor tetap menahan (anchor) di titik awal hingga kepala mencapai ~35% jarak, lalu melesat mengejar
           const releaseThreshold = 0.35;
           const tailRelease = Math.max(0, (progress - releaseThreshold) / (1 - releaseThreshold));
           const tension = Math.pow(tailRelease, 1.6);
 
-          const omegaTrail = 5.0 + 19.0 * tension;
-          const zetaTrail = 0.78 + 0.14 * tension;
+          // Ekor diskalakan persis sebanding dengan rasio kecepatan kepala agar efek melarnya identik
+          const speedRatio = omegaLead / omegaBase;
+          const omegaTrail = (5.2 + 18.0 * tension) * speedRatio;
+          const zetaTrail = 0.78 + 0.12 * tension;
           const fTrail = -omegaTrail * omegaTrail * (phys.trailPixel - target) * tension - 2 * zetaTrail * omegaTrail * phys.velTrail;
           phys.velTrail += fTrail * dt;
           phys.trailPixel += phys.velTrail * dt;
@@ -960,7 +968,7 @@ function App() {
         }
 
         // Trigger hydro-elastic capillary coalescence & haptic bounce right as the arriving tail snaps and coalesces at target tab
-        if (phys.landingBounceArmed && !phys.isDragging && phys.fluidSpan < 9 && Math.abs(phys.leadPixel - phys.targetPixel) < 10) {
+        if (phys.landingBounceArmed && !phys.isDragging && phys.fluidSpan < 10 && Math.abs(phys.leadPixel - phys.targetPixel) < 14) {
           phys.landingBounceArmed = false;
           phys.flightStartDist = 0;
           phys.targetScaleX = 1.0;
@@ -968,7 +976,7 @@ function App() {
           phys.targetGlass = 0.0;
           phys.targetLift = 0.0;
           // Scale landing squish proportionally to arrival tail momentum
-          const impactRatio = Math.max(0.85, Math.min(1.35, Math.abs(phys.velTrail) / 360));
+          const impactRatio = Math.max(0.85, Math.min(1.45, Math.abs(phys.velTrail) / 380));
           phys.velScaleX -= 4.2 * impactRatio;
           phys.velScaleY += 3.8 * impactRatio;
           phys.velLift -= 2.2 * impactRatio;
@@ -1146,6 +1154,8 @@ function App() {
       phys.targetTilt = 0;
       phys.velTilt = 0;
       phys.lastTime = null;
+      phys.lastTapTime = 0;
+      phys.cadenceMultiplier = 1.0;
       setNavIndicatorX(targetPixelX);
       applyNavLensVisuals(targetPixelX, 0, 1, 1, 0, 0, 0, 0, 0);
       return;
@@ -1153,19 +1163,60 @@ function App() {
 
     const currentPos = phys.curPixel ?? targetPixelX;
     const dist = Math.abs(targetPixelX - currentPos);
+    const isNewFlight = phys.flightTargetPixel !== targetPixelX;
     phys.targetPixel = targetPixelX;
-    if (dist > 8) {
+
+    if (dist > 5 && isNewFlight) {
+      const now = performance.now();
+      const dtTap = now - (phys.lastTapTime || (now - 1500));
+      phys.lastTapTime = now;
+
+      // 1. Rumus Penyeimbang Dinamis Dua Arah (Kepelanan 350ms vs Kecepatan Tangan):
+      // Φ(Δt) = 1.0 + 0.90 * exp(-Δt / 320)
+      // - Saat santai/pelan (Δt >= 700ms): Φ -> 1.0 (durasi pas di ~350ms, anggun & tenang)
+      // - Saat cepat (Δt <= 200ms): Φ naik hingga 1.65x (durasi memadat hingga ~160ms, selaras tangan cepat)
+      const cadenceBoost = Math.max(1.0, Math.min(1.85, 1.0 + 0.90 * Math.exp(-dtTap / 320)));
+      phys.cadenceMultiplier = cadenceBoost;
+
+      // 2. Invarian Reversal Meniskus Fluida (Pembalikan Arah Tanpa Terputus):
+      // Jika balon sedang meluncur ke kanan lalu user seketika mengetuk menu di sebelah kiri,
+      // tukar lead & trail edge dengan mulus agar ujung depan yang baru langsung menarik balon ke target baru!
+      const currentDir = Math.sign(targetPixelX - currentPos);
+      if (phys.leadPixel !== null && phys.trailPixel !== null) {
+        const spanDir = Math.sign(phys.leadPixel - phys.trailPixel);
+        if (spanDir !== 0 && currentDir !== 0 && spanDir !== currentDir) {
+          const tempP = phys.leadPixel;
+          phys.leadPixel = phys.trailPixel;
+          phys.trailPixel = tempP;
+          const tempV = phys.velLead;
+          phys.velLead = phys.velTrail;
+          phys.velTrail = tempV;
+        }
+      }
+
+      // 3. Momentum Impuls Awal Adaptif (Lembut saat Pelan, Bertenaga saat Cepat):
+      // Saat santai (cadenceBoost = 1.0), speedExcess = 0 -> tanpa sentakan awal, mulai meluncur tenang dari rest
+      // Saat cepat (cadenceBoost > 1.0), speedExcess > 0 -> menyuntikkan dorongan kinetik instan
+      const speedExcess = cadenceBoost - 1.0;
+      const initialKick = currentDir * (speedExcess * 420 + Math.min(360, dist * 1.1 * speedExcess));
+      if (currentDir * phys.velLead < 0) {
+        phys.velLead = initialKick;
+      } else {
+        phys.velLead = currentDir * Math.max(Math.abs(phys.velLead), Math.abs(initialKick));
+      }
+
       // Viscous liquid stretch: set flight origin to trailing edge or current position
       phys.flightOriginPixel = phys.trailPixel ?? currentPos;
       phys.flightTargetPixel = targetPixelX;
+      phys.flightStartDist = dist;
       if (phys.leadPixel === null) phys.leadPixel = currentPos;
       if (phys.trailPixel === null) phys.trailPixel = currentPos;
+
       // Levitate & morph into crystal-clear 3D convex droplet while gliding across the bar
-      phys.flightStartDist = Math.max(phys.flightStartDist || 0, dist);
       phys.targetGlass = 1.0;
-      phys.velGlass = Math.max(phys.velGlass, 3.6);
+      phys.velGlass = Math.max(phys.velGlass, 3.2 * cadenceBoost);
       phys.targetLift = 1.0;
-      phys.velLift = Math.max(phys.velLift, 4.2);
+      phys.velLift = Math.max(phys.velLift, 3.8 * cadenceBoost);
       phys.landingBounceArmed = true;
     }
 
@@ -1203,7 +1254,7 @@ function App() {
         grabOffsetX = deltaTouch;
       } else {
         // Pressed on a distant menu tab — impart subtle capillary magnetic tug toward the finger
-        phys.velPixel += Math.sign(deltaTouch) * Math.min(115, Math.abs(deltaTouch) * 0.65);
+        phys.velPixel += Math.sign(deltaTouch) * Math.min(80, Math.abs(deltaTouch) * 0.45);
       }
     }
 
@@ -7855,14 +7906,14 @@ function App() {
               </div>
             </div>
 
-            {/* LAYER 2: 3D Apple Liquid Glass Bubble (72x48 Pure Crystal Meniscus Lens & Elastic Bounce) */}
+            {/* LAYER 2: 3D Apple Liquid Glass Bubble (69x48 Pure Crystal Meniscus Lens & Elastic Bounce) */}
             <div
               ref={navBubbleRef}
               className="nav-liquid-glass-bubble"
               style={{
                 opacity: navIndicatorX !== null ? 1 : 0,
                 transform: navIndicatorX !== null
-                  ? `translate3d(${(navIndicatorX - 36).toFixed(2)}px, -50%, 0)`
+                  ? `translate3d(${(navIndicatorX - 34.5).toFixed(2)}px, -50%, 0)`
                   : 'translate3d(12px, -50%, 0)',
               }}
               aria-hidden="true"

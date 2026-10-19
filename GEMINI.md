@@ -716,7 +716,7 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
 1. **Tata Letak Kapsul & Jarak Aman Tombol `+` (Opsi B — Center Plus)**:
    - Bilah navigasi bawah menggunakan kapsul melayang **Light/Warm Glass** (`.nav-glass-pill-shell`, tinggi `62px`, `border-radius: 999px`, `backdrop-filter: blur(22px) saturate(195%)`) yang menyatu dengan tema krem hangat Cassiel (`#F8EFE6`).
    - **2 Menu Kiri** (`.nav-group-left`: `Home`, `Accounts`) dan **2 Menu Kanan** (`.nav-group-right`: `Budget`, `Stats`) masing-masing memiliki lebar `calc(50% - 44px)` untuk menjaga zona aman di sekitar tombol `+` tengah.
-   - **Ukuran Balon Kaca (`64px × 48px`)**: Balon kaca (`.nav-liquid-glass-bubble`) wajib pas di dalam tinggi bar `62px` (tidak boleh menonjol keluar atas/bawah) dan **DILARANG KERAS** menyentuh tombol `+` di tengah saat berada di menu `Accounts` maupun `Budget`.
+   - **Ukuran Balon Kaca (`69px × 48px`)**: Balon kaca aktif (`.nav-liquid-glass-bubble`) berukuran presisi **`69px × 48px`** dengan offset penempatan simetris `translate3d(navIndicatorX - 34.5px, -50%, 0)` dan sorotan kaustik atas `69px 3.5px`. Ukuran ini wajib pas di dalam tinggi bar `62px` dan **DILARANG KERAS** menyentuh tombol `+` tengah saat berada di menu `Accounts` maupun `Budget`.
 2. **Murni Kaca Kristal Monokrom (Strict Ban on Rainbow / Chromatic Rim)**:
    - **DILARANG KERAS** menambahkan cincin warna pelangi (`.glass-bubble-chromatic-rim`, cyan/magenta/orange inset shadows) pada balon kaca.
    - Balon kaca wajib murni berupa **tetesan kaca kristal bening monokrom** yang dikontrol oleh variabel `--glass-active` (`0` saat diam $\rightarrow$ `1` saat ditekan/meluncur), lengkap dengan lengkung pantulan dalam atas-bawah (*meniscus reflection* `.glass-bubble-pole-top` & `.glass-bubble-pole-bottom`) dan kilau tepi putih bersih (`.glass-bubble-specular-shell`).
@@ -737,6 +737,20 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
 6. **Getaran Haptic Fisik Tanpa Suara (Silent Tactile Haptics Only)**:
    - **DILARANG KERAS** memutar suara klik / synthesizer audio (`AudioContext` atau `playPopSound`) saat menekan atau menggeser menu navigasi utama (kecuali tombol `+` tengah yang memang memanggil modal).
    - Feedback taktil pada menu navigasi murni menggunakan getaran fisik hening (`navigator.vibrate(8)` saat tekan, `4ms` saat geser lintas tab, dan *elastic double-pulse* `[10, 26, 5]` saat membal).
+7. **Penyeimbang Dinamis Dua Arah — Kecepatan Tangan vs Kepelanan 350ms (Bi-Directional Cadence Balancer)**:
+   - **Waktu Luncur Santai/Pelan (~350ms)**:
+     - Frekuensi dasar pegas kepala dikunci pada $\omega_{\text{base}} = 15.2\text{ rad/s}$ dengan redaman kritis $\zeta = 0.89$.
+     - Saat pengguna berpindah menu secara santai ($\Delta t \ge 700\text{ms}$), durasi tempuh wajib meluncur anggun dan tenang tepat di kisaran **$\approx 350\text{ms}$**.
+     - **DILARANG KERAS** memasang sentakan kecepatan awal (*initial kick*) pada saat santai (`speedExcess = 0`); balon wajib meluncur mulus dari keadaan diam (*rest*).
+   - **Kurva Adaptif Kecepatan Cepat ($\Phi(\Delta t)$)**:
+     - Rumus: $\Phi(\Delta t) = 1.0 + 0.90 \cdot \exp(-\Delta t / 320)$.
+     - Jika jari mengetuk beruntun cepat ($\Delta t \le 180\text{ms}$), frekuensi $\omega$ otomatis meningkat hingga $1.65\times$ dan waktu tempuh memadat ke $\approx 160\text{ms}$ disertai impuls momentum awal agar pergerakan balon selaras dengan kecepatan tangan.
+   - **Invarian Mutlak: Melar Elastisitas Tetap 100% Utuh**:
+     - **DILARANG KERAS** mengubah atau merusak efek melar (*stretching elasticity*).
+     - Frekuensi pegas ekor wajib diskalakan persis sebanding dengan rasio kepala: $\text{speedRatio} = \omega_{\text{lead}} / \omega_{\text{base}}$, dengan $\omega_{\text{trail}} = (5.2 + 18.0 \cdot \text{tension}) \cdot \text{speedRatio}$.
+     - Ambang penahan ekor pada jarak $35\%$ (`releaseThreshold = 0.35`) dan kurva tegangan $\text{tailRelease}^{1.6}$ wajib dipertahankan agar bentuk regangan, penipisan leher (*necking*), dan kekekalan volume fluida identik pada semua kecepatan.
+   - **Pemisahan Respon Taktil Sentuhan**:
+     - Event `pointerdown` hanya memicu respon taktil lokal (balon sedikit mengembang dan menegang di tempat). Peluncuran transisi (*flight launch*) dieksekusi saat sentuhan ketukan selesai (`handleNavTabClick`), mencegah balon melesat prematur saat pengguna baru menaruh jari di layar.
 
 ### B. Komponen Lain di Cassiel yang Menggunakan Teknik Apple Design
 1. **Apple Direction-Aware Page Slide Transitions (`src/App.jsx` & `src/App.css`)**:
@@ -750,3 +764,40 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
    - Tab filter Pemasukan/Pengeluaran di Home menggunakan indikator pil melayang (`.home-tx-filter-indicator`) yang meluncur secara fisik (`translateX`), dipadukan dengan animasi angka bergulir (*rolling cash counter* + `tabular-nums`) saat total nominal berubah.
 5. **Edge-Swipe Back Gesture & Tactile Spring Buttons**:
    - Seluruh modal mendukung gestur usap tepi kiri bergaya iOS (`touchStartX <= 50px`, `deltaX >= 50px`, `duration < 550ms`), dan tombol aksi di seluruh aplikasi menggunakan respon sentuh elastis Apple (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
+
+---
+
+## 49. Bahasa Pemrograman Mandiri `.lgr` (Liquid Glass Redi) & Acuan Desain Kaca Cair
+
+> [!NOTE]
+> **KODE PEMROGRAMAN SENDIRI: `.lgr` (LIQUID GLASS REDI)**
+> 
+> Di dalam proyek **Cassiel (Finance Tracker)** ini, terdapat direktori dan ekosistem bahasa pemrograman mandiri bernama **Liquid Glass Redi (`.lgr`)** pada folder [`liquid-glass-redi/`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi).
+> 
+> Berkas `.lgr` dan engine kompilatornya menjadi **acuan utama dan standar baku desain optik liquid glass** bersama dengan skill Apple Design (`apple-design`), membawa simulasi fisika sejati ke antarmuka aplikasi.
+> 
+> **Repositori Resmi GitHub**:
+> 👉 [**redilah/.lgr-liquid-glass-redi**](https://github.com/redilah/.lgr-liquid-glass-redi): *New kode for create a liquid glass*
+
+### A. Konsep & Arsitektur Utama `.lgr`
+- **Tujuan**: Bahasa pemrograman deklaratif fisika dan engine render hardware GPU untuk menghasilkan efek *Liquid Crystal Glass* fotorealistik secara real-time (60–120 FPS) mandiri tanpa ketergantungan pada ekosistem eksklusif macOS/Apple Silicon maupun keterbatasan styling CSS/DOM.
+- **Acuan Desain Bersama Apple Design**: Selain panduan Apple iOS Liquid Glass, implementasi visual kaca cair di Cassiel mengacu pada prinsip optik & mekanika fluida yang didefinisikan dalam `.lgr`:
+  1. **Hukum Snellius & Dispersi Spektral Cauchy ($n(\lambda) = A + B/\lambda^2$)**: Memecah refraksi menjadi 3 panjang gelombang ($\lambda_R = 650\text{nm}, \lambda_G = 550\text{nm}, \lambda_B = 450\text{nm}$) untuk kilau prismatik mikro di tepi meniskus.
+  2. **Kekekalan Volume Fluida Navier-Stokes (Bilangan Weber $We$)**: Dinamika renggangan tetesan kaca cair saat meluncur ($S_x$) dan pengempisan sumbu tegak lurus ($S_y$) agar massa konstan.
+  3. **Tegangan Permukaan Marangoni & Koalesensi Tetesan (*Metaballs*)**: Transisi leher cairan (*liquid necking*) elastis antar-tetesan tanpa garis sambungan kaku.
+  4. **Hukum Kontras Bifasik & Riak Air Kapiler LGR**: Mengatasi *Contrast Collapse* pada tema terang/krem (`#F8EFE6` / `#F5EBE1`) dengan pasangan Puncak Putih Berlian (`#FFFFFF`) dan Lembah Refraksi Beer-Lambert (*Warm Champagne-Amber*).
+  5. **Invarian Keseimbangan 1:1 saat Diam**: Mengunci magnifikasi tepat `1.0000x` dan offset `0.0px` ketika berhenti di atas elemen menu untuk mencegah distorsi teks.
+
+### B. Struktur File & Toolchain `.lgr` di Workspace
+- [`liquid-glass-redi/examples/crystal_redi.lgr`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/examples/crystal_redi.lgr): Berkas sumber contoh bahasa LGR (`CrownCrystalRedi` & `DiamondPrismRedi`).
+- [`liquid-glass-redi/compiler/`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/compiler): Rangkaian compiler mandiri (`lexer.js`, `parser.js`, `analyzer.js`, `codegen.js`, `lgrc.js`).
+- [`liquid-glass-redi/physics/`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/physics): Mesin fisika fluida RK4 Orde-4 & Navier-Stokes (`hydroEngine.js`).
+- [`liquid-glass-redi/shaders/`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/shaders): Kernel optik hardware GPU GLSL multi-pass (`opticalKernel.js`).
+- [`liquid-glass-redi/lab/`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/lab): Laboratorium visual interaktif 120 FPS dengan Live `.lgr` compiler.
+- **Dokumentasi Spesifikasi**:
+  - [`LGR_LANGUAGE_SPEC.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_LANGUAGE_SPEC.md): Spesifikasi tata bahasa formal EBNF bahasa `.lgr`.
+  - [`LGR_MASTER_PLAN.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_MASTER_PLAN.md): Roadmap pengembangan rekayasa LGR.
+  - [`LGR_RESEARCH_MASTER.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_RESEARCH_MASTER.md): Bedah komparatif Apple Liquid Glass vs LGR.
+
+
+

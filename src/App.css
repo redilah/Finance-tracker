@@ -1363,7 +1363,7 @@ img[src*="Kost"] {
   background:
     /* Dynamic Condensation Caustic Light Beam centered above the moving bubble */
     radial-gradient(
-      72px 3.5px at var(--bubble-x-pct, 18%) 50%,
+      69px 3.5px at var(--bubble-x-pct, 18%) 50%,
       rgba(255, 255, 255, 1) 0%,
       rgba(255, 253, 248, 0.85) 45%,
       rgba(255, 255, 255, 0) 100%
@@ -1492,7 +1492,7 @@ img[src*="Kost"] {
   position: absolute;
   top: 50%;
   left: 0;
-  width: 72px;
+  width: 69px;
   height: 48px;
   border-radius: 999px;
   pointer-events: none;
