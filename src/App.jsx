@@ -763,7 +763,9 @@ function App() {
     container.style.transformOrigin = '50% 100%';
     container.style.setProperty('--bubble-x-pct', `${bubbleXPct.toFixed(1)}%`);
     if (Math.abs(clampedBarLift) < 0.001) {
-      container.style.transform = 'translate3d(0, 0, 0) scale3d(1, 1, 1)';
+      if (container.style.transform) {
+        container.style.transform = '';
+      }
     } else {
       container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
     }

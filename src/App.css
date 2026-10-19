@@ -949,7 +949,6 @@
     inset 0 -1.5px 2px rgba(255, 255, 255, 0.35);
 
   overflow: hidden;
-  will-change: transform, box-shadow;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1341,16 +1340,7 @@ img[src*="Kost"] {
   height: 62px;
   padding: 0;
   border-radius: 999px;
-  /* Translucent Liquid Glass: netral & menyerap warna lingkungan di belakangnya (~70% transmisi) */
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.40) 0%,
-    rgba(255, 255, 255, 0.18) 48%,
-    rgba(255, 255, 255, 0.28) 100%
-  );
-  /* Blur terkalibrasi: siluet & warna kartu di belakang tetap terlihat menembus kaca */
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
     0 4px 20px -2px rgba(0, 0, 0, 0.06),
@@ -1362,8 +1352,34 @@ img[src*="Kost"] {
   -webkit-user-select: none;
   touch-action: pan-y;
   overflow: visible;
-  will-change: transform;
   transform-origin: 50% 50%;
+}
+
+/* Dedicated Optical Glass Backdrop Surface (Android WebView & iOS Optical Blur Engine) */
+.nav-items-container.nav-glass-pill-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  /* Translucent Liquid Glass: netral & menyerap warna lingkungan di belakangnya (~70% transmisi) */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.40) 0%,
+    rgba(255, 255, 255, 0.18) 48%,
+    rgba(255, 255, 255, 0.28) 100%
+  );
+  /* Blur terkalibrasi: siluet & warna kartu di belakang tetap terlihat menembus kaca */
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
+  .nav-items-container.nav-glass-pill-shell::before {
+    background: rgba(255, 255, 255, 0.88);
+  }
 }
 
 .nav-pill-bar-specular {
@@ -1684,7 +1700,6 @@ img[src*="Kost"] {
 
 /* Tab View Switch Animation - Apple Synchronized Fluid Slide */
 .tab-page-transition {
-  will-change: transform, opacity;
   animation-duration: var(--slide-dur, 0.36s);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: forwards;
@@ -1707,7 +1722,7 @@ img[src*="Kost"] {
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: none;
   }
 }
 
@@ -1718,7 +1733,7 @@ img[src*="Kost"] {
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: none;
   }
 }
 

@@ -1,16 +1,14 @@
 {
-  "versionCode": 47,
-  "versionName": "1.0.47",
-  "version": "1.0.47",
+  "versionCode": 48,
+  "versionName": "1.0.48",
+  "version": "1.0.48",
   "changelog": "New in this update:\n[FEAT] Cassiel Native Hardware Accelerometer Sensor Bridge\n[FIX] Sensor Goyang HP Fisik Android (SensorManager Hardware)\n[PERF] Viscoelastic d'Alembert Inertial Jelly Engine",
-  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.47",
-  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.47",
-  "sarielDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Sariel.apk?v=1.0.47",
-  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.47",
-  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.47",
+  "downloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.48",
+  "debugDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/cassielll1.apk?v=1.0.48",
+  "sarielDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Sariel.apk?v=1.0.48",
+  "udinDownloadUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Udin.apk?v=1.0.48",
+  "apkUrl": "https://raw.githubusercontent.com/redilah/Finance-tracker/main/apk/Cassiel.apk?v=1.0.48",
   "playStoreUrl": "https://play.google.com/store/apps/details?id=com.redilah.financetracker",
-  "sha256": "f1b5e23ba17d3a518da3367a03b909cb9005dead2257a124dd701066ce6f6121",
+  "sha256": "f4b64a0fe2be976485a76069ff3a7ceb0f91c70a752793872d61eb21d0f662e1",
   "minSdkVersion": 24
 }
-
-
