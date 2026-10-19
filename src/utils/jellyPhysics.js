@@ -1,7 +1,24 @@
 /**
- * Viscoelastic Jelly Continuum Physics Engine
- * Multi-layer damped harmonic lattice with Navier-Stokes Poisson volume conservation,
- * subtle responsive micro-motion, and active DeviceMotion / Desktop chassis shake reflection.
+ * Cassiel Inertial Jelly Engine (HP Goyang → UI Kenyal Searah Goyangan)
+ *
+ * Referensi dunia nyata yang diterjemahkan ke kode:
+ *  1. Prinsip d'Alembert (kerangka non-inersia): layar HP adalah kerangka yang dipercepat,
+ *     sehingga setiap elemen merasakan gaya semu  F = −m · a_hp.
+ *     HP disentak ke ATAS → konten tertinggal ke BAWAH → memantul naik-turun (kenyal).
+ *  2. Android SpringForce (androidx.dynamicanimation): DAMPING_RATIO_MEDIUM_BOUNCY = 0.5,
+ *     STIFFNESS_LOW = 200 (ω ≈ 14 rad/s) → karakter jelly natural.
+ *  3. Glenn Fiedler "Fix Your Timestep!": integrasi langkah tetap 240 Hz + akumulator
+ *     → gerak identik & mulus di 60/90/120 Hz, tanpa patah-patah.
+ *  4. Disney Squash & Stretch: luas dipertahankan (sx · sy = 1) via skala eksponensial.
+ *
+ * Hukum Inersia Jelly Cassiel (rumus gabungan):
+ *   ẍᵢ = −ωᵢ² xᵢ − 2ζᵢωᵢ ẋᵢ − mᵢ · a_layar(t − τᵢ)
+ *   x_tampil = X_max · tanh(xᵢ / X_max)              (saturasi lunak, tidak ada clamp keras)
+ *   σ = κ · tanh(y / Y₀),  sy = e^(−σ),  sx = e^(+σ)  (kekekalan luas)
+ *
+ * Performa: transform ditulis langsung lewat properti CSS individual `translate` / `scale` /
+ * `rotate` per elemen (tidak menimpa `transform` yang sudah ada & tidak memicu recalc
+ * style seluruh dokumen). Loop RAF mati total saat diam.
  */
 
 export function isDevOrLocalhost() {
@@ -17,319 +34,356 @@ export function isDevOrLocalhost() {
   );
 }
 
-// Subscribed listeners for coupled UI components (e.g. Nav Liquid Glass Bubble in App.jsx)
+// ---------------------------------------------------------------------------
+// Event bus untuk komponen terkopel (Balon Kaca Menu Bar di App.jsx)
+// ---------------------------------------------------------------------------
 const shakeListeners = new Set();
 
 export function registerJellyShakeListener(callback) {
-  if (typeof callback === 'function') {
-    shakeListeners.add(callback);
-    return () => shakeListeners.delete(callback);
-  }
-  return () => {};
+  if (typeof callback !== 'function') return () => {};
+  shakeListeners.add(callback);
+  return () => shakeListeners.delete(callback);
 }
 
-// Viscoelastic lattice parameters:
-// - Subtle micro-displacement (maxDispX / maxDispY clamped tight: 2.8px - 5.0px)
-// - Underdamped silky ratios (zeta: 0.50 - 0.58) for smooth, elastic jelly rebound
-// - High natural frequencies (omega: 16.5 - 20.0 rad/s) for responsive instant settling (~350ms)
-const LAYER_CONFIGS = {
-  top:  { omega: 20.0, zeta: 0.58, mass: 1.00, delayMs: 0,   maxDispX: 2.8, maxDispY: 2.2 },
-  hero: { omega: 16.5, zeta: 0.52, mass: 1.35, delayMs: 18,  maxDispX: 4.5, maxDispY: 3.5 },
-  mid:  { omega: 17.5, zeta: 0.55, mass: 1.10, delayMs: 35,  maxDispX: 3.5, maxDispY: 2.6 },
-  body: { omega: 16.0, zeta: 0.56, mass: 1.25, delayMs: 50,  maxDispX: 3.2, maxDispY: 2.5 },
-  dock: { omega: 18.0, zeta: 0.50, mass: 0.95, delayMs: 60,  maxDispX: 5.0, maxDispY: 3.8 }
+// ---------------------------------------------------------------------------
+// Konfigurasi lapisan (ω rad/s, ζ redaman, m massa inersia, τ jeda gelombang ms)
+// ---------------------------------------------------------------------------
+const LAYERS = [
+  { key: 'top',  sel: '.top-bar',                                                         omega: 17.0, zeta: 0.52, mass: 0.70, delayMs: 0,  maxX: 6,  maxY: 7 },
+  { key: 'hero', sel: '.balance-section, .floating-hero-card',                            omega: 14.0, zeta: 0.46, mass: 1.00, delayMs: 14, maxX: 9,  maxY: 11 },
+  { key: 'mid',  sel: '.home-budget-hero, .home-insight-card, .income-expense-cards, .budget-overview-card', omega: 15.0, zeta: 0.48, mass: 0.90, delayMs: 26, maxX: 8, maxY: 9 },
+  { key: 'body', sel: '.transactions-container, .transactions-container-animated, .account-section, .budget-list-container', omega: 13.5, zeta: 0.50, mass: 0.80, delayMs: 38, maxX: 7, maxY: 8 },
+  { key: 'dock', sel: '.bottom-nav .nav-items-container',                                  omega: 15.5, zeta: 0.44, mass: 1.10, delayMs: 50, maxX: 9,  maxY: 10 },
+];
+
+const H = 1 / 240;                 // langkah fisika tetap (detik)
+const HISTORY = 64;                // buffer riwayat percepatan (~266 ms)
+const DEVICE_PX_PER_MS2 = 110;     // skala m/s² → px/s² untuk sensor nyata
+const DEVICE_DEADZONE = 0.6;       // m/s² (tremor tangan & noise sensor)
+const DEVICE_WAKE = 1.8;           // m/s² ambang aktivasi (hanya aktif saat digoyang)
+
+const layerState = LAYERS.map(() => ({ x: 0, y: 0, vx: 0, vy: 0, els: [] }));
+const histX = new Float32Array(HISTORY);
+const histY = new Float32Array(HISTORY);
+let histHead = 0;
+
+// Simulasi HP di desktop (tangan memegang HP)
+const phone = {
+  x: 0, y: 0, vx: 0, vy: 0,
+  tx: 0, ty: 0,          // target posisi (tangan)
+  ax: 0, ay: 0,          // percepatan hasil (px/s²)
+  omega: 26, zeta: 0.72,
+  holding: false,
+  dragging: false,
+  holdT: 0,
+  flickX: 0, flickY: 0, flickLeft: 0,
 };
 
-const layerStates = {
-  top:  { x: 0, vx: 0, y: 0, vy: 0 },
-  hero: { x: 0, vx: 0, y: 0, vy: 0 },
-  mid:  { x: 0, vx: 0, y: 0, vy: 0 },
-  body: { x: 0, vx: 0, y: 0, vy: 0 },
-  dock: { x: 0, vx: 0, y: 0, vy: 0 }
-};
+// Input sensor nyata (px/s², koordinat layar: x kanan, y bawah)
+const device = { ax: 0, ay: 0, lastSample: 0 };
 
-// Desktop chassis shake (reflecting physical phone held in hand on localhost)
-const chassisState = {
-  x: 0,
-  vx: 0,
-  rot: 0,
-  vRot: 0,
-  omega: 22.0,
-  zeta: 0.48,
-  maxDispX: 7.5,
-  maxRot: 1.4
-};
+let rafId = null;
+let lastFrame = 0;
+let accumulator = 0;
+let rootEl = null;
+let lastElRefresh = 0;
+let lastEmit = 0;
 
-let animFrameId = null;
-let lastTime = null;
-let isAnimating = false;
-let pendingTimeouts = [];
+const softSat = (v, max) => max * Math.tanh(v / max);
 
-function applyTransforms() {
-  const root = document.documentElement;
-  if (!root) return;
-
-  const rootStyle = root.style;
-
-  // 1. Layer Deformations: subtle responsive micro-motion + Poisson volume conservation (melar kenyal)
-  Object.keys(LAYER_CONFIGS).forEach((key) => {
-    const s = layerStates[key];
-    const cfg = LAYER_CONFIGS[key];
-
-    // Tight micro-displacement clamp
-    const cx = Math.max(-cfg.maxDispX, Math.min(cfg.maxDispX, s.x));
-    const cy = Math.max(-cfg.maxDispY, Math.min(cfg.maxDispY, s.y));
-
-    // Elastic strain tensors (Poisson squish & stretch: melar horizontal, memipih vertikal)
-    const strainX = Math.tanh(cx / 26) * 0.042;
-    const strainY = Math.tanh(cy / 22) * 0.036;
-
-    // Volume-conserving scales (nu = 0.48)
-    const scaleX = Math.max(0.96, Math.min(1.052, 1.0 + Math.abs(strainX) - 0.48 * strainY));
-    const scaleY = Math.max(0.96, Math.min(1.045, 1.0 + strainY - 0.48 * Math.abs(strainX)));
-
-    // Hydrodynamic shear & gentle floating tilt
-    const skewDeg = -Math.tanh(s.vx / 280) * 1.35;
-    const rotDeg = Math.tanh(cx / 30) * 0.75;
-
-    rootStyle.setProperty(`--jelly-${key}-x`, `${cx.toFixed(2)}px`);
-    rootStyle.setProperty(`--jelly-${key}-y`, `${cy.toFixed(2)}px`);
-    rootStyle.setProperty(`--jelly-${key}-sx`, scaleX.toFixed(4));
-    rootStyle.setProperty(`--jelly-${key}-sy`, scaleY.toFixed(4));
-    rootStyle.setProperty(`--jelly-${key}-rot`, `${rotDeg.toFixed(2)}deg`);
-    rootStyle.setProperty(`--jelly-${key}-skew`, `${skewDeg.toFixed(2)}deg`);
-
-    // Special dock lift for menu bar container
-    if (key === 'dock') {
-      const dockLift = -cy * 0.65;
-      rootStyle.setProperty('--jelly-dock-lift', `${dockLift.toFixed(2)}px`);
-    }
+function refreshElements() {
+  if (typeof document === 'undefined') return;
+  LAYERS.forEach((cfg, i) => {
+    layerState[i].els = Array.from(document.querySelectorAll(cfg.sel));
   });
-
-  // 2. Chassis Shake (for desktop preview reflection of phone being shaken by hand)
-  const chassisX = Math.max(-chassisState.maxDispX, Math.min(chassisState.maxDispX, chassisState.x));
-  const chassisRot = Math.max(-chassisState.maxRot, Math.min(chassisState.maxRot, chassisState.rot));
-
-  rootStyle.setProperty('--phone-shake-x', `${chassisX.toFixed(2)}px`);
-  rootStyle.setProperty('--phone-shake-rot', `${chassisRot.toFixed(2)}deg`);
+  rootEl = document.getElementById('root');
 }
 
-function resetTransforms() {
-  const root = document.documentElement;
-  if (!root) return;
-  const rootStyle = root.style;
-
-  Object.keys(LAYER_CONFIGS).forEach((key) => {
-    layerStates[key].x = 0;
-    layerStates[key].vx = 0;
-    layerStates[key].y = 0;
-    layerStates[key].vy = 0;
-
-    rootStyle.setProperty(`--jelly-${key}-x`, '0px');
-    rootStyle.setProperty(`--jelly-${key}-y`, '0px');
-    rootStyle.setProperty(`--jelly-${key}-sx`, '1');
-    rootStyle.setProperty(`--jelly-${key}-sy`, '1');
-    rootStyle.setProperty(`--jelly-${key}-rot`, '0deg');
-    rootStyle.setProperty(`--jelly-${key}-skew`, '0deg');
-    if (key === 'dock') {
-      rootStyle.setProperty('--jelly-dock-lift', '0px');
-    }
-  });
-
-  chassisState.x = 0;
-  chassisState.vx = 0;
-  chassisState.rot = 0;
-  chassisState.vRot = 0;
-  rootStyle.setProperty('--phone-shake-x', '0px');
-  rootStyle.setProperty('--phone-shake-rot', '0deg');
-
-  if (typeof document !== 'undefined' && document.body) {
-    document.body.classList.remove('jelly-animating');
-  }
-}
-
-function physicsStep(now) {
-  const rawDt = Math.min((now - (lastTime || now)) / 1000, 0.030) || 0.016;
-  lastTime = now;
-
-  // Sub-stepped Symplectic Verlet integration (2 sub-steps)
-  const subSteps = 2;
-  const dt = rawDt / subSteps;
-
-  let totalEnergy = 0;
-
-  for (let step = 0; step < subSteps; step++) {
-    // 1. Update layers
-    Object.keys(LAYER_CONFIGS).forEach((key) => {
-      const cfg = LAYER_CONFIGS[key];
-      const s = layerStates[key];
-
-      const k = cfg.omega * cfg.omega;
-      const c = 2 * cfg.zeta * cfg.omega;
-
-      const fx = -k * s.x - c * s.vx;
-      const fy = -k * s.y - c * s.vy;
-
-      s.vx += fx * dt;
-      s.x += s.vx * dt;
-
-      s.vy += fy * dt;
-      s.y += s.vy * dt;
-
-      if (step === subSteps - 1) {
-        totalEnergy += (s.x * s.x + s.y * s.y) + 0.002 * (s.vx * s.vx + s.vy * s.vy);
-      }
+function clearStyles() {
+  layerState.forEach((s) => {
+    s.els.forEach((el) => {
+      el.style.translate = '';
+      el.style.scale = '';
+      el.style.rotate = '';
     });
-
-    // 2. Update chassis phone shake
-    const kChassis = chassisState.omega * chassisState.omega;
-    const cChassis = 2 * chassisState.zeta * chassisState.omega;
-
-    const fChassisX = -kChassis * chassisState.x - cChassis * chassisState.vx;
-    chassisState.vx += fChassisX * dt;
-    chassisState.x += chassisState.vx * dt;
-
-    const fChassisRot = -kChassis * chassisState.rot - cChassis * chassisState.vRot;
-    chassisState.vRot += fChassisRot * dt;
-    chassisState.rot += chassisState.vRot * dt;
-
-    if (step === subSteps - 1) {
-      totalEnergy += (chassisState.x * chassisState.x) + 0.002 * (chassisState.vx * chassisState.vx);
-    }
-  }
-
-  applyTransforms();
-
-  // Smooth settling threshold: only active when shaking, drops to 0 when settled
-  if (totalEnergy > 0.008) {
-    animFrameId = requestAnimationFrame(physicsStep);
-  } else {
-    isAnimating = false;
-    animFrameId = null;
-    lastTime = null;
-    resetTransforms();
+  });
+  if (rootEl) {
+    rootEl.style.translate = '';
+    rootEl.style.rotate = '';
   }
 }
 
-function ensureAnimationRunning() {
-  if (!isAnimating) {
-    isAnimating = true;
-    lastTime = performance.now();
-    if (typeof document !== 'undefined' && document.body) {
-      document.body.classList.add('jelly-animating');
+function isDesktopFrame() {
+  return typeof window !== 'undefined' && window.innerWidth > 480;
+}
+
+function stepPhysics() {
+  // 1. HP (tangan) — pegas kritis menuju target tangan
+  if (phone.holding && !phone.dragging) {
+    // Goyang naik-turun ritmis ±9px @ 4.2 Hz (frekuensi goyangan tangan manusia)
+    phone.holdT += H;
+    phone.ty = -9 * Math.sin(2 * Math.PI * 4.2 * phone.holdT);
+    phone.tx = 0;
+  } else if (phone.flickLeft > 0) {
+    phone.tx = phone.flickX;
+    phone.ty = phone.flickY;
+    phone.flickLeft -= H;
+    if (phone.flickLeft <= 0 && !phone.dragging) {
+      phone.tx = 0;
+      phone.ty = 0;
     }
-    animFrameId = requestAnimationFrame(physicsStep);
+  }
+  const kp = phone.omega * phone.omega;
+  const cp = 2 * phone.zeta * phone.omega;
+  phone.ax = -kp * (phone.x - phone.tx) - cp * phone.vx;
+  phone.ay = -kp * (phone.y - phone.ty) - cp * phone.vy;
+  phone.vx += phone.ax * H;
+  phone.vy += phone.ay * H;
+  phone.x += phone.vx * H;
+  phone.y += phone.vy * H;
+
+  // 2. Percepatan total kerangka layar
+  const aX = phone.ax + device.ax;
+  const aY = phone.ay + device.ay;
+  histX[histHead] = aX;
+  histY[histHead] = aY;
+
+  // 3. Lapisan jelly: ẍ = −ω²x − 2ζωẋ − m·a(t−τ)
+  for (let i = 0; i < LAYERS.length; i++) {
+    const cfg = LAYERS[i];
+    const s = layerState[i];
+    const lag = Math.min(HISTORY - 1, Math.round(cfg.delayMs / 1000 / H));
+    const idx = (histHead - lag + HISTORY) % HISTORY;
+    const k = cfg.omega * cfg.omega;
+    const c = 2 * cfg.zeta * cfg.omega;
+    const accX = -k * s.x - c * s.vx - cfg.mass * histX[idx];
+    const accY = -k * s.y - c * s.vy - cfg.mass * histY[idx];
+    s.vx += accX * H;   // semi-implicit Euler (symplectic)
+    s.vy += accY * H;
+    s.x += s.vx * H;
+    s.y += s.vy * H;
+  }
+
+  histHead = (histHead + 1) % HISTORY;
+  return Math.abs(aX) + Math.abs(aY);
+}
+
+function render() {
+  for (let i = 0; i < LAYERS.length; i++) {
+    const cfg = LAYERS[i];
+    const s = layerState[i];
+    if (!s.els.length) continue;
+
+    const dx = softSat(s.x, cfg.maxX);
+    const dy = softSat(s.y, cfg.maxY);
+
+    // Squash & stretch searah gerak vertikal (luas tetap)
+    const sigma = 0.045 * Math.tanh(s.y / 8) - 0.015 * Math.tanh(Math.abs(s.x) / 10);
+    const sy = Math.exp(-sigma);
+    const sx = Math.exp(sigma);
+    // Condong lembut searah kecepatan horizontal
+    const rot = 0.9 * Math.tanh(s.vx / 500);
+
+    const t = `${dx.toFixed(2)}px ${dy.toFixed(2)}px`;
+    const sc = `${sx.toFixed(4)} ${sy.toFixed(4)}`;
+    const r = `${rot.toFixed(3)}deg`;
+    for (const el of s.els) {
+      el.style.translate = t;
+      el.style.scale = sc;
+      el.style.rotate = r;
+    }
+  }
+
+  if (rootEl && isDesktopFrame() && (phone.holding || Math.abs(phone.x) + Math.abs(phone.y) > 0.05)) {
+    rootEl.style.translate = `${phone.x.toFixed(2)}px ${phone.y.toFixed(2)}px`;
+    rootEl.style.rotate = `${(phone.x * 0.06).toFixed(3)}deg`;
+  } else if (rootEl && rootEl.style.translate) {
+    rootEl.style.translate = '';
+    rootEl.style.rotate = '';
   }
 }
 
-export function triggerJellyShake(intensity = 1.0, angleDeg = null) {
-  pendingTimeouts.forEach((t) => clearTimeout(t));
-  pendingTimeouts = [];
+function emitToListeners(aX, aY) {
+  const now = performance.now();
+  const mag = Math.hypot(aX, aY);
+  if (mag < 900 || now - lastEmit < 140 || !shakeListeners.size) return;
+  lastEmit = now;
+  const intensity = Math.min(1.6, mag / 2500);
+  const ix = (-aX / mag) * 160 * intensity; // arah inersia konten
+  const iy = (-aY / mag) * 160 * intensity;
+  const angleDeg = (Math.atan2(iy, ix) * 180) / Math.PI;
+  shakeListeners.forEach((fn) => { try { fn(intensity, angleDeg, ix, iy); } catch {} });
+}
 
-  const theta = angleDeg !== null
-    ? (angleDeg * Math.PI) / 180
-    : (Math.random() > 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.45; // Natural left-right hand flick
+function totalEnergy() {
+  let e = phone.vx * phone.vx + phone.vy * phone.vy + 400 * (phone.x * phone.x + phone.y * phone.y);
+  for (const s of layerState) {
+    e += s.vx * s.vx + s.vy * s.vy + 200 * (s.x * s.x + s.y * s.y);
+  }
+  return e;
+}
 
-  // Controlled, smooth velocity impulse magnitude (subtle, non-jarring)
-  const baseAmp = 160 * Math.max(0.4, Math.min(1.8, intensity));
-  const ix = Math.cos(theta) * baseAmp;
-  const iy = Math.sin(theta) * baseAmp * 0.65; // Horizontal shake dominant
+function frame(now) {
+  const elapsed = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  accumulator += elapsed;
 
-  // 1. Excite desktop chassis shake (simulating hand-held phone shake)
-  chassisState.vx += ix * 0.85;
-  chassisState.vRot += (ix / 160) * 18.0;
+  if (now - lastElRefresh > 400) {
+    refreshElements();
+    lastElRefresh = now;
+  }
 
-  // 2. Propagate smooth gelatinous wave across UI layers with phase delays
-  Object.keys(LAYER_CONFIGS).forEach((key) => {
-    const cfg = LAYER_CONFIGS[key];
-    const layerIx = (ix / cfg.mass) * (0.9 + Math.random() * 0.2);
-    const layerIy = (iy / cfg.mass) * (0.9 + Math.random() * 0.2);
+  // Sensor diam > 120ms → anggap percepatan nol
+  if (now - device.lastSample > 120) {
+    device.ax *= 0.5;
+    device.ay *= 0.5;
+  }
 
-    if (cfg.delayMs === 0) {
-      layerStates[key].vx += layerIx;
-      layerStates[key].vy += layerIy;
-    } else {
-      const t = setTimeout(() => {
-        layerStates[key].vx += layerIx;
-        layerStates[key].vy += layerIy;
-        ensureAnimationRunning();
-      }, cfg.delayMs);
-      pendingTimeouts.push(t);
-    }
-  });
+  let peak = 0;
+  while (accumulator >= H) {
+    peak = Math.max(peak, stepPhysics());
+    accumulator -= H;
+  }
+  emitToListeners(phone.ax + device.ax, phone.ay + device.ay);
+  render();
 
-  // 3. Notify coupled subscribers (such as Nav Liquid Glass Bubble in App.jsx)
-  shakeListeners.forEach((fn) => {
-    try {
-      fn(intensity, angleDeg, ix, iy);
-    } catch {}
-  });
+  const deviceActive = Math.abs(device.ax) + Math.abs(device.ay) > 1;
+  if (!phone.holding && phone.flickLeft <= 0 && !deviceActive && totalEnergy() < 2.0) {
+    stopLoop();
+    return;
+  }
+  rafId = requestAnimationFrame(frame);
+}
 
-  ensureAnimationRunning();
+function startLoop() {
+  if (rafId) return;
+  refreshElements();
+  lastElRefresh = performance.now();
+  lastFrame = performance.now();
+  accumulator = 0;
+  rafId = requestAnimationFrame(frame);
+}
 
-  // Tactile haptic vibration for real mobile devices
+function stopLoop() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  phone.x = phone.y = phone.vx = phone.vy = phone.tx = phone.ty = 0;
+  phone.flickLeft = 0;
+  layerState.forEach((s) => { s.x = s.y = s.vx = s.vy = 0; });
+  histX.fill(0);
+  histY.fill(0);
+  clearStyles();
+}
+
+// ---------------------------------------------------------------------------
+// API simulasi HP (tombol segitiga localhost)
+// ---------------------------------------------------------------------------
+
+/** Sentakan HP searah sudut (default 270° = ke atas, sesuai ikon ▲). */
+export function triggerJellyShake(intensity = 1.0, angleDeg = -90) {
+  const th = (angleDeg * Math.PI) / 180;
+  const amp = 14 * Math.max(0.3, Math.min(1.8, intensity));
+  // Tangan menggerakkan HP secara kontinu: ke arah sentakan selama 90ms lalu kembali.
+  // Percepatan riil awal searah sentakan → konten tertinggal berlawanan arah dulu (fisis).
+  phone.flickX = Math.cos(th) * amp;
+  phone.flickY = Math.sin(th) * amp;
+  phone.flickLeft = 0.09;
+  startLoop();
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-    try {
-      navigator.vibrate([8, 16, 6]);
-    } catch {}
+    try { navigator.vibrate(8); } catch {}
   }
 }
 
-let isDeviceMotionBound = false;
-let lastAcc = null;
-let lastShakeTimestamp = 0;
+/** Mulai menggenggam HP: goyang naik-turun ritmis sampai dilepas / diseret. */
+export function beginPhoneHold() {
+  phone.holding = true;
+  phone.dragging = false;
+  phone.holdT = 0;
+  startLoop();
+}
+
+/** Seret HP mengikuti tangan (dx, dy dalam px dari titik tekan). */
+export function dragPhone(dx, dy) {
+  phone.dragging = true;
+  phone.tx = 40 * Math.tanh((dx * 0.4) / 40);
+  phone.ty = 40 * Math.tanh((dy * 0.4) / 40);
+  startLoop();
+}
+
+/** Lepas HP: pegas tangan kembali ke tengah, konten memantul kenyal. */
+export function endPhoneHold() {
+  phone.holding = false;
+  phone.dragging = false;
+  phone.tx = 0;
+  phone.ty = 0;
+}
+
+// ---------------------------------------------------------------------------
+// Sensor gerak HP nyata
+// ---------------------------------------------------------------------------
+let motionBound = false;
+let gravity = null;
+let onMotionRef = null;
 
 export function initDeviceMotionListener() {
-  if (typeof window === 'undefined' || isDeviceMotionBound) return;
+  if (typeof window === 'undefined' || motionBound) return;
 
-  const onDeviceMotion = (e) => {
-    const acc = e.accelerationIncludingGravity || e.acceleration;
-    if (!acc) return;
-
-    const now = performance.now();
-    if (now - lastShakeTimestamp < 160) return; // Debounce sensor flutter
-
-    const currentX = acc.x || 0;
-    const currentY = acc.y || 0;
-    const currentZ = acc.z || 0;
-
-    if (!lastAcc) {
-      lastAcc = { x: currentX, y: currentY, z: currentZ };
+  onMotionRef = (e) => {
+    let ax;
+    let ay;
+    if (e.acceleration && e.acceleration.x !== null && e.acceleration.x !== undefined) {
+      ax = e.acceleration.x || 0;
+      ay = e.acceleration.y || 0;
+    } else if (e.accelerationIncludingGravity) {
+      // Filter lolos-tinggi: pisahkan gravitasi dengan low-pass α = 0.9
+      const g = e.accelerationIncludingGravity;
+      if (!gravity) gravity = { x: g.x || 0, y: g.y || 0 };
+      gravity.x = 0.9 * gravity.x + 0.1 * (g.x || 0);
+      gravity.y = 0.9 * gravity.y + 0.1 * (g.y || 0);
+      ax = (g.x || 0) - gravity.x;
+      ay = (g.y || 0) - gravity.y;
+    } else {
       return;
     }
 
-    // High-pass jerk filter to eliminate constant 1G gravity
-    const dx = currentX - lastAcc.x;
-    const dy = currentY - lastAcc.y;
-    const dz = currentZ - lastAcc.z;
-    lastAcc = { x: currentX, y: currentY, z: currentZ };
+    // Koordinat perangkat (y ke atas) → koordinat layar (y ke bawah), koreksi orientasi
+    const angle = ((window.screen?.orientation?.angle ?? window.orientation ?? 0) * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    let sx = ax * cos + ay * sin;
+    let sy = -(-ax * sin + ay * cos);
 
-    const jerk = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-    // Natural deliberate hand shake threshold
-    if (jerk > 5.5) {
-      lastShakeTimestamp = now;
-      const normalizedIntensity = Math.min(1.8, Math.max(0.6, jerk / 9.0));
-      const angle = Math.atan2(-dy, dx);
-      triggerJellyShake(normalizedIntensity, (angle * 180) / Math.PI);
+    // Deadzone lunak
+    const mag = Math.hypot(sx, sy);
+    if (mag < DEVICE_DEADZONE) {
+      sx = 0;
+      sy = 0;
+    } else {
+      const f = (mag - DEVICE_DEADZONE) / mag;
+      sx *= f;
+      sy *= f;
     }
+
+    // Low-pass ringan untuk menghaluskan sampel sensor 60 Hz
+    device.ax += (sx * DEVICE_PX_PER_MS2 - device.ax) * 0.55;
+    device.ay += (sy * DEVICE_PX_PER_MS2 - device.ay) * 0.55;
+    device.lastSample = performance.now();
+
+    if (!rafId && mag > DEVICE_WAKE) startLoop();
   };
 
   try {
-    window.addEventListener('devicemotion', onDeviceMotion, { passive: true });
-    isDeviceMotionBound = true;
+    window.addEventListener('devicemotion', onMotionRef, { passive: true });
+    motionBound = true;
   } catch {}
 }
 
 export function cleanupJellyPhysics() {
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-    animFrameId = null;
+  if (motionBound && onMotionRef) {
+    window.removeEventListener('devicemotion', onMotionRef);
   }
-  pendingTimeouts.forEach((t) => clearTimeout(t));
-  pendingTimeouts = [];
-  isAnimating = false;
-  lastTime = null;
-  shakeListeners.clear();
-  resetTransforms();
+  motionBound = false;
+  onMotionRef = null;
+  gravity = null;
+  stopLoop();
 }

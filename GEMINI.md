@@ -804,41 +804,31 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
 
 ---
 
-## 50. Viscoelastic Jelly Continuum Physics & Shake Detection (HP Goyang Membal Kenyal Smooth)
+## 50. Cassiel Inertial Jelly Engine (HP Goyang → UI Kenyal Searah Goyangan)
 
 > [!NOTE]
-> **SISTEM FISIKA JELLY KENYAL SMOOTH (GOYANG HP MEMBAL & MELAR)**
-> 
-> Seluruh komponen antarmuka (terutama Menu Bar dan Balon Kaca) merespons goyangan fisik perangkat dengan gerakan mikro responsif, membal kenyal, dan melar elastis menggunakan hukum deformasi viskoelastik Navier-Stokes dan kekekalan volume Poisson. Sistem hanya aktif saat perangkat digoyang, dan langsung kembali setimbang mutlak saat diam.
+> UI bergerak kenyal **searah sumbu goyangan HP** (HP naik-turun → UI naik-turun, kiri-kanan → kiri-kanan) dan **hanya aktif saat HP digoyang**. Engine: [jellyPhysics.js](file:///c:/Users/GC/Desktop/finance%20tracker/src/utils/jellyPhysics.js).
 
-### A. Kisi Gelombang Viskoelastik & Deformasi Melar (*Smooth Strain Lattice*)
-1. **Perambatan Gelombang & Mikro-Gerakan Responsif (*Subtle Micro-Motion*)**:
-   - Elemen antarmuka bergoyang sedikit secara terkontrol (mikro 2.8px - 5.0px max, tidak terpental liar) dengan redaman kenyal lembut ($\zeta \approx 0.50 - 0.58$) dan frekuensi alami ($\omega \approx 16.5 - 20.0\text{ rad/s}$):
-     - **Top Bar**: $\omega = 20.0\text{ rad/s}, \zeta = 0.58$, jeda `0ms`, batas displacement $\pm 2.8\text{px}$.
-     - **Hero Balance Card**: $\omega = 16.5\text{ rad/s}, \zeta = 0.52$, jeda `18ms`, batas displacement $\pm 4.5\text{px}$, inersia rotasi $\pm 0.75^\circ$.
-     - **Middle Cards (Insight/Budget)**: $\omega = 17.5\text{ rad/s}, \zeta = 0.55$, jeda `35ms`, batas $\pm 3.5\text{px}$.
-     - **Daftar Transaksi**: $\omega = 16.0\text{ rad/s}, \zeta = 0.56$, jeda `50ms`, batas $\pm 3.2\text{px}$.
-     - **Menu Bar Dock (Kapsul Kaca)**: $\omega = 18.0\text{ rad/s}, \zeta = 0.50$, jeda `60ms`, batas $\pm 5.0\text{px}$, elevasi lift $\pm 3.5\text{px}$.
-2. **Kekekalan Volume Poisson & Deformasi Melar (*Liquid Glass Stretch & Squish*)**:
-   - Sesuai prinsip balon kaca yang melar, regangan horizontal menghasilkan pemipihan vertikal berbasis rasio Poisson ($\nu \approx 0.48$):
-     - Saat disentak horizontal: kapsul menu bar melar melebar ($S_x \approx 1.00 \dots 1.05$) dan memipih vertikal ($S_y \approx 0.96 \dots 1.00$).
-     - Disertai kemiringan fluida halus (*hydrodynamic shear* $\pm 1.35^\circ$) tanpa rotasi kaku.
-3. **Kopling Dinamis Balon Kaca Menu Bar (`navPhysicsRef`)**:
-   - Balon kaca di tab aktif (`nav-liquid-glass-bubble` 69x48) terhubung langsung melalui `registerJellyShakeListener`:
-     - Impuls akselerasi goyangan tangan mengalir langsung ke pegas 2D hydro-elastis balon kaca (`velScaleX`, `velScaleY`, `velTilt`, `velBarSink`, `velLift`).
-     - Balon kaca melar dan membal kenyal secara real-time pada 120 FPS dengan refraksi optik Snellius aktif.
-4. **Efisiensi Daya 120 FPS & Auto-Sleep Mutlak**:
-   - Menggunakan integrasi numerik Symplectic Verlet 2 sub-langkah.
-   - Loop `requestAnimationFrame` otomatis berhenti total dan mengembalikan seluruh CSS variable ke titik netral (`0px`, skala `1.000`) saat energi kinetik mereda ($E < 0.008$), menjamin 0% beban CPU/baterai saat HP diam.
+### A. Referensi Dunia Nyata yang Diterjemahkan
+1. **Prinsip d'Alembert (kerangka non-inersia)**: layar = kerangka dipercepat, tiap elemen merasakan gaya semu $F = -m\,a_{hp}$. HP disentak ke atas → konten tertinggal ke bawah dulu → memantul naik-turun.
+2. **Android SpringForce** (androidx.dynamicanimation): DAMPING_RATIO_MEDIUM_BOUNCY = 0.5, STIFFNESS_LOW = 200 ($\omega \approx 14$ rad/s) sebagai basis karakter jelly.
+3. **Glenn Fiedler "Fix Your Timestep!"**: integrasi langkah tetap 240 Hz + akumulator (semi-implicit Euler) → identik di 60/90/120 Hz.
+4. **Disney Squash & Stretch**: kekekalan luas $s_x s_y = 1$.
 
-### B. Sensor Goyang Perangkat & Refleksi Goyangan di Localhost
-1. **Deteksi Goyangan HP Fisik (`devicemotion`)**:
-   - Filter lolos-tinggi (*high-pass jerk filter*) pada sensor gerak mendeteksi sentakan tangan disengaja ($\text{jerk} > 5.5\text{ m/s}^2$).
-   - Menghasilkan getaran haptik responsif (`navigator.vibrate([8, 16, 6])`).
-2. **Refleksi Goyangan HP di Desktop Localhost (`#root` Chassis Shake & Tombol Segitiga)**:
-   - Di desktop preview, bingkai HP `#root` bergoyang secara responsif ($\pm 7.5\text{px}, \pm 1.4^\circ$) saat tombol segitiga ditekan, merefleksikan HP yang sedang digoyang tangan manusia di dunia nyata.
-   - Tombol segitiga emas melengkung (`▲`) di samping kanan frame (`left: calc(50% + 228px)`) mendukung sentakan klik instan, getaran kontinu saat ditekan-tahan, dan pantulan balik saat dilepas.
+### B. Hukum Inersia Jelly Cassiel
+$$\ddot{x}_i = -\omega_i^2 x_i - 2\zeta_i\omega_i\dot{x}_i - m_i\,a_{layar}(t-\tau_i)$$
+$$x_{tampil} = X_{max}\tanh(x_i/X_{max}),\quad \sigma = 0.045\tanh(y/8),\quad s_y = e^{-\sigma},\ s_x = e^{\sigma}$$
+- Lapisan (ω, ζ, m, τ): top (17, 0.52, 0.70, 0ms), hero (14, 0.46, 1.00, 14ms), mid (15, 0.48, 0.90, 26ms), body (13.5, 0.50, 0.80, 38ms), dock/menu bar (15.5, 0.44, 1.10, 50ms).
+- Jeda gelombang $\tau_i$ dibaca dari ring buffer riwayat percepatan (bukan setTimeout).
+- Sentakan uji = HP digerakkan kontinu ke arah sentakan 90ms lalu kembali (bukan impuls kecepatan instan), agar konten tertinggal berlawanan arah dulu secara fisis.
 
+### C. Invarian Wajib (Anti Kaku & Patah-Patah)
+- **DILARANG** menulis CSS variable ke :root / documentElement per frame (memicu recalc style seluruh dokumen). Transform wajib ditulis langsung ke elemen via properti individual el.style.translate / scale / rotate (tidak menimpa transform bawaan, mis. inline transform menu bar).
+- **DILARANG** clamp keras (Math.min/max) pada posisi tampil; wajib saturasi lunak tanh.
+- **DILARANG** transform permanen pada #root (merusak position: fixed). Translate #root hanya saat simulasi desktop aktif lalu dikosongkan.
+- Saat energi di bawah ambang dan tanpa input: RAF berhenti, seluruh style inline dikosongkan (0% CPU).
 
-
-
+### D. Sensor Gerak HP Nyata & Pengujian
+- **HP nyata**: devicemotion → e.acceleration (fallback high-pass α = 0.9 dari accelerationIncludingGravity), dipetakan ke koordinat layar + koreksi screen.orientation.angle, deadzone 0.6 m/s², bangun saat > 1.8 m/s², skala 110 px per m/s².
+- **Invarian Produksi**: Tombol penguji segitiga di localhost telah dihapus setelah pengujian selesai. Sistem 100% didorong oleh sensor gerak perangkat fisik (`devicemotion`) tanpa elemen overlay tambahan.
+- Balon kaca menu bar menerima impuls arah via registerJellyShakeListener.
