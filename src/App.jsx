@@ -56,6 +56,8 @@ import VoiceMicButton from './components/VoiceMicButton';
 import QuickTextModal from './components/QuickTextModal';
 import VoiceQueryResultModal from './components/VoiceQueryResultModal';
 import CategoryInsightScreen from './components/CategoryInsightScreen';
+import { initDeviceMotionListener, cleanupJellyPhysics } from './utils/jellyPhysics';
+import JellyShakeTestButton from './components/JellyShakeTestButton';
 import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 import { generateFinancialInsights, formatActivePeriodRange } from './utils/financialInsightEngine';
 import { getTranslation, getCategoryName, LANGUAGES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
@@ -657,6 +659,15 @@ function App() {
       }
     };
   }, [activeTab]);
+
+  // Viscoelastic Jelly Continuum Physics (HP Goyang Membal Kenyal Sensor)
+  useEffect(() => {
+    initDeviceMotionListener();
+    return () => {
+      cleanupJellyPhysics();
+    };
+  }, []);
+
   const [navIndicatorX, setNavIndicatorX] = useState(null);
   const navDragStateRef = useRef({
     active: false,
@@ -12707,6 +12718,9 @@ function App() {
         onRestoreData={handleRestoreFromCloud}
         onShowToast={(msg) => showVoiceToast(msg)}
       />
+
+      {/* Localhost Triangle Shake Test Button (Only rendered in dev/localhost) */}
+      <JellyShakeTestButton />
     </div>
   );
 }

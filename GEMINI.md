@@ -1,6 +1,9 @@
 # Developer Guidelines for Cassiel (Finance Tracker)
 
 > [!IMPORTANT]
+> ### 👑 ATURAN UTAMA PENGEMBANGAN (REDI):
+> **Jika di perlukan maka ciptakan lah rumus fisika,matematikan dan hukum baru untuk apapun yg di inginkan oleh redi.**
+> 
 > ## 🚀 STATUS RILIS: GOOGLE PLAY STORE (AAB / ANDROID APP BUNDLE)
 > 
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
@@ -798,6 +801,40 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
   - [`LGR_LANGUAGE_SPEC.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_LANGUAGE_SPEC.md): Spesifikasi tata bahasa formal EBNF bahasa `.lgr`.
   - [`LGR_MASTER_PLAN.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_MASTER_PLAN.md): Roadmap pengembangan rekayasa LGR.
   - [`LGR_RESEARCH_MASTER.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_RESEARCH_MASTER.md): Bedah komparatif Apple Liquid Glass vs LGR.
+
+---
+
+## 50. Viscoelastic Jelly Continuum Physics & Shake Detection (HP Goyang Membal Kenyal)
+
+> [!NOTE]
+> **SISTEM FISIKA JELLY KENYAL (GOYANG HP MEMBAL)**
+> 
+> Seluruh komponen kunci antarmuka Cassiel (Top Bar, Hero Balance Card, Middle Cards, Daftar Transaksi, dan Bottom Nav) terhubung ke dalam kisi osilator viskoelastik kontinu berjenjang yang merefleksikan getaran dan goyangan fisik perangkat dengan gerakan membal kenyal layaknya jelly/puding.
+
+### A. Kisi Gelombang Viskoelastik Berjenjang (*Layered Lattice Propagation*)
+1. **Perambatan Gelombang Berfasa (*Acoustic Wave Delay*)**:
+   - Gelombang guncangan merambat dari atas ke bawah dengan jeda fase fisik:
+     - **Top Bar**: $\omega = 21.0\text{ rad/s}, \zeta = 0.44$, jeda `0ms`.
+     - **Hero Balance Card**: $\omega = 16.8\text{ rad/s}, \zeta = 0.35$ (massa inersia tinggi, squish membal paling kenyal), jeda `25ms`.
+     - **Middle Cards (Insight/Budget)**: $\omega = 18.5\text{ rad/s}, \zeta = 0.39$, jeda `45ms`.
+     - **Daftar Transaksi**: $\omega = 15.8\text{ rad/s}, \zeta = 0.41$, jeda `70ms`.
+     - **Bottom Navigation Dock**: $\omega = 19.5\text{ rad/s}, \zeta = 0.37$, jeda `85ms`.
+2. **Kekekalan Volume Poisson Non-Linear (Squish-and-Stretch)**:
+   - Deformasi vertikal memicu pemampatan/peregangan horizontal berdasarkan rasio Poisson ($\nu \approx 0.46$):
+     - Saat terlempar ke bawah: komponen memipih dan melebar ke samping (`scaleY < 1, scaleX > 1`).
+     - Saat membal ke atas: komponen menegang dan memanjang (`scaleY > 1, scaleX < 1`).
+     - Disertai kemiringan rotasi inersial dan pergeseran gesek hidrodinamik (`skewX`).
+3. **Efisiensi Daya 120 FPS & Auto-Sleep**:
+   - Integrasi numerik menggunakan metode Symplectic Verlet 2 sub-langkah.
+   - Loop `requestAnimationFrame` otomatis berhenti total dan mengembalikan seluruh variabel CSS ke titik setimbang (`0px`, skala `1`) saat energi kinetik mereda ($E < 0.02$), menjamin 0% beban CPU/baterai saat diam (*idle*).
+
+### B. Sensor Goyang Perangkat & Tombol Segitiga Penguji Localhost
+1. **Deteksi Goyangan HP Fisik (`devicemotion`)**:
+   - Menggunakan filter lolos-tinggi (*high-pass jerk filter*) pada akselerometer perangkat untuk mengabaikan gravitasi bumi 1G konstan.
+   - Goyangan sengaja dengan $\text{jerk} > 7.0\text{ m/s}^2$ otomatis memicu impuls jelly sesuai sudut vektor goyangan tangan.
+2. **Tombol Segitiga Penguji Khusus Localhost (`JellyShakeTestButton.jsx`)**:
+   - Tampil eksklusif di lingkungan development/localhost (`isDevOrLocalhost()`) melayang di sebelah kanan bingkai HP (`left: calc(50% + 228px)`).
+   - Berupa 1 tombol segitiga emas melengkung (`▲`) yang merefleksikan goyangan HP manusia dengan impuls multi-arah dan akumulasi energi saat diklik cepat maupun saat ditekan-tahan.
 
 
 
