@@ -318,16 +318,80 @@ export function endPhoneHold() {
   phone.ty = 0;
 }
 
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+// Native Sensor Plugin Bridge (Android Hardware SensorManager)
+const CassielMotion = registerPlugin('CassielMotion');
+
 // ---------------------------------------------------------------------------
 // Sensor gerak HP nyata
 // ---------------------------------------------------------------------------
 let motionBound = false;
 let gravity = null;
 let onMotionRef = null;
+let nativeMotionHandle = null;
+
+function processCleanMotion(ax, ay) {
+  // Koordinat perangkat Android (y ke atas) → koordinat layar CSS (y ke bawah), koreksi orientasi layar
+  const angle = ((window.screen?.orientation?.angle ?? window.orientation ?? 0) * Math.PI) / 180;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  let sx = ax * cos + ay * sin;
+  let sy = -(-ax * sin + ay * cos);
+
+  // Deadzone lunak
+  const mag = Math.hypot(sx, sy);
+  if (mag < DEVICE_DEADZONE) {
+    sx = 0;
+    sy = 0;
+  } else {
+    const f = (mag - DEVICE_DEADZONE) / mag;
+    sx *= f;
+    sy *= f;
+  }
+
+  // Low-pass ringan untuk menghaluskan sampel sensor 60 Hz
+  device.ax += (sx * DEVICE_PX_PER_MS2 - device.ax) * 0.55;
+  device.ay += (sy * DEVICE_PX_PER_MS2 - device.ay) * 0.55;
+  device.lastSample = performance.now();
+
+  if (!rafId && mag > DEVICE_WAKE) startLoop();
+}
 
 export function initDeviceMotionListener() {
   if (typeof window === 'undefined' || motionBound) return;
 
+  // 1. JALUR NATIVE ANDROID: Langsung dari SensorManager Hardware via CassielMotion
+  if (Capacitor.isNativePlatform()) {
+    try {
+      CassielMotion.startListening()
+        .then(() => {
+          return CassielMotion.addListener('motion', (data) => {
+            if (data && typeof data.x === 'number') {
+              processCleanMotion(data.x, data.y);
+            }
+          });
+        })
+        .then((handle) => {
+          nativeMotionHandle = handle;
+          motionBound = true;
+        })
+        .catch((err) => {
+          console.warn('[JellyPhysics] Native sensor bridge fallback to DOM:', err);
+          bindDomMotionListener();
+        });
+      return;
+    } catch (e) {
+      console.warn('[JellyPhysics] Could not start native motion:', e);
+    }
+  }
+
+  // 2. JALUR BROWSER / WEB FALLBACK: DOM DeviceMotionEvent
+  bindDomMotionListener();
+}
+
+function bindDomMotionListener() {
+  if (motionBound) return;
   onMotionRef = (e) => {
     let ax;
     let ay;
@@ -346,30 +410,7 @@ export function initDeviceMotionListener() {
       return;
     }
 
-    // Koordinat perangkat (y ke atas) → koordinat layar (y ke bawah), koreksi orientasi
-    const angle = ((window.screen?.orientation?.angle ?? window.orientation ?? 0) * Math.PI) / 180;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    let sx = ax * cos + ay * sin;
-    let sy = -(-ax * sin + ay * cos);
-
-    // Deadzone lunak
-    const mag = Math.hypot(sx, sy);
-    if (mag < DEVICE_DEADZONE) {
-      sx = 0;
-      sy = 0;
-    } else {
-      const f = (mag - DEVICE_DEADZONE) / mag;
-      sx *= f;
-      sy *= f;
-    }
-
-    // Low-pass ringan untuk menghaluskan sampel sensor 60 Hz
-    device.ax += (sx * DEVICE_PX_PER_MS2 - device.ax) * 0.55;
-    device.ay += (sy * DEVICE_PX_PER_MS2 - device.ay) * 0.55;
-    device.lastSample = performance.now();
-
-    if (!rafId && mag > DEVICE_WAKE) startLoop();
+    processCleanMotion(ax, ay);
   };
 
   try {
@@ -379,6 +420,17 @@ export function initDeviceMotionListener() {
 }
 
 export function cleanupJellyPhysics() {
+  if (nativeMotionHandle && typeof nativeMotionHandle.remove === 'function') {
+    try {
+      nativeMotionHandle.remove();
+    } catch {}
+    nativeMotionHandle = null;
+  }
+  if (Capacitor.isNativePlatform()) {
+    try {
+      CassielMotion.stopListening().catch(() => {});
+    } catch {}
+  }
   if (motionBound && onMotionRef) {
     window.removeEventListener('devicemotion', onMotionRef);
   }
@@ -387,3 +439,4 @@ export function cleanupJellyPhysics() {
   gravity = null;
   stopLoop();
 }
+

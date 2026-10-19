@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CassielNativeBillingPlugin.class);
         registerPlugin(CassielNativeGoogleAuthPlugin.class);
         registerPlugin(CassielGroupNotificationPlugin.class);
+        registerPlugin(com.redilah.financetracker.motion.CassielMotionPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleDeepLinkIntent(getIntent());
