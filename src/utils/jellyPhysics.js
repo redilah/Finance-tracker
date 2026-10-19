@@ -58,9 +58,9 @@ const LAYERS = [
 
 const H = 1 / 240;                 // langkah fisika tetap (detik)
 const HISTORY = 64;                // buffer riwayat percepatan (~266 ms)
-const DEVICE_PX_PER_MS2 = 110;     // skala m/s² → px/s² untuk sensor nyata
-const DEVICE_DEADZONE = 0.6;       // m/s² (tremor tangan & noise sensor)
-const DEVICE_WAKE = 1.8;           // m/s² ambang aktivasi (hanya aktif saat digoyang)
+const DEVICE_PX_PER_MS2 = 140;     // skala m/s² → px/s² untuk sensor nyata (lebih responsif)
+const DEVICE_DEADZONE = 0.35;      // m/s² (filter tremor tangan mikro)
+const DEVICE_WAKE = 0.9;           // m/s² ambang bangun cepat saat digoyang tangan
 
 const layerState = LAYERS.map(() => ({ x: 0, y: 0, vx: 0, vy: 0, els: [] }));
 const histX = new Float32Array(HISTORY);
@@ -206,9 +206,9 @@ function render() {
 function emitToListeners(aX, aY) {
   const now = performance.now();
   const mag = Math.hypot(aX, aY);
-  if (mag < 900 || now - lastEmit < 140 || !shakeListeners.size) return;
+  if (mag < 250 || now - lastEmit < 110 || !shakeListeners.size) return;
   lastEmit = now;
-  const intensity = Math.min(1.6, mag / 2500);
+  const intensity = Math.min(1.8, Math.max(0.4, mag / 1200));
   const ix = (-aX / mag) * 160 * intensity; // arah inersia konten
   const iy = (-aY / mag) * 160 * intensity;
   const angleDeg = (Math.atan2(iy, ix) * 180) / Math.PI;
