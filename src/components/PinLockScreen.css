@@ -46,7 +46,7 @@
   letter-spacing: -0.2px;
 }
 
-/* Dots on lock screen */
+/* Dots on lock screen (Apple Liquid Glass Amber Glow) */
 .pin-dots-container.lock-dots {
   display: flex;
   align-items: center;
@@ -57,95 +57,164 @@
 }
 
 .pin-dot.lock-dot {
-  width: 11px;
-  height: 11px;
-  background: #E2E8F0;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 2px rgba(92, 58, 24, 0.08),
+    0 1px 2px rgba(255, 255, 255, 0.8);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pin-dot.lock-dot.filled {
-  background: #64748B;
-  transform: scale(1.15);
-  box-shadow: 0 1px 4px rgba(100, 116, 139, 0.3);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 1px solid rgba(255, 255, 255, 0.60);
+  transform: scale(1.2);
+  box-shadow:
+    0 2px 8px rgba(217, 119, 6, 0.35),
+    inset 0 1px 1px #FFFFFF;
 }
 
-/* Keypad Grid in Lock Screen (Matching Clean Round Buttons with Soft Shadow) */
+/* Keypad Grid in Lock Screen (Apple iOS 26 / visionOS 3D Crystal Sphere) */
 .pin-keypad-grid.lock-keypad {
   display: grid;
-  grid-template-columns: repeat(3, 72px);
+  grid-template-columns: repeat(3, 74px);
   gap: 22px 28px;
   justify-content: center;
   align-content: center;
 }
 
 .pin-key-btn.lock-key-btn {
-  width: 72px;
-  height: 72px;
+  position: relative;
+  overflow: hidden;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.90) !important;
   outline: none;
-  background: #F1F3F5;
-  color: var(--text-main, #1F2937);
-  font-size: 26px;
-  font-weight: 400;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 250, 244, 0.50) 50%,
+    rgba(248, 238, 226, 0.68) 100%
+  );
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  color: var(--text-main, #2D2520);
+  font-size: 27px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.06);
-  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:
+    0 8px 24px -4px rgba(92, 58, 24, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.03),
+    inset 0 1.5px 2px #FFFFFF,
+    inset 0 4px 8px rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -3px 6px rgba(195, 145, 95, 0.10);
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.14s ease, background 0.14s ease;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Layer 5: Specular Crescent Highlight Arc on Top Dome of Keypad Circle */
+.pin-key-btn.lock-key-btn::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 15%;
+  right: 15%;
+  height: 44%;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.30) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pin-key-btn.lock-key-btn > * {
+  position: relative;
+  z-index: 2;
+}
+
+.pin-key-btn.lock-key-btn:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(255, 252, 246, 0.60) 50%,
+    rgba(250, 242, 232, 0.75) 100%
+  );
+  box-shadow:
+    0 10px 28px -4px rgba(92, 58, 24, 0.16),
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1.5px 2px #FFFFFF;
 }
 
 .pin-key-btn.lock-key-btn:active {
   transform: scale(0.92);
-  background: #E5E7EB;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(245, 158, 11, 0.18) 50%,
+    rgba(245, 158, 11, 0.28) 100%
+  );
+  box-shadow:
+    0 3px 8px rgba(92, 58, 24, 0.08),
+    inset 0 1px 1.5px #FFFFFF;
 }
 
 .pin-bio-plain-btn {
-  width: 72px;
-  height: 72px;
+  width: 74px;
+  height: 74px;
   border: none !important;
   outline: none;
   background: transparent !important;
   box-shadow: none !important;
-  color: var(--text-main, #1F2937);
+  color: var(--text-main, #2D2520);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s ease;
+  transition: transform 0.14s ease, color 0.14s ease;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
 .pin-bio-plain-btn:active {
   transform: scale(0.88);
-  opacity: 0.7;
+  color: #C05621;
 }
 
 .pin-lock-backspace-plain-btn {
-  width: 72px;
-  height: 72px;
+  width: 74px;
+  height: 74px;
   border: none;
   outline: none;
   background: transparent !important;
   box-shadow: none !important;
-  color: var(--text-main, #1F2937);
+  color: var(--text-main, #2D2520);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s ease;
+  transition: transform 0.14s ease, color 0.14s ease;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .pin-lock-backspace-plain-btn:active {
   transform: scale(0.88);
-  opacity: 0.7;
+  color: #C05621;
 }
 
 .pin-lock-error-text {

@@ -994,10 +994,10 @@
 .transaction-item.cat-card-food-icon { background-color: #FAE2CB; }
 
 .transaction-item.cat-card-coffee,
-.transaction-item.cat-card-coffee-icon { background-color: #F3DBC4; }
+.transaction-item.cat-card-coffee-icon { background-color: #EFE3D5; }
 
 .transaction-item.cat-card-bioskop,
-.transaction-item.cat-card-game-icon { background-color: #EEDCE9; }
+.transaction-item.cat-card-game-icon { background-color: #F2E1EE; }
 
 .transaction-item.cat-card-transport,
 .transaction-item.cat-card-car-icon { background-color: #D9E8F1; }
@@ -1006,7 +1006,7 @@
 .transaction-item.cat-card-barber-icon { background-color: #F8DECE; }
 
 .transaction-item.cat-card-skincare,
-.transaction-item.cat-card-cosmetics-icon { background-color: #F7D8E4; }
+.transaction-item.cat-card-cosmetics-icon { background-color: #F9DFEA; }
 
 .transaction-item.cat-card-edukasi,
 .transaction-item.cat-card-book-icon { background-color: #DAE4F5; }
@@ -1015,97 +1015,101 @@
 .transaction-item.cat-card-bottle-icon { background-color: #D6EFE7; }
 
 .transaction-item.cat-card-fashion,
-.transaction-item.cat-card-fashion-icon { background-color: #E6E1F6; }
+.transaction-item.cat-card-fashion-icon { background-color: #E8E2F7; }
 
 .transaction-item.cat-card-supermarket,
-.transaction-item.cat-card-cart-icon { background-color: #F7EFC8; }
+.transaction-item.cat-card-cart-icon { background-color: #FAF2C8; }
 
 .transaction-item.cat-card-sub,
-.transaction-item.cat-card-sub-icon { background-color: #D7ECE4; }
+.transaction-item.cat-card-sub-icon { background-color: #D6EDE4; }
 
 .transaction-item.cat-card-pesawat,
+.transaction-item.cat-card-pesawat-icon { background-color: #D0E6F7; }
+
 .transaction-item.cat-card-tranfer,
 .transaction-item.cat-card-transfer,
-.transaction-item.cat-card-pesawat-icon,
-.transaction-item.cat-card-tranfer-icon { background-color: #D0E6F5; }
+.transaction-item.cat-card-tranfer-icon { background-color: #D2ECF2; }
 
 .transaction-item.cat-card-kost,
-.transaction-item.cat-card-kost-icon { background-color: #F4DFD2; }
+.transaction-item.cat-card-kost-icon { background-color: #F6E3D5; }
 
 .transaction-item.cat-card-gofood,
-.transaction-item.cat-card-gofood-icon { background-color: #F8D7D7; }
+.transaction-item.cat-card-gofood-icon { background-color: #FCE2E2; }
 
 .transaction-item.cat-card-sepatu,
-.transaction-item.cat-card-sepatu-icon { background-color: #EBDEFA; }
+.transaction-item.cat-card-sepatu-icon { background-color: #EFE0FA; }
 
 .transaction-item.cat-card-donasi,
-.transaction-item.cat-card-donasi-icon { background-color: #F6DCE6; }
+.transaction-item.cat-card-donasi-icon { background-color: #F8DFEA; }
 
 .transaction-item.cat-card-topupGame,
 .transaction-item.cat-card-topupgame,
-.transaction-item.cat-card-topup-game-icon { background-color: #D7F4E1; }
+.transaction-item.cat-card-topup-game-icon { background-color: #D9F5E2; }
 
 .transaction-item.cat-card-bensin,
-.transaction-item.cat-card-bensin-icon { background-color: #F8DFCA; }
+.transaction-item.cat-card-bensin-icon { background-color: #F8ECD0; }
 
 .transaction-item.cat-card-konser,
-.transaction-item.cat-card-konser-icon { background-color: #F6D0E3; }
+.transaction-item.cat-card-konser-icon { background-color: #F7D6E6; }
 
 .transaction-item.cat-card-pulsa,
-.transaction-item.cat-card-pulsa-icon { background-color: #D4E4F8; }
+.transaction-item.cat-card-pulsa-icon { background-color: #DBEAFE; }
 
 .transaction-item.cat-card-rumahSakit,
 .transaction-item.cat-card-rumahsakit,
-.transaction-item.cat-card-rumah-sakit-icon { background-color: #F9D8DC; }
+.transaction-item.cat-card-rumah-sakit-icon { background-color: #FCE4E7; }
 
 .transaction-item.cat-card-obatSakit,
 .transaction-item.cat-card-obatsakit,
-.transaction-item.cat-card-obat-sakit-icon { background-color: #DBF2E4; }
+.transaction-item.cat-card-obat-sakit-icon { background-color: #DEF7E7; }
 
 .transaction-item.cat-card-jajanAdek,
 .transaction-item.cat-card-jajanadek,
-.transaction-item.cat-card-jajan-adek-icon { background-color: #F9DEE6; }
+.transaction-item.cat-card-jajan-adek-icon { background-color: #FDECEE; }
 
 .transaction-item.cat-card-party,
-.transaction-item.cat-card-party-icon { background-color: #F6E9BD; }
+.transaction-item.cat-card-party-icon { background-color: #FEF3C7; }
 
 .transaction-item.cat-card-buah,
-.transaction-item.cat-card-buah-icon { background-color: #F9E1C8; }
+.transaction-item.cat-card-buah-icon { background-color: #E2F4DC; }
 
 .transaction-item.cat-card-minuman,
-.transaction-item.cat-card-minuman-icon { background-color: #D2EDFA; }
+.transaction-item.cat-card-minuman-icon { background-color: #D8F1FE; }
 
 .transaction-item.cat-card-wifi,
-.transaction-item.cat-card-wifi-icon { background-color: #F7EFC0; }
+.transaction-item.cat-card-wifi-icon { background-color: #FEF3C7; }
 
 .transaction-item.cat-card-biayaAdmin,
 .transaction-item.cat-card-biayaadmin,
-.transaction-item.cat-card-biaya-admin-icon { background-color: #E9EDCB; }
+.transaction-item.cat-card-biaya-admin-icon { background-color: #E8EDF2; }
 
 .transaction-item.cat-card-accessories,
 .transaction-item.cat-card-aksesoris,
-.transaction-item.cat-card-accessories-icon { background-color: #DDE5F4; }
+.transaction-item.cat-card-accessories-icon { background-color: #ECE7F9; }
+
+.transaction-item.cat-card-tiket,
+.transaction-item.cat-card-tiket-icon { background-color: #FCE5DC; }
 
 .transaction-item.cat-card-gaji,
-.transaction-item.cat-card-gaji-icon { background-color: #D2F3E1; }
+.transaction-item.cat-card-gaji-icon { background-color: #D1FAE5; }
 
 .transaction-item.cat-card-bonus,
-.transaction-item.cat-card-bonus-icon { background-color: #FAE8B8; }
+.transaction-item.cat-card-bonus-icon { background-color: #FEF08A; }
 
 .transaction-item.cat-card-kip,
-.transaction-item.cat-card-kip-icon { background-color: #DFEAF5; }
+.transaction-item.cat-card-kip-icon { background-color: #DBEAFE; }
 
 .transaction-item.cat-card-investasi,
-.transaction-item.cat-card-investasi-icon { background-color: #D8EED8; }
+.transaction-item.cat-card-investasi-icon { background-color: #DCF3DC; }
 
 .transaction-item.cat-card-bisnis,
-.transaction-item.cat-card-bisnis-icon { background-color: #F7E4C4; }
+.transaction-item.cat-card-bisnis-icon { background-color: #FFF0D4; }
 
 .transaction-item.cat-card-affiliate,
-.transaction-item.cat-card-affiliate-icon { background-color: #DFE4F9; }
+.transaction-item.cat-card-affiliate-icon { background-color: #E8EEFC; }
 
 .transaction-item.cat-card-freelance,
-.transaction-item.cat-card-freelance-icon { background-color: #D6E8EE; }
+.transaction-item.cat-card-freelance-icon { background-color: #D3F6FA; }
 
 .transaction-icon {
   width: 42px;
@@ -1133,14 +1137,15 @@
 .bottle-icon { background-color: #B2E8D9; }
 .pesawat-icon { background-color: #A3D8F4; }
 .tranfer-icon,
-.transfer-icon { background-color: #A3D8F4; }
+.transfer-icon,
+.tranfer-icon { background-color: #A3D8F4; }
 .kost-icon { background-color: #FFD3B6; }
 .coffee-icon { background-color: #D4A574; }
 .gofood-icon { background-color: #FFC3C3; }
 .sepatu-icon { background-color: #D8B4F8; }
 .donasi-icon { background-color: #F8C8DC; }
 .topup-game-icon { background-color: #B4F8C8; }
-.bensin-icon { background-color: #F8C3A6; }
+.bensin-icon { background-color: #F5DC98; }
 .investasi-icon { background-color: #C1E1C1; }
 .bisnis-icon { background-color: #FFE5B4; }
 .affiliate-icon { background-color: #D2E0FB; }
@@ -1149,16 +1154,17 @@
 .rumah-sakit-icon { background-color: #FECDD3; }
 .obat-sakit-icon { background-color: #BBF7D0; }
 .jajan-adek-icon { background-color: #FFDDE1; }
-.party-icon { background-color: #a16207; }
-.buah-icon { background-color: #FED7AA; }
+.party-icon { background-color: #FDE68A; }
+.buah-icon { background-color: #C8ECC0; }
 .minuman-icon { background-color: #BAE6FD; }
-.wifi-icon { background-color: #FEF3C7; }
-.gaji-icon { background-color: #86EFAC; }
+.wifi-icon { background-color: #FDE68A; }
+.gaji-icon { background-color: #A7F3D0; }
 .bonus-icon { background-color: #FDE047; }
 .kip-icon { background-color: #93C5FD; }
 .freelance-icon { background-color: #A5F3FC; }
-.biaya-admin-icon { background-color: #D9F99D; }
-.accessories-icon { background-color: #C5D4EE; }
+.biaya-admin-icon { background-color: #CBD5E1; }
+.accessories-icon { background-color: #D4CEF6; }
+.tiket-icon { background-color: #FEC8B8; }
 
 .kost-icon img,
 img[src*="Kost"] {
@@ -1307,7 +1313,7 @@ img[src*="Kost"] {
 }
 
 /* ==========================================================================
-   Bottom Nav — Apple iOS 26 "Liquid Glass" (Light/Warm Glass + Center Plus)
+   Bottom Nav — Apple iOS 26 "Liquid Glass" (6-Tier Architecture + Environmental Aura)
    ========================================================================== */
 .bottom-nav {
   position: absolute;
@@ -1319,14 +1325,16 @@ img[src*="Kost"] {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  /* Transparansi Bernapas: menghapus selimut krem pekat agar konten di belakang tembus nyata */
   background: linear-gradient(
     180deg,
     rgba(248, 239, 230, 0) 0%,
-    rgba(248, 239, 230, 0.65) 45%,
-    rgba(248, 239, 230, 0.94) 100%
+    rgba(248, 239, 230, 0.15) 35%,
+    rgba(248, 239, 230, 0.45) 100%
   );
   z-index: 100;
   pointer-events: none;
+  overflow: visible;
 }
 
 .nav-liquid-svg-defs {
@@ -1337,7 +1345,70 @@ img[src*="Kost"] {
   overflow: hidden;
 }
 
-/* Light/Warm Glass Floating Pill Container (Apple Liquid Glass Dock with 120fps Elastic Bar Bounce) */
+/* ==========================================================================
+   LATAR BELAKANG: Dynamic Environmental Background Aura & Caustic Backlight
+   ========================================================================== */
+.nav-ambient-caustic-backdrop {
+  position: absolute;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  right: 12px;
+  height: 62px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+/* Ambient environmental glow mesh behind the glass dock (warm sunset, amber & soft sky) */
+.nav-ambient-glow-mesh {
+  position: absolute;
+  inset: -12px -16px;
+  border-radius: 999px;
+  background: radial-gradient(
+    85% 90% at 50% 80%,
+    rgba(251, 146, 60, 0.26) 0%,
+    rgba(245, 158, 11, 0.18) 32%,
+    rgba(254, 215, 170, 0.12) 60%,
+    rgba(224, 231, 255, 0.06) 82%,
+    transparent 100%
+  );
+  filter: blur(20px);
+  opacity: 0.90;
+  will-change: transform, opacity;
+  animation: navAmbientPulse 7s ease-in-out infinite alternate;
+}
+
+@keyframes navAmbientPulse {
+  0% { transform: scale(0.98); opacity: 0.75; }
+  50% { transform: scale(1.015); opacity: 0.95; }
+  100% { transform: scale(1.0); opacity: 0.85; }
+}
+
+/* Traveling Caustic Backlight Spot (Concentrated ambient illumination tracking active bubble) */
+.nav-ambient-caustic-spot {
+  position: absolute;
+  top: 50%;
+  left: var(--bubble-x-pct, 18%);
+  width: 140px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(245, 158, 11, 0.36) 0%,
+    rgba(251, 191, 36, 0.22) 42%,
+    rgba(253, 230, 138, 0.08) 68%,
+    transparent 85%
+  );
+  filter: blur(14px);
+  pointer-events: none;
+  transition: left 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ==========================================================================
+   TINGKAT 1 & 2 (Dock): Controlled Transparency + Velvety Backdrop Blur
+   ========================================================================== */
 .nav-items-container.nav-glass-pill-shell {
   position: relative;
   z-index: 3;
@@ -1345,30 +1416,71 @@ img[src*="Kost"] {
   height: 62px;
   padding: 0;
   border-radius: 999px;
+  /* Transparansi Terkontrol (Apple Regular Liquid Glass HIG): tembus pandang kristal */
   background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(254, 251, 246, 0.82) 42%,
-    rgba(247, 238, 226, 0.88) 100%
+    135deg,
+    rgba(255, 255, 255, 0.46) 0%,
+    rgba(255, 252, 248, 0.28) 40%,
+    rgba(248, 239, 226, 0.38) 100%
   );
-  -webkit-backdrop-filter: blur(28px) saturate(210%) contrast(102%);
-  backdrop-filter: blur(28px) saturate(210%) contrast(102%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(28px) saturate(210%) contrast(104%);
+  backdrop-filter: blur(28px) saturate(210%) contrast(104%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.85),
-    0 3px 8px -1px rgba(88, 52, 18, 0.08),
-    0 16px 38px -4px rgba(92, 58, 24, 0.14),
-    0 26px 48px -10px rgba(217, 119, 6, 0.07),
-    inset 0 1.5px 1.5px rgba(255, 255, 255, 1),
-    inset 0 3px 6px rgba(255, 255, 255, 0.45),
-    inset 0 -1.5px 2px rgba(255, 255, 255, 0.65),
-    inset 0 -2.5px 4px rgba(195, 145, 95, 0.18);
+    0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 4px 12px -2px rgba(88, 52, 18, 0.08),
+    0 16px 36px -4px rgba(92, 58, 24, 0.13),
+    0 24px 44px -8px rgba(217, 119, 6, 0.08),
+    /* Bodi Kaca Volumetrik: Multi-layered Inner Bevels & Depth Light */
+    inset 0 1.5px 2px rgba(255, 255, 255, 1),
+    inset 0 3px 8px rgba(255, 255, 255, 0.40),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.70),
+    inset 0 -2.5px 5px rgba(195, 145, 95, 0.16);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
   overflow: visible;
   transform-origin: 50% 50%;
+}
+
+/* ==========================================================================
+   TINGKAT 3 & 4 (Dock): Cauchy Spectral Dispersion & Curved Crescent Arc
+   ========================================================================== */
+.nav-pill-cauchy-prism-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+  /* Dispersi Spektral Cauchy: Pelangi mikro prismatik di sudut kritis tepi kapsul */
+  background: radial-gradient(
+    ellipse 120% 90% at 50% -15%,
+    rgba(255, 255, 255, 0.40) 0%,
+    rgba(255, 220, 180, 0.18) 28%,
+    rgba(180, 225, 255, 0.12) 55%,
+    transparent 78%
+  );
+  border: 0.8px solid rgba(255, 255, 255, 0.55);
+}
+
+.nav-pill-bar-crescent-arc {
+  position: absolute;
+  top: 1px;
+  left: 18px;
+  right: 18px;
+  height: 7px;
+  border-radius: 999px 999px 0 0;
+  background: radial-gradient(
+    70% 100% at var(--bubble-x-pct, 50%) 0%,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.75) 28%,
+    rgba(255, 255, 255, 0.20) 70%,
+    transparent 100%
+  );
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.8));
+  pointer-events: none;
+  z-index: 3;
 }
 
 .nav-pill-bar-specular {
@@ -1379,14 +1491,12 @@ img[src*="Kost"] {
   height: 1px;
   border-radius: 999px;
   background:
-    /* Dynamic Condensation Caustic Light Beam centered above the moving bubble */
     radial-gradient(
       60px 2px at var(--bubble-x-pct, 18%) 50%,
       rgba(255, 255, 255, 0.95) 0%,
       rgba(255, 255, 255, 0.4) 50%,
       rgba(255, 255, 255, 0) 100%
     ),
-    /* Global Ambient Ceiling Specular Sheen across the capsule bar */
     linear-gradient(
       90deg,
       rgba(255, 255, 255, 0) 0%,
@@ -1500,7 +1610,7 @@ img[src*="Kost"] {
 }
 
 /* ==========================================================================
-   3D Apple Liquid Glass Bubble (Hydro-Optical Continuum — Zero Rainbow)
+   3D Apple Liquid Glass Bubble (6 Tingkatan Optik & Mekanika Fluida)
    ========================================================================== */
 .nav-liquid-glass-bubble {
   --glass-active: 0;
@@ -1517,7 +1627,7 @@ img[src*="Kost"] {
   z-index: 6;
   will-change: transform;
   transform-origin: center center;
-  /* Dynamic 3D Convex Volume Dome: shifts focal light & clarifies into pure crystal water/glass on lift */
+  /* Bodi Kristal Volumetrik Utama (Translucent Liquid Capsule) */
   background:
     radial-gradient(
       95% 75% at calc(50% - var(--glass-tilt-x) * 18%) calc(84% + var(--glass-lift) * 4%),
@@ -1526,17 +1636,44 @@ img[src*="Kost"] {
     ),
     radial-gradient(
       122% 108% at calc(50% - var(--glass-tilt-x) * 16%) calc(16% - var(--glass-lift) * 4%),
-      rgba(255, 255, 255, calc(0.84 - var(--glass-active) * 0.64)) 0%,
-      rgba(255, 253, 250, calc(0.70 - var(--glass-active) * 0.58)) 44%,
-      rgba(246, 236, 224, calc(0.64 - var(--glass-active) * 0.52)) 80%,
-      rgba(255, 255, 255, calc(0.90 - var(--glass-active) * 0.32)) 100%
+      rgba(255, 255, 255, calc(0.55 - var(--glass-active) * 0.25)) 0%,
+      rgba(255, 253, 250, calc(0.38 - var(--glass-active) * 0.18)) 44%,
+      rgba(246, 236, 224, calc(0.25 - var(--glass-active) * 0.12)) 80%,
+      rgba(255, 255, 255, calc(0.65 - var(--glass-active) * 0.20)) 100%
     );
-  /* Coupled 3D Buoyant Elevation Shadow + Snellius Subsurface Caustic Light Focus */
   box-shadow:
     0 calc(3px + var(--glass-lift) * 6.5px) calc(10px + var(--glass-lift) * 12px) rgba(92, 58, 24, calc(0.11 + var(--glass-lift) * 0.12)),
-    0 calc(1.5px + var(--glass-lift) * 2px) calc(4px + var(--glass-lift) * 5px) rgba(0, 0, 0, calc(0.05 + var(--glass-lift) * 0.05)),
+    0 calc(1.5px + var(--glass-lift) * 2px) calc(4px + var(--glass-lift) * 5px) rgba(0, 0, 0, calc(0.04 + var(--glass-lift) * 0.04)),
     0 calc(2px + var(--glass-lift) * 4px) calc(8px + var(--glass-lift) * 10px) rgba(255, 251, 242, calc(0.45 * var(--glass-lift)));
   transition: opacity 0.18s ease;
+}
+
+/* TINGKAT 2: Controlled Diffusion Blur Layer */
+.glass-bubble-blur-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
+  backdrop-filter: blur(18px) saturate(190%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* TINGKAT 3: Refraction Layer with Cauchy Spectral Dispersion Fringe */
+.glass-bubble-refraction-prism {
+  position: absolute;
+  inset: 1px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+  /* Meniskus Refraksi & Dispersi Cauchy: Kilau prisma pelangi mikro di batas lengkung */
+  background: radial-gradient(
+    ellipse 92% 78% at calc(50% - var(--glass-tilt-x) * 12%) 45%,
+    transparent 58%,
+    rgba(255, 225, 185, 0.28) 80%,
+    rgba(195, 226, 255, 0.22) 92%,
+    rgba(255, 255, 255, 0.48) 100%
+  );
 }
 
 /* Subsurface Refractive Meniscus Wall (Simulates Crown Crystal Index of Refraction n = 1.52) */
@@ -1564,7 +1701,7 @@ img[src*="Kost"] {
   overflow: hidden;
   clip-path: inset(0 round 999px);
   -webkit-clip-path: inset(0 round 999px);
-  z-index: 1;
+  z-index: 2;
 }
 
 .nav-lens-inner-world {
@@ -1597,6 +1734,49 @@ img[src*="Kost"] {
   transform: translateZ(0) scale(calc(1 + var(--bounce-activity, 0) * 0.06));
   -webkit-font-smoothing: antialiased;
   will-change: transform, text-shadow;
+}
+
+/* TINGKAT 4: Glass Material Layer (Toroidal Meniscus, Subsurface Light & Beer-Lambert Depth) */
+.glass-bubble-material-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(
+    110% 90% at calc(50% - var(--glass-tilt-x) * 14%) calc(20% - var(--glass-lift) * 4%),
+    rgba(255, 255, 255, calc(0.48 - var(--glass-active) * 0.20)) 0%,
+    rgba(255, 253, 248, calc(0.28 - var(--glass-active) * 0.14)) 45%,
+    rgba(246, 234, 218, calc(0.18 - var(--glass-active) * 0.08)) 80%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  box-shadow:
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2.5px rgba(217, 119, 6, 0.12),
+    inset calc(1.8px - var(--glass-tilt-x) * 2px) 0 3px rgba(255, 255, 255, 0.35),
+    inset calc(-1.8px - var(--glass-tilt-x) * 1.5px) 0 3px rgba(255, 250, 242, 0.28);
+}
+
+/* TINGKAT 5: Highlight Layer (Curved Crescent Specular Arc — Kurva Puncak Sabit Putih Terang Ikonik) */
+.glass-bubble-crescent-arc {
+  position: absolute;
+  top: 1.5px;
+  left: 12%;
+  right: 12%;
+  height: 8px;
+  border-radius: 999px 999px 0 0;
+  /* Puncak Lengkungan Putih Terang Apple Liquid Glass (Persis Slide 5) */
+  background: radial-gradient(
+    60% 100% at calc(50% - var(--glass-tilt-x) * 18%) 0%,
+    rgba(255, 255, 255, 1.0) 0%,
+    rgba(255, 255, 255, 0.85) 32%,
+    rgba(255, 255, 255, 0.25) 75%,
+    transparent 100%
+  );
+  filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.95));
+  transform: translate3d(calc(var(--glass-tilt-x) * -2.4px), calc(var(--glass-lift) * -0.8px), 0) scaleX(calc(1 + var(--glass-weber) * 0.12));
+  pointer-events: none;
+  z-index: 5;
 }
 
 /* Top & Bottom Pure Crystal Specular Crescents (100% Luminous White — Zero Dark/Black Smudge) */
@@ -1668,6 +1848,27 @@ img[src*="Kost"] {
   pointer-events: none;
 }
 
+/* TINGKAT 6 Subsurface: Caustic Ground Spotlight (Fokus Cahaya Kristal Menembus ke Rel Dock) */
+.glass-bubble-ground-caustic {
+  position: absolute;
+  bottom: -6px;
+  left: 14%;
+  right: 14%;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(245, 158, 11, calc(0.42 + var(--glass-lift) * 0.30)) 0%,
+    rgba(251, 191, 36, calc(0.22 + var(--glass-lift) * 0.15)) 48%,
+    transparent 80%
+  );
+  filter: blur(5px);
+  pointer-events: none;
+  z-index: 0;
+  transform: scale(calc(1 + var(--glass-lift) * 0.25));
+  transition: transform 0.15s ease-out;
+}
+
 /* Real-Time WebGL2 GLSL Fragment Shader Layer (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel) */
 .nav-webgl-shader-canvas {
   position: absolute;
@@ -1679,66 +1880,56 @@ img[src*="Kost"] {
   z-index: 8;
 }
 
-/* When WebGL2 GLSL Shader is active, delegate top/bottom TIR poles & outer specular rim to the GPU shader */
-.nav-liquid-glass-bubble.webgl-shader-active::before,
+/* When WebGL2 GLSL Shader is active, harmoniously blend GPU caustics without extinguishing the crescent arc */
+.nav-liquid-glass-bubble.webgl-shader-active::before {
+  opacity: 0.25;
+}
 .nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-pole-top,
-.nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-pole-bottom,
+.nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-pole-bottom {
+  opacity: 0.45;
+}
 .nav-liquid-glass-bubble.webgl-shader-active .glass-bubble-specular-shell {
-  opacity: 0;
+  opacity: 0.55;
 }
 
-/* Tab View Switch Animation - Apple Synchronized Fluid Slide */
+/* Tab View Switch Animation — Apple Synchronized Fluid Slide */
 .tab-page-transition {
   animation-duration: var(--slide-dur, 0.36s);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: forwards;
 }
 
-/* Forward: Bubble glides RIGHT -> Page sweeps in RIGHT in exact harmony */
-.tab-page-transition.tab-slide-forward {
-  animation-name: appleTabSlideInForward;
+.tab-slide-left {
+  animation-name: appleTabSlideLeft;
 }
 
-/* Backward: Bubble glides LEFT -> Page sweeps in LEFT in exact harmony */
-.tab-page-transition.tab-slide-backward {
-  animation-name: appleTabSlideInBackward;
+.tab-slide-right {
+  animation-name: appleTabSlideRight;
 }
 
-@keyframes appleTabSlideInForward {
+@keyframes appleTabSlideLeft {
   0% {
-    opacity: 0;
-    transform: translate3d(calc(-1 * var(--slide-dist, 26px)), 0, 0) scale(0.988);
+    opacity: 0.76;
+    transform: translate3d(calc(var(--slide-dist, 28px) * 1px), 0, 0);
   }
   100% {
     opacity: 1;
-    transform: none;
+    transform: translate3d(0, 0, 0);
   }
 }
 
-@keyframes appleTabSlideInBackward {
+@keyframes appleTabSlideRight {
   0% {
-    opacity: 0;
-    transform: translate3d(var(--slide-dist, 26px), 0, 0) scale(0.988);
+    opacity: 0.76;
+    transform: translate3d(calc(var(--slide-dist, 28px) * -1px), 0, 0);
   }
   100% {
     opacity: 1;
-    transform: none;
+    transform: translate3d(0, 0, 0);
   }
 }
 
-/* Reduced Motion Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .tab-page-transition {
-    animation: appleTabFadeIn 0.2s ease-out forwards !important;
-    transform: none !important;
-  }
-  @keyframes appleTabFadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-  }
-}
-
-/* Center Floating Plus Button - Crystal Liquid Glass Socket */
+/* Center Floating Plus Button — Crystal Liquid Glass Socket with Crescent Specular */
 .center-add-wrapper {
   position: absolute;
   left: 50%;
@@ -1752,18 +1943,35 @@ img[src*="Kost"] {
   /* Kaca cair transparan menyatu dengan dock */
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.45) 0%,
-    rgba(255, 255, 255, 0.16) 100%
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.20) 100%
   );
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.50);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow:
     0 4px 16px -2px rgba(0, 0, 0, 0.07),
     0 1px 3px rgba(0, 0, 0, 0.03),
-    inset 0 1.2px 1.2px rgba(255, 255, 255, 0.90),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+    inset 0 1.2px 1.2px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.30);
   z-index: 10;
+}
+
+.center-add-crescent-highlight {
+  position: absolute;
+  top: 2px;
+  left: 15%;
+  right: 15%;
+  height: 6px;
+  border-radius: 999px 999px 0 0;
+  background: radial-gradient(
+    50% 100% at 50% 0%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.50) 45%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 12;
 }
 
 .center-add-btn {
@@ -1801,7 +2009,6 @@ img[src*="Kost"] {
 .center-add-btn:active .add-icon {
   box-shadow: 0 3px 8px rgba(246, 172, 85, 0.3), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
-
 /* ==========================================
    Full Page Add Transaction Screen
    ========================================== */
@@ -4145,57 +4352,124 @@ img[src*="Kost"] {
   z-index: 50;
 }
 
+/* Top-Right Period Toggle (5-Layer Liquid Glass Pill) */
 .stats-period-btn {
-  background-color: rgba(255, 255, 255, 0.85);
-  border: none !important;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-main);
-  cursor: pointer;
-  outline: none;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(8px);
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2D221A;
+  cursor: pointer;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 250, 244, 0.52) 48%,
+    rgba(248, 238, 226, 0.65) 100%
+  );
+  -webkit-backdrop-filter: blur(18px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(18px) saturate(190%) contrast(102%);
+  box-shadow:
+    0 3px 12px -2px rgba(92, 58, 24, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1.2px 1.8px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.35),
+    inset 0 -1.2px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -2px 4px rgba(195, 145, 95, 0.10);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.22s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Layer 5: Specular Crescent Highlight Arc on Top Dome of Period Button */
+.stats-period-btn::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 10px;
+  right: 10px;
+  height: 44%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.40) 40%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.75));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stats-period-btn > * {
+  position: relative;
+  z-index: 2;
 }
 
 .stats-period-btn:hover {
-  background-color: #FFFFFF;
-  transform: translateY(-1px);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 252, 248, 0.65) 48%,
+    rgba(250, 242, 232, 0.75) 100%
+  );
+  box-shadow:
+    0 4px 14px -2px rgba(92, 58, 24, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.03),
+    inset 0 1.2px 1.8px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.45),
+    inset 0 -1.2px 1.5px rgba(255, 255, 255, 0.75);
 }
 
 .stats-period-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 .stats-select-arrow {
   display: flex;
   align-items: center;
-  transition: transform 0.2s ease;
+  color: #7A685B;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .stats-select-arrow.open {
   transform: rotate(180deg);
 }
 
+/* Liquid Glass Popover Dropdown Menu */
 .custom-dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background-color: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 252, 248, 0.72) 50%,
+    rgba(248, 239, 228, 0.80) 100%
+  );
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.90);
   border-radius: 18px;
   padding: 6px;
   min-width: 125px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 12px 36px -4px rgba(92, 58, 24, 0.16),
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 2px rgba(255, 255, 255, 1),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.7);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  animation: popIn 0.15s ease-out;
+  animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
 }
 
 @keyframes popIn {
@@ -5018,6 +5292,185 @@ img[src*="Kost"] {
 
 .wa-name-save-icon-btn:active {
   transform: scale(0.9);
+}
+
+/* ==========================================================================
+   PROFILE LIQUID GLASS CARDS: JUSTICE CASSIEL & KITABISA
+   ========================================================================== */
+.justice-cassiel-profile-card {
+  position: relative;
+  overflow: hidden;
+  margin: 12px auto 0;
+  width: calc(100% - 16px);
+  max-width: 360px;
+  border-radius: 20px;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease;
+  
+  /* Apple Liquid Glass: Amber Champagne Crystal Slab */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(254, 249, 238, 0.46) 48%,
+    rgba(254, 243, 226, 0.62) 100%
+  );
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 4px 16px -2px rgba(180, 83, 9, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1.2px 1.8px #FFFFFF,
+    inset 0 3px 6px rgba(255, 255, 255, 0.30),
+    inset 0 -1.2px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -2px 4px rgba(245, 158, 11, 0.08);
+}
+
+.justice-cassiel-profile-card:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 252, 246, 0.58) 48%,
+    rgba(254, 245, 230, 0.74) 100%
+  );
+  box-shadow:
+    0 6px 20px -2px rgba(180, 83, 9, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.03),
+    inset 0 1.2px 1.8px #FFFFFF;
+}
+
+.justice-cassiel-profile-card:active {
+  transform: scale(0.975);
+}
+
+/* Active Pro VIP State */
+.justice-cassiel-profile-card.is-pro {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow:
+    0 6px 20px -2px rgba(217, 119, 6, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1.2px 1.8px rgba(255, 255, 255, 0.70),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.15);
+}
+
+.justice-cassiel-profile-card.is-pro:hover {
+  box-shadow:
+    0 8px 24px -2px rgba(217, 119, 6, 0.42),
+    0 3px 8px rgba(0, 0, 0, 0.10),
+    inset 0 1.2px 1.8px rgba(255, 255, 255, 0.80);
+}
+
+/* Specular crescent sheen for Justice Cassiel card */
+.justice-cassiel-profile-card::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 14px;
+  right: 14px;
+  height: 38%;
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 255, 255, 0.10) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.justice-cassiel-profile-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Kitabisa Transparency Liquid Glass Card */
+.kitabisa-transparency-profile-card {
+  position: relative;
+  overflow: hidden;
+  margin: 10px auto 0;
+  width: calc(100% - 16px);
+  max-width: 360px;
+  border-radius: 20px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease;
+  
+  /* Apple Liquid Glass: Cyan-Tinted Translucent Crystal Slab */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.74) 0%,
+    rgba(240, 249, 255, 0.46) 48%,
+    rgba(224, 242, 254, 0.60) 100%
+  );
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 4px 16px -2px rgba(2, 132, 199, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1.2px 1.8px #FFFFFF,
+    inset 0 3px 6px rgba(255, 255, 255, 0.30),
+    inset 0 -1.2px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -2px 4px rgba(2, 132, 199, 0.08);
+}
+
+.kitabisa-transparency-profile-card:hover {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(240, 249, 255, 0.58) 48%,
+    rgba(224, 242, 254, 0.72) 100%
+  );
+  box-shadow:
+    0 6px 20px -2px rgba(2, 132, 199, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.03),
+    inset 0 1.2px 1.8px #FFFFFF;
+}
+
+.kitabisa-transparency-profile-card:active {
+  transform: scale(0.975);
+}
+
+.kitabisa-transparency-profile-card::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 14px;
+  right: 14px;
+  height: 38%;
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 255, 255, 0.10) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.6));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kitabisa-transparency-profile-card > * {
+  position: relative;
+  z-index: 2;
 }
 
 .wa-profile-section {
@@ -6167,22 +6620,61 @@ img[src*="Kost"] {
 }
 
 .budget-standalone-month-nav {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FFF8F1 35%, #F7ECE0 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 252, 246, 0.48) 45%,
+    rgba(248, 239, 228, 0.62) 100%
+  );
+  -webkit-backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(20px) saturate(190%) contrast(102%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 999px;
   padding: 3px 6px;
-  box-shadow: 0 4px 14px -2px rgba(180, 140, 110, 0.22), 0 1.5px 4px rgba(0, 0, 0, 0.03);
-  border: none;
+  box-shadow:
+    0 4px 14px -2px rgba(92, 58, 24, 0.08),
+    0 1.5px 4px rgba(0, 0, 0, 0.03),
+    inset 0 1.5px 2px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -2.5px 5px rgba(195, 145, 95, 0.12);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Layer 5: Crescent Specular Apex Glare on Date Navigator Dome */
+.budget-standalone-month-nav::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 10px;
+  right: 10px;
+  height: 44%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.45) 35%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.75));
+  pointer-events: none;
+  z-index: 1;
 }
 
 .budget-hero-badge-btn {
+  position: relative;
+  z-index: 2;
   background: none;
   border: none;
   outline: none;
   box-shadow: none;
-  padding: 2px 3px;
+  padding: 2px 4px;
   font-size: 12px;
   font-weight: 700;
   color: #2D221A;
@@ -6190,8 +6682,14 @@ img[src*="Kost"] {
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.budget-hero-badge-btn:active {
+  transform: scale(0.96);
+  opacity: 0.85;
 }
 
 .budget-hero-badge-btn:focus,
@@ -6203,20 +6701,32 @@ img[src*="Kost"] {
 }
 
 .budget-hero-badge-btn svg {
-  color: #8C786A;
+  color: #A36B36;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.6));
 }
 
 .budget-hero-month-arrow {
-  color: #8C786A;
-  padding: 2px;
+  position: relative;
+  z-index: 2;
+  color: #7A685B;
+  padding: 2px 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease, transform 0.15s ease;
+  border-radius: 999px;
+  transition: color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .budget-hero-month-arrow:hover {
   color: #2D221A;
+  background-color: rgba(255, 255, 255, 0.45);
+}
+
+.budget-hero-month-arrow:active {
+  transform: scale(0.86);
+  background-color: rgba(224, 112, 60, 0.12);
 }
 
 .budget-calendar-icon-img {
@@ -6654,29 +7164,78 @@ img[src*="Kost"] {
 }
 
 .budget-tab-btn {
-  padding: 7px 15px;
-  border-radius: 20px;
+  position: relative;
+  padding: 7px 16px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  border: none;
-  background: #FFFFFF;
-  color: #786C62;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 250, 244, 0.52) 48%,
+    rgba(248, 238, 226, 0.65) 100%
+  );
+  -webkit-backdrop-filter: blur(16px) saturate(190%);
+  backdrop-filter: blur(16px) saturate(190%);
+  color: #635246;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.22s ease, color 0.22s ease;
   flex-shrink: 0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 3px 10px -2px rgba(92, 58, 24, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1.2px 1.8px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.35),
+    inset 0 -1.2px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -2px 4px rgba(195, 145, 95, 0.10);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Layer 5: Specular Crescent Highlight Arc on Inactive Glass Pill Dome */
+.budget-tab-btn::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 10px;
+  right: 10px;
+  height: 44%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.40) 40%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+  pointer-events: none;
+  z-index: 1;
 }
 
 .budget-tab-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
+.budget-tab-btn-text {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+}
+
+/* Active Filter Tab: Clean Liquid Glass with Colored Text Only (Tanpa Garis Tepi) */
 .budget-tab-btn.active {
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  color: #FFFFFF !important;
-  border: none;
-  box-shadow: 0 3px 8px rgba(217, 119, 6, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.budget-tab-btn.active,
+.budget-tab-btn.active .budget-tab-btn-text {
+  color: #C05621 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.90);
 }
 
 /* 6. Seamless 1-Column Category Row List (Direct on App BG, No Box) */
@@ -7040,23 +7599,39 @@ img[src*="Kost"] {
   object-fit: contain;
 }
 
-/* Tap to Edit Bottom Sheet / Card Modal */
+/* Tap to Edit Bottom Sheet / Card Modal - Apple Liquid Glass (visionOS / iOS 26) */
 .budget-sheet-card {
-  background: #F8EFE6;
-  border-radius: 24px;
-  padding: 22px 20px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 250, 244, 0.52) 50%,
+    rgba(250, 241, 230, 0.68) 100%
+  );
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  border: 1.2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 28px;
+  padding: 24px 20px;
   width: 92%;
   max-width: 380px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-  animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 24px 50px -10px rgba(0, 0, 0, 0.28),
+    0 10px 24px -4px rgba(0, 0, 0, 0.12),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
+  animation: popIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .budget-sheet-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .budget-sheet-cat-summary {
@@ -7066,171 +7641,414 @@ img[src*="Kost"] {
 }
 
 .budget-sheet-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 18px;
+  font-weight: 800;
+  color: #2D221A;
   margin: 0;
+  letter-spacing: -0.2px;
 }
 
 .budget-sheet-subtitle {
-  font-size: 11.5px;
-  color: #64748B;
+  font-size: 12px;
+  color: #7A685B;
   margin: 2px 0 0 0;
+  font-weight: 500;
 }
 
 .budget-sheet-close {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #E2E8F0;
-  border: none;
+  background: rgba(255, 255, 255, 0.50);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.80);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7A685B;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1.5px #FFFFFF;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease;
   flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .budget-sheet-close:hover {
-  background: #CBD5E1;
+  background: rgba(255, 255, 255, 0.85);
+  color: #2D221A;
+}
+
+.budget-sheet-close:active {
+  transform: scale(0.90);
 }
 
 .budget-sheet-label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #7A685B;
   margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .budget-quick-chips {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .budget-chip-btn {
-  padding: 8px 4px;
-  border-radius: 12px;
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 12px;
+  position: relative;
+  overflow: hidden;
+  padding: 9px 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.48);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  font-size: 12.5px;
   font-weight: 700;
-  color: #334155;
+  color: #4A3A2C;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
   text-align: center;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px #FFFFFF;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .budget-chip-btn:hover {
-  border-color: #BC6C25;
-  color: #BC6C25;
+  background: rgba(255, 255, 255, 0.80);
+  color: #C05621;
 }
 
+.budget-chip-btn:active {
+  transform: scale(0.95);
+}
+
+/* Selected Chip: Calm Peach-Amber Glass with Colored Text Only (Tanpa Garis Tepi Tebal / Tanpa Burnt Orange) */
 .budget-chip-btn.selected {
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  color: #FFFFFF;
-  border-color: transparent;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(254, 243, 233, 0.80) 50%,
+    rgba(253, 236, 222, 0.85) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.90);
+  color: #C05621 !important;
+  font-weight: 800 !important;
+  box-shadow:
+    0 4px 12px -2px rgba(192, 86, 33, 0.18),
+    inset 0 1.2px 1.5px #FFFFFF;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.90);
 }
 
 .budget-modal-input-wrapper {
   display: flex;
   align-items: center;
-  background: #FFFFFF;
-  border: 1.5px solid rgba(0, 0, 0, 0.1);
-  border-radius: 14px;
-  padding: 10px 14px;
-  gap: 6px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
+  padding: 12px 16px;
+  gap: 8px;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .budget-modal-input-wrapper:focus-within {
-  border-color: #F59E0B;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(217, 119, 6, 0.40);
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.15),
+    inset 0 1.5px 2px #FFFFFF;
 }
 
 .budget-modal-input-prefix {
-  font-size: 15px;
-  font-weight: 700;
-  color: #64748B;
+  font-size: 16px;
+  font-weight: 800;
+  color: #C05621;
 }
 
 .budget-modal-input {
   width: 100%;
   border: none;
   background: transparent;
-  font-size: 18px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2D221A;
   outline: none;
+  font-family: inherit;
+}
+
+.budget-modal-input::placeholder {
+  color: rgba(122, 104, 91, 0.45);
 }
 
 .budget-input-clear-btn {
   border: none;
-  background: #E2E8F0;
-  color: #64748B;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: #7A685B;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.budget-input-clear-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.budget-input-clear-btn:active {
+  transform: scale(0.9);
 }
 
 .budget-sheet-footer {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .budget-sheet-btn {
   flex: 1;
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-size: 13.5px;
-  font-weight: 700;
+  padding: 13px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 800;
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.18s ease;
   text-align: center;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.budget-sheet-btn:active {
+  transform: scale(0.96);
 }
 
 .budget-sheet-btn.save-btn {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  color: #FFFFFF;
-  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.28);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 6px 18px -2px rgba(217, 119, 6, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1.2px 1.5px rgba(255, 255, 255, 0.7),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.15);
   flex: 1.5;
 }
 
+.budget-sheet-btn.save-btn::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 8px;
+  right: 8px;
+  height: 42%;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+
 .budget-sheet-btn.save-btn:hover {
-  opacity: 0.95;
+  box-shadow:
+    0 8px 22px -2px rgba(217, 119, 6, 0.42),
+    0 3px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1.2px 1.5px rgba(255, 255, 255, 0.8);
 }
 
 .budget-sheet-btn.cancel-btn {
-  background: #E2E8F0;
-  color: #475569;
+  background: rgba(255, 255, 255, 0.50);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  color: #5D4A3C;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1.2px 1.5px #FFFFFF;
 }
 
 .budget-sheet-btn.cancel-btn:hover {
-  background: #CBD5E1;
+  background: rgba(255, 255, 255, 0.85);
+  color: #2D221A;
 }
 
 .budget-sheet-btn.delete-btn {
-  background: #FEE2E2;
+  background: linear-gradient(
+    135deg,
+    rgba(254, 226, 226, 0.75) 0%,
+    rgba(254, 202, 202, 0.55) 100%
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.80);
   color: #DC2626;
+  box-shadow:
+    0 2px 8px rgba(220, 38, 38, 0.10),
+    inset 0 1.2px 1.5px #FFFFFF;
 }
 
 .budget-sheet-btn.delete-btn:hover {
-  background: #FCA5A5;
+  background: rgba(254, 202, 202, 0.85);
 }
+
+/* Month & Year Picker Sheet Overlay for Budget */
+.budget-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalOverlayFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.budget-picker-year-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.budget-picker-year-arrow {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.50);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5D4A3C;
+  cursor: pointer;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1.5px #FFFFFF;
+  transition: transform 0.15s ease, background 0.15s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.budget-picker-year-arrow:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: #2D221A;
+}
+
+.budget-picker-year-arrow:active {
+  transform: scale(0.92);
+}
+
+.budget-picker-year-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #2D221A;
+  min-width: 60px;
+  text-align: center;
+}
+
+.budget-picker-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.budget-picker-month-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 11px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.48);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 700;
+  color: #4A3A2C;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px #FFFFFF;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.budget-picker-month-btn:hover {
+  background: rgba(255, 255, 255, 0.80);
+  color: #C05621;
+}
+
+.budget-picker-month-btn:active {
+  transform: scale(0.95);
+}
+
+.budget-picker-month-btn.selected {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(254, 243, 233, 0.80) 50%,
+    rgba(253, 236, 222, 0.85) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.90);
+  color: #C05621 !important;
+  font-weight: 800 !important;
+  box-shadow:
+    0 4px 12px -2px rgba(192, 86, 33, 0.18),
+    inset 0 1.2px 1.5px #FFFFFF;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.90);
+}
+
+.budget-picker-today-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #C05621;
+  margin-top: 4px;
+}
+
 
 /* Budget Search Bar */
 .budget-search-wrapper {
@@ -7623,6 +8441,17 @@ img[src*="Kost"] {
   }
 }
 
+/* ==========================================================================
+   SWIPE-TO-DELETE: VISCOELASTIC LIQUID GLASS BUBBLE & CAPILLARY NECK
+   ========================================================================== */
+.tx-swipe-row-container {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.tx-swipe-row-container.deleting-sink,
 .transaction-item.deleting-sink {
   overflow: hidden !important;
   pointer-events: none !important;
@@ -7631,10 +8460,134 @@ img[src*="Kost"] {
   will-change: clip-path, transform, opacity, max-height, padding;
 }
 
+.tx-swipe-row-container.deleting-sink > *,
 .transaction-item.deleting-sink > * {
   transition: opacity 0.22s ease-out, transform 0.22s ease-out !important;
   opacity: 0 !important;
   transform: scale(0.92) !important;
+}
+
+.tx-swipe-action-backdrop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 140px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 1; /* Below transaction-item (z-index: 2) */
+  overflow: visible;
+}
+
+.tx-liquid-bridge-svg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 140px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.tx-liquid-bridge-body {
+  filter: drop-shadow(0 2px 3px rgba(88, 52, 18, 0.04));
+}
+
+.tx-liquid-bridge-sheen {
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.95));
+}
+
+/* 44px Circular Liquid Glass Bubble Pod with 100% Centered Trash Can */
+.tx-liquid-bubble-pod {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.90);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 240, 240, 0.54) 50%,
+    rgba(254, 226, 226, 0.40) 100%
+  );
+  backdrop-filter: blur(16px) saturate(200%) contrast(102%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  box-shadow:
+    0 4px 14px -1px rgba(220, 76, 76, 0.25),
+    0 2px 5px -1px rgba(88, 52, 18, 0.08),
+    inset 0 1.5px 2.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(220, 76, 76, 0.16);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  z-index: 2;
+  padding: 0;
+  outline: none;
+}
+
+/* 1. Curved Crescent Specular Arc (Puncak Sabit Kaca Putih Terang Apple) */
+.tx-liquid-bubble-pod .tx-bubble-crescent-arc {
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 44%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 2. PBR Apex Specular Radial Sheen (Kilau Kubah Kaca Kristal) */
+.tx-liquid-bubble-pod .tx-bubble-apex-glare {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 24px;
+  height: 18px;
+  background: radial-gradient(
+    ellipse at 40% 30%,
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 3. Dead-Center Trash Can Icon */
+.tx-delete-trash-icon {
+  position: relative;
+  z-index: 2;
+  display: block;
+  filter: drop-shadow(0 1px 1.5px rgba(255, 255, 255, 0.8));
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tx-liquid-bubble-pod:hover .tx-delete-trash-icon {
+  transform: scale(1.15);
+}
+
+.tx-liquid-bubble-pod:active {
+  transform: translateY(-50%) scale(0.92) !important;
+  box-shadow:
+    0 2px 6px -1px rgba(220, 76, 76, 0.18),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 1.5px rgba(220, 76, 76, 0.2);
 }
 
 /* Animasi Kartu Transaksi Baru: Muncul Bulat dari Tengah lalu Melebar Mulus ke Kiri-Kanan (Apple Charging Pill Style) */
@@ -9619,24 +10572,71 @@ img[src*="Kost"] {
 /* ==========================================================================
    Full One-Page Profile Sub-Screens & Header Actions
    ========================================================================== */
+/* Top-Right Confirm / Checkmark Button (Apple Liquid Glass Amber Gem) */
 .header-confirm-btn {
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  border: none;
-  width: 34px;
-  height: 34px;
+  position: relative;
+  overflow: hidden;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.28);
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 4px 14px -1px rgba(217, 119, 6, 0.38),
+    0 2px 5px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Layer 5: Specular Crescent Highlight Arc on Top Dome of Checkmark Button */
+.header-confirm-btn::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 14%;
+  right: 14%;
+  height: 42%;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.70) 0%,
+    rgba(255, 255, 255, 0.05) 70%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.header-confirm-btn > * {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.18));
+}
+
+.header-confirm-btn:hover {
+  background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+  box-shadow:
+    0 6px 18px -1px rgba(217, 119, 6, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.10),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95);
 }
 
 .header-confirm-btn:active {
-  transform: scale(0.92);
-  opacity: 0.9;
+  transform: scale(0.90);
+  box-shadow:
+    0 2px 6px rgba(217, 119, 6, 0.25),
+    inset 0 1px 1.2px #FFFFFF;
 }
 
 .header-submit-text-btn {

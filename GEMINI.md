@@ -9,7 +9,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.48`** | `versionCode` **`48`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.49`** | `versionCode` **`49`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
@@ -320,6 +320,10 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 * **Transaction Pop-Up Zoom Detail Invariant**:
   - Kartu zoom pop-up transaksi wajib 100% solid opacity menggunakan palet warna kategori masing-masing (`CATEGORY_BG_COLORS` / `resolveCardBgColor`), anti-tembus pandang.
   - Wajib 100% borderless tanpa garis tepi kaku dan tanpa `inset` outline pada `box-shadow`.
+
+* **Apple Liquid Glass (visionOS / iOS 26) System Invariants**:
+  - **Modal & Card Translucency (Strict Ban on Opaque Pseudo-Element Blocks)**: Pada modal kartu atau sheet berukuran besar (`.budget-sheet-card`, pop-up kustom), dilarang memasang pseudo-elemen `::before` berdimensi besar dengan opasitas putih pekat (`rgba(255, 255, 255, 0.9+)`). Seluruh ilusi kedalaman kaca kristal wajib dihasilkan melalui kombinasi `backdrop-filter: blur()`, translusensi gradien latar yang merata, dan *perimeter inset highlights* (`inset 0 1.5px 2px rgba(255, 255, 255, 0.95)`), sehingga bebas dari artefak blok/potongan layer putih di dalam modal.
+  - **Sub-Screen Header Action Gem & PIN Keypad Spheres**: Tombol centang konfirmasi di sub-header pengaturan (`.header-confirm-btn`) wajib mengusung bentuk permata kaca cair (*liquid glass gem*) melingkar 36px dengan *specular crescent arc* dan border tipis. Tombol keypad angka pada layar PIN (`.pin-key-btn` di `PinSetupModal` dan `PinLockScreen`) wajib berbentuk bola kristal kaca 3D (*3D crystal spheres*) 74px tembus pandang yang menyatu dengan latar hangat aplikasi, didukung indikator 6 titik PIN (*dots*) dengan pendaran gradien emas saat terisi.
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):
@@ -755,6 +759,29 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
    - **Pemisahan Respon Taktil Sentuhan**:
      - Event `pointerdown` hanya memicu respon taktil lokal (balon sedikit mengembang dan menegang di tempat). Peluncuran transisi (*flight launch*) dieksekusi saat sentuhan ketukan selesai (`handleNavTabClick`), mencegah balon melesat prematur saat pengguna baru menaruh jari di layar.
 
+8. **Arsitektur Baku 6 Tingkatan Liquid Glass + Latar Lingkungan Dinamis (Locked Invariant)**:
+   - Bilah navigasi bawah dan gelembung lensa aktif **WAJIB** dibangun menggunakan hierarki 6 tingkatan fisika optik sejati yang terkoordinasi:
+   - **Tingkat 0: Latar Belakang & Cahaya Lingkungan Dinamis (`.nav-ambient-caustic-backdrop`)**:
+     - Bilah `.bottom-nav` **DILARANG KERAS** menggunakan latar gradien pekat / solid yang menutup konten aplikasi di belakangnya. Transparansi bernapas (~0% hingga 42%) wajib dipertahankan agar transaksi dan kartu yang bergulir di belakang bar terlihat nyata menembus kaca.
+     - Menggunakan medan cahaya atmosferik `.nav-ambient-glow-mesh` (gradien hangat sunset amber `#F59E0B`, coral peach `#FB923C`, dan soft sky `#E0E7FF`) yang bernapas lembut.
+     - Dilengkapi titik fokus cahaya kaustik belakang `.nav-ambient-caustic-spot` yang bergerak halus mengikuti posisi horizontal balon kaca (`--bubble-x-pct`).
+   - **Tingkat 1: Background Layer (Transparansi Terkontrol - Regular Liquid Glass)**:
+     - Kapsul dermaga `.nav-glass-pill-shell` dan badan balon kaca mempertahankan transparansi kristal (~35%–46%) dengan tint champagne hangat (`#FFFDF8` / `#F8EFDC`), **DILARANG** dicat putih pekat (opacity > 70%).
+   - **Tingkat 2: Blur Layer (Difusi Optik Halus & Proteksi Keterbacaan)**:
+     - Menggunakan multi-tier diffusion: `backdrop-filter: blur(28px) saturate(210%) contrast(104%)` pada dermaga dock dan `blur(18px) saturate(190%)` pada gelembung aktif `.glass-bubble-blur-layer` untuk meredam noise latar tanpa mengaburkan ketajaman teks/ikon.
+   - **Tingkat 3: Refraction Layer (Pembiasan Meniskus & Dispersi Spektral Cauchy)**:
+     - Lapisan refraksi optik nyata `.glass-bubble-refraction-prism` dan `.nav-pill-cauchy-prism-rim` membiaskan latar di sepanjang kelengkungan dinding cembung.
+     - Menyertakan pendaran dispersi mikro Cauchy sejati ($\lambda_R = 650\text{nm}, \lambda_G = 550\text{nm}, \lambda_B = 450\text{nm}$) di batas sudut kritis kaca, menghasilkan kilauan prismatik kristal mewah.
+   - **Tingkat 4: Glass Material Layer (Bodi Kaca Kristal Volumetrik & Ketebalan 3D)**:
+     - Bodi kaca `.glass-bubble-material-body` memiliki ketebalan visual nyata melalui profil toroidal meniscus, kontras bifasik (Puncak Putih + Kedalaman Beer-Lambert Amber), dan multi-layered inner bevels (`inset 0 1.5px 2px rgba(255, 255, 255, 0.95)` & `inset 0 -1.5px 2.5px rgba(217, 119, 6, 0.12)`).
+   - **Tingkat 5: Highlight Layer (Curved Crescent Specular Arc — Puncak Sabit Putih Terang)**:
+     - Elemen terpenting identitas Liquid Glass Apple: Busur sabit putih terang benderang `.glass-bubble-crescent-arc` (`#FFFFFF` 100% luminous) di puncak kelengkungan bibir atas kapsul yang melengkung cembung mengikuti kontur tabung dan condong dinamis terhadap kemiringan sensor giroskop HP (`--glass-tilt-x`).
+     - Terdapat pula busur sabit serupa pada kontur dermaga `.nav-pill-bar-crescent-arc` dan socket tombol plus `.center-add-crescent-highlight`.
+   - **Tingkat 6: Liquid Glass Composite & Interaksi Responsif**:
+     - Ikon dan label menu aktif mengapung tajam dengan ketajaman vektor 100% dan kontras warna Warm Amber (`#D97706`).
+     - **Caustic Ground Spotlight (`.glass-bubble-ground-caustic`)**: Terdapat konsentrasi pendaran cahaya kristal hangat yang jatuh di bawah gelembung ke rel dermaga saat meluncur.
+     - Dipadukan dengan elastisitas pegas fluida Navier-Stokes (elongasi Weber, konservasi volume leher tetesan) dan getaran haptik hening.
+
 ### B. Komponen Lain di Cassiel yang Menggunakan Teknik Apple Design
 1. **Apple Direction-Aware Page Slide Transitions (`src/App.jsx` & `src/App.css`)**:
    - Pergantian halaman antar-tab (`Home`, `Accounts`, `Budget`, `Stats`) dihitung secara instan pada *render-pass* React (tanpa jeda `useEffect`) menggunakan kurva `cubic-bezier(0.16, 1, 0.3, 1)`.
@@ -801,6 +828,18 @@ Bagian ini mendokumentasikan secara terpusat seluruh komponen, rumus fisika pega
   - [`LGR_LANGUAGE_SPEC.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_LANGUAGE_SPEC.md): Spesifikasi tata bahasa formal EBNF bahasa `.lgr`.
   - [`LGR_MASTER_PLAN.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_MASTER_PLAN.md): Roadmap pengembangan rekayasa LGR.
   - [`LGR_RESEARCH_MASTER.md`](file:///c:/Users/GC/Desktop/finance%20tracker/liquid-glass-redi/LGR_RESEARCH_MASTER.md): Bedah komparatif Apple Liquid Glass vs LGR.
+
+### C. Standalone LGR Lab & Isomorphic Node/Browser Module Invariants
+1. **Standalone Lab Server & Clean URLs (Port 4321)**:
+   - Visual workbench mandiri LGR dilayani di **Port 4321** via skrip `node liquid-glass-redi/serve-lab.js` (BUKAN Vite port 5173 atau protokol `file:///`).
+   - Server wajib mendukung clean URL `/` dan `/lab` yang secara otomatis mengarah ke `/lab/index.html`.
+2. **Isomorphic Browser & Node Module Boundary**:
+   - Modul compiler (`compiler/lgrc.js`) dan SDK (`runtime/lgrRuntime.js`) wajib 100% aman dijalankan di lingkungan browser tanpa dependensi Node statis (`node:fs`, `node:path`).
+   - Seluruh pemanggilan modul filesystem Node wajib dibungkus deteksi runtime dinamis (`if (typeof process !== 'undefined' && process.versions?.node)`) agar tidak memicu error CORS atau kegagalan pemuatan sumber daya (`net::ERR_FAILED`) di browser Chromium.
+3. **Loop Telemetry Resilience (Anti-Undefined `.toFixed()`)**:
+   - Seluruh properti objek hasil komputasi/simulasi di dalam loop `tick()` (`requestAnimationFrame`) wajib menggunakan nullish coalescing guard (misalnya: `(computeRep.dispatchTimeMs || 0).toFixed(2)` alih-alih `computeRep.executionTimeMs`) untuk mencegah *TypeError* yang membekukan rendering dan interaksi input.
+4. **Universal Pointer & Drag Fallbacks**:
+   - Elemen interaktif kaca fluida (Stage 1 & Stage 2) wajib mendukung event pointer lengkap (`pointerdown`, `mousedown`, `touchstart`) dengan tracking pergerakan pada `window` agar interaksi drag tidak terputus saat kursor keluar dari batas canvas.
 
 ---
 

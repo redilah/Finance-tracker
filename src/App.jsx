@@ -68,6 +68,7 @@ import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, se
 import PinSetupModal from './components/PinSetupModal';
 import PinLockScreen from './components/PinLockScreen';
 import GuidedTourModal from './components/GuidedTourModal';
+import SwipeableTransactionItem from './components/SwipeableTransactionItem';
 import GroupsHubModal from './components/groups/GroupsHubModal';
 import HomeGroupTabContent from './components/HomeGroupTabContent';
 import ProUpgradeModal from './components/ProUpgradeModal';
@@ -232,49 +233,49 @@ const resolveCardBgClass = (catOrTx) => {
 
 const CATEGORY_BG_COLORS = {
   food: '#FAE2CB',
-  coffee: '#F3DBC4',
-  bioskop: '#EEDCE9',
+  coffee: '#EFE3D5',
+  bioskop: '#F2E1EE',
   transport: '#D9E8F1',
   barber: '#F8DECE',
-  skincare: '#F7D8E4',
+  skincare: '#F9DFEA',
   edukasi: '#DAE4F5',
   galon: '#D6EFE7',
-  fashion: '#E6E1F6',
-  supermarket: '#F7EFC8',
-  sub: '#D7ECE4',
-  pesawat: '#D0E6F5',
-  tranfer: '#D0E6F5',
-  transfer: '#D0E6F5',
-  kost: '#F4DFD2',
-  gofood: '#F8D7D7',
-  sepatu: '#EBDEFA',
-  donasi: '#F6DCE6',
-  topupGame: '#D7F4E1',
-  topupgame: '#D7F4E1',
-  bensin: '#F8DFCA',
-  konser: '#F6D0E3',
-  pulsa: '#D4E4F8',
-  rumahSakit: '#F9D8DC',
-  rumahsakit: '#F9D8DC',
-  obatSakit: '#DBF2E4',
-  obatsakit: '#DBF2E4',
-  jajanAdek: '#F7D8D8',
-  jajanadek: '#F7D8D8',
-  party: '#F7EAB9',
-  buah: '#DCF1DB',
-  minuman: '#D1E6F9',
-  wifi: '#D8F1EB',
-  biayaAdmin: '#EBE2F7',
-  biayaadmin: '#EBE2F7',
-  accessories: '#F5D7DF',
-  tiket: '#FEE5DC',
-  gaji: '#D5F1DF',
-  bonus: '#D8EBF9',
-  kip: '#F5DFDE',
-  freelance: '#EBE0F7',
+  fashion: '#E8E2F7',
+  supermarket: '#FAF2C8',
+  sub: '#D6EDE4',
+  pesawat: '#D0E6F7',
+  tranfer: '#D2ECF2',
+  transfer: '#D2ECF2',
+  kost: '#F6E3D5',
+  gofood: '#FCE2E2',
+  sepatu: '#EFE0FA',
+  donasi: '#F8DFEA',
+  topupGame: '#D9F5E2',
+  topupgame: '#D9F5E2',
+  bensin: '#F8ECD0',
+  konser: '#F7D6E6',
+  pulsa: '#DBEAFE',
+  rumahSakit: '#FCE4E7',
+  rumahsakit: '#FCE4E7',
+  obatSakit: '#DEF7E7',
+  obatsakit: '#DEF7E7',
+  jajanAdek: '#FDECEE',
+  jajanadek: '#FDECEE',
+  party: '#FEF3C7',
+  buah: '#E2F4DC',
+  minuman: '#D8F1FE',
+  wifi: '#FEF3C7',
+  biayaAdmin: '#E8EDF2',
+  biayaadmin: '#E8EDF2',
+  accessories: '#ECE7F9',
+  tiket: '#FCE5DC',
+  gaji: '#D1FAE5',
+  bonus: '#FEF08A',
+  kip: '#DBEAFE',
+  freelance: '#D3F6FA',
   investasi: '#DCF3DC',
-  bisnis: '#F8E7D1',
-  affiliate: '#F9E5DC',
+  bisnis: '#FFF0D4',
+  affiliate: '#E8EEFC',
   tambahSaldo: '#D8ECF9',
 };
 
@@ -762,6 +763,9 @@ function App() {
     const bubbleXPct = Math.max(6, Math.min(94, (pixelX / width) * 100));
     container.style.transformOrigin = '50% 100%';
     container.style.setProperty('--bubble-x-pct', `${bubbleXPct.toFixed(1)}%`);
+    if (container.parentElement) {
+      container.parentElement.style.setProperty('--bubble-x-pct', `${bubbleXPct.toFixed(1)}%`);
+    }
     if (Math.abs(clampedBarLift) < 0.001) {
       if (container.style.transform) {
         container.style.transform = '';
@@ -929,8 +933,8 @@ function App() {
           // Saat gerakan cepat beruntun, cadence multiplier Φ(Δt) menaikkan frekuensi secara mulus.
           const cadence = phys.cadenceMultiplier || 1.0;
           const distFactor = Math.min(1.0, totalDist / 220);
-          const omegaBase = 15.2; // Waktu tempuh santai pas di ~350ms
-          const omegaLead = (omegaBase + 2.6 * distFactor) * cadence;
+          const omegaBase = 19.0; // Waktu tempuh santai pas di ~280ms
+          const omegaLead = (omegaBase + 3.2 * distFactor) * cadence;
           const zetaLead = 0.89; // Critically damped untuk pendaratan super smooth tanpa overshoot
           const fLead = -omegaLead * omegaLead * (phys.leadPixel - target) - 2 * zetaLead * omegaLead * phys.velLead;
           phys.velLead += fLead * dt;
@@ -1179,7 +1183,7 @@ function App() {
       // Φ(Δt) = 1.0 + 0.90 * exp(-Δt / 320)
       // - Saat santai/pelan (Δt >= 700ms): Φ -> 1.0 (durasi pas di ~350ms, anggun & tenang)
       // - Saat cepat (Δt <= 200ms): Φ naik hingga 1.65x (durasi memadat hingga ~160ms, selaras tangan cepat)
-      const cadenceBoost = Math.max(1.0, Math.min(1.85, 1.0 + 0.90 * Math.exp(-dtTap / 320)));
+      const cadenceBoost = Math.max(1.0, Math.min(1.75, 1.0 + 0.75 * Math.exp(-dtTap / 260)));
       phys.cadenceMultiplier = cadenceBoost;
 
       // 2. Invarian Reversal Meniskus Fluida (Pembalikan Arah Tanpa Terputus):
@@ -2328,6 +2332,7 @@ function App() {
   const [deletingTxId, setDeletingTxId] = useState(null);
   const [deletingTxIds, setDeletingTxIds] = useState([]);
   const [voiceAnimatingTxIds, setVoiceAnimatingTxIds] = useState(() => new Set());
+  const [openSwipeTxId, setOpenSwipeTxId] = useState(null);
   const [voiceToastMessage, setVoiceToastMessage] = useState(null);
   const [isVoiceToastExiting, setIsVoiceToastExiting] = useState(false);
   const toastTimerRef = useRef(null);
@@ -2357,6 +2362,23 @@ function App() {
       toastTimerRef.current = null;
     }, 3000);
   }, []);
+
+  const handleDeleteTransactionItem = useCallback((targetTx) => {
+    if (!targetTx || deletingTxId) return;
+    setDeletingTxId(targetTx.id);
+    playPopSound('bubble_pop_2.wav');
+    showVoiceToast(`🗑️ Menghapus "${targetTx.title || targetTx.category || 'Transaksi'}"...`);
+
+    setTimeout(() => {
+      setTransactions(prev => {
+        const updated = prev.filter(t => t.id !== targetTx.id);
+        safeStorageSet('user_transactions', updated);
+        return updated;
+      });
+      setDeletingTxId(null);
+      showVoiceToast(`✅ Transaksi "${targetTx.title || targetTx.category || 'Transaksi'}" berhasil dihapus`);
+    }, 620);
+  }, [deletingTxId, showVoiceToast]);
 
   const handleSubmitFeedback = async () => {
     if (!feedbackText.trim()) return;
@@ -6279,44 +6301,24 @@ function App() {
                         }
 
                         return (
-                          <div 
-                            className={`transaction-item ${resolveCardBgClass(item)} ${isTxDeleting ? 'deleting-sink' : ''} ${firstTxClass}`} 
+                          <SwipeableTransactionItem
                             key={item.id}
-                            onClick={() => setActiveTxDetail(item)}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className={`transaction-icon ${item.iconClass}`}>
-                              {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
-                            </div>
-                            <div className="transaction-details">
-                              <span className="transaction-title">{item.title}</span>
-                              <span className="transaction-category">{getCategoryName(item.category, appLanguage)} • {item.account || 'BRImo'}</span>
-                            </div>
-                            <div className="transaction-actions-right">
-                              {isAutoTrackedTx(item) && (
-                                <button 
-                                  type="button" 
-                                  className="tx-edit-capsule-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditTransaction(item);
-                                  }}
-                                  title="Edit Transaksi Otomatis"
-                                  aria-label="Edit Transaksi Otomatis"
-                                >
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                  </svg>
-                                  <span>Edit</span>
-                                </button>
-                              )}
-                              <div className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}>
-                                {item.type === 'expense' ? '-' : '+'}{fmtHomeMoney(item.amount)}
-                              </div>
-                            </div>
-                          </div>
+                            item={item}
+                            resolveIcon={resolveIcon}
+                            resolveCardBgClass={resolveCardBgClass}
+                            resolveCardBgColor={resolveCardBgColor}
+                            getCategoryName={getCategoryName}
+                            appLanguage={appLanguage}
+                            fmtHomeMoney={fmtHomeMoney}
+                            isTxDeleting={isTxDeleting}
+                            firstTxClass={firstTxClass}
+                            isAutoTrackedTx={isAutoTrackedTx}
+                            handleEditTransaction={handleEditTransaction}
+                            setActiveTxDetail={setActiveTxDetail}
+                            onDeleteTransaction={handleDeleteTransactionItem}
+                            openRowId={openSwipeTxId}
+                            setOpenRowId={setOpenSwipeTxId}
+                          />
                         );
                       })}
                     </div>
@@ -7641,21 +7643,21 @@ function App() {
                   className={`budget-tab-btn ${budgetFilterTab === 'all' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('all')}
                 >
-                  {t('filterAll') || 'Semua'} ({countAll})
+                  <span className="budget-tab-btn-text">{t('filterAll') || 'Semua'} ({countAll})</span>
                 </button>
                 <button 
                   type="button" 
                   className={`budget-tab-btn ${budgetFilterTab === 'active' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('active')}
                 >
-                  {t('filterActive') || 'Aktif'} ({countActive})
+                  <span className="budget-tab-btn-text">{t('filterActive') || 'Aktif'} ({countActive})</span>
                 </button>
                 <button 
                   type="button" 
                   className={`budget-tab-btn ${budgetFilterTab === 'unset' ? 'active' : ''}`}
                   onClick={() => setBudgetFilterTab('unset')}
                 >
-                  {t('filterUnset') || 'Belum Diatur'} ({countUnset})
+                  <span className="budget-tab-btn-text">{t('filterUnset') || 'Belum Diatur'} ({countUnset})</span>
                 </button>
               </div>
             );
@@ -7863,6 +7865,11 @@ function App() {
       {/* Bottom Nav — Apple iOS 26 "Liquid Glass" (Light/Warm Glass + Center Plus Opsi B) */}
       {!isEditingMainBudget && !isSearchingBudget && (
         <nav className="bottom-nav">
+          {/* Dynamic Environmental Background Aura (Latar Lingkungan & Caustic Backlight) */}
+          <div className="nav-ambient-caustic-backdrop" aria-hidden="true">
+            <div className="nav-ambient-glow-mesh" />
+            <div className="nav-ambient-caustic-spot" />
+          </div>
           <div
             className="nav-items-container nav-glass-pill-shell"
             ref={(el) => {
@@ -7888,6 +7895,9 @@ function App() {
             onPointerCancel={handleNavPointerUpOrCancel}
           >
             {/* Subtle Inner Top & Bottom Specular Sheens of the Warm Glass Capsule Bar */}
+            {/* TINGKAT 3 & 4 (Dock): Cauchy Dispersion Prism Rim & Curved Crescent Specular Arc */}
+            <div className="nav-pill-cauchy-prism-rim" aria-hidden="true" />
+            <div className="nav-pill-bar-crescent-arc" aria-hidden="true" />
             <div className="nav-pill-bar-specular" aria-hidden="true" />
             <div className="nav-pill-bar-bottom-specular" aria-hidden="true" />
 
@@ -7954,6 +7964,12 @@ function App() {
               }}
               aria-hidden="true"
             >
+              {/* TINGKAT 2: Controlled Diffusion Blur Layer */}
+              <div className="glass-bubble-blur-layer" />
+
+              {/* TINGKAT 3: Refraction Layer with Cauchy Spectral Dispersion Fringe */}
+              <div className="glass-bubble-refraction-prism" />
+
               {/* Optical Clip Stage (3D Capsule Meniscus Barrel Refraction + Crisp Vector Core) */}
               <div className="nav-lens-refraction-stage">
                 <div className="nav-lens-inner-world" ref={navLensWorldRef}>
@@ -7986,7 +8002,17 @@ function App() {
               <div className="glass-bubble-pole-bottom" />
 
               {/* Outer 3D Crystal Specular Rim & Surface Glare (Zero Rainbow Colors) */}
+              {/* TINGKAT 4: Glass Material Layer (Toroidal Meniscus, Subsurface Light & Beer-Lambert Depth) */}
+              <div className="glass-bubble-material-body" />
+
+              {/* TINGKAT 5: Highlight Layer (Curved Crescent Specular Arc — Kurva Puncak Sabit Putih Terang) */}
+              <div className="glass-bubble-crescent-arc" />
+              <div className="glass-bubble-pole-top" />
+              <div className="glass-bubble-pole-bottom" />
               <div className="glass-bubble-specular-shell" />
+
+              {/* TINGKAT 6 Subsurface: Caustic Ground Spotlight (Konsentrasi Cahaya Kristal di Rel) */}
+              <div className="glass-bubble-ground-caustic" />
             </div>
 
             {/* LAYER 3: Real-Time WebGL2 GLSL Fragment Shader (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel) */}
@@ -8021,6 +8047,7 @@ function App() {
 
             {/* Center Floating Plus Button (Opsi B — Tetap di Tengah) */}
             <div className="center-add-wrapper tour-target-add">
+              <div className="center-add-crescent-highlight" aria-hidden="true" />
               <button
                 type="button"
                 className="center-add-btn"
@@ -9054,27 +9081,8 @@ function App() {
 
                 {/* ⚖️ JUSTICE CASSIEL VIP CARD */}
                 <div 
-                  className="justice-cassiel-profile-card"
+                  className={`justice-cassiel-profile-card ${isPro ? 'is-pro' : ''}`}
                   onClick={() => handleOpenProModal('general')}
-                  style={{
-                    margin: '12px auto 0',
-                    width: 'calc(100% - 16px)',
-                    maxWidth: '360px',
-                    borderRadius: '16px',
-                    padding: '12px 16px',
-                    background: isPro 
-                      ? '#F59E0B' 
-                      : '#FFFFFF',
-                    border: isPro ? 'none' : '1px solid #FDE68A',
-                    boxShadow: isPro 
-                      ? '0 4px 14px rgba(245, 158, 11, 0.28)' 
-                      : '0 2px 8px rgba(0, 0, 0, 0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'transform 0.15s ease'
-                  }}
                 >
                   <div style={{ textAlign: 'left' }}>
                     <div style={{
@@ -9097,11 +9105,11 @@ function App() {
                         <span style={{
                           fontSize: '9px',
                           fontWeight: '800',
-                          padding: '1.5px 6px',
+                          padding: '1.5px 6.5px',
                           borderRadius: '6px',
                           background: isPro ? 'rgba(255, 255, 255, 0.95)' : 'linear-gradient(135deg, #F59E0B, #D97706)',
                           color: isPro ? '#B45309' : '#FFFFFF',
-                          boxShadow: isPro ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none'
+                          boxShadow: isPro ? '0 2px 4px rgba(0, 0, 0, 0.1)' : '0 1px 4px rgba(217, 119, 6, 0.25)'
                         }}>
                           {isPro ? 'PRO AKTIF' : 'UPGRADE'}
                         </span>
@@ -9110,7 +9118,7 @@ function App() {
                         fontSize: '11px',
                         color: isPro ? 'rgba(255, 255, 255, 0.95)' : '#B45309',
                         marginTop: '2px',
-                        fontWeight: isPro ? '600' : 'normal'
+                        fontWeight: isPro ? '600' : '500'
                       }}>
                         {isPro 
                           ? 'Akses Penuh Tanpa Batas Seluruh Fitur' 
@@ -9127,6 +9135,7 @@ function App() {
                     strokeWidth="2.5" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
                   >
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
@@ -9136,32 +9145,16 @@ function App() {
                 <div 
                   className="kitabisa-transparency-profile-card"
                   onClick={() => setIsKitabisaModalOpen(true)}
-                  style={{
-                    margin: '8px auto 0',
-                    width: 'calc(100% - 16px)',
-                    maxWidth: '360px',
-                    borderRadius: '16px',
-                    padding: '11px 16px',
-                    background: 'rgba(255, 255, 255, 0.92)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(2, 132, 199, 0.18)',
-                    boxShadow: '0 2px 10px rgba(2, 132, 199, 0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'transform 0.15s ease'
-                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <img 
                       src={kitabisaLogo} 
                       alt="Kitabisa" 
-                      style={{ width: '22px', height: '22px', borderRadius: '6px', objectFit: 'cover' }} 
+                      style={{ width: '24px', height: '24px', borderRadius: '7px', objectFit: 'cover', flexShrink: 0, boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)' }} 
                     />
                     <div style={{ textAlign: 'left' }}>
                       <div style={{
-                        fontSize: '13px',
+                        fontSize: '13.5px',
                         fontWeight: '800',
                         color: '#0284C7',
                         display: 'flex',
@@ -9171,9 +9164,10 @@ function App() {
                         <span>Jalur Penyaluran & Bukti Donasi</span>
                       </div>
                       <div style={{
-                        fontSize: '10.5px',
+                        fontSize: '11px',
                         color: '#64748B',
-                        marginTop: '1px'
+                        marginTop: '1px',
+                        fontWeight: '500'
                       }}>
                         Pantau penyaluran real-time & bukti sertifikat donasi
                       </div>
@@ -9189,6 +9183,7 @@ function App() {
                     strokeWidth="2.5" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
                   >
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>

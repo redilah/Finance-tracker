@@ -7,8 +7,8 @@ android {
         applicationId "com.redilah.financetracker"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 48
-        versionName "1.0.48"
+        versionCode 49
+        versionName "1.0.49"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -101,6 +101,29 @@ try {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
 
+tasks.register('copyCassielApk') {
+    doLast {
+        def srcApk = layout.buildDirectory.file("outputs/apk/cassiel/release/app-cassiel-release.apk").get().asFile
+        if (srcApk.exists()) {
+            def targets = [
+                rootProject.file("../apk/Cassiel.apk"),
+                rootProject.file("../apk/app-release.apk"),
+                rootProject.file("../apk/app-cassiel-release.apk"),
+                rootProject.file("../Cassiel.apk")
+            ]
+            targets.each { target ->
+                target.parentFile.mkdirs()
+                srcApk.withInputStream { ins ->
+                    target.withOutputStream { outs ->
+                        outs << ins
+                    }
+                }
+                println ">> [AUTO-SYNC CASSIEL APK] Copied to: ${target.absolutePath}"
+            }
+        }
+    }
+}
+
 tasks.register('copySarielApk') {
     doLast {
         def srcApk = layout.buildDirectory.file("outputs/apk/sariel/release/app-sariel-release.apk").get().asFile
@@ -149,6 +172,9 @@ tasks.register('copyCassielBundle') {
 }
 
 gradle.projectsEvaluated {
+    tasks.matching { it.name == 'assembleCassielRelease' || it.name == 'assembleRelease' }.configureEach { task ->
+        task.finalizedBy('copyCassielApk')
+    }
     tasks.matching { it.name == 'assembleSarielRelease' }.configureEach { task ->
         task.finalizedBy('copySarielApk')
     }
