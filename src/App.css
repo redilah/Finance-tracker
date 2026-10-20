@@ -1319,7 +1319,12 @@ img[src*="Kost"] {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: transparent;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 239, 230, 0) 0%,
+    rgba(248, 239, 230, 0.65) 45%,
+    rgba(248, 239, 230, 0.94) 100%
+  );
   z-index: 100;
   pointer-events: none;
 }
@@ -1332,7 +1337,7 @@ img[src*="Kost"] {
   overflow: hidden;
 }
 
-/* Light/Warm Glass Floating Pill Container (Apple Liquid Glass Dock — Pure Optical Transparency) */
+/* Light/Warm Glass Floating Pill Container (Apple Liquid Glass Dock with 120fps Elastic Bar Bounce) */
 .nav-items-container.nav-glass-pill-shell {
   position: relative;
   z-index: 3;
@@ -1340,46 +1345,30 @@ img[src*="Kost"] {
   height: 62px;
   padding: 0;
   border-radius: 999px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(254, 251, 246, 0.82) 42%,
+    rgba(247, 238, 226, 0.88) 100%
+  );
+  -webkit-backdrop-filter: blur(28px) saturate(210%) contrast(102%);
+  backdrop-filter: blur(28px) saturate(210%) contrast(102%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 4px 20px -2px rgba(0, 0, 0, 0.06),
-    0 1px 4px -1px rgba(0, 0, 0, 0.03),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 1px 0 rgba(255, 255, 255, 0.25);
+    0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 3px 8px -1px rgba(88, 52, 18, 0.08),
+    0 16px 38px -4px rgba(92, 58, 24, 0.14),
+    0 26px 48px -10px rgba(217, 119, 6, 0.07),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 1),
+    inset 0 3px 6px rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -2.5px 4px rgba(195, 145, 95, 0.18);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
   overflow: visible;
   transform-origin: 50% 50%;
-}
-
-/* Dedicated Optical Glass Backdrop Surface (Android WebView & iOS Optical Blur Engine) */
-.nav-items-container.nav-glass-pill-shell::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  overflow: hidden;
-  /* Translucent Liquid Glass: netral & menyerap warna lingkungan di belakangnya (~70% transmisi) */
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.40) 0%,
-    rgba(255, 255, 255, 0.18) 48%,
-    rgba(255, 255, 255, 0.28) 100%
-  );
-  /* Blur terkalibrasi: siluet & warna kartu di belakang tetap terlihat menembus kaca */
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-@supports not ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
-  .nav-items-container.nav-glass-pill-shell::before {
-    background: rgba(255, 255, 255, 0.88);
-  }
 }
 
 .nav-pill-bar-specular {
@@ -1528,44 +1517,44 @@ img[src*="Kost"] {
   z-index: 6;
   will-change: transform;
   transform-origin: center center;
-  /* Liquid Glass Droplet: Transparan kristal alami, bukan tombol putih timbul */
+  /* Dynamic 3D Convex Volume Dome: shifts focal light & clarifies into pure crystal water/glass on lift */
   background:
     radial-gradient(
       95% 75% at calc(50% - var(--glass-tilt-x) * 18%) calc(84% + var(--glass-lift) * 4%),
-      rgba(255, 255, 255, calc(0.16 + var(--glass-lift) * 0.20)) 0%,
-      rgba(255, 255, 255, 0) 70%
+      rgba(255, 252, 245, calc(0.24 + var(--glass-lift) * 0.28)) 0%,
+      rgba(255, 250, 242, 0) 70%
     ),
     radial-gradient(
-      110% 95% at calc(50% - var(--glass-tilt-x) * 14%) calc(18% - var(--glass-lift) * 4%),
-      rgba(255, 255, 255, calc(0.44 - var(--glass-active) * 0.18)) 0%,
-      rgba(255, 255, 255, calc(0.14 - var(--glass-active) * 0.08)) 65%,
-      rgba(255, 255, 255, calc(0.26 - var(--glass-active) * 0.12)) 100%
+      122% 108% at calc(50% - var(--glass-tilt-x) * 16%) calc(16% - var(--glass-lift) * 4%),
+      rgba(255, 255, 255, calc(0.84 - var(--glass-active) * 0.64)) 0%,
+      rgba(255, 253, 250, calc(0.70 - var(--glass-active) * 0.58)) 44%,
+      rgba(246, 236, 224, calc(0.64 - var(--glass-active) * 0.52)) 80%,
+      rgba(255, 255, 255, calc(0.90 - var(--glass-active) * 0.32)) 100%
     );
-  /* Depth optik murni (menghilangkan bayangan cokelat tebal neumorphism) */
+  /* Coupled 3D Buoyant Elevation Shadow + Snellius Subsurface Caustic Light Focus */
   box-shadow:
-    0 calc(2px + var(--glass-lift) * 3px) calc(6px + var(--glass-lift) * 6px) rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02),
-    inset 0 1px 1.2px rgba(255, 255, 255, 0.90),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.30);
+    0 calc(3px + var(--glass-lift) * 6.5px) calc(10px + var(--glass-lift) * 12px) rgba(92, 58, 24, calc(0.11 + var(--glass-lift) * 0.12)),
+    0 calc(1.5px + var(--glass-lift) * 2px) calc(4px + var(--glass-lift) * 5px) rgba(0, 0, 0, calc(0.05 + var(--glass-lift) * 0.05)),
+    0 calc(2px + var(--glass-lift) * 4px) calc(8px + var(--glass-lift) * 10px) rgba(255, 251, 242, calc(0.45 * var(--glass-lift)));
   transition: opacity 0.18s ease;
 }
 
-/* Subsurface Refractive Meniscus Wall (Menghilangkan gradasi krem pekat) */
+/* Subsurface Refractive Meniscus Wall (Simulates Crown Crystal Index of Refraction n = 1.52) */
 .nav-liquid-glass-bubble::before {
   content: '';
   position: absolute;
-  inset: 1px;
+  inset: 1.2px;
   border-radius: 999px;
   background: radial-gradient(
     88% 82% at calc(50% + var(--glass-tilt-x) * 12%) 50%,
-    rgba(255, 255, 255, 0) 65%,
-    rgba(255, 255, 255, calc(0.18 + var(--glass-lift) * 0.22)) 100%
+    rgba(255, 255, 255, 0) 58%,
+    rgba(255, 255, 255, calc(0.24 + var(--glass-lift) * 0.36)) 88%,
+    rgba(240, 228, 214, calc(0.18 + var(--glass-active) * 0.22)) 100%
   );
   pointer-events: none;
   z-index: 2;
 }
 
-/* Optical Clip Stage (3D Capsule Meniscus Lens Stage — 100% Exact Pill Boundary) */
 .nav-lens-refraction-stage {
   position: absolute;
   inset: 0;
