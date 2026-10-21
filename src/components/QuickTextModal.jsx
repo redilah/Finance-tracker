@@ -191,7 +191,7 @@ export default function QuickTextModal({
               ref={inputRef}
               type="text"
               className="quick-text-input"
-              placeholder=""
+              placeholder="Ketik transaksi... (cth: kopi 18k gopay)"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               autoComplete="off"

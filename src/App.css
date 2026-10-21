@@ -1403,7 +1403,7 @@ img[src*="Kost"] {
   );
   filter: blur(14px);
   pointer-events: none;
-  transition: left 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: left;
 }
 
 /* ==========================================================================
@@ -1541,7 +1541,7 @@ img[src*="Kost"] {
 .nav-base-layer {
   position: relative;
   z-index: 3;
-  will-change: mask-image, -webkit-mask-image;
+  will-change: opacity, transform;
 }
 
 .nav-group-left {
@@ -1609,6 +1609,16 @@ img[src*="Kost"] {
   transform: none;
 }
 
+/* GPU Zero-Raster Hardware-Accelerated Tab Separation */
+.nav-base-layer .nav-item {
+  transition: opacity 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.nav-base-layer .nav-item.active {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ==========================================================================
    3D Apple Liquid Glass Bubble (6 Tingkatan Optik & Mekanika Fluida)
    ========================================================================== */
@@ -1620,7 +1630,7 @@ img[src*="Kost"] {
   position: absolute;
   top: 50%;
   left: 0;
-  width: 69px;
+  width: 60px;
   height: 48px;
   border-radius: 999px;
   pointer-events: none;
@@ -1894,7 +1904,7 @@ img[src*="Kost"] {
 
 /* Tab View Switch Animation — Apple Synchronized Fluid Slide */
 .tab-page-transition {
-  animation-duration: var(--slide-dur, 0.36s);
+  animation-duration: var(--slide-dur, 0.26s);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: forwards;
 }
@@ -3441,18 +3451,33 @@ img[src*="Kost"] {
   opacity: 0.9;
 }
 
-/* 5. Modal Dialog: Atur Saldo Akun */
+/* 5. Modal Dialog: Atur Saldo Akun — Apple Liquid Glass (visionOS / iOS 26) */
 .set-balance-modal-card {
-  background: #FFFFFF;
-  border-radius: 24px;
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.80) 0%,
+    rgba(255, 250, 244, 0.55) 50%,
+    rgba(250, 241, 230, 0.72) 100%
+  );
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 28px;
   padding: 24px 20px;
   width: 90%;
   max-width: 380px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 24px 50px -10px rgba(43, 30, 22, 0.22),
+    0 8px 20px -4px rgba(43, 30, 22, 0.10),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
   display: flex;
   flex-direction: column;
   gap: 16px;
   animation: popScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .set-balance-header {
@@ -3468,23 +3493,31 @@ img[src*="Kost"] {
 }
 
 .set-balance-title {
-  font-size: 16px;
+  font-size: 16.5px;
   font-weight: 800;
-  color: #2D221A;
+  color: #1E293B;
+  letter-spacing: -0.2px;
 }
 
 .set-balance-sub {
   font-size: 12px;
-  color: #8C786A;
+  font-weight: 600;
+  color: #78716C;
 }
 
-/* Tab Switcher: Tambah Saldo vs Edit Saldo Awal */
+/* Tab Switcher: Tambah Saldo vs Edit Saldo Awal (Liquid Glass Track) */
 .set-balance-tabs {
   display: flex;
-  background: #F4EAE0;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 14px;
   padding: 4px;
   gap: 4px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
 }
 
 .set-balance-tab-btn {
@@ -3492,33 +3525,70 @@ img[src*="Kost"] {
   border: none;
   background: transparent;
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #8C786A;
+  color: #78716C;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
 }
 
 .set-balance-tab-btn.active {
-  background: #FFFFFF;
-  color: #BC6C25;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  color: #D97706;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 2px 8px rgba(43, 30, 22, 0.08),
+    inset 0 1px 1px #FFFFFF;
 }
 
 .set-balance-input-box {
-  background: #FAF6F1;
-  border-radius: 16px;
-  padding: 14px 16px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 20px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 4px 14px rgba(43, 30, 22, 0.04),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.set-balance-input-box:focus-within {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow:
+    0 0 0 3.5px rgba(245, 158, 11, 0.12),
+    0 6px 18px rgba(217, 119, 6, 0.08),
+    inset 0 1px 1.5px #FFFFFF;
 }
 
 .set-balance-note-box {
-  background: #FAF6F1;
-  border-radius: 12px;
-  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  border-radius: 16px;
+  padding: 11px 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.02),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+}
+
+.set-balance-note-box:focus-within {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow:
+    0 0 0 2.5px rgba(245, 158, 11, 0.10),
+    inset 0 1px 1px #FFFFFF;
 }
 
 .set-balance-note-input {
@@ -3526,19 +3596,21 @@ img[src*="Kost"] {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
-  color: #2D221A;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
   font-family: inherit;
 }
 
 .set-balance-note-input::placeholder {
-  color: #A08C7D;
+  color: #94A3B8;
+  font-weight: 400;
 }
 
 .set-balance-currency {
   font-size: 22px;
   font-weight: 800;
-  color: #BC6C25;
+  color: #D97706;
 }
 
 .set-balance-input {
@@ -3546,20 +3618,28 @@ img[src*="Kost"] {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
-  color: #BC6C25;
+  color: #D97706;
   font-family: inherit;
   width: 100%;
 }
 
 .set-balance-prompt-text {
   font-size: 12px;
-  color: #8C786A;
-  line-height: 1.45;
-  background: rgba(244, 234, 224, 0.4);
-  padding: 10px 12px;
-  border-radius: 12px;
+  color: #64748B;
+  line-height: 1.48;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  padding: 11px 14px;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 2px 6px rgba(43, 30, 22, 0.02),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  margin: 0;
 }
 
 .set-balance-actions {
@@ -3570,38 +3650,83 @@ img[src*="Kost"] {
 
 .set-balance-btn-cancel {
   flex: 1;
-  background: #F4EAE0;
-  border: none;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 13.5px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  padding: 13px;
+  font-size: 14px;
   font-weight: 700;
-  color: #8C786A;
+  color: #64748B;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 6px rgba(43, 30, 22, 0.04),
+    inset 0 1px 1.2px rgba(255, 255, 255, 0.95);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.set-balance-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.78);
+  color: #334155;
+  transform: translateY(-1px);
 }
 
 .set-balance-btn-cancel:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.90);
 }
 
 .set-balance-btn-save {
+  position: relative;
   flex: 1.5;
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
-  border: none;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 13.5px;
-  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.38) !important;
+  border-radius: 16px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 800;
   color: #FFFFFF !important;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.32) !important;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  box-shadow:
+    0 8px 20px -3px rgba(217, 119, 6, 0.38),
+    0 2px 6px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 2px rgba(180, 83, 9, 0.35) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  overflow: hidden;
+  letter-spacing: -0.2px;
+}
+
+.set-balance-btn-save::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 8%;
+  right: 8%;
+  height: 42%;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+}
+
+.set-balance-btn-save:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
 }
 
 .set-balance-btn-save:active {
   transform: scale(0.97);
-  filter: brightness(0.95);
+  filter: brightness(0.96);
+  box-shadow:
+    0 3px 10px -1px rgba(217, 119, 6, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
 }
 
 /* 6. Full-Page Detail Akun Drawer / Screen */
@@ -8501,7 +8626,7 @@ img[src*="Kost"] {
   filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.95));
 }
 
-/* 44px Circular Liquid Glass Bubble Pod with 100% Centered Trash Can */
+/* 44px Circular Liquid Glass Bubble Pod with 100% Centered Trash Can (Neutral Crystal Glass) */
 .tx-liquid-bubble-pod {
   position: absolute;
   right: 6px;
@@ -8515,24 +8640,26 @@ img[src*="Kost"] {
   cursor: pointer;
   border: 1.5px solid rgba(255, 255, 255, 0.90);
   background: linear-gradient(
-    135deg,
+    145deg,
     rgba(255, 255, 255, 0.82) 0%,
-    rgba(255, 240, 240, 0.54) 50%,
-    rgba(254, 226, 226, 0.40) 100%
+    rgba(244, 244, 246, 0.52) 50%,
+    rgba(228, 228, 232, 0.58) 100%
   );
-  backdrop-filter: blur(16px) saturate(200%) contrast(102%);
-  -webkit-backdrop-filter: blur(16px) saturate(200%);
+  backdrop-filter: blur(18px) saturate(190%) contrast(102%);
+  -webkit-backdrop-filter: blur(18px) saturate(190%);
   box-shadow:
-    0 4px 14px -1px rgba(220, 76, 76, 0.25),
-    0 2px 5px -1px rgba(88, 52, 18, 0.08),
+    0 4px 14px -1px rgba(0, 0, 0, 0.12),
+    0 2px 5px -1px rgba(88, 52, 18, 0.06),
     inset 0 1.5px 2.5px rgba(255, 255, 255, 0.95),
-    inset 0 -1.5px 2px rgba(220, 76, 76, 0.16);
+    inset 0 3px 6px rgba(255, 255, 255, 0.40),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.08);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   overflow: hidden;
   z-index: 2;
   padding: 0;
   outline: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease;
 }
 
 /* 1. Curved Crescent Specular Arc (Puncak Sabit Kaca Putih Terang Apple) */
@@ -8569,25 +8696,43 @@ img[src*="Kost"] {
   z-index: 1;
 }
 
-/* 3. Dead-Center Trash Can Icon */
+/* 3. Pure 3D Sculpted Apple Liquid Glass Trash Can (Optical Crystal Volume) */
 .tx-delete-trash-icon {
   position: relative;
   z-index: 2;
   display: block;
-  filter: drop-shadow(0 1px 1.5px rgba(255, 255, 255, 0.8));
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
 }
 
-.tx-liquid-bubble-pod:hover .tx-delete-trash-icon {
-  transform: scale(1.15);
+.tx-liquid-glass-trash {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.85));
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+}
+
+.tx-glass-trash-lid-group {
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 12px 6.6px;
+}
+
+.tx-liquid-bubble-pod:hover .tx-liquid-glass-trash {
+  transform: scale(1.14);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.16)) drop-shadow(0 0 2px rgba(255, 255, 255, 1));
+}
+
+.tx-liquid-bubble-pod:hover .tx-glass-trash-lid-group {
+  transform: translateY(-1.2px) rotate(-3.5deg);
+}
+
+.tx-liquid-bubble-pod:active .tx-liquid-glass-trash {
+  transform: scale(0.95);
 }
 
 .tx-liquid-bubble-pod:active {
   transform: translateY(-50%) scale(0.92) !important;
   box-shadow:
-    0 2px 6px -1px rgba(220, 76, 76, 0.18),
+    0 2px 6px -1px rgba(0, 0, 0, 0.10),
     inset 0 1px 1.5px rgba(255, 255, 255, 0.8),
-    inset 0 -1px 1.5px rgba(220, 76, 76, 0.2);
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.12);
 }
 
 /* Animasi Kartu Transaksi Baru: Muncul Bulat dari Tengah lalu Melebar Mulus ke Kiri-Kanan (Apple Charging Pill Style) */
@@ -8932,16 +9077,16 @@ img[src*="Kost"] {
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
-/* Quick Text Modal Overlay */
+/* Quick Text Modal Overlay - Apple Liquid Glass (visionOS / iOS 26) */
 .quick-text-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(43, 30, 22, 0.45);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(30, 20, 14, 0.45);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -8957,21 +9102,38 @@ img[src*="Kost"] {
 }
 
 .quick-text-modal-card {
+  position: relative;
   width: 100%;
   max-width: 440px;
-  background: var(--bg-app, #F8EFE6);
-  border-radius: 28px 28px 20px 20px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 250, 244, 0.54) 50%,
+    rgba(250, 241, 230, 0.72) 100%
+  );
+  -webkit-backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  backdrop-filter: blur(28px) saturate(190%) contrast(102%);
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 28px 28px 22px 22px;
   padding: 22px 20px 24px;
-  box-shadow: 0 -8px 32px rgba(43, 30, 22, 0.18);
-  border: none;
+  box-shadow:
+    0 24px 50px -10px rgba(43, 30, 22, 0.22),
+    0 8px 20px -4px rgba(43, 30, 22, 0.10),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
   animation: slideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 @media (min-width: 500px) {
   .quick-text-modal-card {
     border-radius: 28px;
-    box-shadow: 0 16px 40px rgba(43, 30, 22, 0.2);
+    box-shadow:
+      0 24px 50px -10px rgba(43, 30, 22, 0.22),
+      0 8px 20px -4px rgba(43, 30, 22, 0.10),
+      inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
+      inset 0 -1.5px 2px rgba(255, 255, 255, 0.45);
   }
 }
 
@@ -8984,31 +9146,32 @@ img[src*="Kost"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .quick-text-title-wrapper {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .quick-text-sparkle {
   font-size: 18px;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3));
 }
 
 .quick-text-title {
   font-size: 18px;
   font-weight: 800;
-  color: #2D5284;
+  color: #1E293B;
   letter-spacing: -0.2px;
 }
 
 .quick-text-close-btn {
-  background: transparent;
-  border: none;
-  color: #8C7A6B;
-  font-size: 17px;
+  background: rgba(255, 255, 255, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #64748B;
+  font-size: 14px;
   font-weight: 700;
   width: 32px;
   height: 32px;
@@ -9017,11 +9180,23 @@ img[src*="Kost"] {
   justify-content: center;
   border-radius: 50%;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 6px rgba(43, 30, 22, 0.04),
+    inset 0 1px 1.5px #FFFFFF;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-text-close-btn:hover {
+  background: rgba(255, 255, 255, 0.75);
+  color: #334155;
+  transform: scale(1.05);
 }
 
 .quick-text-close-btn:active {
-  background: rgba(0, 0, 0, 0.05);
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.90);
 }
 
 .quick-text-hint {
@@ -9041,11 +9216,26 @@ img[src*="Kost"] {
   position: relative;
   display: flex;
   align-items: center;
-  background: #FFFFFF;
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 20px;
   padding: 4px 14px;
-  box-shadow: 0 3px 10px rgba(43, 30, 22, 0.05);
-  border: none;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 4px 14px rgba(43, 30, 22, 0.04),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-text-input-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow:
+    0 0 0 3.5px rgba(245, 158, 11, 0.12),
+    0 6px 18px rgba(217, 119, 6, 0.08),
+    inset 0 1px 1.5px #FFFFFF;
 }
 
 .quick-text-input {
@@ -9055,21 +9245,21 @@ img[src*="Kost"] {
   padding: 12px 6px;
   font-size: 15px;
   font-weight: 600;
-  color: #2B1E16;
+  color: #1E293B;
   outline: none;
   font-family: inherit;
 }
 
 .quick-text-input::placeholder {
-  color: #B5A89E;
+  color: #94A3B8;
   font-weight: 400;
   font-size: 13.5px;
 }
 
 .quick-text-clear-btn {
-  background: #ECE5DE;
-  border: none;
-  color: #7D6E63;
+  background: rgba(226, 232, 240, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  color: #64748B;
   font-size: 11px;
   font-weight: bold;
   width: 22px;
@@ -9080,25 +9270,39 @@ img[src*="Kost"] {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  transition: all 0.15s ease;
+}
+
+.quick-text-clear-btn:active {
+  transform: scale(0.9);
+  background: rgba(203, 213, 225, 0.85);
 }
 
 /* Live Interpretation Preview Box */
 .quick-text-preview-box {
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
-  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 18px;
+  padding: 11px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 2px 8px rgba(43, 30, 22, 0.03);
+  gap: 7px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 14px rgba(43, 30, 22, 0.03),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.9);
 }
 
 .quick-text-preview-label {
   font-size: 11px;
   font-weight: 700;
-  color: #8C7A6B;
+  color: #78716C;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
 }
 
 .quick-text-chips-row {
@@ -9110,46 +9314,57 @@ img[src*="Kost"] {
 .quick-chip {
   font-size: 12px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .quick-chip.chip-type.expense {
-  background: #FEE2E2;
+  background: rgba(254, 226, 226, 0.78);
   color: #991B1B;
+  border-color: rgba(254, 202, 202, 0.85);
 }
 
 .quick-chip.chip-type.income {
-  background: #D1FAE5;
+  background: rgba(209, 250, 229, 0.78);
   color: #065F46;
+  border-color: rgba(167, 243, 208, 0.85);
 }
 
 .quick-chip.chip-amount {
-  background: #FEF3C7;
+  background: rgba(254, 243, 199, 0.78);
   color: #92400E;
+  border-color: rgba(253, 230, 138, 0.85);
 }
 
 .quick-chip.chip-category {
-  background: #E0E7FF;
+  background: rgba(224, 231, 255, 0.78);
   color: #3730A3;
+  border-color: rgba(199, 210, 254, 0.85);
 }
 
 .quick-chip.chip-account {
-  background: #EDE9FE;
+  background: rgba(237, 233, 254, 0.78);
   color: #5B21B6;
+  border-color: rgba(221, 214, 254, 0.85);
 }
 
 .quick-chip.chip-note {
-  background: #F3F4F6;
+  background: rgba(243, 244, 246, 0.78);
   color: #374151;
+  border-color: rgba(229, 231, 235, 0.85);
 }
 
 .quick-chip.chip-delete {
-  background: #FEE2E2;
+  background: rgba(254, 226, 226, 0.78);
   color: #B91C1C;
+  border-color: rgba(254, 202, 202, 0.85);
 }
 
 /* Suggestions & Custom Chips */
@@ -9169,25 +9384,32 @@ img[src*="Kost"] {
 .quick-text-sugg-title {
   font-size: 11.5px;
   font-weight: 700;
-  color: #8C7A6B;
+  color: #78716C;
+  letter-spacing: 0.2px;
 }
 
 .quick-add-chip-trigger {
-  background: transparent;
-  border: 1px dashed #A5B4FC;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px dashed rgba(99, 102, 241, 0.45);
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: 3px 11px;
   font-size: 11px;
   font-weight: 700;
   color: #4F46E5;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 1px 4px rgba(79, 70, 229, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
 }
 
 .quick-add-chip-trigger:hover {
-  background: #EEF2FF;
-  border-color: #6366F1;
+  background: rgba(238, 242, 255, 0.75);
+  border-color: rgba(99, 102, 241, 0.7);
+  transform: translateY(-1px);
 }
 
 .quick-add-chip-trigger:active {
@@ -9199,11 +9421,15 @@ img[src*="Kost"] {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #FFFFFF;
-  padding: 4px 6px 4px 12px;
-  border-radius: 14px;
-  border: 1.5px solid #C7D2FE;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 5px 8px 5px 12px;
+  border-radius: 16px;
+  border: 1.2px solid rgba(199, 210, 254, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 14px rgba(79, 70, 229, 0.08),
+    inset 0 1px 1px #FFFFFF;
   animation: fadeIn 0.2s ease;
 }
 
@@ -9213,32 +9439,39 @@ img[src*="Kost"] {
   background: transparent;
   font-size: 13px;
   font-weight: 600;
-  color: #2B1E16;
+  color: #1E293B;
   outline: none;
   font-family: inherit;
 }
 
 .quick-add-chip-inline-input::placeholder {
-  color: #A8A29E;
+  color: #94A3B8;
   font-weight: 400;
   font-size: 12px;
 }
 
 .quick-add-chip-save-btn {
-  background: #4F46E5;
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
   color: #FFFFFF;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 10px;
   padding: 6px 12px;
   font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow:
+    0 2px 6px rgba(79, 70, 229, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  transition: all 0.15s ease;
   font-family: inherit;
 }
 
-.quick-add-chip-save-btn:hover {
-  background: #4338CA;
+.quick-add-chip-save-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.quick-add-chip-save-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .quick-add-chip-save-btn:disabled {
@@ -9249,7 +9482,7 @@ img[src*="Kost"] {
 .quick-add-chip-cancel-btn {
   background: transparent;
   border: none;
-  color: #9CA3AF;
+  color: #94A3B8;
   font-size: 14px;
   font-weight: 700;
   padding: 4px 6px;
@@ -9258,10 +9491,11 @@ img[src*="Kost"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color 0.15s ease;
 }
 
 .quick-add-chip-cancel-btn:hover {
-  color: #4B5563;
+  color: #475569;
 }
 
 .quick-text-sugg-chips {
@@ -9271,16 +9505,20 @@ img[src*="Kost"] {
 }
 
 .quick-sugg-pill {
-  background: #FFFFFF;
-  border: 1px solid #E8E0D5;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 11.5px;
   font-weight: 600;
   color: #5C4D42;
-  box-shadow: 0 2px 6px rgba(43, 30, 22, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 6px rgba(43, 30, 22, 0.04),
+    inset 0 1px 1.2px rgba(255, 255, 255, 0.95);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -9288,13 +9526,13 @@ img[src*="Kost"] {
 }
 
 .quick-sugg-pill.is-default {
-  background: #F8F5EE;
-  border-color: #E2D9CC;
+  background: rgba(255, 250, 244, 0.60);
+  border-color: rgba(255, 255, 255, 0.92);
 }
 
 .quick-sugg-pill.is-custom {
-  background: #F5F3FF;
-  border-color: #E0E7FF;
+  background: rgba(245, 243, 255, 0.70);
+  border-color: rgba(224, 231, 255, 0.88);
   color: #4338CA;
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
@@ -9306,6 +9544,8 @@ img[src*="Kost"] {
   align-items: center;
   border-radius: 999px;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(43, 30, 22, 0.04);
 }
 
@@ -9314,8 +9554,8 @@ img[src*="Kost"] {
 }
 
 .quick-sugg-chip-delete-btn {
-  background: #F5F3FF;
-  border: 1px solid #E0E7FF;
+  background: rgba(245, 243, 255, 0.70);
+  border: 1px solid rgba(224, 231, 255, 0.88);
   border-left: none;
   color: #818CF8;
   font-size: 10px;
@@ -9331,18 +9571,22 @@ img[src*="Kost"] {
 }
 
 .quick-sugg-chip-delete-btn:hover {
-  background: #FEE2E2;
+  background: rgba(254, 226, 226, 0.85);
   color: #DC2626;
-  border-color: #FECACA;
+  border-color: rgba(254, 202, 202, 0.95);
 }
 
 .quick-sugg-pill:hover {
-  background: #F3ECE4;
+  background: rgba(255, 255, 255, 0.78);
   transform: translateY(-1px);
+  box-shadow:
+    0 4px 10px rgba(43, 30, 22, 0.06),
+    inset 0 1px 1px #FFFFFF;
 }
 
 .quick-sugg-pill:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 /* Quick Pin Current Input */
@@ -9354,8 +9598,8 @@ img[src*="Kost"] {
 }
 
 .quick-text-pin-chip-btn {
-  background: transparent;
-  border: none;
+  background: rgba(79, 70, 229, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.22);
   font-size: 11.5px;
   font-weight: 600;
   color: #4F46E5;
@@ -9363,14 +9607,21 @@ img[src*="Kost"] {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  transition: background 0.15s ease;
+  padding: 4px 10px;
+  border-radius: 10px;
+  transition: all 0.15s ease;
   font-family: inherit;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .quick-text-pin-chip-btn:hover {
-  background: rgba(79, 70, 229, 0.08);
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.quick-text-pin-chip-btn:active {
+  transform: scale(0.96);
 }
 
 .quick-text-actions {
@@ -9378,29 +9629,56 @@ img[src*="Kost"] {
 }
 
 .quick-text-submit-btn {
+  position: relative;
   width: 100%;
-  padding: 13px 18px;
+  padding: 14px 20px;
   background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important;
   color: #FFFFFF !important;
-  font-size: 14.5px;
-  font-weight: 700;
-  border: none;
-  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.38) !important;
+  border-radius: 18px;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.32) !important;
-  transition: all 0.2s ease;
+  box-shadow:
+    0 8px 20px -3px rgba(217, 119, 6, 0.38),
+    0 2px 6px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 2px rgba(180, 83, 9, 0.35) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: inherit;
+  overflow: hidden;
+  letter-spacing: -0.2px;
+}
+
+.quick-text-submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 8%;
+  right: 8%;
+  height: 42%;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
 }
 
 .quick-text-submit-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .quick-text-submit-btn:not(:disabled):active {
   transform: scale(0.97);
-  filter: brightness(0.95);
+  filter: brightness(0.96);
+  box-shadow:
+    0 3px 10px -1px rgba(217, 119, 6, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
 }
 
 /* =========================================================

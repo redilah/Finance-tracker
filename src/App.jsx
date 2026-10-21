@@ -601,7 +601,7 @@ function App() {
   const [tabMotion, setTabMotion] = useState({
     direction: 'forward',
     steps: 1,
-    duration: 0.36,
+    duration: 0.26,
     distance: 26,
   });
   const prevTabRef = useRef(activeTab);
@@ -615,7 +615,7 @@ function App() {
     setTabMotion({
       direction: diff >= 0 ? 'forward' : 'backward',
       steps,
-      duration: Math.min(0.46, 0.32 + steps * 0.045),
+      duration: Math.min(0.36, 0.26 + (steps - 1) * 0.04),
       distance: Math.min(38, 20 + steps * 6),
     });
   }
@@ -775,7 +775,7 @@ function App() {
     }
 
     // 2. Wider Liquid Glass Bubble (69x48) — Viscous Continuous Stretch & Navier-Stokes Volume Conservation
-    const Bw = 69;
+    const Bw = 60;
     const Bh = 48;
 
     // Viscous Fluid Elongation: stretchRatio based on span between lead & trail edge
@@ -933,7 +933,7 @@ function App() {
           // Saat gerakan cepat beruntun, cadence multiplier Φ(Δt) menaikkan frekuensi secara mulus.
           const cadence = phys.cadenceMultiplier || 1.0;
           const distFactor = Math.min(1.0, totalDist / 220);
-          const omegaBase = 19.0; // Waktu tempuh santai pas di ~280ms
+          const omegaBase = 20.5; // Waktu tempuh santai pas di ~260ms
           const omegaLead = (omegaBase + 3.2 * distFactor) * cadence;
           const zetaLead = 0.89; // Critically damped untuk pendaratan super smooth tanpa overshoot
           const fLead = -omegaLead * omegaLead * (phys.leadPixel - target) - 2 * zetaLead * omegaLead * phys.velLead;
@@ -951,7 +951,7 @@ function App() {
 
           // Ekor diskalakan persis sebanding dengan rasio kecepatan kepala agar efek melarnya identik
           const speedRatio = omegaLead / omegaBase;
-          const omegaTrail = (5.2 + 18.0 * tension) * speedRatio;
+          const omegaTrail = (5.6 + 19.5 * tension) * speedRatio;
           const zetaTrail = 0.78 + 0.12 * tension;
           const fTrail = -omegaTrail * omegaTrail * (phys.trailPixel - target) * tension - 2 * zetaTrail * omegaTrail * phys.velTrail;
           phys.velTrail += fTrail * dt;
@@ -7959,7 +7959,7 @@ function App() {
               style={{
                 opacity: navIndicatorX !== null ? 1 : 0,
                 transform: navIndicatorX !== null
-                  ? `translate3d(${(navIndicatorX - 34.5).toFixed(2)}px, -50%, 0)`
+                  ? `translate3d(${(navIndicatorX - 30).toFixed(2)}px, -50%, 0)`
                   : 'translate3d(12px, -50%, 0)',
               }}
               aria-hidden="true"

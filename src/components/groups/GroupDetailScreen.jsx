@@ -557,18 +557,7 @@ export default function GroupDetailScreen({
                   style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                 />
               ) : (
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FAE2CB, #F3DBC4)',
-                  color: '#BC6C25',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
-                }}>
+                <div className="group-header-avatar-glass">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
                   </svg>
@@ -1227,9 +1216,115 @@ export default function GroupDetailScreen({
               disabled={!chatInputText.trim() && !isSendingPulse}
               aria-label="Kirim Pesan"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              {/* Pure 3D Sculpted Apple Liquid Glass Paper Plane Send Icon */}
+              <svg
+                className="chat-send-glass-icon"
+                width="21"
+                height="21"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  {/* Active Warm Amber Glass Wing Gradients */}
+                  <linearGradient id="lgrSendWingMainAct" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.96" />
+                    <stop offset="35%" stopColor="#FFFBEB" stopOpacity="0.75" />
+                    <stop offset="70%" stopColor="#FDE68A" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.85" />
+                  </linearGradient>
+
+                  <linearGradient id="lgrSendWingSubAct" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.85" />
+                    <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.48" />
+                    <stop offset="100%" stopColor="#D97706" stopOpacity="0.32" />
+                  </linearGradient>
+
+                  <linearGradient id="lgrSendEdgeAct" x1="0%" y1="0%" x2="100%" y2="80%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+                    <stop offset="50%" stopColor="#FDE68A" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                  </linearGradient>
+
+                  {/* Disabled Frosted Clear Ice Glass Wing Gradients */}
+                  <linearGradient id="lgrSendWingMainDis" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.92" />
+                    <stop offset="35%" stopColor="#F1F5F9" stopOpacity="0.55" />
+                    <stop offset="70%" stopColor="#CBD5E1" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.75" />
+                  </linearGradient>
+
+                  <linearGradient id="lgrSendWingSubDis" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0.70" />
+                    <stop offset="50%" stopColor="#94A3B8" stopOpacity="0.42" />
+                    <stop offset="100%" stopColor="#64748B" stopOpacity="0.25" />
+                  </linearGradient>
+
+                  <linearGradient id="lgrSendEdgeDis" x1="0%" y1="0%" x2="100%" y2="80%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.98" />
+                    <stop offset="50%" stopColor="#CBD5E1" stopOpacity="0.75" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.92" />
+                  </linearGradient>
+
+                  {/* Center Spine Ridge Specular */}
+                  <linearGradient id="lgrSendSpine" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+                    <stop offset="60%" stopColor="#FFFFFF" stopOpacity="0.88" />
+                    <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.40" />
+                  </linearGradient>
+                </defs>
+
+                {/* Underbody Wing Facet (Sisi Bawah Berarsir Refraksi Kedalaman) */}
+                <polygon
+                  className="send-glass-wing-sub"
+                  points="22 2 11.2 13.2 14.8 22"
+                  fill={chatInputText.trim() ? "url(#lgrSendWingSubAct)" : "url(#lgrSendWingSubDis)"}
+                  stroke={chatInputText.trim() ? "url(#lgrSendEdgeAct)" : "url(#lgrSendEdgeDis)"}
+                  strokeWidth="1.15"
+                  strokeLinejoin="round"
+                />
+
+                {/* Main Top Wing Facet (Sayap Atas Transparan Memantulkan Cahaya Langit) */}
+                <polygon
+                  className="send-glass-wing-main"
+                  points="22 2 2.2 9.4 11.2 13.2"
+                  fill={chatInputText.trim() ? "url(#lgrSendWingMainAct)" : "url(#lgrSendWingMainDis)"}
+                  stroke={chatInputText.trim() ? "url(#lgrSendEdgeAct)" : "url(#lgrSendEdgeDis)"}
+                  strokeWidth="1.15"
+                  strokeLinejoin="round"
+                />
+
+                {/* Central Folding Spine Ridge (Garis Lipatan Tengah dengan Kilau Kristal) */}
+                <line
+                  className="send-glass-spine"
+                  x1="22"
+                  y1="2"
+                  x2="11.2"
+                  y2="13.2"
+                  stroke="url(#lgrSendSpine)"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+
+                {/* Leading Edge Specular Glint (Kilau Tepi Depan) */}
+                <path
+                  className="send-glass-sheen"
+                  d="M 4 9.1 L 21.2 2.3"
+                  stroke="#FFFFFF"
+                  strokeWidth="0.85"
+                  strokeLinecap="round"
+                  strokeOpacity="0.95"
+                />
+
+                {/* Bottom Trailing Rim Specular Glint */}
+                <path
+                  className="send-glass-sheen-sub"
+                  d="M 11.8 13.8 L 14.5 21.2"
+                  stroke="#FFFFFF"
+                  strokeWidth="0.75"
+                  strokeLinecap="round"
+                  strokeOpacity="0.85"
+                />
               </svg>
             </button>
           </form>

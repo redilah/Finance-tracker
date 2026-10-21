@@ -9,7 +9,7 @@
 > Aplikasi **Cassiel (Finance Tracker)** saat ini sudah resmi terdaftar dan masuk di **Google Play Store** (dalam tahap Pengujian Tertutup / *Closed Testing* $\rightarrow$ Pengujian Terbuka / *Open Testing* $\rightarrow$ *Production*).
 > 
 > **STATUS VERSI RILIS AKTIF (PLAY STORE):**
-> - **Versi Aktif Terakhir**: `versionName` **`1.0.49`** | `versionCode` **`49`**
+> - **Versi Aktif Terakhir**: `versionName` **`1.0.50`** | `versionCode` **`50`**
 > - **Target SDK**: **`36`** (`targetSdkVersion 36`, `compileSdkVersion 36`, `minSdkVersion 24` di `android/variables.gradle` & `android/app/build.gradle`).
 > - **ATURAN PENCATATAN VERSI**: Setiap kali selesai melakukan build rilis baru (`bundleRelease`), AI **WAJIB** langsung mencatat dan memperbarui nilai versi terakhir di `GEMINI.md` ini agar rilis berikutnya selalu akurat dan berurutan.
 > 
@@ -322,8 +322,21 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
   - Wajib 100% borderless tanpa garis tepi kaku dan tanpa `inset` outline pada `box-shadow`.
 
 * **Apple Liquid Glass (visionOS / iOS 26) System Invariants**:
-  - **Modal & Card Translucency (Strict Ban on Opaque Pseudo-Element Blocks)**: Pada modal kartu atau sheet berukuran besar (`.budget-sheet-card`, pop-up kustom), dilarang memasang pseudo-elemen `::before` berdimensi besar dengan opasitas putih pekat (`rgba(255, 255, 255, 0.9+)`). Seluruh ilusi kedalaman kaca kristal wajib dihasilkan melalui kombinasi `backdrop-filter: blur()`, translusensi gradien latar yang merata, dan *perimeter inset highlights* (`inset 0 1.5px 2px rgba(255, 255, 255, 0.95)`), sehingga bebas dari artefak blok/potongan layer putih di dalam modal.
+  - **Modal & Card Translucency (Strict Ban on Opaque Pseudo-Element Blocks)**: Pada modal kartu atau sheet berukuran besar (`.budget-sheet-card`, `.quick-text-modal-card`, pop-up kustom), dilarang memasang pseudo-elemen `::before` berdimensi besar dengan opasitas putih pekat (`rgba(255, 255, 255, 0.9+)`). Seluruh ilusi kedalaman kaca kristal wajib dihasilkan melalui kombinasi `backdrop-filter: blur()`, translusensi gradien latar yang merata, dan *perimeter inset highlights* (`inset 0 1.5px 2px rgba(255, 255, 255, 0.95)`), sehingga bebas dari artefak blok/potongan layer putih di dalam modal.
   - **Sub-Screen Header Action Gem & PIN Keypad Spheres**: Tombol centang konfirmasi di sub-header pengaturan (`.header-confirm-btn`) wajib mengusung bentuk permata kaca cair (*liquid glass gem*) melingkar 36px dengan *specular crescent arc* dan border tipis. Tombol keypad angka pada layar PIN (`.pin-key-btn` di `PinSetupModal` dan `PinLockScreen`) wajib berbentuk bola kristal kaca 3D (*3D crystal spheres*) 74px tembus pandang yang menyatu dengan latar hangat aplikasi, didukung indikator 6 titik PIN (*dots*) dengan pendaran gradien emas saat terisi.
+  - **3D Sculpted Liquid Glass Iconography & Authentic Silhouettes**:
+    - Dilarang memasang ikon garis kawat datar (*flat wireframe outline SVGs*) di dalam tombol aksi bola kaca cair. Seluruh ikon aksi kaca wajib dipahat menjadi vektor 3D volumetrik bersegi (*faceted 3D crystal*).
+    - Saat mengubah ikon garis fungsional menjadi kaca kristal 3D volumetrik (seperti tong sampah swipe-to-delete atau tombol kirim chat), **DILARANG KERAS merusak atau mengubah siluet fisik universal objek**.
+    - **Anatomi Tong Sampah Kaca (Trash Can)**:
+      - Gagang atas wajib berupa *low-profile wide grip* yang pipih dan lebar (lebar ~6px, tinggi ~3.5px) menancap langsung di atas bibir tutup. Dilarang membuat gagang tinggi melengkung sempit yang menyerupai cantolan tas jinjing atau gembok.
+      - Tutup wajib berupa lempeng horizontal melebar (*overhanging lid shelf*) yang menonjol keluar melampaui badan tong.
+      - Dasar tong wajib berupa tabung trapesium bersih dengan sudut melengkung halus (*rounded corners*), tanpa lengkungan baki/mangkuk asing di dalam tabung.
+      - Kisi vertikal wajib menggunakan 2 garis simetris beralur kaca kristal (*dual fluted glass ribs* dengan garis kilau spekular + bayangan refraksi optik).
+    - **Anatomi Ikon Kirim Kaca (Paper Airplane Send Icon)**:
+      - Wajib tersusun atas 2 faset origami kristal 3D: Sayap Atas (*Main Wing Facet*) dengan gradien refraksi terang + *leading edge sheen*, dan Sayap Bawah (*Underbody Facet*) dengan gradien refraksi kedalaman prismatik.
+      - Tulang lipatan tengah (*Central Spine Ridge*) wajib diberi garis kilau spekular kristal tajam.
+      - Mode Non-Aktif (*Disabled*) wajib berupa kaca es kristal translusen (*frosted ice glass*), bukan garis kawat abu-abu.
+    - **Rasio Ikon terhadap Kontainer Pod**: Ikon kaca 3D di dalam gelembung aksi pod distandarkan pada ukuran **55–58% dari diameter kontainer** (misal `25×25px` di pod `44×44px`, atau `21×21px` di tombol chat `38×38px`) agar detail material kaca terlihat tajam dan menonjol tanpa membesarkan kontainer luarnya.
 
 ## 6. Format Penulisan "What's New" & In-App Update Modal Invariants
 * **Aturan & Format**: Setiap kali membuat ringkasan pembaruan untuk rilis APK (misal saat diminta info pembaruan untuk upload store/APKPure/in-app update):

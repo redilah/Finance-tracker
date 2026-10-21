@@ -284,7 +284,7 @@ export default function SwipeableTransactionItem({
               <linearGradient id={`lgrBridgeGrad-${item.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor={cardColor} stopOpacity="0.88" />
                 <stop offset="50%" stopColor="rgba(255, 255, 255, 0.78)" stopOpacity="0.80" />
-                <stop offset="100%" stopColor="rgba(254, 236, 236, 0.85)" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="rgba(244, 244, 246, 0.85)" stopOpacity="0.85" />
               </linearGradient>
               <linearGradient id={`lgrBridgeSheen-${item.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.90" />
@@ -356,24 +356,113 @@ export default function SwipeableTransactionItem({
           {/* 2. PBR Apex Specular Radial Sheen (Kilau Kubah Kaca Kristal) */}
           <div className="tx-bubble-apex-glare" />
 
-          {/* 3. Dead-Center Muted Coral Red Trash Can Icon */}
+          {/* 3. Pure 3D Sculpted Apple Liquid Glass Trash Can (Authentic Trash Can Silhouette & Proportions) */}
           <svg
-            className="tx-delete-trash-icon"
-            width="20"
-            height="20"
+            className="tx-delete-trash-icon tx-liquid-glass-trash"
+            width="25"
+            height="25"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#DC4C4C"
-            strokeWidth="2.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M3 6h18" />
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-            <line x1="10" y1="11" x2="10" y2="17" />
-            <line x1="14" y1="11" x2="14" y2="17" />
+            <defs>
+              {/* Volumetric Glass Canister Body Gradient */}
+              <linearGradient id={`lgrTrashBody-${item.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.88" />
+                <stop offset="35%" stopColor="#E2E8F0" stopOpacity="0.32" />
+                <stop offset="70%" stopColor="#CBD5E1" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.70" />
+              </linearGradient>
+
+              {/* Glass Specular Edge Bevel Stroke Gradient */}
+              <linearGradient id={`lgrTrashEdge-${item.id}`} x1="0%" y1="0%" x2="100%" y2="80%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="1" />
+                <stop offset="40%" stopColor="#FFFFFF" stopOpacity="0.85" />
+                <stop offset="70%" stopColor="#94A3B8" stopOpacity="0.60" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.95" />
+              </linearGradient>
+
+              {/* Glass Lid Gradient */}
+              <linearGradient id={`lgrTrashLid-${item.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                <stop offset="50%" stopColor="#F1F5F9" stopOpacity="0.70" />
+                <stop offset="100%" stopColor="#CBD5E1" stopOpacity="0.55" />
+              </linearGradient>
+
+              {/* Glass Handle Gradient (Low & Wide classic trash can handle) */}
+              <linearGradient id={`lgrTrashHandle-${item.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#94A3B8" stopOpacity="0.70" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="1" />
+                <stop offset="100%" stopColor="#94A3B8" stopOpacity="0.70" />
+              </linearGradient>
+
+              {/* Optical Fluted Glass Rib Specular */}
+              <linearGradient id={`lgrTrashRib-${item.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.45" />
+              </linearGradient>
+            </defs>
+
+            {/* Glass Canister Body (Authentic Tapered Trash Bin Container) */}
+            <path
+              className="tx-glass-trash-body"
+              d="M 5 7.8 L 6.4 19.4 C 6.6 20.9 7.8 22 9.3 22 H 14.7 C 16.2 22 17.4 20.9 17.6 19.4 L 19 7.8 Z"
+              fill={`url(#lgrTrashBody-${item.id})`}
+              stroke={`url(#lgrTrashEdge-${item.id})`}
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            />
+
+            {/* Left Wall Specular Glint */}
+            <path
+              className="tx-glass-trash-sheen-arc"
+              d="M 6.6 9 L 7.6 18.5"
+              stroke="#FFFFFF"
+              strokeWidth="0.85"
+              strokeLinecap="round"
+              strokeOpacity="0.80"
+            />
+
+            {/* 2 Iconic Vertical Fluted Ribs (Garis Ikonik Tong Sampah) */}
+            <g className="tx-glass-trash-ribs">
+              {/* Left Rib */}
+              <line x1="10.2" y1="10.5" x2="10.2" y2="18" stroke="#64748B" strokeWidth="0.8" strokeOpacity="0.35" strokeLinecap="round" />
+              <line x1="9.8" y1="10.5" x2="9.8" y2="18" stroke={`url(#lgrTrashRib-${item.id})`} strokeWidth="1.1" strokeLinecap="round" />
+
+              {/* Right Rib */}
+              <line x1="14.2" y1="10.5" x2="14.2" y2="18" stroke="#64748B" strokeWidth="0.8" strokeOpacity="0.35" strokeLinecap="round" />
+              <line x1="13.8" y1="10.5" x2="13.8" y2="18" stroke={`url(#lgrTrashRib-${item.id})`} strokeWidth="1.1" strokeLinecap="round" />
+            </g>
+
+            {/* Glass Lid & Handle Assembly (Authentic Trash Can Top) */}
+            <g className="tx-glass-trash-lid-group">
+              {/* Wide Low Handle (Gagang Pipih & Lebar Ikonik Tong Sampah) */}
+              <path
+                d="M 9 5.8 V 3.5 C 9 2.7 9.7 2 10.5 2 H 13.5 C 14.3 2 15 2.7 15 3.5 V 5.8"
+                fill="none"
+                stroke={`url(#lgrTrashHandle-${item.id})`}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Handle Apex Specular Spot */}
+              <line x1="11.2" y1="2" x2="12.8" y2="2" stroke="#FFFFFF" strokeWidth="1.1" strokeLinecap="round" />
+
+              {/* Wide Horizontal Lid Shelf (Tutup Melebar Khas Tong Sampah) */}
+              <rect
+                x="2.5"
+                y="5.2"
+                width="19"
+                height="2.6"
+                rx="1.3"
+                fill={`url(#lgrTrashLid-${item.id})`}
+                stroke="#FFFFFF"
+                strokeWidth="0.9"
+              />
+              {/* Lid Upper Specular Crest Line */}
+              <line x1="4.5" y1="5.8" x2="19.5" y2="5.8" stroke="#FFFFFF" strokeWidth="0.8" strokeLinecap="round" strokeOpacity="0.95" />
+            </g>
           </svg>
         </button>
       </div>

@@ -93,7 +93,7 @@ void main() {
 `;
 
 const FRAGMENT_SHADER_GLSL = `
-precision highp float;
+precision mediump float;
 
 varying vec2 v_uv;
 
@@ -342,7 +342,7 @@ export class LiquidGlassWebGLRenderer {
 
   resize(cssWidth, cssHeight) {
     if (!this.gl || !this.canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
+    const dpr = Math.min(window.devicePixelRatio || 1.25, 1.25);
     if (this.width === cssWidth && this.height === cssHeight && this.dpr === dpr) return;
     this.width = cssWidth;
     this.height = cssHeight;
