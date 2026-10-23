@@ -74,6 +74,7 @@ import HomeGroupTabContent from './components/HomeGroupTabContent';
 import ProUpgradeModal from './components/ProUpgradeModal';
 import KitabisaTransparencyModal from './components/KitabisaTransparencyModal';
 import AuthModal, { GoogleLogo } from './components/AuthModal';
+import LocalhostMenubarTuner from './components/LocalhostMenubarTuner';
 import { subscribeToAuth, loginWithGoogle, fetchCloudDataFromFirestore } from './utils/authService';
 import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
 import kitabisaLogo from './assets/kitabisa_logo.png';
@@ -81,6 +82,7 @@ import { isProUser, setProUser, getExcelExportQuota, hasExcelExportQuota, decrem
 import { initNativeBilling } from './utils/nativeBillingManager';
 import { syncWidgetData } from './utils/widgetSync';
 import { FAQ_ITEMS } from './utils/faqData';
+import { attachIOSSheetGesture } from './utils/iosSheetPhysics';
 
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 import { syncLearnerWithUserData, recordDeletionEvaluation } from './utils/voiceLearner';
@@ -601,7 +603,7 @@ function App() {
   const [tabMotion, setTabMotion] = useState({
     direction: 'forward',
     steps: 1,
-    duration: 0.26,
+    duration: 0.30,
     distance: 26,
   });
   const prevTabRef = useRef(activeTab);
@@ -615,7 +617,7 @@ function App() {
     setTabMotion({
       direction: diff >= 0 ? 'forward' : 'backward',
       steps,
-      duration: Math.min(0.36, 0.26 + (steps - 1) * 0.04),
+      duration: 0.30,
       distance: Math.min(38, 20 + steps * 6),
     });
   }
@@ -774,31 +776,31 @@ function App() {
       container.style.transform = `translate3d(0, ${barTranslateY.toFixed(2)}px, 0) scale3d(${barUniformScale.toFixed(4)}, ${barUniformScale.toFixed(4)}, 1)`;
     }
 
-    // 2. Wider Liquid Glass Bubble (69x48) — Viscous Continuous Stretch & Navier-Stokes Volume Conservation
+    // 2. Viscous Sticky Elastic Droplet (Melar Lengket Elastis Super Kenyal & Utuh — 60x48)
     const Bw = 60;
     const Bh = 48;
 
-    // Viscous Fluid Elongation: stretchRatio based on span between lead & trail edge
-    const stretchRatio = Math.max(0, fluidSpan) / Bw;
-    const fluidStretchX = 1 + stretchRatio;
-    // Volume conservation: as fluid stretches horizontally, height thins gracefully (necking)
-    const neckFactor = 1 / Math.sqrt(1 + 0.36 * Math.min(2.5, stretchRatio));
+    // Viscous Fluid Elongation: stretchRatio mencapai 1.2x (panjang hingga 2.2x lipat), sangat elastis & kenyal
+    const stretchRatio = Math.min(72, Math.max(0, fluidSpan)) / Bw; // 0.0 .. 1.20
+    const fluidStretchX = 1 + stretchRatio; // 1.0 .. 2.20
+    // Navier-Stokes Incompressible Volume Conservation: pinggang menipis nyata (necking down to ~0.65) saat melar
+    const neckFactor = 1 / Math.sqrt(1 + 0.60 * stretchRatio);
 
     const clampedGlass = Math.max(0, Math.min(1, glassMorph));
     const clampedLift = Math.max(0, Math.min(1.15, liftSpring));
     const clampedTilt = Math.max(-1, Math.min(1, tiltSpring));
 
-    // Dimensionless Weber Flow Number We = tanh(|v_x| / v_char) for incompressible fluid deformation
+    // Dimensionless Weber Flow Number We = tanh(|v_x| / v_char) for hydrodynamic droplet deformation
     const weber = Math.tanh(Math.abs(velocityX) / 1180);
-    const stretchX = Math.sqrt(1 + 0.28 * weber);
+    const stretchX = Math.sqrt(1 + 0.25 * weber);
     const compressY = 1 / Math.sqrt(1 + 0.14 * weber);
     // 3D Convex Droplet Buoyancy Swell when lifted into a thick magnifying lens
     const lensBuoyancySwell = 1 + clampedLift * 0.075;
 
-    // finalScaleX combines base jelly spring, fluid elongation (fluidStretchX), and Weber swell
-    const finalScaleX = Math.max(0.70, scaleXSpring * fluidStretchX * stretchX * lensBuoyancySwell);
-    // finalScaleY conserves volume by thinning proportionally (neckFactor)
-    const finalScaleY = Math.max(0.55, scaleYSpring * neckFactor * compressY * lensBuoyancySwell);
+    // finalScaleX: kombinasi pegas jelly + regangan melar kental elastis (hingga ~2.45x) + pembesaran lensa
+    const finalScaleX = Math.max(0.65, Math.min(2.45, scaleXSpring * fluidStretchX * stretchX * lensBuoyancySwell));
+    // finalScaleY: mempertahankan volume fluida dengan penipisan vertikal yang proporsional
+    const finalScaleY = Math.max(0.50, Math.min(1.35, scaleYSpring * neckFactor * compressY * lensBuoyancySwell));
 
     // 3D Vertical Levitation Offset (Droplet physically lifts up off the track as it glides, then settles down)
     const liftOffsetY = -clampedLift * 2.15;
@@ -806,8 +808,6 @@ function App() {
     const shearDeg = Math.max(-2.6, Math.min(2.6, clampedTilt * 1.85));
 
     // Interactive Membal & Dynamic Bounce Activity
-    // At rest: scaleDeviation=0, lift=0, glass=0, weber=0, stretchRatio=0 -> bounceActivity = 0.000!
-    // When pressing/tapping, gliding or stretching: bounceActivity rises dynamically!
     const scaleDeviation = Math.abs(scaleXSpring - 1) + Math.abs(scaleYSpring - 1);
     const bounceActivity = Math.max(
       0,
@@ -817,7 +817,7 @@ function App() {
         clampedLift * 1.0 +
         clampedGlass * 0.65 +
         weber * 1.15 +
-        Math.min(1.0, stretchRatio * 0.75)
+        Math.min(1.0, stretchRatio * 0.90)
       )
     );
 
@@ -830,18 +830,18 @@ function App() {
       navBubbleRef.current.style.setProperty('--bounce-activity', bounceActivity.toFixed(3));
     }
 
-    // 3. Execute Real-Time WebGL2 GLSL Fragment Shader Pass (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel)
+    // 3. Execute Real-Time WebGL2 GLSL Fragment Shader Pass (Fused directly inside the single cohesive bubble)
     if (navWebGLRendererRef.current && navWebGLRendererRef.current.isReady) {
       const shearRad = (shearDeg * Math.PI) / 180;
       const rendered = navWebGLRendererRef.current.render({
-        width,
-        height,
-        pixelX,
-        liftOffsetY,
+        width: Bw,
+        height: Bh,
+        pixelX: Bw / 2,
+        liftOffsetY: 0,
         halfWidth: Bw / 2,
         halfHeight: Bh / 2,
-        scaleX: finalScaleX,
-        scaleY: finalScaleY,
+        scaleX: 1.0,
+        scaleY: 1.0,
         glassActive: clampedGlass,
         glassLift: clampedLift,
         tiltX: clampedTilt,
@@ -923,39 +923,45 @@ function App() {
           phys.velTrail += fDragT * dt;
           phys.trailPixel += phys.velTrail * dt;
         } else {
-          // Autonomous Fluid Transit (Stretch -> Anchor -> Catch-up -> Coalesce)
+          // Autonomous Viscoelastic Fluid Transit (Melar Lengket Elastis & Menjepret Bersamaan — Tanpa Delay 1 Detik!)
           const origin = phys.flightOriginPixel ?? phys.trailPixel ?? phys.curPixel;
           const target = phys.targetPixel;
           const totalDist = Math.max(1, Math.abs(target - origin));
 
-          // 1. Cadence & Hand-Speed Dynamic Balancer (Penyeimbang 350ms vs Kecepatan Cepat):
-          // Basis frekuensi ω_base = 15.2 rad/s memberikan durasi transit santai/pelan tepat di ~350ms.
-          // Saat gerakan cepat beruntun, cadence multiplier Φ(Δt) menaikkan frekuensi secara mulus.
+          // 1. Head Lead Spring: kepala meluncur gesit tepat berdurasi 300ms
           const cadence = phys.cadenceMultiplier || 1.0;
           const distFactor = Math.min(1.0, totalDist / 220);
-          const omegaBase = 20.5; // Waktu tempuh santai pas di ~260ms
-          const omegaLead = (omegaBase + 3.2 * distFactor) * cadence;
-          const zetaLead = 0.89; // Critically damped untuk pendaratan super smooth tanpa overshoot
+          const omegaBase = 16.8; // Frekuensi tepat untuk durasi 300ms
+          const omegaLead = (omegaBase + 2.0 * distFactor) * cadence;
+          const zetaLead = 0.88;
           const fLead = -omegaLead * omegaLead * (phys.leadPixel - target) - 2 * zetaLead * omegaLead * phys.velLead;
           phys.velLead += fLead * dt;
           phys.leadPixel += phys.velLead * dt;
 
-          // 2. Tail Spring: Menjaga 100% keutuhan kelenturan & proporsi melar elastis (Navier-Stokes Anchor & Snap)
+          // 2. Snappy Sticky Tail Spring (Ekor Melar di Awal lalu Menjepret Bareng Kepala di 300ms):
           const headTraveled = Math.abs(phys.leadPixel - origin);
           const progress = Math.min(1.0, headTraveled / totalDist);
 
-          // Ekor tetap menahan (anchor) di titik awal hingga kepala mencapai ~35% jarak, lalu melesat mengejar
-          const releaseThreshold = 0.35;
+          // Ekor menahan sejenak di awal (progress < 15%) menciptakan tarikan melar lengket karet seketika
+          const releaseThreshold = 0.15;
           const tailRelease = Math.max(0, (progress - releaseThreshold) / (1 - releaseThreshold));
-          const tension = Math.pow(tailRelease, 1.6);
+          const tension = Math.pow(tailRelease, 1.3);
 
-          // Ekor diskalakan persis sebanding dengan rasio kecepatan kepala agar efek melarnya identik
-          const speedRatio = omegaLead / omegaBase;
-          const omegaTrail = (5.6 + 19.5 * tension) * speedRatio;
-          const zetaTrail = 0.78 + 0.12 * tension;
+          // Pegas ekor melesat kencang ke target selaras dengan kepala, pas mendarat di ~300ms
+          const omegaTrail = (8.5 + 22.0 * tension) * cadence;
+          const zetaTrail = 0.82;
           const fTrail = -omegaTrail * omegaTrail * (phys.trailPixel - target) * tension - 2 * zetaTrail * omegaTrail * phys.velTrail;
           phys.velTrail += fTrail * dt;
           phys.trailPixel += phys.velTrail * dt;
+
+          // Batas Laplace Span: menjaga badan tetap satu kesatuan utuh (maksimal span 72px)
+          const maxAllowedSpan = 72.0;
+          const currentSpan = phys.leadPixel - phys.trailPixel;
+          if (Math.abs(currentSpan) > maxAllowedSpan) {
+            const dir = Math.sign(currentSpan);
+            phys.trailPixel = phys.leadPixel - dir * maxAllowedSpan;
+            phys.velTrail = phys.velLead;
+          }
         }
 
         phys.curPixel = (phys.leadPixel + phys.trailPixel) / 2;
@@ -975,18 +981,18 @@ function App() {
           }
         }
 
-        // Trigger hydro-elastic capillary coalescence & haptic bounce right as the arriving tail snaps and coalesces at target tab
-        if (phys.landingBounceArmed && !phys.isDragging && phys.fluidSpan < 10 && Math.abs(phys.leadPixel - phys.targetPixel) < 14) {
+        // Trigger hydro-elastic capillary coalescence & haptic bounce right as the droplet arrives and snaps together
+        if (phys.landingBounceArmed && !phys.isDragging && (phys.fluidSpan < 16 || Math.abs(phys.leadPixel - phys.targetPixel) < 8) && Math.abs(phys.curPixel - phys.targetPixel) < 16) {
           phys.landingBounceArmed = false;
           phys.flightStartDist = 0;
           phys.targetScaleX = 1.0;
           phys.targetScaleY = 1.0;
           phys.targetGlass = 0.0;
           phys.targetLift = 0.0;
-          // Scale landing squish proportionally to arrival tail momentum
-          const impactRatio = Math.max(0.85, Math.min(1.45, Math.abs(phys.velTrail) / 380));
-          phys.velScaleX -= 4.2 * impactRatio;
-          phys.velScaleY += 3.8 * impactRatio;
+          // Scale landing squish proportionally to arrival tail snap momentum
+          const impactRatio = Math.max(0.85, Math.min(1.50, Math.abs(phys.velTrail || phys.velPixel) / 360));
+          phys.velScaleX -= 5.2 * impactRatio;
+          phys.velScaleY += 4.6 * impactRatio;
           phys.velLift -= 2.2 * impactRatio;
           // Smooth "Naik -> Turun -> Naik" landing wave on the long navigation bar
           phys.targetBarSink = 0.0;
@@ -1183,28 +1189,11 @@ function App() {
       // Φ(Δt) = 1.0 + 0.90 * exp(-Δt / 320)
       // - Saat santai/pelan (Δt >= 700ms): Φ -> 1.0 (durasi pas di ~350ms, anggun & tenang)
       // - Saat cepat (Δt <= 200ms): Φ naik hingga 1.65x (durasi memadat hingga ~160ms, selaras tangan cepat)
-      const cadenceBoost = Math.max(1.0, Math.min(1.75, 1.0 + 0.75 * Math.exp(-dtTap / 260)));
+      const cadenceBoost = Math.max(1.0, Math.min(1.35, 1.0 + 0.45 * Math.exp(-dtTap / 260)));
       phys.cadenceMultiplier = cadenceBoost;
 
-      // 2. Invarian Reversal Meniskus Fluida (Pembalikan Arah Tanpa Terputus):
-      // Jika balon sedang meluncur ke kanan lalu user seketika mengetuk menu di sebelah kiri,
-      // tukar lead & trail edge dengan mulus agar ujung depan yang baru langsung menarik balon ke target baru!
+      // 2. Momentum Impuls Awal Adaptif (Melar Lengket Seketika saat Lepas Landas):
       const currentDir = Math.sign(targetPixelX - currentPos);
-      if (phys.leadPixel !== null && phys.trailPixel !== null) {
-        const spanDir = Math.sign(phys.leadPixel - phys.trailPixel);
-        if (spanDir !== 0 && currentDir !== 0 && spanDir !== currentDir) {
-          const tempP = phys.leadPixel;
-          phys.leadPixel = phys.trailPixel;
-          phys.trailPixel = tempP;
-          const tempV = phys.velLead;
-          phys.velLead = phys.velTrail;
-          phys.velTrail = tempV;
-        }
-      }
-
-      // 3. Momentum Impuls Awal Adaptif (Lembut saat Pelan, Bertenaga saat Cepat):
-      // Saat santai (cadenceBoost = 1.0), speedExcess = 0 -> tanpa sentakan awal, mulai meluncur tenang dari rest
-      // Saat cepat (cadenceBoost > 1.0), speedExcess > 0 -> menyuntikkan dorongan kinetik instan
       const speedExcess = cadenceBoost - 1.0;
       const initialKick = currentDir * (speedExcess * 420 + Math.min(360, dist * 1.1 * speedExcess));
       if (currentDir * phys.velLead < 0) {
@@ -1212,13 +1201,16 @@ function App() {
       } else {
         phys.velLead = currentDir * Math.max(Math.abs(phys.velLead), Math.abs(initialKick));
       }
+      // Ekor diam di tempat saat lepas landas (0.0x), menghasilkan efek tarikan permen karet / cairan kental seketika!
+      phys.velTrail = 0;
+      phys.velPixel = phys.velLead / 2;
 
-      // Viscous liquid stretch: set flight origin to trailing edge or current position
-      phys.flightOriginPixel = phys.trailPixel ?? currentPos;
+      phys.flightOriginPixel = currentPos;
       phys.flightTargetPixel = targetPixelX;
       phys.flightStartDist = dist;
-      if (phys.leadPixel === null) phys.leadPixel = currentPos;
-      if (phys.trailPixel === null) phys.trailPixel = currentPos;
+      phys.leadPixel = currentPos;
+      phys.trailPixel = currentPos;
+      phys.fluidSpan = 0;
 
       // Levitate & morph into crystal-clear 3D convex droplet while gliding across the bar
       phys.targetGlass = 1.0;
@@ -2938,8 +2930,30 @@ function App() {
       setIsAddModalOpen(false);
       setIsAddModalClosing(false);
       setEditingTransactionId(null);
-    }, 190);
+    }, 240);
   }, [isAddModalClosing]);
+
+  // iOS Spring Bottom Sheet Ref & Physical Gesture Controller
+  const addSheetRef = useRef(null);
+
+  useEffect(() => {
+    if (!isAddModalOpen || isAddModalClosing) return;
+    const sheetEl = addSheetRef.current;
+    if (!sheetEl) return;
+    const stageEl = document.querySelector('.app-main-stage');
+    const backdropEl = document.querySelector('.ios-sheet-backdrop');
+
+    const cleanup = attachIOSSheetGesture(sheetEl, {
+      stageEl,
+      backdropEl,
+      onDismiss: handleCloseAddModal,
+      triggerHaptic: triggerNavHaptic,
+      dismissThreshold: 120,
+      velocityThreshold: 450,
+    });
+
+    return cleanup;
+  }, [isAddModalOpen, isAddModalClosing, handleCloseAddModal, triggerNavHaptic]);
 
   const [tempName, setTempName] = useState(profileName);
   const [tempProfileImage, setTempProfileImage] = useState(profileImage);
@@ -5713,7 +5727,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Active Tab View Rendering */}
+        {/* Active Tab View Rendering */}
       {activeTab === 'home' && (
         <div
           key="page-home"
@@ -7897,8 +7911,7 @@ function App() {
             {/* Subtle Inner Top & Bottom Specular Sheens of the Warm Glass Capsule Bar */}
             {/* TINGKAT 3 & 4 (Dock): Cauchy Dispersion Prism Rim & Curved Crescent Specular Arc */}
             <div className="nav-pill-cauchy-prism-rim" aria-hidden="true" />
-            <div className="nav-pill-bar-crescent-arc" aria-hidden="true" />
-            <div className="nav-pill-bar-specular" aria-hidden="true" />
+                        <div className="nav-pill-bar-specular" aria-hidden="true" />
             <div className="nav-pill-bar-bottom-specular" aria-hidden="true" />
 
             {/* LAYER 1: Base Menu Items (Outside the Glass Bubble) */}
@@ -7952,15 +7965,28 @@ function App() {
               </div>
             </div>
 
-            {/* LAYER 2: 3D Apple Liquid Glass Bubble (69x48 Pure Crystal Meniscus Lens & Elastic Bounce) */}
+            {/* LAYER 2: 3D Apple Liquid Glass Bubble (60x48 Pure Crystal Meniscus Lens & Elastic Bounce) */}
             <div
-              ref={navBubbleRef}
+              ref={(el) => {
+                navBubbleRef.current = el;
+                if (el && navPhysicsRef.current.curPixel !== null) {
+                  const phys = navPhysicsRef.current;
+                  applyNavLensVisuals(
+                    phys.curPixel,
+                    phys.velPixel || 0,
+                    phys.curScaleX || 1,
+                    phys.curScaleY || 1,
+                    phys.curGlass || 0,
+                    phys.curBarSink || 0,
+                    phys.curLift || 0,
+                    phys.curTilt || 0,
+                    0
+                  );
+                }
+              }}
               className="nav-liquid-glass-bubble"
               style={{
                 opacity: navIndicatorX !== null ? 1 : 0,
-                transform: navIndicatorX !== null
-                  ? `translate3d(${(navIndicatorX - 30).toFixed(2)}px, -50%, 0)`
-                  : 'translate3d(12px, -50%, 0)',
               }}
               aria-hidden="true"
             >
@@ -8011,39 +8037,39 @@ function App() {
               <div className="glass-bubble-pole-bottom" />
               <div className="glass-bubble-specular-shell" />
 
+              {/* TINGKAT 4-GPU: Real-Time WebGL2 GLSL Fragment Shader Canvas (DITEMPEL LENGKET JADI SATU DI DALAM BALON KACA) */}
+              <canvas
+                className="nav-webgl-shader-canvas"
+                ref={(canvasEl) => {
+                  navShaderCanvasRef.current = canvasEl;
+                  if (canvasEl && (!navWebGLRendererRef.current || navWebGLRendererRef.current.canvas !== canvasEl)) {
+                    if (navWebGLRendererRef.current) {
+                      navWebGLRendererRef.current.destroy();
+                    }
+                    navWebGLRendererRef.current = new LiquidGlassWebGLRenderer(canvasEl);
+                    syncNavWebGLSceneTexture();
+                    const phys = navPhysicsRef.current;
+                    if (phys.curPixel !== null) {
+                      applyNavLensVisuals(
+                        phys.curPixel,
+                        phys.velPixel || 0,
+                        phys.curScaleX || 1,
+                        phys.curScaleY || 1,
+                        phys.curGlass || 0,
+                        phys.curBarSink || 0,
+                        phys.curLift || 0,
+                        phys.curTilt || 0,
+                        phys.fluidSpan || 0
+                      );
+                    }
+                  }
+                }}
+                aria-hidden="true"
+              />
+
               {/* TINGKAT 6 Subsurface: Caustic Ground Spotlight (Konsentrasi Cahaya Kristal di Rel) */}
               <div className="glass-bubble-ground-caustic" />
             </div>
-
-            {/* LAYER 3: Real-Time WebGL2 GLSL Fragment Shader (3D SDF Meniscus + Hardware Snell's Law refract() + Schlick-Fresnel) */}
-            <canvas
-              className="nav-webgl-shader-canvas"
-              ref={(canvasEl) => {
-                navShaderCanvasRef.current = canvasEl;
-                if (canvasEl && (!navWebGLRendererRef.current || navWebGLRendererRef.current.canvas !== canvasEl)) {
-                  if (navWebGLRendererRef.current) {
-                    navWebGLRendererRef.current.destroy();
-                  }
-                  navWebGLRendererRef.current = new LiquidGlassWebGLRenderer(canvasEl);
-                  syncNavWebGLSceneTexture();
-                  const phys = navPhysicsRef.current;
-                  if (phys.curPixel !== null) {
-                    applyNavLensVisuals(
-                      phys.curPixel,
-                      phys.velPixel || 0,
-                      phys.curScaleX || 1,
-                      phys.curScaleY || 1,
-                      phys.curGlass || 0,
-                      phys.curBarSink || 0,
-                      phys.curLift || 0,
-                      phys.curTilt || 0,
-                      phys.fluidSpan || 0
-                    );
-                  }
-                }
-              }}
-              aria-hidden="true"
-            />
 
             {/* Center Floating Plus Button (Opsi B — Tetap di Tengah) */}
             <div className="center-add-wrapper tour-target-add">
@@ -8064,20 +8090,39 @@ function App() {
         </nav>
       )}
 
+      {/* Translucent iOS Scrim Backdrop with Gaussian Blur */}
+      {isAddModalOpen && (
+        <div
+          className={`ios-sheet-backdrop ${isAddModalClosing ? 'closing' : ''}`}
+          onClick={handleCloseAddModal}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Full Page Add Transaction Screen (Triggered by Plus button) */}
       {isAddModalOpen && (
         <div
+          ref={addSheetRef}
           className={`full-page-add-screen ${isAddModalClosing ? 'closing' : ''}`}
           onScroll={() => {
             if (isNoteSuggestionsOpen) setIsNoteSuggestionsOpen(false);
           }}
         >
+          {/* Apple Grabber Zone */}
+          <div className="ios-sheet-grabber-zone" aria-hidden="true">
+            <div className="ios-sheet-grabber-pill" />
+          </div>
+
           {/* Top Header */}
           <div className="full-page-header">
-            <button type="button" className="back-btn" onClick={handleCloseAddModal} aria-label="Back">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 19l-7-7 7-7"/>
-                <path d="M7 12h13"/>
+            <button
+              type="button"
+              className="back-btn ios-sheet-cancel-btn"
+              onClick={handleCloseAddModal}
+              aria-label={appLanguage === 'id_id' ? 'Batal' : 'Cancel'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
             <span className="full-page-title">
@@ -8099,6 +8144,7 @@ function App() {
                   type="button"
                   className={`type-tab ${transType === type ? `active ${type.toLowerCase()}-tab` : ''} tour-target-tab-${type.toLowerCase()}`}
                   onClick={() => {
+                    triggerNavHaptic('tick');
                     setTransType(type);
                     setActivePanel('amount');
                     setNote('');
@@ -8361,7 +8407,10 @@ function App() {
                 <button
                   type="button"
                   className={`save-btn-dynamic ${transType === 'Expense' ? 'save-red' : transType === 'Income' ? 'save-green' : 'save-blue'}`}
-                  onClick={handleSaveTransaction}
+                  onClick={(e) => {
+                    triggerNavHaptic('press');
+                    handleSaveTransaction(e);
+                  }}
                 >
                   {editingTransactionId
                     ? (appLanguage === 'id_id' ? 'Simpan Perubahan' : 'Save Changes')
@@ -12738,6 +12787,9 @@ function App() {
         onRestoreData={handleRestoreFromCloud}
         onShowToast={(msg) => showVoiceToast(msg)}
       />
+
+      {/* Localhost Floating Glass & Menubar Tuner */}
+      <LocalhostMenubarTuner />
     </div>
   );
 }

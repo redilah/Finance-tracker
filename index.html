@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-tx-scroll-anim="spring-up">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -15,6 +15,7 @@
 
     <!-- Web App Manifest & Icons -->
     <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -51,7 +52,33 @@
       }
     </style>
   </head>
-  <body>
+    <body>
+    <!-- SVG Optical Refraction Filters (Snell Distortion & Liquid Waves as in reference) -->
+    <svg style="position: fixed; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
+      <defs>
+        <!-- Varian 1: Liquid Wave (Riak Alami Cair - Mengalir Lembut) -->
+        <filter id="distorsion" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.014 0.022" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="26" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="distorsion-wave" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.014 0.022" numOctaves="2" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="26" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+
+        <!-- Varian 2: Fluted Reeded Glass (Kaca Garis Katedral Moru - Arsitektural Mewah) -->
+        <filter id="distorsion-fluted" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="turbulence" baseFrequency="0.065 0.0005" numOctaves="1" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" xChannelSelector="R" yChannelSelector="R" />
+        </filter>
+
+        <!-- Varian 3: Domed Lens (Lensa Cembung Kubah Arloji - Pembiasan Melengkung Besar) -->
+        <filter id="distorsion-lens" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.006 0.008" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="38" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
     <div id="app-splash-screen">
       <img src="/splash cassiel.jpg" alt="Cassiel Splash" />
     </div>

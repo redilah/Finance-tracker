@@ -1407,7 +1407,7 @@ img[src*="Kost"] {
 }
 
 /* ==========================================================================
-   TINGKAT 1 & 2 (Dock): Controlled Transparency + Velvety Backdrop Blur
+   TINGKAT 1 & 2 (Dock): Figma Custom Texture + Dual Fill + 3-Tier Inner Shadow
    ========================================================================== */
 .nav-items-container.nav-glass-pill-shell {
   position: relative;
@@ -1416,26 +1416,27 @@ img[src*="Kost"] {
   height: 62px;
   padding: 0;
   border-radius: 999px;
-  /* Transparansi Terkontrol (Apple Regular Liquid Glass HIG): tembus pandang kristal */
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.46) 0%,
-    rgba(255, 252, 248, 0.28) 40%,
-    rgba(248, 239, 226, 0.38) 100%
-  );
-  -webkit-backdrop-filter: blur(28px) saturate(210%) contrast(104%);
-  backdrop-filter: blur(28px) saturate(210%) contrast(104%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  /* Figma Fill: #FFFFFF 20% + #FFFFFF 1% + Texture 90x90 (Radius 1, Opacity 10%) */
+  background-color: var(--nav-glass-bg-color, rgba(255, 255, 255, 0.20));
+  background-image:
+    var(--nav-glass-texture-url, url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23noise)' opacity='0.25'/%3E%3C/svg%3E")),
+    linear-gradient(180deg, var(--nav-glass-white-sheen, rgba(255, 255, 255, 0.20)) 0%, var(--nav-glass-white-sheen, rgba(255, 255, 255, 0.20)) 100%);
+  background-size: var(--nav-glass-texture-size, 180px 180px), 100% 100%;
+  /* Figma Background Blur: Uniform 5 */
+  -webkit-backdrop-filter: var(--nav-glass-backdrop, blur(var(--nav-glass-blur, 5px)));
+  backdrop-filter: var(--nav-glass-backdrop, blur(var(--nav-glass-blur, 5px)));
+  /* Figma Stroke: None */
+  border: none;
+  /* Figma Directional 3-Tier Inner Shadow:
+     1. Key Specular (Atas & Samping Kiri: 1px 2px 3px rgba(255, 255, 255, 0.30))
+     2. Counter Rim Reflex (Bawah & Samping Kanan: -1px -2px 2px rgba(255, 255, 255, 0.10))
+     3. Perimeter Glow Melingkar: 0 0 10px rgba(255, 255, 255, 0.30)
+     + Soft ambient floating shadow */
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.65),
-    0 4px 12px -2px rgba(88, 52, 18, 0.08),
-    0 16px 36px -4px rgba(92, 58, 24, 0.13),
-    0 24px 44px -8px rgba(217, 119, 6, 0.08),
-    /* Bodi Kaca Volumetrik: Multi-layered Inner Bevels & Depth Light */
-    inset 0 1.5px 2px rgba(255, 255, 255, 1),
-    inset 0 3px 8px rgba(255, 255, 255, 0.40),
-    inset 0 -1.5px 2px rgba(255, 255, 255, 0.70),
-    inset 0 -2.5px 5px rgba(195, 145, 95, 0.16);
+    var(--nav-glass-inner-3, inset 0 0 10px rgba(255, 255, 255, 0.30)),
+    var(--nav-glass-inner-1, inset 4px 2px 3px rgba(255, 255, 255, 0.60)),
+    var(--nav-glass-inner-2, inset -3px 2px 3px rgba(255, 255, 255, 0.60)),
+    var(--nav-glass-outer-shadow, 0 6px 9px -3px rgba(65, 45, 25, 0.15));
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
@@ -1447,6 +1448,143 @@ img[src*="Kost"] {
 /* ==========================================================================
    TINGKAT 3 & 4 (Dock): Cauchy Spectral Dispersion & Curved Crescent Arc
    ========================================================================== */
+
+
+/* ==========================================================================
+   4 NEW OPTICAL BLUR FORMULAS (Prism Split, Liquid Caustic, Frosted Silk, Aurora Velvet)
+   ========================================================================== */
+
+
+/* ==========================================================================
+   MODULAR SYSTEM: Efek Kontainer & Efek Blur/Refraksi Latar Terpisah Independen
+   ========================================================================== */
+
+/* 1. Aturan Kontainer Kaca Independen */
+[data-container-style="clear"] .nav-items-container.nav-glass-pill-shell {
+  /* Jika bgOpacity slider dinaikkan dari 0%, warna ikut muncul secara mulus */
+  background: var(--nav-glass-bg-color, transparent) !important;
+  background-color: var(--nav-glass-bg-color, transparent) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-container-style="clear"] .nav-ambient-caustic-backdrop,
+[data-container-style="clear"] .nav-ambient-glow-mesh,
+[data-container-style="clear"] .nav-ambient-caustic-spot,
+[data-container-style="clear"] .nav-pill-cauchy-prism-rim {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Seluruh Inner Shadow & Outer Shadow selalu membaca variabel real-time dari tuner */
+.nav-items-container.nav-glass-pill-shell {
+  box-shadow:
+    var(--nav-glass-inner-3, inset 0 0 10px rgba(255, 255, 255, 0.30)),
+    var(--nav-glass-inner-1, inset 4px 2px 3px rgba(255, 255, 255, 0.60)),
+    var(--nav-glass-inner-2, inset -3px 2px 3px rgba(255, 255, 255, 0.60)),
+    var(--nav-glass-outer-shadow, 0 6px 9px -3px rgba(65, 45, 25, 0.15)) !important;
+  -webkit-backdrop-filter: var(--nav-glass-backdrop, blur(5px)) !important;
+  backdrop-filter: var(--nav-glass-backdrop, blur(5px)) !important;
+}
+
+/* 1. Prism Split (Dispersi Spektrum Kristal Cauchy) */
+[data-blur-effect="prism"] .nav-pill-cauchy-prism-rim {
+  background: radial-gradient(
+    ellipse 130% 95% at 50% -12%,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(254, 215, 170, 0.32) 25%,
+    rgba(251, 146, 60, 0.18) 45%,
+    rgba(186, 230, 253, 0.28) 72%,
+    transparent 94%
+  ) !important;
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.35)) !important;
+}
+
+[data-blur-effect="prism"] .nav-pill-bar-specular {
+  background: radial-gradient(
+    70px 2.5px at var(--bubble-x-pct, 18%) 50%,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(254, 240, 138, 0.8) 40%,
+    rgba(186, 230, 253, 0.6) 75%,
+    transparent 100%
+  ) !important;
+}
+
+/* 2. Liquid Caustic (Riak Pembiasan Air Kristal Navier-Stokes) */
+[data-blur-effect="caustic"] .nav-items-container.nav-glass-pill-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='caustic'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.038' numOctaves='2' result='turb'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 1  0 1 0 0 1  0 0 1 0 1  0 0 0 2 -0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23caustic)' opacity='0.20'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  mix-blend-mode: overlay;
+  opacity: 0.9;
+  z-index: 1;
+}
+
+[data-blur-effect="caustic"] .nav-pill-cauchy-prism-rim {
+  background: radial-gradient(
+    ellipse 100% 85% at 50% 0%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(224, 242, 254, 0.35) 45%,
+    rgba(186, 230, 253, 0.15) 75%,
+    transparent 90%
+  ) !important;
+}
+
+/* 3. Frosted Silk (Kabut Sutra Anisotropic Satin) */
+[data-blur-effect="silk"] .nav-items-container.nav-glass-pill-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.14) 0px,
+    rgba(255, 255, 255, 0.14) 1.5px,
+    transparent 1.5px,
+    transparent 4px
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+  z-index: 1;
+}
+
+[data-blur-effect="silk"] .nav-pill-cauchy-prism-rim {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.40) 0%,
+    rgba(255, 255, 255, 0.10) 60%,
+    transparent 100%
+  ) !important;
+}
+
+/* 4. Aurora Velvet (Pendar Velvet Polar Atmosferik) */
+[data-blur-effect="aurora"] .nav-ambient-glow-mesh {
+  background: radial-gradient(
+    85% 90% at 50% 80%,
+    rgba(245, 158, 11, 0.42) 0%,
+    rgba(217, 70, 239, 0.26) 38%,
+    rgba(99, 102, 241, 0.20) 68%,
+    transparent 100%
+  ) !important;
+  filter: blur(22px) !important;
+}
+
+[data-blur-effect="aurora"] .nav-pill-cauchy-prism-rim {
+  background: radial-gradient(
+    ellipse 130% 90% at 50% -10%,
+    rgba(254, 243, 199, 0.48) 0%,
+    rgba(240, 171, 252, 0.28) 45%,
+    rgba(199, 210, 254, 0.22) 75%,
+    transparent 95%
+  ) !important;
+}
+
 .nav-pill-cauchy-prism-rim {
   position: absolute;
   inset: 0;
@@ -1456,12 +1594,12 @@ img[src*="Kost"] {
   /* Dispersi Spektral Cauchy: Pelangi mikro prismatik di sudut kritis tepi kapsul */
   background: radial-gradient(
     ellipse 120% 90% at 50% -15%,
-    rgba(255, 255, 255, 0.40) 0%,
-    rgba(255, 220, 180, 0.18) 28%,
-    rgba(180, 225, 255, 0.12) 55%,
+    rgba(255, 255, 255, 0.20) 0%,
+    rgba(255, 220, 180, 0.08) 28%,
+    rgba(180, 225, 255, 0.05) 55%,
     transparent 78%
   );
-  border: 0.8px solid rgba(255, 255, 255, 0.55);
+  border: none;
 }
 
 .nav-pill-bar-crescent-arc {
@@ -1651,10 +1789,10 @@ img[src*="Kost"] {
       rgba(246, 236, 224, calc(0.25 - var(--glass-active) * 0.12)) 80%,
       rgba(255, 255, 255, calc(0.65 - var(--glass-active) * 0.20)) 100%
     );
-  box-shadow:
+  box-shadow: var(--bubble-drop-shadow,
     0 calc(3px + var(--glass-lift) * 6.5px) calc(10px + var(--glass-lift) * 12px) rgba(92, 58, 24, calc(0.11 + var(--glass-lift) * 0.12)),
     0 calc(1.5px + var(--glass-lift) * 2px) calc(4px + var(--glass-lift) * 5px) rgba(0, 0, 0, calc(0.04 + var(--glass-lift) * 0.04)),
-    0 calc(2px + var(--glass-lift) * 4px) calc(8px + var(--glass-lift) * 10px) rgba(255, 251, 242, calc(0.45 * var(--glass-lift)));
+    0 calc(2px + var(--glass-lift) * 4px) calc(8px + var(--glass-lift) * 10px) rgba(255, 251, 242, calc(0.45 * var(--glass-lift))));
   transition: opacity 0.18s ease;
 }
 
@@ -1663,8 +1801,8 @@ img[src*="Kost"] {
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  -webkit-backdrop-filter: blur(18px) saturate(190%);
-  backdrop-filter: blur(18px) saturate(190%);
+  -webkit-backdrop-filter: blur(var(--bubble-blur, 18px)) saturate(190%);
+  backdrop-filter: blur(var(--bubble-blur, 18px)) saturate(190%);
   pointer-events: none;
   z-index: 1;
 }
@@ -1753,18 +1891,18 @@ img[src*="Kost"] {
   border-radius: 999px;
   pointer-events: none;
   z-index: 3;
-  background: radial-gradient(
+  background: var(--bubble-material-bg, radial-gradient(
     110% 90% at calc(50% - var(--glass-tilt-x) * 14%) calc(20% - var(--glass-lift) * 4%),
     rgba(255, 255, 255, calc(0.48 - var(--glass-active) * 0.20)) 0%,
     rgba(255, 253, 248, calc(0.28 - var(--glass-active) * 0.14)) 45%,
     rgba(246, 234, 218, calc(0.18 - var(--glass-active) * 0.08)) 80%,
     rgba(255, 255, 255, 0.55) 100%
-  );
-  box-shadow:
+  ));
+  box-shadow: var(--bubble-inner-shadow,
     inset 0 1.5px 2px rgba(255, 255, 255, 0.95),
     inset 0 -1.5px 2.5px rgba(217, 119, 6, 0.12),
     inset calc(1.8px - var(--glass-tilt-x) * 2px) 0 3px rgba(255, 255, 255, 0.35),
-    inset calc(-1.8px - var(--glass-tilt-x) * 1.5px) 0 3px rgba(255, 250, 242, 0.28);
+    inset calc(-1.8px - var(--glass-tilt-x) * 1.5px) 0 3px rgba(255, 250, 242, 0.28));
 }
 
 /* TINGKAT 5: Highlight Layer (Curved Crescent Specular Arc — Kurva Puncak Sabit Putih Terang Ikonik) */
@@ -1786,6 +1924,7 @@ img[src*="Kost"] {
   filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.95));
   transform: translate3d(calc(var(--glass-tilt-x) * -2.4px), calc(var(--glass-lift) * -0.8px), 0) scaleX(calc(1 + var(--glass-weber) * 0.12));
   pointer-events: none;
+  opacity: var(--bubble-crescent-opacity, 1);
   z-index: 5;
 }
 
@@ -1887,7 +2026,19 @@ img[src*="Kost"] {
   height: 100%;
   border-radius: 999px;
   pointer-events: none;
-  z-index: 8;
+  z-index: 4;
+}
+
+/* Fused Single-Entity Glass & Color Integration */
+.nav-liquid-glass-bubble .nav-webgl-shader-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 4;
+  mix-blend-mode: screen;
 }
 
 /* When WebGL2 GLSL Shader is active, harmoniously blend GPU caustics without extinguishing the crescent arc */
@@ -1904,7 +2055,7 @@ img[src*="Kost"] {
 
 /* Tab View Switch Animation — Apple Synchronized Fluid Slide */
 .tab-page-transition {
-  animation-duration: var(--slide-dur, 0.26s);
+  animation-duration: var(--slide-dur, 0.30s);
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   animation-fill-mode: forwards;
 }
@@ -2020,47 +2171,152 @@ img[src*="Kost"] {
   box-shadow: 0 3px 8px rgba(246, 172, 85, 0.3), 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 /* ==========================================
-   Full Page Add Transaction Screen
+   iOS Spring Bottom Sheet & Spatial Depth Engine
    ========================================== */
+
+/* Main App Stage (Underlying screen that recedes into 3D card depth) */
+.app-main-stage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center top;
+  will-change: transform, border-radius, filter;
+}
+
+.app-main-stage.sheet-active-recessed {
+  transform: scale(calc(1 - 0.065 * var(--sheet-progress, 1))) translateY(calc(-10px * var(--sheet-progress, 1)));
+  border-radius: calc(28px * var(--sheet-progress, 1));
+  filter: brightness(calc(1 - 0.22 * var(--sheet-progress, 1)));
+  overflow: hidden;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38);
+  pointer-events: none;
+}
+
+/* Translucent iOS Scrim Backdrop with Gaussian Blur */
+.ios-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 298;
+  opacity: 0.45;
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: iosBackdropFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ios-sheet-backdrop.closing {
+  animation: iosBackdropFadeOut 0.24s cubic-bezier(0.32, 1, 0.23, 1) forwards !important;
+  pointer-events: none;
+}
+
+@keyframes iosBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.45; }
+}
+
+@keyframes iosBackdropFadeOut {
+  from { opacity: 0.45; }
+  to { opacity: 0; }
+}
+
+/* iOS Spring Bottom Sheet Modal */
 .full-page-add-screen {
   position: absolute;
-  top: 0;
+  top: max(16px, env(safe-area-inset-top, 16px));
   left: 0;
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - max(16px, env(safe-area-inset-top, 16px)));
   background-color: #F8EFE6;
+  border-radius: 30px 30px 0 0;
+  box-shadow:
+    0 -12px 38px rgba(0, 0, 0, 0.22),
+    0 -1px 0 rgba(255, 255, 255, 0.75) inset;
   z-index: 300;
   display: flex;
   flex-direction: column;
-  animation: fullPageSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: iosSheetSlideUp 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards;
+  will-change: transform;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 .full-page-add-screen.closing {
-  animation: fullPageSlideDown 0.2s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+  animation: iosSheetSlideDown 0.25s cubic-bezier(0.32, 1, 0.23, 1) forwards !important;
   pointer-events: none;
 }
 
-@keyframes fullPageSlideDown {
+@keyframes iosSheetSlideUp {
   from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 100%, 0);
   }
   to {
-    opacity: 0;
-    transform: translateY(24px) scale(0.97);
+    transform: translate3d(0, 0, 0);
   }
+}
+
+@keyframes iosSheetSlideDown {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+/* Apple Grabber Handle Area */
+.ios-sheet-grabber-zone {
+  width: 100%;
+  height: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  padding-top: 6px;
+}
+
+.ios-sheet-grabber-zone:active {
+  cursor: grabbing;
+}
+
+.ios-sheet-grabber-pill {
+  width: 38px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(60, 60, 67, 0.28);
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios-sheet-grabber-zone:active .ios-sheet-grabber-pill {
+  width: 44px;
+  background: rgba(60, 60, 67, 0.52);
+  transform: scaleY(1.15);
 }
 
 /* Header */
 .full-page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 20px 12px 20px;
+  gap: 14px;
+  padding: 6px 20px 14px 20px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .full-page-title {
@@ -2091,6 +2347,35 @@ img[src*="Kost"] {
 
 .back-btn:active {
   transform: scale(0.88);
+}
+
+.back-btn.ios-sheet-cancel-btn {
+  background: rgba(60, 45, 30, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.back-btn.ios-sheet-cancel-btn:hover {
+  background: rgba(60, 45, 30, 0.14);
+}
+
+.back-btn.ios-sheet-cancel-btn:active {
+  transform: scale(0.90);
+  background: rgba(60, 45, 30, 0.18);
 }
 
 /* Type Switcher Tabs — Apple Fluid Segmented Control */
@@ -8575,6 +8860,83 @@ img[src*="Kost"] {
   overflow: visible;
   touch-action: pan-y;
 }
+/* ==========================================================================
+   TRANSACTION CARD SCROLL ANIMATIONS (5 Physics Styles)
+   ========================================================================== */
+
+:root {
+  --tx-anim-dur: 0.52s;
+}
+
+/* 1. Spring Cascade (Fade-Up & Apple Spring Bounce) */
+[data-tx-scroll-anim="spring-up"] .tx-swipe-row-container {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0) scale(0.96);
+  transition: opacity var(--tx-anim-dur, 0.52s) cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform var(--tx-anim-dur, 0.52s) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  will-change: transform, opacity;
+}
+[data-tx-scroll-anim="spring-up"] .tx-swipe-row-container.tx-in-view {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* 2. 3D Deck Flip (Perspektif 3D Lipatan Kartu Fisik) */
+[data-tx-scroll-anim="deck-3d"] .tx-swipe-row-container {
+  opacity: 0;
+  transform: perspective(650px) rotateX(24deg) translate3d(0, 22px, 0);
+  transform-origin: top center;
+  transition: opacity var(--tx-anim-dur, 0.54s) cubic-bezier(0.22, 1, 0.36, 1),
+              transform var(--tx-anim-dur, 0.54s) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
+[data-tx-scroll-anim="deck-3d"] .tx-swipe-row-container.tx-in-view {
+  opacity: 1;
+  transform: perspective(650px) rotateX(0deg) translate3d(0, 0, 0);
+}
+
+/* 3. Elastic Jelly Pop (Membal Kenyal Dinamis) */
+[data-tx-scroll-anim="jelly-pop"] .tx-swipe-row-container {
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity var(--tx-anim-dur, 0.48s) cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform var(--tx-anim-dur, 0.48s) cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+[data-tx-scroll-anim="jelly-pop"] .tx-swipe-row-container.tx-in-view {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 4. Kinetic Slide (Meluncur Gesit dari Samping Kiri) */
+[data-tx-scroll-anim="kinetic-slide"] .tx-swipe-row-container {
+  opacity: 0;
+  transform: translate3d(-38px, 0, 0) scale(0.97);
+  transition: opacity var(--tx-anim-dur, 0.46s) cubic-bezier(0.16, 1, 0.3, 1),
+              transform var(--tx-anim-dur, 0.46s) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+[data-tx-scroll-anim="kinetic-slide"] .tx-swipe-row-container.tx-in-view {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* 5. Glass Levitation (Kaca Melayang & Unblur) */
+[data-tx-scroll-anim="glass-levitate"] .tx-swipe-row-container {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  filter: blur(4px);
+  transition: opacity var(--tx-anim-dur, 0.54s) cubic-bezier(0.25, 1, 0.5, 1),
+              transform var(--tx-anim-dur, 0.54s) cubic-bezier(0.25, 1, 0.5, 1),
+              filter var(--tx-anim-dur, 0.54s) cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform, opacity, filter;
+}
+[data-tx-scroll-anim="glass-levitate"] .tx-swipe-row-container.tx-in-view {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
 
 .tx-swipe-row-container.deleting-sink,
 .transaction-item.deleting-sink {
@@ -9105,7 +9467,7 @@ img[src*="Kost"] {
   position: relative;
   width: 100%;
   max-width: 440px;
-  background: linear-gradient(
+    background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.78) 0%,
     rgba(255, 250, 244, 0.54) 50%,

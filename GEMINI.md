@@ -167,6 +167,58 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
 4. **Google Sign-In & Firebase Credential Synchronization**:
    - Paket `com.redilah.financetracker.sariel` terdaftar resmi di Firebase Project `regalia-senpai-app` lengkap dengan fingerprint SHA-1 & SHA-256 (baik release maupun debug) di `android/app/google-services.json` dan Google Cloud OAuth Client ID, sehingga Google Sign-In 1-Tap berfungsi penuh di kedua aplikasi.
 
+### L. Figma Design Reference — Liquid Glass Menubar Invariant
+1. **Figma-to-CSS Layer Composition (Status: Permanent Active Default - Updated Pilihan Terkini Redi)**:
+   - Menubar container (`.nav-items-container.nav-glass-pill-shell`) menggunakan sistem modular yang presisi:
+     a. **Outer Container (Clear Bening + Liquid Wave Refraction)**:
+        - Material: Clear Bening (`100% Transparan`, `bgOpacity: 0%`, `bgColor: #FFFFFF`).
+        - Efek Refraksi Latar: Liquid Wave (`url(#distorsion-wave) blur(2px)`) — riak alami cair melengkung lembut dengan keburaman optik 2px.
+        - Stroke / Border: `1px solid rgba(255, 255, 255, 0.45)` (border kaca kristal tipis halus).
+        - Texture Noise: `opacity: 0%` (bersih murni tanpa bintik noise).
+        - Kilau Sheen Atas: `opacity: 0%`.
+     b. **Menubar Oval (Directional 2D Multi-Axis Inner Shadow)**:
+        - Corner Radius: Melengkung penuh (`border-radius: 999px`).
+        - **Prinsip Arah Inner Shadow**:
+          1. **Key Specular (Atas & Samping Kiri)**: `inset 4px 2px 3px rgba(255, 255, 255, 0.60)` (X:4, Y:2, Blur:3, Opacity:60%).
+          2. **Counter Rim Reflex (Bawah & Samping Kanan)**: `inset -3px 2px 3px rgba(255, 255, 255, 0.60)` (X:-3, Y:2, Blur:3, Opacity:60%).
+          3. **Perimeter Glow Melingkar**: `inset 0 0 10px rgba(255, 255, 255, 0.30)` (X:0, Y:0, Blur:10, Opacity:30%).
+          4. **Outer Elevation (Drop Shadow)**: `0 6px 9px -3px rgba(65, 45, 25, 0.15)` (Blur:9px, Opacity:15%).
+     c. **Active Bubble (Balon Kaca)**:
+        - Warna: Putih, Opacity 45%, Keburaman 18px, Garis Sabit Kilau 100%.
+     d. **Scroll Animation**:
+        - Spring Cascade (durasi 0.52 detik).
+
+
+### N. Strict Invariant: Dev/Tuning Panel Localhost Only (Strict Ban on Android)
+1. **Desktop Localhost Exclusive**:
+   - Seluruh komponen tuner visual, floating controls, atau panel penyesuaian styling (`LocalhostMenubarTuner`) **DILARANG KERAS** tampil di lingkungan Android (baik Play Store release, emulator, debug APK, maupun testing Sariel).
+   - Guard wajib menggunakan:
+     `Boolean(import.meta.env?.DEV) && !Capacitor.isNativePlatform() && Capacitor.getPlatform() !== 'android' && !/Android/i.test(navigator.userAgent)`
+   - Pada aplikasi Android atau production build, komponen ini wajib me-return `null` seketika agar tidak meninggalkan jejak visual apa pun di perangkat pengguna.
+
+### M. Figma MCP Setup in Antigravity 2.0 (Other Clients)
+1. **OAuth Whitelist Limitation (Remote Server)**:
+   - Endpoint remote `https://mcp.figma.com/mcp` mewajibkan OAuth allowlist khusus partner (VS Code, Cursor, Claude Code).
+   - Antigravity 2.0 tergolong **"Other Clients"**. Pemanggilan OAuth remote akan memicu error: `OAuth app with client id WPjiIBOlI6Snc0EeAjsit7 doesn't exist`.
+2. **Official Solution — Figma Desktop MCP Server**:
+   - Konfigurasi resmi di `~/.gemini/config/mcp_config.json` adalah:
+     ```json
+     {
+       "mcpServers": {
+         "Figma": {
+           "url": "http://127.0.0.1:3845/mcp"
+         }
+       }
+     }
+     ```
+   - **Bebas OAuth**: Server berjalan lokal di `127.0.0.1:3845` dan langsung mewarisi sesi login dari aplikasi Figma Desktop.
+   - **Cara Aktivasi di Figma Desktop**:
+     1. Buka file desain di Figma Desktop.
+     2. Masuk ke Dev Mode (`Shift + D`).
+     3. Buka Quick Actions (`Ctrl + /`) dan jalankan: `Enable desktop MCP server`.
+3. **Antigravity 2.0 Navigation**:
+   - Letak pengaturan MCP di **Sidebar Kiri $\rightarrow$ Skills & Customizations (ikon puzzle/kubus) $\rightarrow$ tab MCP Servers**.
+
 ## 3. Storage & Data Persistence Guidelines
 * **No Raw Media in Storage**: Dilarang menyimpan data SVG mentah (XML string) atau Base64 foto berukuran besar di objek transaksi/kategori di `localStorage`.
 * **Runtime Icon Lookup**: Objek transaksi/kategori hanya menyimpan `id` / `categoryId`. Ikon di-resolve secara runtime via `ICON_MAP`.
@@ -261,20 +313,15 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
   - **Strict Ban on SVG feDisplacementMap & Mandatory Clip-Path Containment**:
     - DILARANG KERAS menggunakan filter raster SVG (`<feDisplacementMap>`) pada elemen DOM navbar karena peramban merendernya sebagai kotak persegi 90° (*bounding-box leak*) yang menyembul di luar lengkungan kapsul dan memicu pikselasi bergerigi pada ikon SVG.
     - Wadah lensa (`.nav-lens-refraction-stage`) wajib selalu diproteksi dengan `clip-path: inset(0 round 999px)` dan `-webkit-clip-path: inset(0 round 999px)` agar batas optik lensa selalu 100% identik dengan bentuk kapsul balon kaca (`72px × 48px`).
-  - **Dual-SDF WebGL2 Hardware Shader Architecture**:
-    - Shader GLSL WebGL2 (`src/utils/liquidGlassWebGL.js`) wajib merender perhitungan 3D SDF ganda:
-      - **Container Capsule SDF**: Menghasilkan *crystal edge bevel*, *top specular lip*, dan *dynamic condensation caustics track* yang bergerak mengikuti `--bubble-x-pct`.
-      - **Bubble Droplet SDF**: Menghasilkan refraksi Hukum Snellius (`refract(I, N, 0.6579)` untuk kaca mahkota $n = 1.52$), reflektansi Fresnel Schlick, dan sorotan *specular* PBR Blinn-Phong multi-arah.
-    - Output warna wajib menggunakan *premultiplied alpha* untuk menjamin zero black/gray smudges, zero blue tint, dan zero rainbow chromatic aberration.
-  - **Unbroken Viscoelastic Liquid Stretch & Coalescence Invariant**:
-    - **Larangan Pemutusan Wujud (*Strict Zero-Breakage Rule*)**: Saat berpindah antar tab (baik jarak dekat maupun jarak jauh seperti Home ke Stats), balon kaca **DILARANG KERAS** terputus menjadi gelembung terpisah atau melompat kaku sebagai benda padat. Tubuh cairan wajib membentang sebagai satu kapsul kaca elastis yang terus menyambung utuh (*continuous liquid bridge*) dari tab asal hingga tab tujuan.
-    - **Dual-Spring Lead-Trail Dynamic Flow**:
-      - Ujung depan (*leadPixel*) meluncur halus dengan pegas $\omega_{\text{lead}} \approx 11.5 - 13.5$ rad/s.
-      - Ujung belakang (*trailPixel*) menahan diri di tab asal (*viscous anchoring*) sampai kepala mencapai $\ge 35\%$ perjalanan, kemudian ditarik menyusul oleh tegangan cairan non-linear ($\text{tension} = \text{tailRelease}^{1.6}$, $\omega_{\text{trail}} \approx 5.0 + 19.0 \cdot \text{tension}$).
-    - **Inkompresibilitas Fluida (Necking Ratio)**:
-      - Peregangan horizontal: $S_{\text{fluidX}} = 1 + \frac{\text{span}}{B_w}$.
-      - Penipisan leher vertikal: $S_{\text{neckY}} = \frac{1}{\sqrt{1 + 0.36 \min(2.5, \text{span} / B_w)}}$.
-    - **Coalescence Landing Bounce**: Begitu ekor tiba di target ($\text{span} < 9\text{px}$), balon kaca menyatu kembali dan memicu impuls pantulan kenyal $\Delta v_{sx} \approx -4.2$, $\Delta v_{sy} \approx +3.8$ sebelum stabil 100% pada ukuran asli $72 \times 48\text{px}$.
+  - **Fused Single-Entity WebGL2 & CSS Architecture (Ditempel Lengket Jadi Utuh Satu)**:
+    - **Penyatuan Fisik Elemen DOM & Shader**: Canvas shader WebGL2 (`<canvas className="nav-webgl-shader-canvas">`) **WAJIB DITEMPEL LANGSUNG DI DALAM** bodi kontainer balon (`.nav-liquid-glass-bubble`), DILARANG diletakkan sebagai kanvas terpisah di level dock luar.
+    - Hal ini menjamin layer "warna di atasnya" (CSS background, blur, Cauchy prism, vector icon/label) dan layer "tekstur liquid glass" (GPU shader PBR Blinn-Phong, Snell refraction, Schlick Fresnel) menyatu 100% sebagai satu atom fisik tunggal tanpa pernah bergeser, tertinggal, atau terbelah dua saat di-drag maupun saat meluncur.
+    - Output warna menggunakan *premultiplied alpha* dengan pemotongan transparan presisi di tepi meniskus droplet (`dist > 0.5 -> vec4(0.0)`).
+  - **Unified Viscoelastic Sticky Droplet & 300ms Timing (Melar Lengket Elastis Satu Benda)**:
+    - **Melar Lengket Satu Benda (*Strict Cohesive Elastic Rule*)**: Saat berpindah antar tab, balon kaca **WAJIB** mempertahankan efek melar lengket elastis (*viscoelastic stretch*) yang kenyal sebagai **SATU BENDA TUNGGAL UTUH**.
+    - **Laplace Surface Tension Cap**: Rentang regangan antar kepala dan ekor (`fluidSpan`) dibatasi ketat $\le 72\text{px}$ (panjang total balon maksimal $\sim 130\text{px}$ / skala $\le 2.45\times$). Hal ini menjamin balon **TIDAK PERNAH TERBELAH DUA** oleh tombol Plus tengah dan tidak pernah menjebol dinding luar dock.
+    - **Navier-Stokes Volume Conservation (Necking)**: Regangan horizontal memicu penipisan pinggang vertikal nyata ($S_{\text{neckY}} = 1 / \sqrt{1 + 0.60 \cdot (\text{span} / B_w)}$, mengecil hingga $\sim 0.65\times$) yang memberikan sensasi cairan kental elastis / permen karet yang nyata.
+    - **Durasi Tepat 300ms & Tail Snappy Landing**: Durasi transit dikunci pada tepat **300ms** ($\omega_{\text{base}} = 16.8\text{ rad/s}$, $\zeta = 0.88$). Ekor menahan sejenak di awal ($15\%$) lalu melesat kencang ($\omega_{\text{trail}}$ hingga $32\text{ rad/s}$) mendarat bersamaan dengan kepala (selisih $< 30\text{ms}$, tanpa delay), memicu impuls membal pendaratan kenyal $\Delta v_{sx} \approx -5.2$, $\Delta v_{sy} \approx +4.6$, gelombang dock `velBarSink = 5.6`, dan haptic feedback.
 * **Home Segmented Filter Tabs & Quick Dropdown Invariants**:
   - **Click Isolation & Independent Dropdown Trigger**:
     - Menekan tab **Expense** murni hanya berpindah filter kategori transaksi (`homeTxFilter = 'expense'`) dan **WAJIB** menutup dropdown (`isExpenseDropdownOpen = false`). Dilarang keras otomatis memunculkan dropdown saat berpindah tab.

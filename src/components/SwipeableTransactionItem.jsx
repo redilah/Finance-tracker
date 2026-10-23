@@ -30,6 +30,8 @@ export default function SwipeableTransactionItem({
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const cardRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
 
   const SNAP_OPEN = 78;
   const SNAP_THRESHOLD = 28;
@@ -54,6 +56,73 @@ export default function SwipeableTransactionItem({
       gestureRef.current.currentOffset = 0;
     }
   }, [openRowId, item.id, dragOffset, isDragging]);
+
+  // Scroll entrance animation observer (Real-time Scroll Aware)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let observer = null;
+
+    const setupObserver = () => {
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+
+      const active = document.documentElement.dataset.txScrollAnim || 'spring-up';
+      if (active === 'none') {
+        setIsInView(true);
+        return;
+      }
+
+      if (!('IntersectionObserver' in window)) {
+        setIsInView(true);
+        return;
+      }
+
+      const scrollParent = el.closest('.app-container') || document.querySelector('.app-container') || null;
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setIsInView(true);
+            } else {
+              // Reset saat keluar viewport scroll agar saat discroll lagi animasinya langsung aktif!
+              setIsInView(false);
+            }
+          });
+        },
+        {
+          root: scrollParent,
+          threshold: 0.08,
+          rootMargin: '0px 0px -15px 0px',
+        }
+      );
+
+      observer.observe(el);
+    };
+
+    setupObserver();
+
+    // Listener saat user memilih atau menekan tombol Terapkan di Tuner
+    const handleApplyAnim = () => {
+      setIsInView(false);
+      setTimeout(() => {
+        setupObserver();
+      }, 50);
+    };
+
+    window.addEventListener('cassiel:apply-tx-anim', handleApplyAnim);
+    window.addEventListener('cassiel:replay-tx-anim', handleApplyAnim);
+
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener('cassiel:apply-tx-anim', handleApplyAnim);
+      window.removeEventListener('cassiel:replay-tx-anim', handleApplyAnim);
+    };
+  }, []);
 
   // Compute Liquid Glass Bridge emerging precisely from the card's right boundary edge into the bubble
   const bridgeData = useMemo(() => {
@@ -251,7 +320,8 @@ export default function SwipeableTransactionItem({
 
   return (
     <div 
-      className={`tx-swipe-row-container ${isTxDeleting ? 'deleting-sink' : ''}`}
+      ref={containerRef}
+      className={`tx-swipe-row-container ${isTxDeleting ? 'deleting-sink' : ''} ${isInView ? 'tx-in-view' : ''}`}
     >
       {/* Layer 0 (Underneath Card): Liquid Glass Action Pod & Thick Capillary Bridge */}
       <div 

@@ -1,0 +1,1025 @@
+/* ==========================================================================
+   LOCALHOST VISUAL TUNER COMPONENT (CLEAN WHITE THEME #FFFFFF)
+   ========================================================================== */
+
+/* Floating trigger pill saat diminimize */
+.tuner-floating-pill {
+  position: fixed;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 999px;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.tuner-floating-pill:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.22);
+}
+
+.tuner-floating-pill:active {
+  transform: scale(0.96);
+}
+
+.tuner-pill-icon {
+  font-size: 15px;
+}
+
+.tuner-pill-text {
+  letter-spacing: -0.2px;
+}
+
+/* Panel Window Utama */
+.tuner-panel-window {
+  position: fixed;
+  z-index: 99999;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 40px);
+  background: #FFFFFF;
+  color: #1E293B;
+  border-radius: 20px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 20px 45px -8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header Panel Draggable */
+.tuner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #FAFAFA;
+  border-bottom: 1px solid #F1F5F9;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.tuner-header:active {
+  cursor: grabbing;
+}
+
+.tuner-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tuner-drag-handle {
+  color: #94A3B8;
+  font-size: 14px;
+}
+
+.tuner-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.3px;
+}
+
+.tuner-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  background: #FEF3C7;
+  color: #B45309;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.tuner-close-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  line-height: 1;
+}
+
+.tuner-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* Dropdown Tab Selector */
+.tuner-tab-dropdown-wrapper {
+  padding: 10px 16px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tuner-dropdown-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748B;
+  letter-spacing: 0.5px;
+}
+
+.tuner-mode-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tuner-mode-select:focus {
+  border-color: #D97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+/* Konten Scrollable */
+.tuner-content {
+  padding: 14px 16px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 520px;
+}
+
+/* Card Section Kontrol */
+.tuner-section-card {
+  background: #FFFFFF;
+  border: 1px solid #EDF2F7;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.tuner-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 4px;
+}
+
+.tuner-section-header h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.3px;
+}
+
+.tuner-sub-tag {
+  font-size: 9px;
+  font-weight: 800;
+  color: #0284C7;
+  background: #E0F2FE;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.tuner-help-text {
+  margin: 0;
+  font-size: 11.5px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+/* Baris Kontrol Slider */
+.tuner-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tuner-label {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tuner-val {
+  min-width: 38px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #0F172A;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Color Row */
+.tuner-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tuner-hex-display {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0F172A;
+  font-family: monospace;
+}
+
+.tuner-color-picker {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.tuner-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.tuner-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 5px;
+}
+
+/* Swatches Preset */
+.tuner-presets-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px 0 2px 0;
+}
+
+.tuner-preset-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1.5px solid #CBD5E1;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.tuner-preset-swatch:hover {
+  transform: scale(1.15);
+}
+
+.tuner-preset-swatch.active {
+  border-color: #D97706;
+  box-shadow: 0 0 0 2px #FDE68A;
+}
+
+/* Custom Sliders */
+.tuner-control-row input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 5px;
+  border-radius: 999px;
+  background: #E2E8F0;
+  outline: none;
+}
+
+.tuner-control-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #F59E0B;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(245, 158, 11, 0.4);
+  transition: transform 0.1s ease;
+}
+
+.tuner-control-row input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* ==========================================================================
+   GLOSSINESS PRESETS (0.6 - 0.9 Frosted / Blur Effects)
+   ========================================================================== */
+.tuner-gloss-presets-block {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tuner-gloss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tuner-gloss-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #334155;
+  letter-spacing: 0.3px;
+}
+
+.tuner-gloss-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tuner-gloss-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tuner-gloss-card:hover {
+  transform: translateY(-2px);
+  border-color: #CBD5E1;
+}
+
+.tuner-gloss-card.active {
+  border-color: #D97706;
+  box-shadow: 0 0 0 2px #FDE68A;
+}
+
+.tuner-gloss-subtitle {
+  margin: 0 0 8px 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.tuner-gloss-tagline {
+  font-size: 8px;
+  font-weight: 600;
+  color: #94A3B8;
+  letter-spacing: -0.2px;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.tuner-gloss-card.active .tuner-gloss-label {
+  color: #B45309;
+}
+
+.tuner-gloss-card.active .tuner-gloss-tagline {
+  color: #D97706;
+}
+
+
+/* 0. Standar Visual Sim (Desain Terakhir Bersih) */
+.tuner-gloss-card[data-effect="standar"] .tuner-gloss-visual-sim {
+  background: radial-gradient(circle at 30% 30%, #475569 0%, #1E293B 45%, #0F172A 100%);
+}
+.tuner-gloss-card[data-effect="standar"] .tuner-gloss-sim-inner-fx {
+  display: none;
+}
+.tuner-gloss-card[data-effect="standar"] .tuner-gloss-val-text {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0F172A;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+
+/* 0.5. Clear (iOS) Visual Sim — Bening Murni Tanpa Warna + Latar Melengkung (#distorsion) */
+.tuner-gloss-card[data-effect="clear-ios"] .tuner-gloss-visual-sim {
+  /* Latar belakang objek netral (seperti wastafel & pipa di referensi, TANPA oranye/kuning) */
+  background: 
+    radial-gradient(circle at 75% 30%, rgba(56, 189, 248, 0.25) 0%, transparent 45%),
+    linear-gradient(135deg, #1E293B 0%, #334155 45%, #0F172A 100%);
+  position: relative;
+}
+
+/* Simulasi garis pipa/batang latar yang meliuk-liuk gelombang (Wavy liquid curves) */
+.tuner-gloss-card[data-effect="clear-ios"] .tuner-gloss-sim-inner-fx {
+  position: absolute;
+  inset: 0;
+  /* Garis lengkung bergelombang di latar belakang seperti pipa wastafel */
+  background-image: 
+    radial-gradient(ellipse 28px 18px at 35% 45%, transparent 60%, rgba(255, 255, 255, 0.75) 65%, transparent 72%),
+    radial-gradient(ellipse 36px 24px at 65% 55%, transparent 60%, rgba(148, 163, 184, 0.8) 65%, transparent 72%);
+  pointer-events: none;
+  filter: blur(0.3px);
+}
+
+/* Kaca di atasnya: 100% bening transparan murni, border putih halus 1px */
+.tuner-gloss-card[data-effect="clear-ios"] .tuner-gloss-glass-pane {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  backdrop-filter: url(#distorsion);
+  -webkit-backdrop-filter: url(#distorsion);
+}
+
+.tuner-gloss-card[data-effect="clear-ios"] .tuner-gloss-val-text {
+  background: rgba(255, 255, 255, 0.90);
+  color: #0F172A;
+  font-weight: 900;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* 1. Prism Split Visual Sim */
+.tuner-gloss-card[data-effect="prism"] .tuner-gloss-visual-sim {
+  background: radial-gradient(circle at 25% 25%, #0284C7 0%, #0F172A 70%, #020617 100%);
+}
+.tuner-gloss-card[data-effect="prism"] .tuner-gloss-sim-inner-fx {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.45) 0%, rgba(244, 63, 94, 0.30) 45%, rgba(56, 189, 248, 0.50) 100%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.tuner-gloss-card[data-effect="prism"] .tuner-gloss-val-text {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  color: #B45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* 2. Liquid Caustic Visual Sim */
+.tuner-gloss-card[data-effect="caustic"] .tuner-gloss-visual-sim {
+  background: radial-gradient(circle at 30% 30%, #0369A1 0%, #075985 45%, #082F49 100%);
+}
+.tuner-gloss-card[data-effect="caustic"] .tuner-gloss-sim-inner-fx {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.08' numOctaves='2'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 1  0 1 0 0 1  0 0 1 0 1  0 0 0 2 -0.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)' opacity='0.35'/%3E%3C/svg%3E");
+  background-size: 50px 50px;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.tuner-gloss-card[data-effect="caustic"] .tuner-gloss-val-text {
+  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+  color: #0369A1;
+  border: 1px solid rgba(2, 132, 199, 0.3);
+}
+
+/* 3. Frosted Silk Visual Sim */
+.tuner-gloss-card[data-effect="silk"] .tuner-gloss-visual-sim {
+  background: linear-gradient(135deg, #475569 0%, #334155 55%, #1E293B 100%);
+}
+.tuner-gloss-card[data-effect="silk"] .tuner-gloss-sim-inner-fx {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 1.5px, transparent 1.5px, transparent 3.5px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.tuner-gloss-card[data-effect="silk"] .tuner-gloss-val-text {
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+/* 4. Aurora Velvet Visual Sim */
+.tuner-gloss-card[data-effect="aurora"] .tuner-gloss-visual-sim {
+  background: radial-gradient(ellipse at 50% 10%, #D97706 0%, #9333EA 55%, #1E1B4B 100%);
+}
+.tuner-gloss-card[data-effect="aurora"] .tuner-gloss-sim-inner-fx {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 80%, rgba(99, 102, 241, 0.6) 0%, transparent 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.tuner-gloss-card[data-effect="aurora"] .tuner-gloss-val-text {
+  background: linear-gradient(135deg, #FFFBEB 0%, #F5F3FF 100%);
+  color: #7E22CE;
+  border: 1px solid rgba(147, 51, 234, 0.3);
+}
+
+
+/* Visual simulation window showing spheres background behind glass pane */
+.tuner-gloss-visual-sim {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: radial-gradient(circle at 30% 30%, #475569 0%, #1E293B 45%, #0F172A 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Bulatan ornamen simulasi bola latar seperti di referensi */
+.tuner-gloss-visual-sim::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #94A3B8, #334155);
+  top: 4px;
+  left: 6px;
+  box-shadow: 12px 14px 0 -4px #475569;
+}
+
+.tuner-gloss-glass-pane {
+  position: absolute;
+  inset: 2px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tuner-gloss-val-text {
+  font-size: 8px;
+  font-weight: 800;
+  color: #0F172A;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 4px;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.tuner-gloss-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+}
+
+/* Anim Options List */
+.tuner-anim-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tuner-anim-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #E2E8F0;
+  background: #FAFAFA;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.tuner-anim-card:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.tuner-anim-card.active {
+  background: #FFFBEB;
+  border-color: #F59E0B;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.tuner-anim-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tuner-anim-icon {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.tuner-anim-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.2px;
+}
+
+.tuner-anim-desc {
+  margin: 2px 0 0 0;
+  font-size: 10.5px;
+  color: #64748B;
+  line-height: 1.35;
+}
+
+.tuner-anim-radio {
+  font-size: 15px;
+  font-weight: 800;
+  color: #D97706;
+}
+
+.tuner-apply-btn {
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.28);
+  transition: all 0.18s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tuner-apply-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.36);
+}
+
+.tuner-apply-btn:active {
+  transform: scale(0.98);
+}
+
+/* Footer Action Bar */
+.tuner-footer {
+  padding: 12px 16px;
+  background: #FAFAFA;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tuner-footer-top-row {
+  width: 100%;
+}
+
+.tuner-footer-bottom-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tuner-btn-save {
+  width: 100%;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.tuner-btn-save:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.tuner-btn-save:active {
+  transform: scale(0.98);
+}
+
+.tuner-btn-copy {
+  flex: 2;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.tuner-btn-copy:hover {
+  transform: translateY(-1px);
+}
+
+.tuner-btn-reset {
+  flex: 1;
+  padding: 8px 10px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tuner-btn-reset:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* Toast */
+.tuner-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  z-index: 100000;
+  animation: tunerToastPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+@keyframes tunerToastPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.tuner-floating-pill-container {
+  position: fixed;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tuner-floating-pill-container .tuner-floating-pill {
+  position: static;
+}
+
+.tuner-pill-dismiss-btn {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 999px;
+  color: #94A3B8;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+}
+
+.tuner-pill-dismiss-btn:hover {
+  background: #FEE2E2;
+  color: #EF4444;
+  border-color: #FCA5A5;
+}
+
+
+/* Sub-Selector 3 Varian Refraksi Latar Khusus Clear Glass */
+.tuner-clear-variants-box {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: tunerFadeIn 0.2s ease-out;
+}
+
+@keyframes tunerFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tuner-clear-variants-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tuner-clear-variants-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: 0.2px;
+}
+
+.tuner-clear-variants-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tuner-clear-variant-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.tuner-clear-variant-btn:hover {
+  border-color: #94A3B8;
+  background: #F1F5F9;
+  transform: translateY(-1px);
+}
+
+.tuner-clear-variant-btn.active {
+  border-color: #0284C7;
+  background: #F0F9FF;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.tuner-clear-variant-icon {
+  font-size: 14px;
+}
+
+.tuner-clear-variant-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  overflow: hidden;
+}
+
+.tuner-clear-variant-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #1E293B;
+  white-space: nowrap;
+}
+
+.tuner-clear-variant-btn.active .tuner-clear-variant-name {
+  color: #0369A1;
+}
+
+.tuner-clear-variant-desc {
+  font-size: 8px;
+  font-weight: 500;
+  color: #64748B;
+  white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   MODULAR UI: Container Styles & Backdrop Effects Grids
+   ========================================================================== */
+
+.tuner-modular-block {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid 1: Container Styles (4 Kolom Rapi) */
+.tuner-container-styles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.tuner-container-style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tuner-container-style-card:hover {
+  transform: translateY(-2px);
+  border-color: #94A3B8;
+}
+
+.tuner-container-style-card.active {
+  border-color: #0284C7;
+  background: #F0F9FF;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.tuner-container-icon {
+  font-size: 16px;
+}
+
+.tuner-container-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #1E293B;
+  white-space: nowrap;
+}
+
+.tuner-container-style-card.active .tuner-container-name {
+  color: #0369A1;
+}
+
+.tuner-container-tag {
+  font-size: 8px;
+  font-weight: 500;
+  color: #64748B;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* Grid 2: Backdrop Refraction & Blur Effects (Auto-Fit) */
+.tuner-backdrop-effects-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.tuner-backdrop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tuner-backdrop-card:hover {
+  transform: translateY(-2px);
+  border-color: #CBD5E1;
+}
+
+.tuner-backdrop-card.active {
+  border-color: #D97706;
+  background: #FFFBEB;
+  box-shadow: 0 0 0 2px #FDE68A;
+}
+
+.tuner-backdrop-icon {
+  font-size: 15px;
+}
+
+.tuner-backdrop-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #1E293B;
+  white-space: nowrap;
+}
+
+.tuner-backdrop-card.active .tuner-backdrop-name {
+  color: #B45309;
+}
+
+.tuner-backdrop-desc {
+  font-size: 8px;
+  font-weight: 500;
+  color: #64748B;
+  line-height: 1.1;
+  white-space: nowrap;
+}

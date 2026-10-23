@@ -168,23 +168,9 @@ void main() {
   vec2 maxD = max(dVec, vec2(0.0));
   float dist = length(maxD) + min(max(dVec.x, dVec.y), 0.0) - rPill;
 
-  // If far outside droplet, output container dock highlights
-  if (dist > 14.0) {
-    gl_FragColor = vec4(barCol * barAlpha, barAlpha);
-    return;
-  }
-
-  // 3. Exterior Droplet Subsurface Caustic Glow (dist > 0.45)
-  if (dist > 0.45) {
-    vec2 causticRel = rel - vec2(-u_tiltX * 1.8, 1.5 + u_glassLift * 2.5);
-    vec2 cAbs = abs(causticRel) - bPill;
-    float cDist = length(max(cAbs, vec2(0.0))) + min(max(cAbs.x, cAbs.y), 0.0) - rPill;
-    float causticAlpha = exp(-pow(max(0.0, cDist - 0.8) * 0.35, 2.0)) * (0.28 * u_glassLift) * smoothstep(14.0, 0.6, dist);
-    vec3 causticCol = vec3(1.0, 0.992, 0.972);
-
-    float combinedAlpha = clamp(barAlpha + causticAlpha, 0.0, 1.0);
-    vec3 combinedCol = mix(barCol, causticCol, causticAlpha / max(0.001, combinedAlpha));
-    gl_FragColor = vec4(combinedCol * combinedAlpha, combinedAlpha);
+  // When fused directly inside the bubble, pixels outside the droplet edge are transparent
+  if (dist > 0.5) {
+    gl_FragColor = vec4(0.0);
     return;
   }
 
