@@ -172,7 +172,7 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
    - Menubar container (`.nav-items-container.nav-glass-pill-shell`) menggunakan sistem modular yang presisi:
      a. **Outer Container (Clear Bening + Liquid Wave Refraction)**:
         - Material: Clear Bening (`100% Transparan`, `bgOpacity: 0%`, `bgColor: #FFFFFF`).
-        - Efek Refraksi Latar: Liquid Wave (`url(#distorsion-wave) blur(2px)`) — riak alami cair melengkung lembut dengan keburaman optik 2px.
+        - Efek Refraksi Latar: Liquid Wave (`url(#distorsion-wave) blur(2px)` di desktop & pseudo-element `::before` SVG overlay di Android WebView) — riak alami cair melengkung lembut dengan keburaman optik 2px.
         - Stroke / Border: `1px solid rgba(255, 255, 255, 0.45)` (border kaca kristal tipis halus).
         - Texture Noise: `opacity: 0%` (bersih murni tanpa bintik noise).
         - Kilau Sheen Atas: `opacity: 0%`.
@@ -187,6 +187,13 @@ Setiap kali menaikkan versi rilis Play Store, **wajib memperbarui secara serenta
         - Warna: Putih, Opacity 45%, Keburaman 18px, Garis Sabit Kilau 100%.
      d. **Scroll Animation**:
         - Spring Cascade (durasi 0.52 detik).
+
+2. **Android WebView Liquid Wave Compatibility Invariant (Strict No-Loss Refraction)**:
+   - Chromium Skia pada Android System WebView mengabaikan `backdrop-filter: url(#...)` dengan `feDisplacementMap`.
+   - **Aturan Permanen**:
+     1. Tag `<html>` di `index.html` **WAJIB** selalu menyertakan atribut default: `data-container-style="clear"` dan `data-blur-effect="wave"`.
+     2. Di `src/App.css`, selector `[data-blur-effect="wave"] .nav-items-container.nav-glass-pill-shell::before` **WAJIB** selalu dipelihara dengan layer SVG `fractalNoise` (`mix-blend-mode: overlay; opacity: 0.95; z-index: 1`) agar distorsi gelombang cairan selalu aktif di perangkat Android tanpa mengandalkan tuner dev.
+     3. Nilai default variabel CSS (`--nav-glass-bg-color`, `--nav-glass-inner-*`, `--nav-glass-blur: 2px`, `--bubble-blur: 18px`) **WAJIB** terdefinisi di selector `:root` pada `src/App.css`.
 
 
 ### N. Strict Invariant: Dev/Tuning Panel Localhost Only (Strict Ban on Android)
