@@ -951,3 +951,20 @@ $$x_{tampil} = X_{max}\tanh(x_i/X_{max}),\quad \sigma = 0.045\tanh(y/8),\quad s_
 >    - **DILARANG** menghapus atau mengubah ukuran dimensi tampilan SVG kategori/aset.
 >    - **DILARANG** mengubah atau mengganggu file suara notifikasi di `public/audio/`.
 >    - **DILARANG** mengubah efek blur/kaca cair yang sudah berjalan di `liquidGlassWebGL.js` dan `lgrHeroGlass.js`.
+
+
+---
+
+## 52. Netlify MCP Deployment & Web Release Invariant
+
+1. **Target Deploy Folder**:
+   - Saat melakukan deployment ke Netlify menggunakan MCP tool `netlify-deploy-services-updater`, parameter `deployDirectory` **WAJIB** selalu diarahkan ke folder hasil build web (`dist`), bukan root direktori repositori.
+   - Mengarahkan ke root direktori dilarang keras karena memicu timeout jaringan akibat mengunggah folder biner `node_modules/` dan `android/build/`.
+
+---
+
+## 53. Post-Build SHA-256 Invariant for In-App Updates
+
+1. **Automated Hash Sync**:
+   - Setiap kali selesai mengompilasi APK rilis (`assembleCassielRelease`), sistem **WAJIB** langsung menghitung hash SHA-256 dari `apk/Cassiel.apk` dan memperbarui kolom `"sha256"` di `public/version.json` sebelum melakukan build web final untuk Netlify dan push ke GitHub.
+   - Hal ini menjamin fitur *In-App Update Checker* di aplikasi Android selalu memvalidasi integritas file APK unduhan dengan akurat 100%.
