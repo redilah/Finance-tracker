@@ -30,6 +30,7 @@
  import androidx.core.app.ActivityCompat;
  import androidx.core.app.NotificationCompat;
  import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
  
  import com.redilah.financetracker.MainActivity;
  import com.redilah.financetracker.R;
@@ -88,13 +89,14 @@
              );
          }
  
-         getWindow().getDecorView().setSystemUiVisibility(
+         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().getDecorView().setSystemUiVisibility(
              View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
          );
  
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-             getWindow().setStatusBarColor(Color.TRANSPARENT);
-             getWindow().setNavigationBarColor(Color.TRANSPARENT);
+             if (Build.VERSION.SDK_INT < 35) { getWindow().setStatusBarColor(Color.TRANSPARENT); }
+             if (Build.VERSION.SDK_INT < 35) { getWindow().setNavigationBarColor(Color.TRANSPARENT); }
          }
  
          setContentView(R.layout.activity_assistant);
@@ -120,6 +122,9 @@
          settings.setUseWideViewPort(true);
          settings.setLoadWithOverviewMode(true);
          settings.setAllowFileAccess(true);
+         settings.setAllowContentAccess(false);
+         settings.setAllowFileAccessFromFileURLs(false);
+         settings.setAllowUniversalAccessFromFileURLs(false);
  
          webView.setBackgroundColor(Color.TRANSPARENT);
          webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -128,6 +133,12 @@
          webView.addJavascriptInterface(new CassielAssistBridge(), "CassielAssistBridge");
  
          webView.setWebViewClient(new WebViewClient() {
+             @Override
+             public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                 String reqUrl = request != null && request.getUrl() != null ? request.getUrl().toString() : "";
+                 return !reqUrl.startsWith("file:///android_asset/");
+             }
+
              @Override
              public void onPageFinished(WebView view, String url) {
                  super.onPageFinished(view, url);

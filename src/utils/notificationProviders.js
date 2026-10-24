@@ -357,7 +357,7 @@ const INCOME_PATTERNS = [
 /**
  * Helper to check if a numeric string is a phone number, transaction ID, serial number, or account number.
  */
-export function isPhoneNumberOrIdentifier(rawNumStr, clauseBefore = '', fullText = '') {
+export function isPhoneNumberOrIdentifier(rawNumStr, clauseBefore = '', _fullText = '') {
   if (!rawNumStr) return false;
   const digits = String(rawNumStr).replace(/\D/g, '');
   const cbLower = (clauseBefore || '').toLowerCase().trim();

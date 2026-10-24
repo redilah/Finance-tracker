@@ -31,6 +31,8 @@ dist-ssr
 *.keystore
 *.jks
 keystore-info.txt
+keystore.properties
+android/keystore.properties
 public/Screenshot 2026-08-10 215727.png
 .netlify/
 .netlify

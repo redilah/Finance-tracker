@@ -8,7 +8,7 @@ import './GuidedTour.css';
  * Precise Target Coordinate Resolver with continuous animation tracking
  */
 
-export const NEW_USER_STEPS = [
+const NEW_USER_STEPS = [
   {
     id: 'backup',
     targetSelector: '.tour-target-backup',
@@ -74,7 +74,7 @@ export const NEW_USER_STEPS = [
   }
 ];
 
-export const FULL_GUIDE_STEPS = [
+const FULL_GUIDE_STEPS = [
   {
     id: 'backup',
     targetSelector: '.tour-target-backup',
@@ -157,7 +157,6 @@ export default function GuidedTourModal({
   const [cardContentVisible, setCardContentVisible] = useState(true);
   const [tourVoiceError, setTourVoiceError] = useState('');
   const [isTourVoiceSuccess, setIsTourVoiceSuccess] = useState(false);
-  const [recordedVoiceTx, setRecordedVoiceTx] = useState(null);
   const cardRef = useRef(null);
   const animFrameRef = useRef(null);
 
@@ -180,7 +179,7 @@ export default function GuidedTourModal({
         detail: { stepId: null }
       }));
     };
-  }, [isOpen, currentStepIndex, currentStep?.id]);
+  }, [isOpen, currentStepIndex, currentStep]);
 
   // Listen for voice test errors or success when on voice_ai step
   useEffect(() => {
@@ -220,9 +219,9 @@ export default function GuidedTourModal({
       window.removeEventListener('cassiel_tour_voice_error', handleError);
       window.removeEventListener('cassiel_tour_voice_success', handleSuccess);
     };
-  }, [isOpen, currentStepIndex, currentStep?.id]);
+  }, [isOpen, currentStepIndex, currentStep?.id, t]);
 
-  const measureTarget = () => {
+  const measureTarget = React.useCallback(() => {
     if (!currentStep) return;
     const el = document.querySelector(currentStep.targetSelector);
     if (el) {
@@ -239,7 +238,7 @@ export default function GuidedTourModal({
         });
       }
     }
-  };
+  }, [currentStep]);
 
   // Sync screen / tab and measure target with continuous animation tracking
   useEffect(() => {
@@ -286,7 +285,7 @@ export default function GuidedTourModal({
       } else if (el && (currentStep.id === 'voice_recorded_result' || currentStep.targetSelector?.includes('tour-target-first-tx'))) {
         try {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } catch (_) {}
+        } catch {}
       }
 
       // Continuous tracking during slide-in and scroll animation (0ms - 450ms)
@@ -307,7 +306,7 @@ export default function GuidedTourModal({
       clearTimeout(prepareTimer);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isOpen, currentStepIndex, mode]);
+  }, [isOpen, currentStepIndex, mode, currentStep, measureTarget, setActivePanel, setActiveTab, setIsAddModalOpen, setIsProfileModalOpen, setTransType]);
 
   // Keep measuring on scroll / resize inside profile
   useEffect(() => {
@@ -324,7 +323,7 @@ export default function GuidedTourModal({
       }
       window.removeEventListener('resize', measureTarget);
     };
-  }, [isOpen, currentStep]);
+  }, [isOpen, currentStep, measureTarget]);
 
   if (!isOpen || !currentStep) return null;
 

@@ -4,7 +4,8 @@
  * Compatible with Android (Google Drive), iOS (iCloud/Files), and Web.
  */
 
-import { safeStorageGet, safeStorageSet, syncDecrypt } from './secureStorage.js';
+import { safeStorageGet, safeStorageSet, syncDecrypt, computeIntegritySignature, verifyIntegritySignature } from './secureStorage.js';
+import { isProUser, setProUser } from './proManager.js';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -12,6 +13,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 // Current backup format version for forward compatibility
 const BACKUP_VERSION = 1;
 const BACKUP_MAGIC = 'CASSIEL_BACKUP';
+const BACKUP_PRO_SEAL_KEY = 'cassiel_backup_pro_seal_v1';
 
 /**
  * Gather all application data into a single backup object.
@@ -36,11 +38,16 @@ export function createBackupData({
   groups,
   isPro,
 }) {
+  const verifiedPro = Boolean(isPro !== undefined ? isPro : isProUser());
+  const exportedAt = new Date().toISOString();
+  const proSeal = verifiedPro ? computeIntegritySignature(BACKUP_PRO_SEAL_KEY, `${exportedAt}:true`) : null;
+
   return {
     _magic: BACKUP_MAGIC,
     _version: BACKUP_VERSION,
-    _exportedAt: new Date().toISOString(),
+    _exportedAt: exportedAt,
     _profileName: profileName || 'Pengguna',
+    ...(proSeal ? { _proSeal: proSeal } : {}),
     data: {
       transactions: transactions || safeStorageGet('user_transactions') || [],
       expenseCategories: expenseCategories || safeStorageGet('user_expense_categories') || [],
@@ -64,7 +71,8 @@ export function createBackupData({
       hasVisitedBudgetCap: safeStorageGet('user_has_visited_budget_cap') || false,
       mainMonthlyBudget: safeStorageGet('user_main_monthly_budget') || null,
       groups: groups || safeStorageGet('cassiel_groups_data') || [],
-      isPro: isPro !== undefined ? isPro : (safeStorageGet('cassiel_is_pro_user') || false),
+      isPro: verifiedPro,
+      ...(proSeal ? { _proSeal: proSeal, _exportedAt: exportedAt } : {}),
     },
   };
 }
@@ -124,7 +132,7 @@ export async function exportBackup(backupObj, userName = 'User') {
       try {
         const check = await Share.canShare();
         canShare = check?.value !== false;
-      } catch (e) {
+      } catch {
         canShare = true;
       }
 
@@ -184,7 +192,9 @@ export async function exportBackup(backupObj, userName = 'User') {
       try {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      } catch (e) {}
+      } catch {
+        // Ignore cleanup errors
+      }
     }, 300);
     return { success: true, method: 'download' };
   } catch (err) {
@@ -215,7 +225,7 @@ function safeJsonParseField(val, fallback) {
   return val;
 }
 
-export function normalizeBackupData(raw) {
+export function normalizeBackupData(raw, parentMeta = {}) {
   if (!raw || typeof raw !== 'object') return {};
 
   const txRaw = safeJsonParseField(raw.transactions ?? raw.user_transactions, []);
@@ -267,6 +277,8 @@ export function normalizeBackupData(raw) {
     mainMonthlyBudget: raw.mainMonthlyBudget ?? raw.user_main_monthly_budget ?? null,
     groups: Array.isArray(groupsRaw) ? groupsRaw : [],
     isPro: Boolean(raw.isPro ?? raw.cassiel_is_pro_user ?? false),
+    _proSeal: raw._proSeal ?? parentMeta._proSeal ?? null,
+    _exportedAt: raw._exportedAt ?? parentMeta._exportedAt ?? null,
   };
 }
 
@@ -289,7 +301,8 @@ export function parseBackupContent(rawText) {
   // 4. If payload starts with enc:v1:, decrypt it first
   if (text.startsWith('enc:v1:')) {
     const decrypted = syncDecrypt(text);
-    if (decrypted) text = decrypted.trim();
+    if (typeof decrypted === 'string') text = decrypted.trim();
+    else if (decrypted && typeof decrypted.candidateV2 === 'string') text = decrypted.candidateV2.trim();
   }
 
   // 5. If payload has legacy header (e.g. FINANCE_TRACKER_BACKUP\n{...}), strip leading header
@@ -326,7 +339,9 @@ export function parseBackupContent(rawText) {
   if (typeof parsed === 'string') {
     try {
       parsed = JSON.parse(parsed);
-    } catch {}
+    } catch {
+      // Ignore non-JSON string
+    }
   }
 
   if (!parsed || typeof parsed !== 'object') {
@@ -335,12 +350,13 @@ export function parseBackupContent(rawText) {
 
   // 8. Case A: Wrapped backup format (_magic or standard data wrapper)
   if (parsed.data && typeof parsed.data === 'object') {
+    const exportedAt = parsed._exportedAt || new Date().toISOString();
     return {
       _magic: BACKUP_MAGIC,
       _version: parsed._version || 1,
-      _exportedAt: parsed._exportedAt || new Date().toISOString(),
+      _exportedAt: exportedAt,
       _profileName: parsed._profileName || parsed.data.profileName || 'Pengguna',
-      data: normalizeBackupData(parsed.data)
+      data: normalizeBackupData(parsed.data, { _proSeal: parsed._proSeal, _exportedAt: exportedAt })
     };
   }
 
@@ -409,7 +425,9 @@ export function importBackup() {
     setTimeout(() => {
       try {
         if (input.parentNode) input.parentNode.removeChild(input);
-      } catch {}
+      } catch {
+        // Ignore cleanup errors
+      }
     }, 60000); // Cleanup after 1 min
   });
 }
@@ -549,13 +567,20 @@ export function restoreBackupData(backupData, {
       }
     }
 
-    // 12. Groups & Pro
+    // 12. Groups & Pro (Validated via Integrity Seal or Existing Pro Status — MASVS-RESILIENCE-1)
     if (Array.isArray(d.groups)) {
       safeStorageSet('cassiel_groups_data', d.groups);
     }
     if (d.isPro !== undefined && setIsPro) {
-      setIsPro(Boolean(d.isPro));
-      safeStorageSet('cassiel_is_pro_user', Boolean(d.isPro));
+      const hasValidSeal = Boolean(
+        d._proSeal &&
+        d._exportedAt &&
+        verifyIntegritySignature(BACKUP_PRO_SEAL_KEY, `${d._exportedAt}:true`, d._proSeal)
+      );
+      const alreadyPro = isProUser();
+      const verifiedProRestore = Boolean(d.isPro) && (hasValidSeal || alreadyPro);
+      setIsPro(verifiedProRestore);
+      setProUser(verifiedProRestore);
     }
 
     return { success: true };

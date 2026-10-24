@@ -1,9 +1,13 @@
 /**
  * Cassiel Pro & Freemium Feature Manager
- * Mengelola status Pro, kuota penggunaan Voice AI Mic, limit grup, dan kuota auto-tracker.
+ * Mengelola status Pro (dilindungi tanda tangan integritas MASVS-RESILIENCE-1),
+ * kuota penggunaan Voice AI Mic, limit grup, dan kuota auto-tracker.
  */
 
+import { computeIntegritySignature, verifyIntegritySignature } from './secureStorage';
+
 const STORAGE_KEY_IS_PRO = 'cassiel_is_pro_user';
+const STORAGE_KEY_PRO_SIG = 'cassiel_is_pro_sig';
 const STORAGE_KEY_VOICE_QUOTA = 'cassiel_voice_mic_quota';
 const STORAGE_KEY_DAILY_AUTO_TRACK = 'cassiel_daily_autotrack_usage';
 const STORAGE_KEY_EXCEL_QUOTA = 'cassiel_excel_export_quota';
@@ -16,19 +20,45 @@ export const FREE_EXCEL_QUOTA_DEFAULT = 25;
 export const FREE_EXCEL_MONTHLY_RESET_QUOTA = 5;
 
 /**
- * Cek apakah user berstatus Pro
+ * Cek apakah user berstatus Pro (dengan verifikasi segel integritas perangkat & auto-migrasi aman)
  */
 export function isProUser() {
   if (typeof localStorage === 'undefined') return false;
-  return localStorage.getItem(STORAGE_KEY_IS_PRO) === 'true';
+  try {
+    const rawPro = localStorage.getItem(STORAGE_KEY_IS_PRO);
+    if (rawPro !== 'true') return false;
+
+    const sig = localStorage.getItem(STORAGE_KEY_PRO_SIG);
+    if (sig && verifyIntegritySignature(STORAGE_KEY_IS_PRO, 'true', sig)) {
+      return true;
+    }
+
+    // Auto-migrasi aman untuk pengguna Pro sah yang sudah aktif sebelum sistem segel dipasang
+    const hasDonationProofs = Boolean(localStorage.getItem('cassiel_user_donation_proofs'));
+    const hasMigratedSig = Boolean(localStorage.getItem('cassiel_pro_sig_v1_migrated'));
+    if (!sig && (!hasMigratedSig || hasDonationProofs)) {
+      const newSig = computeIntegritySignature(STORAGE_KEY_IS_PRO, 'true');
+      localStorage.setItem(STORAGE_KEY_PRO_SIG, newSig);
+      localStorage.setItem('cassiel_pro_sig_v1_migrated', 'true');
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Ubah status Pro (misal setelah pembelian / restore / toggle testing)
+ * Menyertakan tanda tangan integritas perangkat secara otomatis.
  */
 export function setProUser(status) {
   if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY_IS_PRO, status ? 'true' : 'false');
+  const valStr = status ? 'true' : 'false';
+  localStorage.setItem(STORAGE_KEY_IS_PRO, valStr);
+  localStorage.setItem(STORAGE_KEY_PRO_SIG, computeIntegritySignature(STORAGE_KEY_IS_PRO, valStr));
+  localStorage.setItem('cassiel_pro_sig_v1_migrated', 'true');
   window.dispatchEvent(new CustomEvent('cassiel_pro_status_changed', { detail: { isPro: !!status } }));
 }
 

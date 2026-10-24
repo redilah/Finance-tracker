@@ -7,8 +7,8 @@ android {
         applicationId "com.redilah.financetracker"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 50
-        versionName "1.0.50"
+        versionCode 51
+        versionName "1.0.51"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -29,10 +29,15 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('release.keystore')
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") ?: 'redilah123'
-            keyAlias System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") ?: 'release-key'
-            keyPassword System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") ?: 'redilah123'
+            def keystorePropsFile = rootProject.file('keystore.properties')
+            def keystoreProps = new Properties()
+            if (keystorePropsFile.exists()) {
+                keystorePropsFile.withInputStream { keystoreProps.load(it) }
+            }
+            storeFile file(keystoreProps.getProperty('storeFile', 'release.keystore'))
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: project.findProperty("KEYSTORE_PASSWORD") ?: keystoreProps.getProperty('storePassword', '')
+            keyAlias System.getenv("KEY_ALIAS") ?: project.findProperty("KEY_ALIAS") ?: keystoreProps.getProperty('keyAlias', '')
+            keyPassword System.getenv("KEY_PASSWORD") ?: project.findProperty("KEY_PASSWORD") ?: keystoreProps.getProperty('keyPassword', '')
         }
     }
     buildTypes {
@@ -182,4 +187,3 @@ gradle.projectsEvaluated {
         task.finalizedBy('copyCassielBundle')
     }
 }
-

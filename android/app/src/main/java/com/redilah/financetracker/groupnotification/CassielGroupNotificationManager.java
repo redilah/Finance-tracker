@@ -33,10 +33,12 @@ import com.redilah.financetracker.R;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class CassielGroupNotificationManager {
@@ -47,8 +49,16 @@ public class CassielGroupNotificationManager {
     private static final String KEY_MUTED_PREFIX = "muted_group_";
     private static final String KEY_HISTORY_PREFIX = "history_group_";
 
-    // In-memory cache for avatars to avoid repeated decoding/fetching
-    private static final Map<String, Bitmap> sAvatarCache = new HashMap<>();
+    // In-memory LRU cache for avatars (maks 30 item) untuk mencegah memory leak & RAM overhead
+    private static final int MAX_AVATAR_CACHE = 30;
+    private static final Map<String, Bitmap> sAvatarCache = Collections.synchronizedMap(
+        new LinkedHashMap<String, Bitmap>(MAX_AVATAR_CACHE, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Bitmap> eldest) {
+                return size() > MAX_AVATAR_CACHE;
+            }
+        }
+    );
 
     public static void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -375,7 +385,7 @@ public class CassielGroupNotificationManager {
                 if (avatarSource.startsWith("data:image")) {
                     String base64Data = avatarSource.substring(avatarSource.indexOf(",") + 1);
                     byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
-                    decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    decoded = decodeSampledBitmap(bytes, 128, 128);
                 } else if (avatarSource.startsWith("http://") || avatarSource.startsWith("https://")) {
                     // Try to load network image or fallback
                     decoded = loadBitmapFromUrl(avatarSource);
@@ -407,18 +417,80 @@ public class CassielGroupNotificationManager {
     }
 
     private static Bitmap loadBitmapFromUrl(String urlStr) {
+        HttpURLConnection conn = null;
+        InputStream input = null;
+        ByteArrayOutputStream buffer = null;
         try {
             URL url = new URL(urlStr);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setDoInput(true);
             conn.setConnectTimeout(3000);
             conn.setReadTimeout(3000);
+            conn.setInstanceFollowRedirects(true);
             conn.connect();
-            InputStream input = conn.getInputStream();
-            return BitmapFactory.decodeStream(input);
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return null;
+            }
+            input = conn.getInputStream();
+            buffer = new ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            int bytesRead;
+            int totalBytes = 0;
+            final int MAX_IMAGE_BYTES = 5 * 1024 * 1024; // Maksimal 5MB untuk mencegah lonjakan RAM (OOM)
+            while ((bytesRead = input.read(chunk, 0, chunk.length)) != -1) {
+                totalBytes += bytesRead;
+                if (totalBytes > MAX_IMAGE_BYTES) {
+                    return null;
+                }
+                buffer.write(chunk, 0, bytesRead);
+            }
+            buffer.flush();
+            byte[] imageBytes = buffer.toByteArray();
+            return decodeSampledBitmap(imageBytes, 128, 128);
         } catch (Exception e) {
             return null;
+        } finally {
+            if (input != null) {
+                try { input.close(); } catch (Exception ignored) {}
+            }
+            if (buffer != null) {
+                try { buffer.close(); } catch (Exception ignored) {}
+            }
+            if (conn != null) {
+                try { conn.disconnect(); } catch (Exception ignored) {}
+            }
         }
+    }
+
+    public static Bitmap decodeSampledBitmap(byte[] data, int reqWidth, int reqHeight) {
+        if (data == null || data.length == 0) return null;
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(data, 0, data.length, options);
+
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+            options.inJustDecodeBounds = false;
+            return BitmapFactory.decodeByteArray(data, 0, data.length, options);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
     }
 
     public static Bitmap getCircularBitmap(Bitmap bitmap) {

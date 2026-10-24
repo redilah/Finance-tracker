@@ -10,7 +10,6 @@ import {
   collection, 
   doc, 
   setDoc, 
-  getDoc, 
   getDocs, 
   deleteDoc, 
   query, 
@@ -62,7 +61,7 @@ export async function syncGroupToCloud(group) {
     // Clean members: never store relative isCurrentUser in cloud
     if (Array.isArray(cleanGroup.members)) {
       cleanGroup.members = cleanGroup.members.map(m => {
-        const { isCurrentUser, ...rest } = m;
+        const { isCurrentUser: _isCurrentUser, ...rest } = m;
         return rest;
       });
     }
@@ -120,9 +119,8 @@ export async function syncAllLocalGroupsToCloud() {
 }
 
 // Initial sample group is empty (no dummy data)
-const INITIAL_DEMO_GROUPS = [];
 
-export function getStoredGroups(currentUserName = 'Pengguna Cassiel') {
+export function getStoredGroups(_currentUserName = 'Pengguna Cassiel') {
   try {
     const raw = safeStorageGet(GROUPS_STORAGE_KEY);
     if (!raw) {
@@ -727,7 +725,7 @@ export function sendGroupTextMessage({ groupId, text, senderName = 'Redilah', se
   return { updatedGroup: group, newMsg };
 }
 
-export function deleteGroupMessage({ groupId, messageId, deleteType = 'everyone', currentUserName = 'Redilah' }) {
+export function deleteGroupMessage({ groupId, messageId, deleteType: _deleteType = 'everyone', currentUserName = 'Redilah' }) {
   if (!groupId || !messageId) return null;
   const currentList = getStoredGroups(currentUserName);
   const groupIndex = currentList.findIndex(g => g.id === groupId);

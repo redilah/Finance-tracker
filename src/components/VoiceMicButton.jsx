@@ -21,7 +21,7 @@ export default function VoiceMicButton({
   const [liveTranscript, setLiveTranscript] = useState('');
   const [isPro, setIsPro] = useState(() => isProUser());
   const [voiceQuota, setVoiceQuota] = useState(() => getVoiceQuota());
-  const [isTourVoiceActive, setIsTourVoiceActive] = useState(false);
+  const [_isTourVoiceActive, setIsTourVoiceActive] = useState(false);
   const isTourVoiceActiveRef = useRef(false);
 
   const webRecognitionRef = useRef(null);

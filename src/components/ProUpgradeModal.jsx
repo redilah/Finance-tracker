@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { isProUser, setProUser } from '../utils/proManager';
+import { setProUser } from '../utils/proManager';
 import { getSubscriptionOfferings, purchaseJusticeCassielPackage, restoreJusticePurchases } from '../utils/nativeBillingManager';
 import { recordUserDonationProof } from '../utils/kitabisaTransparencyManager';
 import { updateCurrentDeviceTelemetry } from '../utils/telemetry';
@@ -137,7 +137,7 @@ const DONATION_CAUSES = [
 export default function ProUpgradeModal({
   isOpen,
   onClose,
-  triggerReason = 'general',
+  triggerReason: _triggerReason = 'general',
   currentUserName = 'Pengguna Cassiel',
   onProStatusChanged
 }) {

@@ -41,6 +41,7 @@ public class CassielNotificationListenerService extends NotificationListenerServ
     private static final String KEY_QUEUE = "cassiel_notif_tracker_queue";
     private static final int MAX_QUEUE_SIZE = 100;
     private static final String CHANNEL_ID = "financial_notifications";
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> APP_LABEL_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
     private static final Set<String> WHITELIST = new HashSet<>(Arrays.asList(
             "id.co.bri.brimo", "id.co.bri.mobile", "id.co.bri.link", "id.co.bri.internetbanking", "com.bri.brimo",
@@ -144,22 +145,26 @@ public class CassielNotificationListenerService extends NotificationListenerServ
             if (text.isEmpty() && !bigText.isEmpty()) text = bigText;
             if (bigText.isEmpty() && !text.isEmpty()) bigText = text;
 
-            String appLabel = packageName;
-            try {
-                PackageManager pm = getPackageManager();
-                ApplicationInfo ai = pm.getApplicationInfo(packageName, 0);
-                CharSequence label = pm.getApplicationLabel(ai);
-                if (label != null) {
-                    appLabel = label.toString();
-                }
-            } catch (Throwable ignored) {}
-
             String fullText = (title + " " + text + " " + bigText + " " + subText + " " + summaryText + " " + tickerText).toLowerCase();
 
-            // Rejection of non-transactional items (failed, cancelled, promo, ads, marketing, OTP, security)
+            // Rejection of non-transactional items first (before PackageManager IPC) to prevent binder thread ANR
             if (isNonTransactional(fullText)) {
                 Log.i(TAG, "Notification rejected (non-transactional / promo / failed) from " + packageName + " | Title: " + title);
                 return;
+            }
+
+            String appLabel = APP_LABEL_CACHE.get(packageName);
+            if (appLabel == null) {
+                appLabel = packageName;
+                try {
+                    PackageManager pm = getPackageManager();
+                    ApplicationInfo ai = pm.getApplicationInfo(packageName, 0);
+                    CharSequence label = pm.getApplicationLabel(ai);
+                    if (label != null && label.length() > 0) {
+                        appLabel = label.toString();
+                        APP_LABEL_CACHE.put(packageName, appLabel);
+                    }
+                } catch (Throwable ignored) {}
             }
 
             JSONObject notifObj = new JSONObject();

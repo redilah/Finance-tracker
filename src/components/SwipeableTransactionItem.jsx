@@ -179,7 +179,7 @@ export default function SwipeableTransactionItem({
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch {}
 
     gestureRef.current = {
       startX: e.clientX,
@@ -208,7 +208,7 @@ export default function SwipeableTransactionItem({
         setIsDragging(false);
         try {
           e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch (_) {}
+        } catch {}
         return;
       }
       if (Math.abs(deltaX) > 6 && Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -247,7 +247,7 @@ export default function SwipeableTransactionItem({
 
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch {}
 
     if (gestureRef.current.directionLocked === 'horizontal') {
       const current = gestureRef.current.currentOffset;

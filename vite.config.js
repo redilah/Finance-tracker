@@ -25,11 +25,27 @@ export default defineConfig({
           }
           next();
         });
+      },
+      closeBundle() {
+        // Bersihkan file demo/dev-only dari folder dist produksi tanpa menyentuh aset aplikasi
+        const devOnlyDistFiles = [
+          resolve(__dirname, 'dist/navbar-showcase.html'),
+          resolve(__dirname, 'dist/apple-reference.jpg'),
+        ];
+        for (const filePath of devOnlyDistFiles) {
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          } catch {
+            // Ignore cleanup error
+          }
+        }
       }
     }
   ],
   build: {
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 1100,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

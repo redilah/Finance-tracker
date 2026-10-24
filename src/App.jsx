@@ -1,51 +1,28 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import './App.css';
-import fastFoodSvg from './assets/fast-food.svg';
-import gameSvg from './assets/3d-movie.svg';
-import carSvg from './assets/car.svg';
-import houseSvg from './assets/house_colored.svg';
-import addSvg from './assets/add.svg';
-import diagramSvg from './assets/diagram.svg';
-import akunSvg from './assets/akun.svg';
-import budgetSvg from './assets/budget.svg';
-import barberSvg from './assets/barber.svg';
-import bookSvg from './assets/book.svg';
-import cosmeticsSvg from './assets/cosmetics.svg';
-import dispenserBottleSvg from './assets/dispenser-bottle.svg';
-import shirtShoeSvg from './assets/shirt-shoe.svg';
-import shoppingCartSvg from './assets/shopping-cart.svg';
-import subscriptionSvg from './assets/subscription.svg';
-import salarySvg from './assets/salary.svg';
-import bonusSvg from './assets/bonus.svg';
-import kipSvg from './assets/KIP.svg';
-import pesawatSvg from './assets/Pesawat.svg';
-import kostSvg from './assets/Kost.svg';
-import coffeeSvg from './assets/Coffee.svg';
-import gofoodSvg from './assets/GoFood.svg';
-import sepatuSvg from './assets/Sepatu.svg';
-import donasiSvg from './assets/Donasi.svg';
-import topupGameSvg from './assets/Top up Game.svg';
-import bensinSvg from './assets/Bensin.svg';
-import investasiSvg from './assets/investasi.svg';
-import bisnisSvg from './assets/bisnis.svg';
-import affiliateSvg from './assets/Affliate.svg';
-import konserSvg from './assets/Konser.svg';
-import pulsaSvg from './assets/Pulsa.svg';
-import rumahSakitSvg from './assets/Rumah Sakit.svg';
-import obatSakitSvg from './assets/Obat Sakit.svg';
-import jajanAdekSvg from './assets/Jajan adek.svg';
-import partySvg from './assets/Party.svg';
-import buahSvg from './assets/Buah.svg';
-import minumanSvg from './assets/Minuman.svg';
-import wifiSvg from './assets/wifi.svg';
-import freelanceSvg from './assets/Freelance.svg';
-import biayaAdminSvg from './assets/Biaya admin.svg';
-import accessoriesSvg from './assets/Accesories.svg';
-import ticketSvg from './assets/Ticket.svg';
-import tranferSvg from './assets/tranfer.svg';
-import budgetClipboardSvg from './assets/budget-clipboard.svg';
-import kalenderSvg from './assets/kalender.svg';
-import dompetSvg from './assets/dompet.svg';
+import {
+  houseSvg,
+  addSvg,
+  diagramSvg,
+  akunSvg,
+  budgetSvg,
+  kalenderSvg,
+  dompetSvg,
+  DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_INCOME_CATEGORIES,
+  DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS,
+  DEFAULT_ACTIVE_INCOME_CATEGORY_IDS,
+  DEFAULT_ACTIVE_ACCOUNTS,
+  resolveIcon,
+  resolveCardBgClass,
+  resolveIconClass,
+  resolveCardBgColor,
+  migrateTransactions,
+  migrateCategories,
+  INITIAL_TRANSACTIONS,
+  isAutoTrackedTx,
+} from './utils/categoryConfig';
+import VoiceAnimatedTransactionItem from './components/VoiceAnimatedTransactionItem';
 
 import { playPositiveChime } from './utils/soundFeedback';
 import { LiquidGlassWebGLRenderer } from './utils/liquidGlassWebGL';
@@ -61,16 +38,16 @@ import { isEndOfMonthOrTesting } from './utils/categoryInsightEngine';
 import { generateFinancialInsights, formatActivePeriodRange } from './utils/financialInsightEngine';
 import { getTranslation, getCategoryName, LANGUAGES, MONTH_NAMES_I18N, MONTH_SHORT_I18N } from './utils/i18n';
 import { submitUserFeedback } from './utils/feedback';
-import { DEFAULT_ACCOUNTS, AccountIconBadge } from './utils/accountLogos';
+import { AccountIconBadge } from './utils/accountLogos';
+import { DEFAULT_ACCOUNTS } from './utils/accountConstants';
 import { WORLD_CURRENCIES, getCurrency, formatMoney, formatShortMoney, formatCompactMoney, fetchExchangeRates, getExchangeRateText, getFlagUrl } from './utils/currency';
 import { createBackupData, exportBackup, importBackup, restoreBackupData } from './utils/backup';
-import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, setBiometricEnabled, checkBiometricAvailability } from './utils/authPin';
+import { hasUserPin, isAppLockEnabled, setAppLockEnabled, isBiometricEnabled, setBiometricEnabled } from './utils/authPin';
 import PinSetupModal from './components/PinSetupModal';
 import PinLockScreen from './components/PinLockScreen';
 import GuidedTourModal from './components/GuidedTourModal';
 import SwipeableTransactionItem from './components/SwipeableTransactionItem';
 import GroupsHubModal from './components/groups/GroupsHubModal';
-import HomeGroupTabContent from './components/HomeGroupTabContent';
 import ProUpgradeModal from './components/ProUpgradeModal';
 import KitabisaTransparencyModal from './components/KitabisaTransparencyModal';
 import AuthModal, { GoogleLogo } from './components/AuthModal';
@@ -78,7 +55,7 @@ import LocalhostMenubarTuner from './components/LocalhostMenubarTuner';
 import { subscribeToAuth, loginWithGoogle, fetchCloudDataFromFirestore } from './utils/authService';
 import { getUserDonorInfo, syncAndAssignDonorNumberFromFirebase } from './utils/kitabisaTransparencyManager';
 import kitabisaLogo from './assets/kitabisa_logo.png';
-import { isProUser, setProUser, getExcelExportQuota, hasExcelExportQuota, decrementExcelExportQuota } from './utils/proManager';
+import { isProUser, getExcelExportQuota, hasExcelExportQuota, decrementExcelExportQuota } from './utils/proManager';
 import { initNativeBilling } from './utils/nativeBillingManager';
 import { syncWidgetData } from './utils/widgetSync';
 import { FAQ_ITEMS } from './utils/faqData';
@@ -115,425 +92,6 @@ import {
   drainAndProcessQueuedNotifications,
   NotificationTrackerNative
 } from './utils/notificationTracker';
-
-// Categories: NO icon field stored — icons resolved at runtime via ICON_MAP
-const DEFAULT_EXPENSE_CATEGORIES = [
-  { id: 'food', name: 'Food', iconClass: 'food-icon' },
-  { id: 'bioskop', name: 'Bioskop', iconClass: 'game-icon' },
-  { id: 'transport', name: 'Transportasi', iconClass: 'car-icon' },
-  { id: 'barber', name: 'Barbershop', iconClass: 'barber-icon' },
-  { id: 'skincare', name: 'Skincare', iconClass: 'cosmetics-icon' },
-  { id: 'edukasi', name: 'Edukasi', iconClass: 'book-icon' },
-  { id: 'galon', name: 'Air Galon', iconClass: 'bottle-icon' },
-  { id: 'fashion', name: 'Fashion', iconClass: 'fashion-icon' },
-  { id: 'supermarket', name: 'Supermarket', iconClass: 'cart-icon' },
-  { id: 'sub', name: 'Subscription', iconClass: 'sub-icon' },
-  { id: 'pesawat', name: 'Pesawat', iconClass: 'pesawat-icon' },
-  { id: 'tranfer', name: 'Tranfer', iconClass: 'tranfer-icon' },
-  { id: 'kost', name: 'Kost', iconClass: 'kost-icon' },
-  { id: 'coffee', name: 'Coffee', iconClass: 'coffee-icon' },
-  { id: 'gofood', name: 'GoFood', iconClass: 'gofood-icon' },
-  { id: 'sepatu', name: 'Sepatu', iconClass: 'sepatu-icon' },
-  { id: 'donasi', name: 'Donasi', iconClass: 'donasi-icon' },
-  { id: 'topupGame', name: 'Top Up Game', iconClass: 'topup-game-icon' },
-  { id: 'bensin', name: 'Bensin', iconClass: 'bensin-icon' },
-  { id: 'konser', name: 'Konser', iconClass: 'konser-icon' },
-  { id: 'pulsa', name: 'Pulsa', iconClass: 'pulsa-icon' },
-  { id: 'rumahSakit', name: 'Rumah Sakit', iconClass: 'rumah-sakit-icon' },
-  { id: 'obatSakit', name: 'Obat Sakit', iconClass: 'obat-sakit-icon' },
-  { id: 'jajanAdek', name: 'Jajan Adek', iconClass: 'jajan-adek-icon' },
-  { id: 'party', name: 'Party', iconClass: 'party-icon' },
-  { id: 'buah', name: 'Buah', iconClass: 'buah-icon' },
-  { id: 'minuman', name: 'Minuman', iconClass: 'minuman-icon' },
-  { id: 'wifi', name: 'WiFi', iconClass: 'wifi-icon' },
-  { id: 'biayaAdmin', name: 'Biaya Admin', iconClass: 'biaya-admin-icon' },
-  { id: 'accessories', name: 'Accessories', iconClass: 'accessories-icon' },
-  { id: 'tiket', name: 'Tiket', iconClass: 'tiket-icon' },
-];
-
-const DEFAULT_INCOME_CATEGORIES = [
-  { id: 'gaji', name: 'Gaji', iconClass: 'gaji-icon' },
-  { id: 'bonus', name: 'Bonus', iconClass: 'bonus-icon' },
-  { id: 'kip', name: 'KIP', iconClass: 'kip-icon' },
-  { id: 'investasi', name: 'Investasi', iconClass: 'investasi-icon' },
-  { id: 'bisnis', name: 'Bisnis', iconClass: 'bisnis-icon' },
-  { id: 'affiliate', name: 'Affiliate', iconClass: 'affiliate-icon' },
-  { id: 'freelance', name: 'Freelance', iconClass: 'freelance-icon' },
-];
-
-const DEFAULT_ACTIVE_EXPENSE_CATEGORY_IDS = ['food', 'transport', 'coffee', 'bensin'];
-const DEFAULT_ACTIVE_INCOME_CATEGORY_IDS = ['gaji', 'bonus', 'affiliate'];
-const DEFAULT_ACTIVE_ACCOUNTS = ['Cash', 'GoPay', 'BRImo'];
-
-// Runtime icon lookup — NEVER stored to localStorage, only used during render
-const ICON_MAP = {
-  food: fastFoodSvg,
-  bioskop: gameSvg,
-  transport: carSvg,
-  barber: barberSvg,
-  skincare: cosmeticsSvg,
-  edukasi: bookSvg,
-  galon: dispenserBottleSvg,
-  fashion: shirtShoeSvg,
-  supermarket: shoppingCartSvg,
-  sub: subscriptionSvg,
-  pesawat: pesawatSvg,
-  tranfer: tranferSvg,
-  transfer: tranferSvg,
-  kost: kostSvg,
-  coffee: coffeeSvg,
-  gofood: fastFoodSvg,
-  sepatu: sepatuSvg,
-  donasi: donasiSvg,
-  topupGame: topupGameSvg,
-  bensin: bensinSvg,
-  investasi: investasiSvg,
-  bisnis: bisnisSvg,
-  affiliate: affiliateSvg,
-  konser: konserSvg,
-  pulsa: pulsaSvg,
-  rumahSakit: rumahSakitSvg,
-  obatSakit: obatSakitSvg,
-  jajanAdek: jajanAdekSvg,
-  party: partySvg,
-  buah: buahSvg,
-  minuman: minumanSvg,
-  wifi: wifiSvg,
-  biayaAdmin: biayaAdminSvg,
-  accessories: accessoriesSvg,
-  tiket: ticketSvg,
-  gaji: salarySvg,
-  bonus: bonusSvg,
-  kip: bookSvg,
-  freelance: freelanceSvg,
-  tambahSaldo: addSvg,
-};
-
-// Resolve icon SVG from category id (runtime only, not from storage)
-const resolveIcon = (catOrTx) => {
-  if (!catOrTx) return null;
-  const id = catOrTx.categoryId || catOrTx.id || null;
-  return id ? (ICON_MAP[id] || null) : null;
-};
-
-// Resolve category-bound background card class for consistent block colors
-const resolveCardBgClass = (catOrTx) => {
-  if (!catOrTx) return 'cat-card-food';
-  const id = catOrTx.categoryId || catOrTx.id;
-  if (id) return `cat-card-${id}`;
-  if (catOrTx.category) {
-    const norm = (catOrTx.category || '').toLowerCase().trim();
-    const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
-    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
-    if (found) return `cat-card-${found.id}`;
-  }
-  if (catOrTx.iconClass) {
-    return `cat-card-${catOrTx.iconClass}`;
-  }
-  return 'cat-card-food';
-};
-
-const CATEGORY_BG_COLORS = {
-  food: '#FAE2CB',
-  coffee: '#EFE3D5',
-  bioskop: '#F2E1EE',
-  transport: '#D9E8F1',
-  barber: '#F8DECE',
-  skincare: '#F9DFEA',
-  edukasi: '#DAE4F5',
-  galon: '#D6EFE7',
-  fashion: '#E8E2F7',
-  supermarket: '#FAF2C8',
-  sub: '#D6EDE4',
-  pesawat: '#D0E6F7',
-  tranfer: '#D2ECF2',
-  transfer: '#D2ECF2',
-  kost: '#F6E3D5',
-  gofood: '#FCE2E2',
-  sepatu: '#EFE0FA',
-  donasi: '#F8DFEA',
-  topupGame: '#D9F5E2',
-  topupgame: '#D9F5E2',
-  bensin: '#F8ECD0',
-  konser: '#F7D6E6',
-  pulsa: '#DBEAFE',
-  rumahSakit: '#FCE4E7',
-  rumahsakit: '#FCE4E7',
-  obatSakit: '#DEF7E7',
-  obatsakit: '#DEF7E7',
-  jajanAdek: '#FDECEE',
-  jajanadek: '#FDECEE',
-  party: '#FEF3C7',
-  buah: '#E2F4DC',
-  minuman: '#D8F1FE',
-  wifi: '#FEF3C7',
-  biayaAdmin: '#E8EDF2',
-  biayaadmin: '#E8EDF2',
-  accessories: '#ECE7F9',
-  tiket: '#FCE5DC',
-  gaji: '#D1FAE5',
-  bonus: '#FEF08A',
-  kip: '#DBEAFE',
-  freelance: '#D3F6FA',
-  investasi: '#DCF3DC',
-  bisnis: '#FFF0D4',
-  affiliate: '#E8EEFC',
-  tambahSaldo: '#D8ECF9',
-};
-
-const resolveIconClass = (catOrTx) => {
-  if (!catOrTx) return 'food-icon';
-  const id = catOrTx.categoryId || catOrTx.id;
-  const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
-  if (id) {
-    const found = allCats.find(c => c.id.toLowerCase() === id.toLowerCase());
-    if (found && found.iconClass) return found.iconClass;
-  }
-  if (catOrTx.category || catOrTx.name) {
-    const norm = (catOrTx.category || catOrTx.name || '').toLowerCase().trim();
-    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
-    if (found && found.iconClass) return found.iconClass;
-  }
-  if (catOrTx.iconClass) return catOrTx.iconClass;
-  return 'food-icon';
-};
-
-const resolveCardBgColor = (catOrTx) => {
-  if (!catOrTx) return '#FAE2CB';
-  const id = catOrTx.categoryId || catOrTx.id;
-  if (id && CATEGORY_BG_COLORS[id]) return CATEGORY_BG_COLORS[id];
-  if (catOrTx.category) {
-    const norm = (catOrTx.category || '').toLowerCase().trim();
-    const allCats = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
-    const found = allCats.find(c => (c.name || '').toLowerCase() === norm || (c.id || '').toLowerCase() === norm);
-    if (found && CATEGORY_BG_COLORS[found.id]) return CATEGORY_BG_COLORS[found.id];
-  }
-  return catOrTx.type === 'income' ? 'var(--card-income-bg, #E8F5E9)' : 'var(--card-expense-bg, #FBE9E7)';
-};
-
-// One-time migration: strip raw SVG `icon` blobs from old stored transactions
-// and derive categoryId from category name mapping
-const migrateTransactions = (list) => {
-  if (!Array.isArray(list)) return list;
-  const nameToId = {
-    'Food': 'food', 'Bioskop': 'bioskop', 'Transportasi': 'transport',
-    'Barbershop': 'barber', 'Skincare': 'skincare', 'Edukasi': 'edukasi',
-    'Air Galon': 'galon', 'Fashion': 'fashion', 'Supermarket': 'supermarket',
-    'Subscription': 'sub', 'Pesawat': 'pesawat', 'Tranfer': 'tranfer', 'tranfer': 'tranfer', 'Transfer': 'tranfer', 'transfer': 'tranfer', 'Kost': 'kost',
-    'Gaji': 'gaji', 'Bonus': 'bonus', 'KIP': 'kip', 'Tambah Saldo': 'tambahSaldo',
-    'Bensin': 'bensin', 'Investasi': 'investasi', 'Bisnis': 'bisnis',
-    'Affiliate': 'affiliate', 'Konser': 'konser', 'Pulsa': 'pulsa',
-    'Rumah Sakit': 'rumahSakit', 'Obat Sakit': 'obatSakit',
-    'Jajan Adek': 'jajanAdek', 'Party': 'party', 'Buah': 'buah',
-    'Minuman': 'minuman', 'WiFi': 'wifi', 'Wifi': 'wifi', 'WIFI': 'wifi',
-    'Biaya Admin': 'biayaAdmin', 'Accessories': 'accessories', 'Aksesoris': 'accessories', 'accesories': 'accessories', 'accessories': 'accessories',
-    'Tiket': 'tiket', 'tiket': 'tiket', 'Ticket': 'tiket', 'ticket': 'tiket', 'Karcis': 'tiket', 'karcis': 'tiket',
-  };
-  let changed = false;
-  const migrated = list.map(tx => {
-    if (tx.icon !== undefined) {
-      // eslint-disable-next-line no-unused-vars
-      const { icon, ...rest } = tx;
-      changed = true;
-      return {
-        ...rest,
-        categoryId: rest.categoryId || nameToId[rest.category] || null,
-      };
-    }
-    if (!tx.categoryId && tx.category) {
-      changed = true;
-      return { ...tx, categoryId: nameToId[tx.category] || null };
-    }
-    return tx;
-  });
-  if (changed) {
-    try { safeStorageSet('user_transactions', migrated); } catch {}
-  }
-  return migrated;
-};
-
-// One-time migration: strip raw SVG `icon` blobs from stored categories
-const migrateCategories = (list) => {
-  if (!Array.isArray(list)) return list;
-  return list.map(cat => {
-    // eslint-disable-next-line no-unused-vars
-    const { icon, ...rest } = cat;
-    return rest;
-  });
-};
-
-const INITIAL_TRANSACTIONS = [];
-
-// Helper to identify unedited auto-tracked transactions from Notification Tracker (Past & Present)
-const isAutoTrackedTx = (tx) => Boolean(
-  tx && (
-    tx.autoTracked === true ||
-    tx.inputMethod === 'notification' ||
-    (Boolean(tx.rawProvider) && tx.inputMethod !== 'manual')
-  )
-);
-
-/**
- * Komponen Kartu Transaksi Baru:
- * 1. Fluid Pill Expansion (Muncul sebagai bulatan kecil di tengah lalu meregang mulus ke kiri-kanan)
- * 2. Animasi Ketik (Typewriter) Terstruktur & Berirama:
- *    - Menunggu kartu membuka sebagian (260ms) sebelum mulai mengetik
- *    - Memiliki jeda napas terstruktur saat berpindah dari Judul -> Kategori/Akun -> Nominal
- *    - Nominal rata kanan dengan tabular-nums agar tidak bergeser saat diketik
- */
-function VoiceAnimatedTransactionItem({
-  item,
-  resolveIcon,
-  isDeleting,
-  onAnimationComplete,
-  onSelectTx,
-  onEditTx,
-  getCategoryName,
-  appLanguage,
-  fmtHomeMoney,
-  className = ''
-}) {
-  const fullTitle = item.title || item.category || 'Transaksi';
-  const catLabel = getCategoryName ? getCategoryName(item.category, appLanguage) : (item.category || '');
-  const fullSubtitle = `${catLabel} • ${item.account || 'Cash'}`;
-  const prefix = item.type === 'expense' ? '-' : '+';
-  const formattedAmt = fmtHomeMoney ? fmtHomeMoney(item.amount) : `Rp ${Number(item.amount || 0).toLocaleString('id-ID')}`;
-  const fullAmount = `${prefix}${formattedAmt}`;
-
-  const L1 = fullTitle.length;
-  const PAUSE_1 = 3; // Jeda terstruktur setelah selesai ketik Judul (~135ms)
-  const L2 = fullSubtitle.length;
-  const PAUSE_2 = 3; // Jeda terstruktur sebelum mulai ketik Nominal (~135ms)
-  const L3 = fullAmount.length;
-  const totalSteps = L1 + PAUSE_1 + L2 + PAUSE_2 + L3;
-
-  const [stepProgress, setStepProgress] = useState(0);
-  const [isFinished, setIsFinished] = useState(false);
-
-  useEffect(() => {
-    let current = 0;
-    let interval = null;
-    let finishTimer = null;
-
-    // Tunggu 260ms saat kartu sedang membuka dari bulatan tengah agar ketikan terlihat jelas & terstruktur
-    const startDelay = setTimeout(() => {
-      interval = setInterval(() => {
-        current++;
-        setStepProgress(current);
-        if (current >= totalSteps) {
-          clearInterval(interval);
-          setIsFinished(true);
-          // Setelah selesai mengetik, lepaskan dari state animasi menjadi kartu statis
-          finishTimer = setTimeout(() => {
-            if (onAnimationComplete) {
-              onAnimationComplete(item.id);
-            }
-          }, 420);
-        }
-      }, 42); // Kecepatan 42ms per langkah: rapi, tenang, dan mudah diikuti mata
-    }, 260);
-
-    return () => {
-      clearTimeout(startDelay);
-      if (interval) clearInterval(interval);
-      if (finishTimer) clearTimeout(finishTimer);
-    };
-  }, [totalSteps, item.id, onAnimationComplete]);
-
-  // Hitung teks yang tampil berdasarkan step terstruktur saat ini
-  let displayedTitle = '';
-  let displayedSubtitle = '';
-  let displayedAmount = '';
-  let currentCursor = 'none'; // 'title' | 'sub' | 'amount' | 'none'
-
-  if (isFinished) {
-    displayedTitle = fullTitle;
-    displayedSubtitle = fullSubtitle;
-    displayedAmount = fullAmount;
-    currentCursor = 'none';
-  } else if (stepProgress === 0) {
-    currentCursor = 'title';
-  } else if (stepProgress <= L1) {
-    displayedTitle = fullTitle.slice(0, stepProgress);
-    currentCursor = 'title';
-  } else if (stepProgress <= L1 + PAUSE_1) {
-    // Jeda tenang di akhir judul sebelum pindah ke baris bawah
-    displayedTitle = fullTitle;
-    currentCursor = 'title';
-  } else if (stepProgress <= L1 + PAUSE_1 + L2) {
-    displayedTitle = fullTitle;
-    displayedSubtitle = fullSubtitle.slice(0, stepProgress - L1 - PAUSE_1);
-    currentCursor = 'sub';
-  } else if (stepProgress <= L1 + PAUSE_1 + L2 + PAUSE_2) {
-    // Jeda tenang di akhir subjudul sebelum pindah ke nominal kanan
-    displayedTitle = fullTitle;
-    displayedSubtitle = fullSubtitle;
-    currentCursor = 'sub';
-  } else {
-    displayedTitle = fullTitle;
-    displayedSubtitle = fullSubtitle;
-    displayedAmount = fullAmount.slice(0, stepProgress - L1 - PAUSE_1 - L2 - PAUSE_2);
-    currentCursor = 'amount';
-  }
-
-  return (
-    <div 
-      className={`transaction-item ${resolveCardBgClass(item)} voice-card-timbul ${isDeleting ? 'deleting-sink' : ''} ${className}`} 
-      key={item.id}
-      onClick={() => onSelectTx && onSelectTx(item)}
-      role="button"
-      tabIndex={0}
-    >
-      <div className={`transaction-icon ${item.iconClass} voice-icon-pop`}>
-        {resolveIcon(item) && <img src={resolveIcon(item)} alt={item.category} />}
-      </div>
-      <div className="transaction-details" style={{ textAlign: 'left', direction: 'ltr' }}>
-        <span className="transaction-title" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', minHeight: '20px' }}>
-          <span>{displayedTitle}</span>
-          {currentCursor === 'title' && <span className="typewriter-cursor">|</span>}
-        </span>
-        <span className="transaction-category" style={{ textAlign: 'left', direction: 'ltr', display: 'inline-flex', alignItems: 'center', minHeight: '16px' }}>
-          <span>{displayedSubtitle}</span>
-          {currentCursor === 'sub' && <span className="typewriter-cursor">|</span>}
-        </span>
-      </div>
-      <div className="transaction-actions-right">
-        {isAutoTrackedTx(item) && (
-          <button 
-            type="button" 
-            className="tx-edit-capsule-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onEditTx) onEditTx(item);
-            }}
-            title="Edit Transaksi Otomatis"
-            aria-label="Edit Transaksi Otomatis"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            <span>Edit</span>
-          </button>
-        )}
-        <div
-          className={`transaction-amount ${item.type === 'expense' ? 'negative' : 'positive'}`}
-          style={{
-            textAlign: 'right',
-            direction: 'ltr',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            fontVariantNumeric: 'tabular-nums'
-          }}
-        >
-          <span>{displayedAmount}</span>
-          {currentCursor === 'amount' && <span className="typewriter-cursor">|</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Hook for cash counter / money counting machine animation
 function useCashCounter(targetValue, duration = 1200) {
@@ -967,7 +525,7 @@ function App() {
         phys.curPixel = (phys.leadPixel + phys.trailPixel) / 2;
         phys.velPixel = (phys.velLead + phys.velTrail) / 2;
         phys.fluidSpan = Math.abs(phys.leadPixel - phys.trailPixel);
-        const dispPos = phys.curPixel - phys.targetPixel;
+        const _dispPos = phys.curPixel - phys.targetPixel;
         phys.accPixel = (phys.velLead + phys.velTrail) / Math.max(0.001, dt);
 
         // Parabolic Flight Buoyancy Coupling: keeps the stretched droplet levitated in an arc while traveling between tabs
@@ -1705,7 +1263,6 @@ function App() {
   const [isCategoryDeleteMode, setIsCategoryDeleteMode] = useState(false);
   const [isAccountWarehouseOpen, setIsAccountWarehouseOpen] = useState(false);
   const [isAccountDeleteMode, setIsAccountDeleteMode] = useState(false);
-  const [deletedAccountsHistory, setDeletedAccountsHistory] = useState([]);
   const [deletedAccountsList, setDeletedAccountsList] = useState(() => {
     try {
       const saved = safeStorageGet('user_deleted_accounts');
@@ -2046,18 +1603,18 @@ function App() {
   const [isSearchingBudget, setIsSearchingBudget] = useState(false);
 
   const [accountsSubTab, setAccountsSubTab] = useState('expense'); // 'expense' | 'income'
-  const [expandedAccountName, setExpandedAccountName] = useState(null);
+  const [_expandedAccountName, _setExpandedAccountName] = useState(null);
   const accountTouchStartXRef = useRef(null);
   const accountTouchStartYRef = useRef(null);
 
-  const handleAccountTouchStart = (e) => {
+  const _handleAccountTouchStart = (e) => {
     if (e.touches && e.touches.length === 1) {
       accountTouchStartXRef.current = e.touches[0].clientX;
       accountTouchStartYRef.current = e.touches[0].clientY;
     }
   };
 
-  const handleAccountTouchEnd = (e) => {
+  const _handleAccountTouchEnd = (e) => {
     if (accountTouchStartXRef.current === null) return;
     const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
     const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
@@ -2078,7 +1635,7 @@ function App() {
     accountTouchStartYRef.current = null;
   };
 
-  const handleOpenBudgetCap = () => {
+  const _handleOpenBudgetCap = () => {
     if (!hasVisitedBudgetCap) {
       setHasVisitedBudgetCap(true);
       localStorage.setItem('user_has_visited_budget_cap', 'true');
@@ -2278,7 +1835,7 @@ function App() {
   // Security / PIN / Biometric State
   const [userHasPin, setUserHasPin] = useState(() => hasUserPin());
   const [isLockEnabled, setIsLockEnabled] = useState(() => isAppLockEnabled());
-  const [isBiometricActive, setIsBiometricActive] = useState(() => isBiometricEnabled());
+  const [_isBiometricActive, setIsBiometricActive] = useState(() => isBiometricEnabled());
   const [isPinSetupModalOpen, setIsPinSetupModalOpen] = useState(false);
   const [isAppLocked, setIsAppLocked] = useState(() => hasUserPin() && isAppLockEnabled());
 
@@ -2626,7 +2183,7 @@ function App() {
             console.log('[App] Update terdeteksi:', info);
             setUpdateInfo(info);
             // Picu notifikasi tray sistem Android / Web
-            sendUpdateReminderNotification(info, appLanguage);
+            sendUpdateReminderNotification(info, safeStorageGet('user_app_lang') || 'en');
           }
         })
         .catch(err => {
@@ -2882,7 +2439,7 @@ function App() {
         window.removeEventListener('cassiel_open_chat_group', handleOpenChatGroupFromNotif);
       }
     };
-  }, []);
+  }, [showVoiceToast]);
 
   // Sync states to Secure Encrypted Storage
   React.useEffect(() => {
@@ -3461,7 +3018,7 @@ function App() {
 
   const lastBackPressTimeRef = useRef(0);
 
-  const handleAppBack = () => {
+  const handleAppBack = useCallback(() => {
     const s = backHandlerStateRef.current;
 
     // -1. Pop-up Balance Card Detail & Transaction Pop-up Detail
@@ -3725,7 +3282,7 @@ function App() {
       lastBackPressTimeRef.current = now;
       showVoiceToast('Tekan kembali sekali lagi untuk keluar');
     }
-  };
+  }, [showVoiceToast]);
 
   React.useEffect(() => {
     let backListener = null;
@@ -3778,7 +3335,7 @@ function App() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [handleAppBack]);
 
   // Backup & Restore Handlers
   const handleExportBackup = async () => {
@@ -4127,7 +3684,7 @@ function App() {
   };
 
   // Alias for backward compatibility
-  const handleDeleteAccount = handleMoveAccountToWarehouse;
+  const _handleDeleteAccount = handleMoveAccountToWarehouse;
 
   // Handle Penyesuaian Akun Generik Lama (misal: 'Bank' / 'E-Wallet' -> Bank Pilihan User seperti 'BRImo', 'BCA', dll)
   const handleMigrateLegacyAccount = (oldAccName, newAccName) => {
@@ -4541,6 +4098,9 @@ function App() {
     }
   };
 
+  const checkBudgetNotifRef = useRef(null);
+  checkBudgetNotifRef.current = checkAndTriggerBudgetNotifications;
+
   // Process Queued Notifications from Android NotificationListenerService & Quick Assist
   const processAutoTrackerQueue = useCallback(async () => {
     try {
@@ -4558,7 +4118,7 @@ function App() {
           setTransactions(prev => [...newTxs, ...prev]);
           for (const tx of newTxs) {
             if (tx.type === 'expense') {
-              checkAndTriggerBudgetNotifications(tx, transactions, expenseCategories);
+              if (checkBudgetNotifRef.current) checkBudgetNotifRef.current(tx, transactions, expenseCategories);
             }
             showVoiceToast(`⚡ Transaksi ${tx.account || 'Akun'} Berhasil Dicatat: Rp ${Number(tx.amount || 0).toLocaleString('id-ID')}`);
           }
@@ -4567,7 +4127,7 @@ function App() {
     } catch (e) {
       console.warn('[App] Error in processAutoTrackerQueue:', e);
     }
-  }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions]);
+  }, [accountsList, warehouseAccountsList, expenseCategories, incomeCategories, transactions, showVoiceToast]);
 
   // Sync Notification Access permission & Assistant status when Profile modal opens
   React.useEffect(() => {
@@ -5250,7 +4810,7 @@ function App() {
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalBalance = totalIncome - totalExpenses;
+  const _totalBalance = totalIncome - totalExpenses;
 
   // Monthly Expenses for current navigated month
   const currentMonthExpenses = useMemo(() => {
@@ -5385,7 +4945,7 @@ function App() {
       fmtMoney,
       getCategoryName
     });
-  }, [transactions, monthlyBudgetsMap, currentDate, allBudgetCategories, appLanguage, fmtMoney, getCategoryName]);
+  }, [transactions, monthlyBudgetsMap, currentDate, allBudgetCategories, appLanguage, fmtMoney]);
 
   // Calculate Category Totals & Percentages for Stats
   const selectedTypeTxs = filteredTransactions.filter(t => t.type === statsType);
@@ -5580,7 +5140,7 @@ function App() {
         isCurrentMonth
       };
     });
-  }, [transactions, currentDate, chartPeriodFilter, currentYear, currentMonthIdx, monthNamesShort, monthNamesFull]);
+  }, [transactions, chartPeriodFilter, currentYear, currentMonthIdx, monthNamesShort, monthNamesFull]);
 
   // Helper to compute a clean, human-friendly max ceiling (e.g. 500k, 1M, 1.2M, etc.)
   const rawMaxMonthly = Math.max(

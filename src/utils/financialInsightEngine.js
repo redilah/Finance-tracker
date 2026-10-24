@@ -8,7 +8,7 @@
  */
 
 import { formatRupiah, getLastDayOfMonth } from './categoryInsightEngine.js';
-import { MONTH_SHORT_I18N, MONTH_NAMES_I18N } from './i18n.js';
+import { MONTH_SHORT_I18N } from './i18n.js';
 
 /**
  * Helper untuk memformat rentang hari aktif bulan ini
@@ -61,7 +61,7 @@ export const generateFinancialInsights = ({
   transactions = [],
   monthlyBudgetsMap = {},
   currentDate = new Date(),
-  allBudgetCategories = [],
+  allBudgetCategories: _allBudgetCategories = [],
   appLanguage = 'id',
   fmtMoney = null,
   getCategoryName = null
@@ -82,7 +82,7 @@ export const generateFinancialInsights = ({
   const prevDate = new Date(targetYear, targetMonth - 1, 1);
   const prevYear = prevDate.getFullYear();
   const prevMonth = prevDate.getMonth();
-  const prevMonthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+  const _prevMonthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
 
   // 1. Filter current & prev expenses
   const currentMonthExpensesTxs = transactions.filter(t => {
@@ -493,7 +493,6 @@ export const generateFinancialInsights = ({
     const topCatName = resolveCatName(topCategory.name);
     const topPct = Math.round((topCategory.amount / totalCurrentExpense) * 100);
     const topCount = topCategory.count || 1;
-    const avgPerTx = Math.round(topCategory.amount / topCount);
 
     // Kategori dengan transaksi terbanyak (frekuensi tinggi)
     const mostFreqCat = [...sortedCategories].sort((a, b) => b.count - a.count)[0];

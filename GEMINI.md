@@ -938,3 +938,16 @@ $$x_{tampil} = X_{max}\tanh(x_i/X_{max}),\quad \sigma = 0.045\tanh(y/8),\quad s_
 - **HP nyata**: devicemotion → e.acceleration (fallback high-pass α = 0.9 dari accelerationIncludingGravity), dipetakan ke koordinat layar + koreksi screen.orientation.angle, deadzone 0.6 m/s², bangun saat > 1.8 m/s², skala 110 px per m/s².
 - **Invarian Produksi**: Tombol penguji segitiga di localhost telah dihapus setelah pengujian selesai. Sistem 100% didorong oleh sensor gerak perangkat fisik (`devicemotion`) tanpa elemen overlay tambahan.
 - Balon kaca menu bar menerima impuls arah via registerJellyShakeListener.
+
+
+---
+
+## 51. Invarian Pemuatan Instan Sekaligus (Strict Eager-Loading Navigation & Asset Protection)
+
+> [!IMPORTANT]
+> **ATURAN PERMANEN REDI (WAJIB DIINGAT SELAMANYA):**
+> 1. **DILARANG Lazy-Load Tab & Modal Pengguna**: Seluruh halaman/tab utama (Home, Account, Budget, Stats) dan modal fitur pengguna di `src/App.jsx` **WAJIB** dimuat sekaligus di awal (*eager import*). Tujuannya agar begitu aplikasi terbuka, pengguna dengan kondisi sinyal/jaringan buruk sekalipun dapat membuka halaman Budget, Akun, Statistik, atau fitur lainnya secara instan (0 detik) tanpa perlu menunggu *loading/download* ulang.
+> 2. **Proteksi Dimensi SVG, Efek Kaca & File Audio**:
+>    - **DILARANG** menghapus atau mengubah ukuran dimensi tampilan SVG kategori/aset.
+>    - **DILARANG** mengubah atau mengganggu file suara notifikasi di `public/audio/`.
+>    - **DILARANG** mengubah efek blur/kaca cair yang sudah berjalan di `liquidGlassWebGL.js` dan `lgrHeroGlass.js`.

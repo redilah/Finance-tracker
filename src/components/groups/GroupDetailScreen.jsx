@@ -58,7 +58,7 @@ export default function GroupDetailScreen({
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [group?.id, currentUserName]);
+  }, [group, currentUserName]);
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab || 'finance'); // 'finance' | 'chat'
 
   useEffect(() => {

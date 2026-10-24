@@ -25,7 +25,7 @@
 
 import { registerPlugin } from '@capacitor/core';
 import { safeStorageGet, safeStorageSet } from './secureStorage';
-import { normalizeAccountName, DEFAULT_ACCOUNTS } from './accountLogos';
+import { normalizeAccountName, DEFAULT_ACCOUNTS } from './accountConstants';
 import {
   detectProvider,
   parseNotification,
@@ -740,7 +740,7 @@ export async function drainAndProcessQueuedNotifications({
     }
 
     return createdTransactions;
-  } catch (err) {
+  } catch {
     // Gracefully handle if not on Android or plugin error
     return [];
   }

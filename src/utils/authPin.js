@@ -1,11 +1,16 @@
-import { safeStorageGet, safeStorageSet, getDeviceSalt } from './secureStorage';
+import { safeStorageGet, safeStorageSet, getDeviceSalt, computeIntegritySignature, verifyIntegritySignature } from './secureStorage';
 
 const PIN_STORAGE_KEY = 'cassiel_user_pin';
 const BIOMETRIC_ENABLED_KEY = 'cassiel_biometric_enabled';
 const PIN_FAILURES_KEY = 'cassiel_pin_failures_count';
 const PIN_LOCKOUT_KEY = 'cassiel_pin_lockout_until';
+const PIN_LOCKOUT_SIG_KEY = 'cassiel_pin_lockout_sig';
 const MAX_FAILURES = 5;
 const LOCKOUT_DURATION_MS = 30000; // 30 detik
+
+// In-memory shadow state agar upaya menghapus localStorage saat sesi aktif tidak bisa membobol lockout (MASVS-AUTH-2)
+let memoryPinFailures = 0;
+let memoryLockoutUntil = 0;
 
 /**
  * SHA-256 hash helper menggunakan Web Crypto API yang digabung dengan salt unik perangkat
@@ -20,15 +25,8 @@ export async function hashPin(pin) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } catch {
-    // Fallback simple hash if subtle crypto not available
-    let hash = 0;
-    const str = `cassiel_pin_salt_${salt}_${pin}`;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash |= 0;
-    }
-    return `fb_${Math.abs(hash)}`;
+    // Fallback keyed hash if subtle crypto not available
+    return computeIntegritySignature(PIN_STORAGE_KEY, `${salt}_${pin}`);
   }
 }
 
@@ -57,17 +55,29 @@ export async function hashPinLegacy(pin) {
 
 /**
  * Periksa sisa durasi lockout jika pengguna salah memasukkan PIN berkali-kali
+ * Dilindungi dengan in-memory shadow state & integrity signature (OWASP MASVS-AUTH-2)
  * @returns {number} sisa detik lockout (0 jika tidak terkunci)
  */
 export function getPinLockoutRemainingSeconds() {
   try {
-    const until = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY) || '0', 10);
     const now = Date.now();
-    if (until > now) {
-      return Math.ceil((until - now) / 1000);
+    const storedUntil = parseInt(localStorage.getItem(PIN_LOCKOUT_KEY) || '0', 10);
+    const sig = localStorage.getItem(PIN_LOCKOUT_SIG_KEY);
+
+    // Jika ada indikasi manipulasi tanda tangan pada lockout aktif, pertahankan lockout maksimum
+    if (storedUntil > 0 && sig && !verifyIntegritySignature(PIN_LOCKOUT_KEY, String(storedUntil), sig)) {
+      memoryLockoutUntil = Math.max(memoryLockoutUntil, now + LOCKOUT_DURATION_MS);
     }
-    if (until > 0) {
+
+    const effectiveUntil = Math.max(storedUntil, memoryLockoutUntil);
+    if (effectiveUntil > now) {
+      return Math.ceil((effectiveUntil - now) / 1000);
+    }
+    if (storedUntil > 0 || memoryLockoutUntil > 0) {
+      memoryLockoutUntil = 0;
+      memoryPinFailures = 0;
       localStorage.removeItem(PIN_LOCKOUT_KEY);
+      localStorage.removeItem(PIN_LOCKOUT_SIG_KEY);
       localStorage.removeItem(PIN_FAILURES_KEY);
     }
     return 0;
@@ -81,11 +91,16 @@ export function getPinLockoutRemainingSeconds() {
  */
 export function recordFailedPinAttempt() {
   try {
-    const current = parseInt(localStorage.getItem(PIN_FAILURES_KEY) || '0', 10) + 1;
+    const storedFailures = parseInt(localStorage.getItem(PIN_FAILURES_KEY) || '0', 10);
+    const current = Math.max(storedFailures, memoryPinFailures) + 1;
+    memoryPinFailures = current;
     localStorage.setItem(PIN_FAILURES_KEY, String(current));
     if (current >= MAX_FAILURES) {
       const lockoutUntil = Date.now() + LOCKOUT_DURATION_MS;
-      localStorage.setItem(PIN_LOCKOUT_KEY, String(lockoutUntil));
+      memoryLockoutUntil = lockoutUntil;
+      const untilStr = String(lockoutUntil);
+      localStorage.setItem(PIN_LOCKOUT_KEY, untilStr);
+      localStorage.setItem(PIN_LOCKOUT_SIG_KEY, computeIntegritySignature(PIN_LOCKOUT_KEY, untilStr));
       return Math.ceil(LOCKOUT_DURATION_MS / 1000);
     }
     return 0;
@@ -99,9 +114,14 @@ export function recordFailedPinAttempt() {
  */
 export function resetPinFailures() {
   try {
+    memoryPinFailures = 0;
+    memoryLockoutUntil = 0;
     localStorage.removeItem(PIN_FAILURES_KEY);
     localStorage.removeItem(PIN_LOCKOUT_KEY);
-  } catch {}
+    localStorage.removeItem(PIN_LOCKOUT_SIG_KEY);
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 /**

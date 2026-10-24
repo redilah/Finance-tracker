@@ -18,7 +18,6 @@ export async function syncWidgetData({
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    const todayDateStr = now.toISOString().split('T')[0];
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const remainingDays = Math.max(1, daysInMonth - now.getDate() + 1);
 

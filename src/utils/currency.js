@@ -149,7 +149,7 @@ export async function fetchExchangeRates() {
   try {
     const cachedData = localStorage.getItem(CACHE_KEY_RATES);
     if (cachedData) return JSON.parse(cachedData);
-  } catch (e) {}
+  } catch {}
 
   return FALLBACK_RATES_BASE_IDR;
 }

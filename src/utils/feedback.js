@@ -33,7 +33,7 @@ export const syncOfflineFeedbackQueue = async () => {
         const docId = item.id || ('fb_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6));
         const docRef = doc(db, FEEDBACK_COLLECTION, docId);
         await setDoc(docRef, item, { merge: true });
-      } catch (err) {
+      } catch {
         remaining.push(item);
       }
     }

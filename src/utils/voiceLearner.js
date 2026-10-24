@@ -6,9 +6,6 @@ import {
   getDocs, 
   deleteDoc, 
   onSnapshot, 
-  query, 
-  orderBy, 
-  limit 
 } from '@firebase/firestore';
 import { getDeviceId, updateCurrentDeviceTelemetry } from './telemetry.js';
 import { safeStorageGet } from './secureStorage.js';

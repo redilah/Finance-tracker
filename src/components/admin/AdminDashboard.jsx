@@ -19,7 +19,8 @@ import {
   updateFeedbackItemStatus 
 } from '../../utils/feedback';
 import { syncDecrypt } from '../../utils/secureStorage';
-import { AccountIconBadge, normalizeAccountName } from '../../utils/accountLogos';
+import { AccountIconBadge } from '../../utils/accountLogos';
+import { normalizeAccountName } from '../../utils/accountConstants';
 import { 
   Users, 
   Smartphone, 
@@ -58,7 +59,7 @@ const REFRESH_INTERVAL_SECONDS = 1200; // 20 minutes = 1200 seconds
 /**
  * Resolver icon/emoji untuk kategori pengeluaran dan pemasukan pada analitik global
  */
-export const getCategoryIconDisplay = (catName, isIncome = false) => {
+const getCategoryIconDisplay = (catName, isIncome = false) => {
   const norm = (catName || '').toLowerCase().trim();
   if (isIncome) {
     if (/gaji|salary|upah/i.test(norm)) return '💼';
@@ -89,7 +90,7 @@ export const getCategoryIconDisplay = (catName, isIncome = false) => {
 /**
  * Cek apakah perangkat merupakan HP / Smartphone (Android / iPhone / iPad), bukan Laptop / PC
  */
-export const isMobileDevice = (item) => {
+const isMobileDevice = (item) => {
   if (!item) return false;
   const name = (typeof item === 'string' ? item : item.deviceName || '').toLowerCase();
   
@@ -111,7 +112,7 @@ const FIREBASE_CONSOLE_URL = 'https://console.firebase.google.com/u/0/project/re
 /**
  * Memastikan kategori pada kartu AI Learning selalu logis dan masuk akal
  */
-export const getSensibleVocabCategory = (vocabWord, rawCategory) => {
+const getSensibleVocabCategory = (vocabWord, rawCategory) => {
   const clean = (vocabWord || '').toLowerCase().trim();
   if (!clean) return rawCategory || 'Umum';
 
@@ -156,7 +157,7 @@ export const getSensibleVocabCategory = (vocabWord, rawCategory) => {
 /**
  * Validasi apakah nama pengguna adalah teks manusia yang valid dan bersih
  */
-export const isCleanUserName = (name) => {
+const isCleanUserName = (name) => {
   if (!name || typeof name !== 'string') return false;
   const trimmed = name.trim();
   if (trimmed.startsWith('enc:v1:')) return false;
@@ -173,7 +174,7 @@ export const isCleanUserName = (name) => {
 /**
  * Menyelesaikan NAMA ASLI PENGGUNA untuk Tabel Telemetry & Firestore Monitor
  */
-export const resolveRealUserName = (rawName, deviceId = null, telemetryList = []) => {
+const resolveRealUserName = (rawName, deviceId = null, telemetryList = []) => {
   if (isCleanUserName(rawName)) {
     return rawName.trim();
   }
@@ -214,7 +215,7 @@ export const resolveRealUserName = (rawName, deviceId = null, telemetryList = []
  * Format nama pengguna menjadi kode simbol / angka enkripsi anonim KHUSUS untuk bagian AI Learning
  * Menjaga privasi finansial saat melihat catatan pengeluaran & evaluasi suara
  */
-export const getAnonymizedUserCode = (rawName, deviceId = null) => {
+const getAnonymizedUserCode = (rawName, deviceId = null) => {
   if (!rawName && !deviceId) return 'enc:v1:s1:00000000';
   
   if (typeof rawName === 'string' && rawName.startsWith('enc:v1:')) {
@@ -272,16 +273,16 @@ export default function AdminDashboard({ onNavigateToApp }) {
   const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('all'); // 'all' | 'Saran Fitur' | 'Keluh Kesah' | 'Masalah'
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('all'); // 'all' | 'unread' | 'read'
   const [feedbackPage, setFeedbackPage] = useState(1);
-  const [feedbackPerPage, setFeedbackPerPage] = useState(8);
-  const [isFeedbackPerPageOpen, setIsFeedbackPerPageOpen] = useState(false);
+  const [feedbackPerPage, _setFeedbackPerPage] = useState(8);
+  const [_isFeedbackPerPageOpen, setIsFeedbackPerPageOpen] = useState(false);
   const feedbackPerPageRef = useRef(null);
 
   // Groups state (TAB 4: PELACAKAN GRUP PENGGUNA)
   const [groupSearchQuery, setGroupSearchQuery] = useState('');
   const [groupTypeFilter, setGroupTypeFilter] = useState('all'); // 'all' | 'Organisasi' | 'Keluarga' | 'Komunitas' | 'Lainnya'
   const [groupPage, setGroupPage] = useState(1);
-  const [groupPerPage, setGroupPerPage] = useState(8);
-  const [isGroupPerPageOpen, setIsGroupPerPageOpen] = useState(false);
+  const [groupPerPage, _setGroupPerPage] = useState(8);
+  const [_isGroupPerPageOpen, setIsGroupPerPageOpen] = useState(false);
   const groupPerPageRef = useRef(null);
 
   // Global loading & timer state

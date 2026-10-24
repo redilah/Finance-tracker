@@ -461,7 +461,7 @@ export class LGRHeroGlassRenderer {
       } else {
         this.bgColorRGB = [0.961, 0.922, 0.882];
       }
-    } catch (_) {
+    } catch {
       this.bgColorRGB = [0.961, 0.922, 0.882];
     }
   }

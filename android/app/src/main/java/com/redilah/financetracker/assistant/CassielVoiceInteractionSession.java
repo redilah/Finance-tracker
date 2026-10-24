@@ -33,6 +33,7 @@ import android.webkit.WebViewClient;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 
 import com.redilah.financetracker.MainActivity;
 import com.redilah.financetracker.R;
@@ -142,10 +143,11 @@ public class CassielVoiceInteractionSession extends VoiceInteractionSession {
                     window.setBackgroundDrawableResource(android.R.color.transparent);
                     window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
                     window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+                    WindowCompat.setDecorFitsSystemWindows(window, false);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                        window.setStatusBarColor(Color.TRANSPARENT);
-                        window.setNavigationBarColor(Color.TRANSPARENT);
+                        if (Build.VERSION.SDK_INT < 35) { window.setStatusBarColor(Color.TRANSPARENT); }
+                        if (Build.VERSION.SDK_INT < 35) { window.setNavigationBarColor(Color.TRANSPARENT); }
                     }
                 }
             }

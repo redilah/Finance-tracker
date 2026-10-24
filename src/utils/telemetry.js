@@ -1,5 +1,5 @@
 import { CURRENT_VERSION_NAME } from './version.js';
-import { normalizeAccountName } from './accountLogos.jsx';
+import { normalizeAccountName } from './accountConstants.js';
 const CURRENT_VERSION = CURRENT_VERSION_NAME;
 import { db } from './firebase.js';
 import { safeStorageGet } from './secureStorage.js';
@@ -156,8 +156,32 @@ export const getInstallDate = () => {
 const ACTIVE_TIME_KEY = 'app_total_active_seconds';
 const SESSION_COUNT_KEY = 'app_total_session_count';
 
-// Track active screen time in app
+// Track active screen time in app with batched 30s & visibility flush (hemat 90% I/O & baterai)
 let isTrackingActive = false;
+let pendingActiveSeconds = 0;
+let lastActiveTick = 0;
+
+function flushActiveTime() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && lastActiveTick > 0) {
+      const now = Date.now();
+      const diffSec = Math.round((now - lastActiveTick) / 1000);
+      if (diffSec > 0 && diffSec < 45) {
+        pendingActiveSeconds += diffSec;
+      }
+      lastActiveTick = now;
+    }
+    if (pendingActiveSeconds > 0) {
+      const currentTotal = parseInt(localStorage.getItem(ACTIVE_TIME_KEY) || '0', 10);
+      localStorage.setItem(ACTIVE_TIME_KEY, String(currentTotal + pendingActiveSeconds));
+      pendingActiveSeconds = 0;
+    }
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export const startActiveUsageTracking = () => {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined' || isTrackingActive) return;
   isTrackingActive = true;
@@ -166,23 +190,25 @@ export const startActiveUsageTracking = () => {
   try {
     const currentSessions = parseInt(localStorage.getItem(SESSION_COUNT_KEY) || '0', 10);
     localStorage.setItem(SESSION_COUNT_KEY, (currentSessions + 1).toString());
-  } catch {}
+  } catch {
+    // Ignore storage error
+  }
 
-  // Interval timer tracking active seconds while tab/app is visible
-  let lastActiveTick = Date.now();
+  lastActiveTick = Date.now();
   setInterval(() => {
-    try {
-      if (document.visibilityState === 'visible') {
-        const now = Date.now();
-        const diffSec = Math.round((now - lastActiveTick) / 1000);
-        if (diffSec > 0 && diffSec < 15) { // Protect against large jumps from background sleep
-          const currentTotal = parseInt(localStorage.getItem(ACTIVE_TIME_KEY) || '0', 10);
-          localStorage.setItem(ACTIVE_TIME_KEY, (currentTotal + diffSec).toString());
-        }
+    flushActiveTime();
+  }, 30000);
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushActiveTime();
+      } else {
+        lastActiveTick = Date.now();
       }
-      lastActiveTick = Date.now();
-    } catch {}
-  }, 3000);
+    });
+  }
+  window.addEventListener('pagehide', flushActiveTime);
 };
 
 // Update current device telemetry to Firebase Firestore (with timeout fallback)
@@ -190,6 +216,7 @@ export const updateCurrentDeviceTelemetry = async () => {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
     return null;
   }
+  flushActiveTime();
   const currentDeviceId = getDeviceId();
   const installDate = getInstallDate();
   const currentUserName = safeStorageGet('user_profile_name', 'Pengguna Baru');
@@ -238,7 +265,9 @@ export const updateCurrentDeviceTelemetry = async () => {
         accountStats[acc] = (accountStats[acc] || 0) + 1;
       });
     }
-  } catch {}
+  } catch {
+    // Ignore parse error
+  }
 
   // Porsi pengeluaran per kategori bulan ini dalam persen (total = 100), tanpa nominal Rupiah
   const expenseCategoryPercentages = toCategoryPercentages(localMonthlyExpenseByCategory);
@@ -271,7 +300,9 @@ export const updateCurrentDeviceTelemetry = async () => {
         monthlyFee: Number(g.monthlyFee) || 0
       }));
     }
-  } catch {}
+  } catch {
+    // Ignore parse error
+  }
 
   // Pro & Subscription tracking
   let isPro = false;
@@ -294,7 +325,9 @@ export const updateCurrentDeviceTelemetry = async () => {
         totalDonated = parsedProofs.reduce((acc, p) => acc + (Number(p.amountDonated) || 0), 0);
       }
     }
-  } catch {}
+  } catch {
+    // Ignore parse error
+  }
 
   const deviceData = {
     id: currentDeviceId,
@@ -349,7 +382,9 @@ export const updateCurrentDeviceTelemetry = async () => {
         list.unshift({ ...deviceData, isCurrentDevice: true });
       }
       localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
-    } catch {}
+    } catch {
+      // Ignore cache error
+    }
   }
 
   return deviceData;
@@ -389,14 +424,18 @@ export const getTelemetryData = async () => {
         });
         return list;
       }
-    } catch {}
+    } catch {
+      // Ignore fallback error
+    }
     
     // Default fallback to self device if nothing cached
     let selfTxCount = 0;
     try {
       const tx = safeStorageGet('user_transactions', []);
       if (Array.isArray(tx)) selfTxCount = tx.length;
-    } catch {}
+    } catch {
+      // Ignore error
+    }
 
     return [{
       id: currentDevId,
@@ -480,6 +519,8 @@ export const deleteTelemetryDevice = async (deviceId) => {
         list = list.filter(item => item.id !== deviceId);
         localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(list));
       }
-    } catch {}
+    } catch {
+      // Ignore error
+    }
   }
 };

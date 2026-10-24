@@ -1,60 +1,83 @@
 /**
- * Pure JS account helpers and constants
+ * Pure JS account helpers and constants (with official SVG icon references)
  * Separated from accountLogos.jsx for Fast Refresh compatibility and Node.js testing.
  */
+import bcaSvg from '../assets/payment-logos/bca.svg';
+import briSvg from '../assets/payment-logos/bri.svg';
+import bsiSvg from '../assets/payment-logos/bsi.svg';
+import cimbSvg from '../assets/payment-logos/cimbva.svg';
+import permataSvg from '../assets/payment-logos/permatabank.svg';
+import maybankSvg from '../assets/payment-logos/maybankva.svg';
+import seabankSvg from '../assets/payment-logos/seabank.svg';
+import jeniusSvg from '../assets/payment-logos/jenius.svg';
+import bluSvg from '../assets/payment-logos/blu.svg';
+import jagoSvg from '../assets/payment-logos/jago.svg';
+import livinSvg from '../assets/payment-logos/livin.svg';
+import wondrSvg from '../assets/payment-logos/wondr.svg';
+import gopaySvg from '../assets/payment-logos/GopayIcon.svg';
+import ovoSvg from '../assets/payment-logos/OvoIcon.svg';
+import danaSvg from '../assets/payment-logos/DanaIcon.svg';
+import linkajaSvg from '../assets/payment-logos/LinkAjaIcon.svg';
+import shopeepaySvg from '../assets/payment-logos/ShopeePayIcon.svg';
+import qrisSvg from '../assets/payment-logos/qris.svg';
+import paypalSvg from '../assets/payment-logos/paypal.svg';
+import visaSvg from '../assets/payment-logos/visa.svg';
+import mastercardSvg from '../assets/payment-logos/mastercard.svg';
+import alfamartSvg from '../assets/payment-logos/alfamart.svg';
+import indomaretSvg from '../assets/payment-logos/indomaret.svg';
+
+import bpddiySvg from '../assets/payment-logos/bpddiy.svg';
+import baleByBtnSvg from '../assets/payment-logos/balebybtn.svg';
+import jcbSvg from '../assets/payment-logos/jcb.svg';
+import amexSvg from '../assets/payment-logos/amex.svg';
+import bcaCardSvg from '../assets/payment-logos/bcacard.svg';
+import tokopediaCardSvg from '../assets/payment-logos/tokopediacard.svg';
+import jeniusCardSvg from '../assets/payment-logos/jeniuscard.svg';
+import mandiriCardSvg from '../assets/payment-logos/mandiricard.svg';
+import bniCardSvg from '../assets/payment-logos/bnicard.svg';
+import briCardSvg from '../assets/payment-logos/bricard.svg';
+import cimbCardSvg from '../assets/payment-logos/cimbcard.svg';
 
 export const DEFAULT_ACCOUNTS = [
   { id: 'cash', name: 'Cash', type: 'cash' },
   // Bank Resmi
-  { id: 'bca', name: 'BCA', type: 'bank' },
-  { id: 'bri', name: 'BRImo', type: 'bank' },
-  { id: 'livin', name: "Livin' by Mandiri", type: 'bank' },
-  { id: 'wondr', name: 'Wondr by BNI', type: 'bank' },
-  { id: 'jago', name: 'Jago', type: 'bank' },
-  { id: 'bsi', name: 'BSI Mobile', type: 'bank' },
-  { id: 'cimb', name: 'OCTO Mobile (CIMB)', type: 'bank' },
-  { id: 'seabank', name: 'SeaBank', type: 'bank' },
-  { id: 'jenius', name: 'Jenius (BTPN)', type: 'bank' },
-  { id: 'blu', name: 'blu by BCA Digital', type: 'bank' },
-  { id: 'permata', name: 'PermataME', type: 'bank' },
-  { id: 'danamon', name: 'D-Bank PRO (Danamon)', type: 'bank' },
-  { id: 'panin', name: 'Panin Mobile', type: 'bank' },
-  { id: 'maybank', name: 'M2U ID (Maybank)', type: 'bank' },
-  { id: 'btn', name: 'BTN Mobile', type: 'bank' },
-  { id: 'neobank', name: 'Neobank (BNC)', type: 'bank' },
-  { id: 'bankdki', name: 'JakOne Mobile (Bank DKI)', type: 'bank' },
-  { id: 'bankjateng', name: 'Bima Mobile (Bank Jateng)', type: 'bank' },
-  { id: 'bankjatim', name: 'JConnect (Bank Jatim)', type: 'bank' },
-  { id: 'bankbjb', name: 'DIGI by bjb', type: 'bank' },
-  { id: 'sinarmas', name: 'SimobiPlus (Bank Sinarmas)', type: 'bank' },
-  // E-Wallet Resmi
-  { id: 'gopay', name: 'GoPay', type: 'ewallet' },
-  { id: 'ovo', name: 'OVO', type: 'ewallet' },
-  { id: 'dana', name: 'DANA', type: 'ewallet' },
-  { id: 'shopeepay', name: 'ShopeePay', type: 'ewallet' },
-  { id: 'linkaja', name: 'LinkAja', type: 'ewallet' },
-  { id: 'isaku', name: 'i.saku', type: 'ewallet' },
-  { id: 'doku', name: 'DOKU', type: 'ewallet' },
-  { id: 'sakuku', name: 'Sakuku', type: 'ewallet' },
-  { id: 'astrapay', name: 'AstraPay', type: 'ewallet' },
-  { id: 'maxim', name: 'Maxim Wallet', type: 'ewallet' },
-  { id: 'grabpay', name: 'GrabPay', type: 'ewallet' },
-  { id: 'spin', name: 'MotionPay', type: 'ewallet' },
-  { id: 'paytren', name: 'PayTren', type: 'ewallet' },
-  { id: 'mitradarat', name: 'MitraDarat Pay', type: 'ewallet' },
-  { id: 'indodax', name: 'Indodax Wallet', type: 'ewallet' },
-  { id: 'plink', name: 'Plink', type: 'ewallet' },
-  { id: 'toko', name: 'TokoCrypto Wallet', type: 'ewallet' },
-  { id: 'rekeningku', name: 'Reku Wallet', type: 'ewallet' },
-  { id: 'pintu', name: 'Pintu Wallet', type: 'ewallet' },
-  { id: 'flip', name: 'Flip Saldo', type: 'ewallet' },
-  { id: 'oy', name: 'OY! Indonesia', type: 'ewallet' },
-  { id: 'kaspro', name: 'KasPro', type: 'ewallet' },
-  { id: 'blibli', name: 'Blibli Tiket Pay', type: 'ewallet' },
-  { id: 'lazada', name: 'Lazada Wallet', type: 'ewallet' },
-  { id: 'bukalapak', name: 'BukaTabungan / Saldo', type: 'ewallet' },
-  { id: 'pegadaian', name: 'Pegadaian Digital', type: 'ewallet' },
-  { id: 'tokopedia', name: 'Tokopedia Saldo', type: 'ewallet' }
+  { id: 'bca', name: 'BCA', type: 'bank', icon: bcaSvg },
+  { id: 'bri', name: 'BRImo', type: 'bank', icon: briSvg },
+  { id: 'livin', name: "Livin' by Mandiri", type: 'bank', icon: livinSvg },
+  { id: 'wondr', name: 'Wondr by BNI', type: 'bank', icon: wondrSvg },
+  { id: 'jago', name: 'Jago', type: 'bank', icon: jagoSvg },
+  { id: 'bsi', name: 'BSI', type: 'bank', icon: bsiSvg },
+  { id: 'cimb', name: 'CIMB Niaga', type: 'bank', icon: cimbSvg },
+  { id: 'seabank', name: 'SeaBank', type: 'bank', icon: seabankSvg },
+  { id: 'jenius', name: 'Jenius', type: 'bank', icon: jeniusSvg },
+  { id: 'maybank', name: 'Maybank', type: 'bank', icon: maybankSvg },
+  { id: 'bpddiy', name: 'BPD DIY', type: 'bank', icon: bpddiySvg },
+  { id: 'bale_by_btn', name: 'bale by btn', type: 'bank', icon: baleByBtnSvg },
+  { id: 'permata', name: 'Permata', type: 'bank', icon: permataSvg },
+  { id: 'blu', name: 'blu', type: 'bank', icon: bluSvg },
+  // E-Wallet & Payment
+  { id: 'gopay', name: 'GoPay', type: 'ewallet', icon: gopaySvg },
+  { id: 'ovo', name: 'OVO', type: 'ewallet', icon: ovoSvg },
+  { id: 'dana', name: 'DANA', type: 'ewallet', icon: danaSvg },
+  { id: 'shopeepay', name: 'ShopeePay', type: 'ewallet', icon: shopeepaySvg },
+  { id: 'linkaja', name: 'LinkAja', type: 'ewallet', icon: linkajaSvg },
+  { id: 'qris', name: 'QRIS', type: 'ewallet', icon: qrisSvg },
+  { id: 'paypal', name: 'PayPal', type: 'ewallet', icon: paypalSvg },
+  // Kartu Kredit (Credit Card)
+  { id: 'bca_card', name: 'BCA Card', type: 'credit_card', icon: bcaCardSvg },
+  { id: 'tokopedia_card', name: 'Tokopedia Card', type: 'credit_card', icon: tokopediaCardSvg },
+  { id: 'jenius_cc', name: 'Jenius CC', type: 'credit_card', icon: jeniusCardSvg },
+  { id: 'mandiri_card', name: 'Mandiri Card', type: 'credit_card', icon: mandiriCardSvg },
+  { id: 'bni_card', name: 'BNI Card', type: 'credit_card', icon: bniCardSvg },
+  { id: 'bri_card', name: 'BRI Touch', type: 'credit_card', icon: briCardSvg },
+  { id: 'cimb_card', name: 'CIMB OCTO Card', type: 'credit_card', icon: cimbCardSvg },
+  { id: 'jcb', name: 'JCB', type: 'credit_card', icon: jcbSvg },
+  { id: 'amex', name: 'American Express', type: 'credit_card', icon: amexSvg },
+  { id: 'visa', name: 'Visa', type: 'credit_card', icon: visaSvg },
+  { id: 'mastercard', name: 'Mastercard', type: 'credit_card', icon: mastercardSvg },
+  // Merchant
+  { id: 'alfamart', name: 'Alfamart', type: 'merchant', icon: alfamartSvg },
+  { id: 'indomaret', name: 'Indomaret', type: 'merchant', icon: indomaretSvg },
 ];
 
 export const BANK_ACCOUNTS = DEFAULT_ACCOUNTS.filter(a => a.type === 'bank');
@@ -66,129 +89,106 @@ export const normalizeAccountName = (rawName) => {
   const lower = clean.toLowerCase();
 
   // 1. BRI / BRImo
-  if (/^(bri|brimo|bank\s*bri|pt\s*bank\s*rakyat\s*indonesia)$/i.test(lower)) {
+  if (/^(bri|brimo|bank\s*bri|bri\s*mo|rek\s*bri|rekening\s*bri)$/i.test(lower) || lower === 'bri' || lower === 'brimo') {
     return 'BRImo';
   }
 
-  // 2. BCA
-  if (/^(bca|bank\s*bca|pt\s*bank\s*central\s*asia|halo\s*bca)$/i.test(lower)) {
+  // 2. Mandiri / Livin
+  if (/^(mandiri|livin|livin\s*by\s*mandiri|bank\s*mandiri|mandiri\s*livin|rek\s*mandiri)$/i.test(lower) || lower === 'mandiri' || lower === 'livin') {
+    return 'Livin';
+  }
+
+  // 3. BNI / Wondr
+  if (/^(bni|wondr|wondr\s*by\s*bni|bank\s*bni|bni\s*wondr|rek\s*bni)$/i.test(lower) || lower === 'bni' || lower === 'wondr') {
+    return 'Wondr';
+  }
+
+  // 4. BTN / Bale by BTN
+  if (/^(btn|bale|bale\s*by\s*btn|bank\s*btn|bale\s*btn)$/i.test(lower)) {
+    return 'bale by btn';
+  }
+
+  // 5. BCA / myBCA
+  if (/^(bca|mybca|my\s*bca|bank\s*bca|bca\s*mobile|klikbca|rek\s*bca)$/i.test(lower)) {
     return 'BCA';
   }
 
-  // 3. Mandiri / Livin'
-  if (/^(mandiri|livin|livin'\s*by\s*mandiri|bank\s*mandiri)$/i.test(lower)) {
-    return "Livin' by Mandiri";
-  }
-
-  // 4. BNI / Wondr
-  if (/^(bni|wondr|wondr\s*by\s*bni|bank\s*bni|bni\s*mobile)$/i.test(lower)) {
-    return 'Wondr by BNI';
-  }
-
-  // 5. Jago
-  if (/^(jago|bank\s*jago)$/i.test(lower)) {
-    return 'Jago';
-  }
-
-  // 6. BSI
-  if (/^(bsi|bsi\s*mobile|bank\s*syariah\s*indonesia)$/i.test(lower)) {
-    return 'BSI Mobile';
-  }
-
-  // 7. CIMB Niaga
-  if (/^(cimb|cimb\s*niaga|octo|octo\s*mobile|octo\s*clicks)$/i.test(lower)) {
-    return 'OCTO Mobile (CIMB)';
-  }
-
-  // 8. SeaBank
-  if (/^(seabank|sea\s*bank)$/i.test(lower)) {
-    return 'SeaBank';
-  }
-
-  // 9. Jenius / BTPN
-  if (/^(jenius|btpn|jenius\s*btpn)$/i.test(lower)) {
-    return 'Jenius (BTPN)';
-  }
-
-  // 10. blu by BCA Digital
-  if (/^(blu|blu\s*by\s*bca|bca\s*digital)$/i.test(lower)) {
-    return 'blu by BCA Digital';
-  }
-
-  // 11. GoPay
-  if (/^(gopay|go-pay|gojek)$/i.test(lower)) {
+  // 6. GoPay
+  if (/^(gopay|go-pay|gope|go\s*pay|gojek|gopay\s*coin)$/i.test(lower)) {
     return 'GoPay';
   }
 
-  // 12. OVO
-  if (/^(ovo|ovo\s*cash)$/i.test(lower)) {
-    return 'OVO';
-  }
-
-  // 13. DANA
+  // 7. DANA
   if (/^(dana|dompet\s*dana)$/i.test(lower)) {
     return 'DANA';
   }
 
-  // 14. ShopeePay
-  if (/^(shopeepay|shopee\s*pay|spay)$/i.test(lower)) {
+  // 8. OVO
+  if (/^(ovo|dompet\s*ovo)$/i.test(lower)) {
+    return 'OVO';
+  }
+
+  // 9. ShopeePay
+  if (/^(shopee|shopeepay|spay|shopee\s*pay)$/i.test(lower)) {
     return 'ShopeePay';
   }
 
-  // 15. LinkAja
+  // 10. LinkAja
   if (/^(linkaja|link\s*aja)$/i.test(lower)) {
     return 'LinkAja';
   }
 
-  // 16. i.saku
-  if (/^(isaku|i\.saku|indomaret)$/i.test(lower)) {
-    return 'i.saku';
+  // 11. BSI
+  if (/^(bsi|bank\s*syariah\s*indonesia|bsi\s*mobile|syariah)$/i.test(lower)) {
+    return 'BSI';
   }
 
-  // 17. Permata
-  if (/^(permata|permatame|bank\s*permata)$/i.test(lower)) {
-    return 'PermataME';
+  // 12. SeaBank
+  if (/^(seabank|sea\s*bank|shopee\s*bank)$/i.test(lower)) {
+    return 'SeaBank';
   }
 
-  // 18. Danamon
-  if (/^(danamon|d-bank|d-bank\s*pro|bank\s*danamon)$/i.test(lower)) {
-    return 'D-Bank PRO (Danamon)';
+  // 13. Bank Jago
+  if (/^(jago|bank\s*jago)$/i.test(lower)) {
+    return 'Bank Jago';
   }
 
-  // 19. Neobank
-  if (/^(neo|neobank|bank\s*neo|bnc)$/i.test(lower)) {
-    return 'Neobank (BNC)';
+  // 14. Jenius / BTPN
+  if (/^(jenius|btpn|jenius\s*btpn)$/i.test(lower)) {
+    return 'Jenius';
   }
 
-  // 20. Flip
-  if (/^(flip|flip\s*saldo)$/i.test(lower)) {
-    return 'Flip Saldo';
+  // 15. blu / BCA Digital
+  if (/^(blu|blu\s*by\s*bca|bca\s*digital)$/i.test(lower)) {
+    return 'blu';
   }
 
-  // 21. AstraPay
-  if (/^(astrapay|astra\s*pay)$/i.test(lower)) {
-    return 'AstraPay';
+  // 16. BPD DIY
+  if (/^(bpddiy|bpd\s*diy|bpd\s*diy\s*mobile|bpddiy\s*mobile|bank\s*bpd\s*diy)$/i.test(lower)) {
+    return 'BPD DIY';
   }
 
-  // 22. GrabPay
-  if (/^(grabpay|grab\s*pay|grab)$/i.test(lower)) {
-    return 'GrabPay';
+  // 17. CIMB Niaga
+  if (/^(cimb|cimb\s*niaga|octo|octo\s*mobile|octo\s*clicks)$/i.test(lower)) {
+    return 'CIMB Niaga';
   }
 
-  // 23. E-commerce wallets
-  if (/^(pegadaian|gadai|sahabat\s*pegadaian)$/i.test(lower)) {
-    return 'Pegadaian';
-  }
-  if (/^(tokopedia|toped|tokped)$/i.test(lower)) {
-    return 'Tokopedia';
+  // 18. Permata
+  if (/^(permata|bank\s*permata|permata\s*me)$/i.test(lower)) {
+    return 'Permata';
   }
 
-  // 24. Tunai / Cash
-  if (/^(cash|tunai|uang\s*tunai|dompet|kas)$/i.test(lower)) {
+  // 19. Cash
+  if (/^(cash|tunai|uang\s*tunai|dompet|cash\s*\/\s*tunai)$/i.test(lower)) {
     return 'Cash';
   }
 
-  // 25. BTN / bale by BTN
+  // 20. QRIS
+  if (/^(qris|qris\s*payment)$/i.test(lower)) {
+    return 'QRIS';
+  }
+
+  // 21. BTN / bale by BTN
   if (/^(bale\s*by\s*btn|bale\s*btn|bale|btn|bank\s*btn|btn\s*mobile)$/i.test(lower)) {
     return 'bale by btn';
   }

@@ -265,7 +265,6 @@ export default function LocalhostMenubarTuner() {
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isPillDismissed, setIsPillDismissed] = useState(false);
   const [activeTab, setActiveTab] = useState('menubar'); // 'menubar' | 'bubble' | 'tx_anim'
   const [toastMsg, setToastMsg] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
@@ -379,6 +378,19 @@ export default function LocalhostMenubarTuner() {
     root.style.setProperty('--tx-anim-dur', `${settings.txAnimDur}s`);
   }, [settings, isLocalhost]);
 
+  // Keyboard shortcut (Alt + T) untuk toggle panel saat di desktop localhost
+  useEffect(() => {
+    if (!isLocalhost) return;
+    const handleKeyDown = (e) => {
+      if (e.altKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLocalhost]);
+
   if (!isLocalhost) return null;
 
   const update = (field, value) => {
@@ -387,7 +399,7 @@ export default function LocalhostMenubarTuner() {
   };
 
   // Tombol SAVE eksplisit agar tersimpan kuat di localStorage
-  const handleSelectClearVariant = (variant) => {
+  const _handleSelectClearVariant = (variant) => {
     update('clearVariant', variant.id);
     update('backdropFilter', variant.filterUrl);
     document.documentElement.style.setProperty('--nav-glass-backdrop', variant.filterUrl);
@@ -395,7 +407,7 @@ export default function LocalhostMenubarTuner() {
     showToast(`✨ Varian Clear "${variant.label}" aktif! ${variant.desc}`);
   };
 
-  const handleApplyBlurEffect = (eff) => {
+  const _handleApplyBlurEffect = (eff) => {
     setSettings((prev) => ({
       ...prev,
       blurEffectId: eff.id,
@@ -589,19 +601,6 @@ export default function LocalhostMenubarTuner() {
   };
 
 
-  // Keyboard shortcut (Alt + T) untuk toggle panel saat di desktop localhost
-  useEffect(() => {
-    if (!isLocalhost) return;
-    const handleKeyDown = (e) => {
-      if (e.altKey && (e.key === 't' || e.key === 'T')) {
-        e.preventDefault();
-        setIsPillDismissed(false);
-        setIsOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLocalhost]);
 
   return (
     <>
